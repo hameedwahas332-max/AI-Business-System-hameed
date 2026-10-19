@@ -1,0 +1,6 @@
+{
+  "name": "Enterprise ERP SaaS",
+  "description": "Multi-tenant cloud accounting, inventory, and ERP platform with automated compliance, observability, and AI assistant.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
