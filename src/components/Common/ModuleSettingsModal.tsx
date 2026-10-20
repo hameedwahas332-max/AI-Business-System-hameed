@@ -33,7 +33,8 @@ export type SupportedModuleName =
   | 'general';
 
 interface ModuleSettingsModalProps {
-  moduleName: SupportedModuleName;
+  moduleName?: SupportedModuleName;
+  module?: SupportedModuleName;
   buttonLabel?: string;
   className?: string;
 }
@@ -52,9 +53,11 @@ const MODULE_TITLES: Record<SupportedModuleName, string> = {
 
 export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
   moduleName,
+  module,
   buttonLabel = '⚙️ إعدادات القسم',
   className = '',
 }) => {
+  const effectiveModule: SupportedModuleName = module || moduleName || 'general';
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'module' | 'presets' | 'sidebar'>('module');
   const [savedNotice, setSavedNotice] = useState(false);
@@ -131,7 +134,7 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <span>{MODULE_TITLES[moduleName] || 'إعدادات القسم'}</span>
+                    <span>{MODULE_TITLES[effectiveModule] || 'إعدادات القسم'}</span>
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
                       LIVE ENGINE
                     </span>
@@ -206,7 +209,7 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
               {activeTab === 'module' && (
                 <div className="space-y-4">
                   {/* Products & Inventory Settings */}
-                  {(moduleName === 'products' || moduleName === 'inventory' || moduleName === 'purchases' || moduleName === 'general') && (
+                  {(effectiveModule === 'products' || effectiveModule === 'inventory' || effectiveModule === 'purchases' || effectiveModule === 'general') && (
                     <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800 space-y-3">
                       <h4 className="font-bold text-slate-200 flex items-center gap-2">
                         <Layers className="w-4 h-4 text-emerald-400" />
@@ -293,7 +296,7 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
                   )}
 
                   {/* POS & Invoices Settings */}
-                  {(moduleName === 'pos' || moduleName === 'invoices' || moduleName === 'purchases' || moduleName === 'general') && (
+                  {(effectiveModule === 'pos' || effectiveModule === 'invoices' || effectiveModule === 'purchases' || effectiveModule === 'general') && (
                     <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800 space-y-3">
                       <h4 className="font-bold text-slate-200 flex items-center gap-2">
                         <CreditCard className="w-4 h-4 text-amber-400" />
@@ -382,7 +385,7 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
                   )}
 
                   {/* Customers, Suppliers & Payments Settings */}
-                  {(moduleName === 'customers' || moduleName === 'suppliers' || moduleName === 'payments' || moduleName === 'general') && (
+                  {(effectiveModule === 'customers' || effectiveModule === 'suppliers' || effectiveModule === 'payments' || effectiveModule === 'general') && (
                     <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800 space-y-3">
                       <h4 className="font-bold text-slate-200 flex items-center gap-2">
                         <Building2 className="w-4 h-4 text-sky-400" />

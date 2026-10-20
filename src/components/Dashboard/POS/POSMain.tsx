@@ -23,10 +23,12 @@ import {
   RefreshCw,
   Tag,
   Package,
+  Zap,
 } from 'lucide-react';
 import { api } from '../../../api';
 import { useAuth } from '../../../context/AuthContext';
-import { POSCartItem, POSShift, POSHeldSale } from '../../../types';
+import { POSCartItem, POSShift, POSHeldSale, PriceTier } from '../../../types';
+import { ModuleSettingsModal } from '../../Common/ModuleSettingsModal';
 import { POSQuickItemModal } from './POSQuickItemModal';
 import { POSCustomerSelector } from './POSCustomerSelector';
 import { POSPaymentModal } from './POSPaymentModal';
@@ -73,6 +75,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
   const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
   const [cartDiscount, setCartDiscount] = useState<number>(0);
   const [cartTaxRate, setCartTaxRate] = useState<number>(0); // e.g. 0% or 15%
+  const [selectedPriceTier, setSelectedPriceTier] = useState<PriceTier>('retail');
 
   // Modals
   const [isQuickItemOpen, setIsQuickItemOpen] = useState(false);
@@ -84,6 +87,21 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper for Tiered Pricing
+  const getProductPriceForTier = (product: any, tier: PriceTier = selectedPriceTier) => {
+    if (tier === 'vip' && Number(product.vipPrice) > 0) return Number(product.vipPrice);
+    if (tier === 'wholesale' && Number(product.wholesalePrice) > 0) return Number(product.wholesalePrice);
+    if (tier === 'half_wholesale' && Number(product.halfWholesalePrice) > 0) return Number(product.halfWholesalePrice);
+    return Number(product.retailPrice ?? product.retail_price ?? product.selling_price ?? product.price ?? 0);
+  };
+
+  // Helper for Auto-Calculating Warranty End Date (Months from now)
+  const calculateWarrantyEndDate = (months: number = 12) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + months);
+    return d.toISOString().split('T')[0];
+  };
 
   // Initial Data Fetch
   const loadInitialData = async () => {
@@ -181,26 +199,38 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [cart, selectedCustomer]);
 
-  // Cart Calculations
-  const subtotal = cart.reduce((sum, item) => sum + item.quantity * item.unitPrice - (item.discount || 0), 0);
+  // Cart Calculations (Accounting for item discounts and battery scrap deductions)
+  const subtotal = cart.reduce(
+    (sum, item) =>
+      sum +
+      item.quantity * item.unitPrice -
+      (Number(item.discount) || 0) -
+      (Number(item.scrapDiscount) || 0),
+    0
+  );
   const taxAmount = (subtotal - cartDiscount) * (cartTaxRate / 100);
   const grandTotal = Math.max(0, subtotal - cartDiscount + taxAmount);
 
-  // Add Product to Cart
+  // Add Product to Cart with Multi-UOM, Tiered Price, & Battery Spec
   const handleAddToCart = (product: any) => {
+    const price = getProductPriceForTier(product, selectedPriceTier);
+    const isBattery = product.activityType === 'battery';
+    const warrantyMonths = Number(product.warrantyMonths || 12);
+
     setCart((prev) => {
-      const existingIndex = prev.findIndex((item) => item.productId === product.id);
+      const existingIndex = prev.findIndex((item) => item.productId === product.id && item.selectedUnit === 'base');
       if (existingIndex > -1) {
         const updated = [...prev];
         const newQty = updated[existingIndex].quantity + 1;
+        const lineScrap = Number(updated[existingIndex].scrapDiscount || 0);
+        const lineDisc = Number(updated[existingIndex].discount || 0);
         updated[existingIndex] = {
           ...updated[existingIndex],
           quantity: newQty,
-          total: newQty * updated[existingIndex].unitPrice - (updated[existingIndex].discount || 0),
+          total: Math.max(0, newQty * updated[existingIndex].unitPrice - lineDisc - lineScrap),
         };
         return updated;
       } else {
-        const price = Number(product.selling_price || 0);
         return [
           ...prev,
           {
@@ -210,16 +240,91 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
             sku: product.sku,
             barcode: product.barcode,
             category: product.category,
-            unit: product.unit || 'حبة',
+            activityType: product.activityType,
+            unit: product.baseUnitName || product.unit || 'حبة',
+            unitName: product.baseUnitName || product.unit || 'حبة',
+            selectedUnit: 'base',
+            unitFactor: 1,
+            baseUnitName: product.baseUnitName || product.unit || 'حبة',
+            subUnitName: product.subUnitName,
+            subUnitFactor: Number(product.subUnitFactor || 1),
+            subUnitPrice: Number(product.subUnitPrice || 0),
+            majorUnitName: product.majorUnitName,
+            majorUnitFactor: Number(product.majorUnitFactor || 1),
+            majorUnitPrice: Number(product.majorUnitPrice || 0),
             quantity: 1,
             unitPrice: price,
+            price: price,
+            retailPrice: price,
             discount: 0,
             tax: 0,
             total: price,
-            currentStock: Number(product.current_stock || 0),
+            currentStock: Number(product.current_stock ?? product.qty ?? 0),
+            serialNumber: isBattery ? '' : undefined,
+            warrantyMonths: isBattery ? warrantyMonths : undefined,
+            warrantyEndDate: isBattery ? calculateWarrantyEndDate(warrantyMonths) : undefined,
+            scrapDiscount: 0,
           },
         ];
       }
+    });
+  };
+
+  // Update Cart Item Unit ('base' | 'sub' | 'major')
+  const handleUpdateItemUnit = (index: number, newUnit: 'base' | 'sub' | 'major') => {
+    setCart((prev) => {
+      const updated = [...prev];
+      const item = updated[index];
+      let unitName = item.baseUnitName || item.unit || 'حبة';
+      let unitFactor = 1;
+      let unitPrice = item.retailPrice || item.unitPrice;
+
+      if (newUnit === 'sub' && item.subUnitName) {
+        unitName = item.subUnitName;
+        unitFactor = item.subUnitFactor || 1;
+        unitPrice = item.subUnitPrice > 0 ? item.subUnitPrice : (item.retailPrice * unitFactor);
+      } else if (newUnit === 'major' && item.majorUnitName) {
+        unitName = item.majorUnitName;
+        unitFactor = item.majorUnitFactor || 1;
+        unitPrice = item.majorUnitPrice > 0 ? item.majorUnitPrice : (item.retailPrice * unitFactor);
+      }
+
+      const scrap = Number(item.scrapDiscount || 0);
+      const disc = Number(item.discount || 0);
+      const lineTotal = Math.max(0, item.quantity * unitPrice - disc - scrap);
+
+      updated[index] = {
+        ...item,
+        selectedUnit: newUnit,
+        unit: unitName,
+        unitName,
+        unitFactor,
+        unitPrice,
+        price: unitPrice,
+        total: lineTotal,
+      };
+      return updated;
+    });
+  };
+
+  // Update Battery Serial Number in Cart
+  const handleUpdateSerial = (index: number, serial: string) => {
+    setCart((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], serialNumber: serial };
+      return updated;
+    });
+  };
+
+  // Update Battery Scrap Trade-In Discount
+  const handleUpdateScrapDiscount = (index: number, scrap: number) => {
+    setCart((prev) => {
+      const updated = [...prev];
+      const item = updated[index];
+      const scrapVal = Math.max(0, scrap);
+      const lineTotal = Math.max(0, item.quantity * item.unitPrice - (Number(item.discount) || 0) - scrapVal);
+      updated[index] = { ...item, scrapDiscount: scrapVal, total: lineTotal };
+      return updated;
     });
   };
 
@@ -493,6 +598,9 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
             <span className="hidden sm:inline">مساعد POS</span>
           </button>
 
+          {/* POS Module Settings Button */}
+          <ModuleSettingsModal module="pos" buttonLabel="⚙️ إعدادات القسم" />
+
           {/* Currency Switcher */}
           <select
             value={currency}
@@ -522,6 +630,34 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
       <div className="flex-1 flex overflow-hidden">
         {/* Left Side: Product Search, Category Pills, & Catalog Grid */}
         <section className="flex-1 flex flex-col min-w-0 border-l border-slate-800/80 bg-slate-950/60 p-4 space-y-3">
+          {/* Price Tier Selector Bar */}
+          <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-800 p-2 rounded-2xl shrink-0 overflow-x-auto">
+            <span className="text-xs font-bold text-slate-400 px-1 shrink-0 flex items-center gap-1">
+              <Tag className="w-3.5 h-3.5 text-emerald-400" />
+              مستوى التسعير:
+            </span>
+            {[
+              { id: 'retail', label: 'تجزئة (Retail)', icon: '🛍️' },
+              { id: 'half_wholesale', label: 'نصف جملة', icon: '📦' },
+              { id: 'wholesale', label: 'جملة (Wholesale)', icon: '🏬' },
+              { id: 'vip', label: 'VIP كبار العملاء', icon: '⭐' },
+            ].map((tier) => (
+              <button
+                key={tier.id}
+                type="button"
+                onClick={() => setSelectedPriceTier(tier.id as PriceTier)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                  selectedPriceTier === tier.id
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-950/40 border border-emerald-400/40'
+                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                <span>{tier.icon}</span>
+                <span>{tier.label}</span>
+              </button>
+            ))}
+          </div>
+
           {/* Universal Fast Search & Barcode Bar */}
           <form onSubmit={handleBarcodeSubmit} className="flex gap-2">
             <div className="relative flex-1">
@@ -675,13 +811,33 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                   className="p-3 bg-slate-800/40 border border-slate-800/80 rounded-2xl space-y-2 hover:border-slate-700 transition-all"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <h4 className="text-xs font-bold text-white truncate">{item.name}</h4>
-                      <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
-                        <span>{item.unitPrice.toLocaleString()} {currency}</span>
+                      <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 flex-wrap">
+                        <span className="font-mono text-emerald-400 font-bold">
+                          {item.unitPrice.toLocaleString()} {currency}
+                        </span>
+
+                        {/* Unit Selector Dropdown */}
                         {item.productId && (
-                          <span className="text-[10px] text-slate-500">({item.unit})</span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] text-slate-500">الوحدة:</span>
+                            <select
+                              value={item.selectedUnit || 'base'}
+                              onChange={(e) => handleUpdateItemUnit(idx, e.target.value as any)}
+                              className="bg-slate-900 border border-slate-700 text-slate-200 text-[10px] font-bold rounded-md px-1.5 py-0.5 focus:outline-none"
+                            >
+                              <option value="base">{item.baseUnitName || item.unit || 'حبة'}</option>
+                              {item.subUnitName && (
+                                <option value="sub">{item.subUnitName} ({item.subUnitFactor || 1}x)</option>
+                              )}
+                              {item.majorUnitName && (
+                                <option value="major">{item.majorUnitName} ({item.majorUnitFactor || 1}x)</option>
+                              )}
+                            </select>
+                          </div>
                         )}
+
                         {!item.productId && (
                           <span className="text-[10px] text-blue-400 font-medium">صنف يدوي</span>
                         )}
@@ -690,19 +846,60 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
 
                     <button
                       onClick={() => handleRemoveCartItem(idx)}
-                      className="p-1 text-slate-500 hover:text-rose-400 rounded-lg transition-colors"
+                      className="p-1 text-slate-500 hover:text-rose-400 rounded-lg transition-colors cursor-pointer"
                       title="حذف الصنف"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
+                  {/* Battery Spec & Inline Warranty & Scrap Discount Controls */}
+                  {item.activityType === 'battery' && (
+                    <div className="bg-amber-950/20 border border-amber-800/40 rounded-xl p-2 space-y-1.5 text-xs">
+                      <div className="flex items-center justify-between text-[10px] text-amber-300 font-bold">
+                        <span className="flex items-center gap-1">
+                          <Zap className="w-3 h-3 text-amber-400" />
+                          بيانات الضمان واستبدال الرجيع
+                        </span>
+                        {item.warrantyEndDate && (
+                          <span className="text-[9px] text-slate-400 font-mono">
+                            ضمان {item.warrantyMonths || 12} شهر (حتى {item.warrantyEndDate})
+                          </span>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[9px] text-slate-400 mb-0.5">الرقم التسلسلي (Serial No)</label>
+                          <input
+                            type="text"
+                            placeholder="SN-BAT..."
+                            value={item.serialNumber || ''}
+                            onChange={(e) => handleUpdateSerial(idx, e.target.value)}
+                            className="w-full bg-slate-900 border border-amber-500/40 rounded px-1.5 py-1 text-[10px] text-white font-mono focus:outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] text-slate-400 mb-0.5">خصم رجيع بطارية قديمة</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="any"
+                            placeholder="0.00"
+                            value={item.scrapDiscount || ''}
+                            onChange={(e) => handleUpdateScrapDiscount(idx, parseFloat(e.target.value) || 0)}
+                            className="w-full bg-slate-900 border border-emerald-500/40 rounded px-1.5 py-1 text-[10px] text-emerald-400 font-mono font-bold focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Qty & Item Total Controls */}
                   <div className="flex items-center justify-between pt-1 border-t border-slate-800/50">
                     <div className="flex items-center gap-1 bg-slate-900 rounded-xl p-1 border border-slate-800">
                       <button
                         onClick={() => handleUpdateQty(idx, item.quantity - 1)}
-                        className="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center"
+                        className="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center cursor-pointer"
                       >
                         -
                       </button>
@@ -716,7 +913,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                       />
                       <button
                         onClick={() => handleUpdateQty(idx, item.quantity + 1)}
-                        className="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center"
+                        className="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center cursor-pointer"
                       >
                         +
                       </button>
@@ -724,7 +921,10 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
 
                     {/* Total for this line */}
                     <div className="text-sm font-black text-emerald-400">
-                      {(item.quantity * item.unitPrice - (item.discount || 0)).toLocaleString()}{' '}
+                      {Math.max(
+                        0,
+                        item.quantity * item.unitPrice - (Number(item.discount) || 0) - (Number(item.scrapDiscount) || 0)
+                      ).toLocaleString()}{' '}
                       <span className="text-[10px] font-bold">{currency}</span>
                     </div>
                   </div>

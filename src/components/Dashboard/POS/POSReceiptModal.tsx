@@ -43,18 +43,24 @@ export const POSReceiptModal: React.FC<POSReceiptModalProps> = ({
       partyName: receiptData.customer?.name || 'عميل كاشير نقدي',
       partyPhone: receiptData.customer?.phone,
       paymentMethod: receiptData.paymentMethod || 'نقداً',
-      items: (receiptData.items || []).map((it: any) => ({
-        name: it.product_name || it.name,
-        quantity: it.quantity,
-        unitPrice: it.unit_price || it.price,
-        total: it.total,
-      })),
+      items: (receiptData.items || []).map((it: any) => {
+        let title = it.product_name || it.name || it.itemName;
+        if (it.unit && it.unit !== 'حبة') title += ` (${it.unit})`;
+        if (it.serialNumber) title += ` [سيريال: ${it.serialNumber}] (ضمان: ${it.warrantyEndDate || ''})`;
+        if (Number(it.scrapDiscount) > 0) title += ` [خصم رجيع: -${it.scrapDiscount}]`;
+        return {
+          name: title,
+          quantity: it.quantity,
+          unitPrice: it.unit_price || it.price || it.unitPrice,
+          total: it.total,
+        };
+      }),
       subtotal: receiptData.subtotal,
       tax: receiptData.tax,
       total: receiptData.total,
       paidAmount: receiptData.paidAmount,
       remainingAmount: receiptData.remainingAmount,
-      notes: 'شكراً لتعاملكم معنا ونسعد بخدمتكم دائماً',
+      notes: receiptData.notes || 'شكراً لتعاملكم معنا ونسعد بخدمتكم دائماً',
     });
   };
 
@@ -153,15 +159,27 @@ export const POSReceiptModal: React.FC<POSReceiptModalProps> = ({
               </div>
               <div className="space-y-1.5 pt-1.5">
                 {receiptData.items?.map((item: any, idx: number) => (
-                  <div key={idx} className="flex justify-between items-start text-[10px]">
-                    <div className="w-1/2 text-right font-sans leading-tight">
-                      <div>{item.itemName || item.name}</div>
-                      <span className="text-[9px] text-slate-500">
-                        {item.quantity} × {item.unitPrice?.toLocaleString()} {receiptData.currency}
-                      </span>
+                  <div key={idx} className="border-b border-dotted border-slate-300 pb-1 pt-0.5 text-[10px]">
+                    <div className="flex justify-between items-start">
+                      <div className="w-1/2 text-right font-sans leading-tight">
+                        <div className="font-bold">{item.itemName || item.name}</div>
+                        <span className="text-[9px] text-slate-500">
+                          {item.quantity} {item.unit || item.unitName || 'حبة'} × {item.unitPrice?.toLocaleString()} {receiptData.currency}
+                        </span>
+                      </div>
+                      <div className="w-1/6 text-center font-bold">{item.quantity}</div>
+                      <div className="w-1/3 text-left font-bold">{item.total?.toLocaleString()}</div>
                     </div>
-                    <div className="w-1/6 text-center font-bold">{item.quantity}</div>
-                    <div className="w-1/3 text-left font-bold">{item.total?.toLocaleString()}</div>
+                    {item.serialNumber && (
+                      <div className="text-[9px] text-amber-800 font-mono mt-0.5">
+                        ⚡ سيريال: {item.serialNumber} {item.warrantyEndDate ? `(ضمان حتى ${item.warrantyEndDate})` : ''}
+                      </div>
+                    )}
+                    {Number(item.scrapDiscount) > 0 && (
+                      <div className="text-[9px] text-emerald-800 font-bold mt-0.5">
+                        ♻️ خصم رجيع بطارية قديمة: -{Number(item.scrapDiscount).toLocaleString()} {receiptData.currency}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

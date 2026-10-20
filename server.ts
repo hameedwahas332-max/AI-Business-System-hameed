@@ -251,17 +251,461 @@ app.get('/api/v1/suppliers', (_req: Request, res: Response) => {
   });
 });
 
-app.get('/api/v1/products', (_req: Request, res: Response) => {
-  res.json({
-    success: true,
-    data: [
-      { id: 'prod-1', sku: 'TEA-01', name: 'شاي سيلاني فاخر 100 كيس', qty: 240, current_stock: 240, price: 18.5, retail_price: 18.5, cost_price: 13.0, status: 'متوفر', activityType: 'food' },
-      { id: 'prod-2', sku: 'COF-02', name: 'قهوة عربية بالهيل 500جم', qty: 85, current_stock: 85, price: 42.0, retail_price: 42.0, cost_price: 31.0, status: 'متوفر', activityType: 'food' },
-      { id: 'prod-3', sku: 'RIC-03', name: 'أرز بسمتي هندي 5 كجم', qty: 14, current_stock: 14, price: 55.0, retail_price: 55.0, cost_price: 43.0, status: 'منخفض', activityType: 'food' },
-      { id: 'prod-4', sku: 'BAT-70', name: 'بطارية هانكوك 70 أمبير جافة', qty: 28, current_stock: 28, price: 290.0, retail_price: 290.0, cost_price: 220.0, status: 'متوفر', activityType: 'battery', batterySpec: '70Ah - 12V', warrantyMonths: 12 },
-      { id: 'prod-5', sku: 'OIL-20W50', name: 'زيت محرك بترومين سوبر 20W-50 (4 لتر)', qty: 65, current_stock: 65, price: 75.0, retail_price: 75.0, cost_price: 54.0, status: 'متوفر', activityType: 'oil', viscosityGrade: '20W-50' },
-    ],
-  });
+let mockProducts = [
+  {
+    id: 'prod-1',
+    sku: 'TEA-01',
+    barcode: '629100100112',
+    name: 'شاي سيلاني فاخر 100 كيس',
+    category: 'مواد غذائية',
+    activityType: 'food',
+    unit: 'حبة',
+    baseUnitName: 'حبة',
+    subUnitName: 'باكت',
+    subUnitFactor: 12,
+    subUnitPrice: 210,
+    subUnitBarcode: '629100100113',
+    majorUnitName: 'كرتون',
+    majorUnitFactor: 24,
+    majorUnitPrice: 400,
+    majorUnitBarcode: '629100100114',
+    price: 18.5,
+    selling_price: 18.5,
+    retail_price: 18.5,
+    retailPrice: 18.5,
+    halfWholesalePrice: 17.5,
+    wholesalePrice: 16.5,
+    vipPrice: 16.0,
+    purchase_price: 13.0,
+    cost_price: 13.0,
+    qty: 240,
+    current_stock: 240,
+    min_stock_level: 20,
+    status: 'متوفر',
+    is_active: true,
+    batchNumber: 'B-2026-OCT',
+    productionDate: '2026-09-01',
+    expiryDate: '2027-09-01',
+  },
+  {
+    id: 'prod-2',
+    sku: 'COF-02',
+    barcode: '629100200223',
+    name: 'قهوة عربية بالهيل 500جم',
+    category: 'مواد غذائية',
+    activityType: 'food',
+    unit: 'حبة',
+    baseUnitName: 'حبة',
+    subUnitName: 'درزن',
+    subUnitFactor: 12,
+    subUnitPrice: 480,
+    majorUnitName: 'كرتون',
+    majorUnitFactor: 24,
+    majorUnitPrice: 920,
+    price: 42.0,
+    selling_price: 42.0,
+    retail_price: 42.0,
+    retailPrice: 42.0,
+    halfWholesalePrice: 40.0,
+    wholesalePrice: 38.0,
+    vipPrice: 37.0,
+    purchase_price: 31.0,
+    cost_price: 31.0,
+    qty: 85,
+    current_stock: 85,
+    min_stock_level: 15,
+    status: 'متوفر',
+    is_active: true,
+    batchNumber: 'COF-2026-A',
+    productionDate: '2026-08-15',
+    expiryDate: '2027-08-15',
+  },
+  {
+    id: 'prod-3',
+    sku: 'RIC-03',
+    barcode: '629100300334',
+    name: 'أرز بسمتي هندي ممتاز 5 كجم',
+    category: 'مواد غذائية',
+    activityType: 'food',
+    unit: 'كيس',
+    baseUnitName: 'كيس',
+    majorUnitName: 'شوال (4 أكياس)',
+    majorUnitFactor: 4,
+    majorUnitPrice: 210,
+    price: 55.0,
+    selling_price: 55.0,
+    retail_price: 55.0,
+    retailPrice: 55.0,
+    halfWholesalePrice: 53.0,
+    wholesalePrice: 51.0,
+    vipPrice: 50.0,
+    purchase_price: 43.0,
+    cost_price: 43.0,
+    qty: 14,
+    current_stock: 14,
+    min_stock_level: 15,
+    status: 'قريب من النفاذ',
+    is_active: true,
+    batchNumber: 'RICE-2026-X',
+    productionDate: '2026-07-01',
+    expiryDate: '2026-11-20', // Close to expiry
+  },
+  {
+    id: 'prod-4',
+    sku: 'BAT-70',
+    barcode: '880123456789',
+    name: 'بطارية هانكوك 70 أمبير جافة',
+    category: 'بطاريات وأجهزة',
+    activityType: 'battery',
+    unit: 'حبة',
+    baseUnitName: 'حبة',
+    majorUnitName: 'طبلية (10 حبات)',
+    majorUnitFactor: 10,
+    majorUnitPrice: 2800,
+    price: 290.0,
+    selling_price: 290.0,
+    retail_price: 290.0,
+    retailPrice: 290.0,
+    halfWholesalePrice: 280.0,
+    wholesalePrice: 270.0,
+    vipPrice: 265.0,
+    purchase_price: 220.0,
+    cost_price: 220.0,
+    qty: 28,
+    current_stock: 28,
+    min_stock_level: 8,
+    status: 'متوفر',
+    is_active: true,
+    batterySpec: '70Ah - 12V SMF',
+    warrantyMonths: 12,
+    scrapDiscountValue: 50.0,
+    requiresSerial: true,
+  },
+  {
+    id: 'prod-4b',
+    sku: 'BAT-100',
+    barcode: '880123456790',
+    name: 'بطارية إيه سي ديلكو 100 أمبير ياباني',
+    category: 'بطاريات وأجهزة',
+    activityType: 'battery',
+    unit: 'حبة',
+    baseUnitName: 'حبة',
+    majorUnitName: 'طبلية (8 حبات)',
+    majorUnitFactor: 8,
+    majorUnitPrice: 3100,
+    price: 410.0,
+    selling_price: 410.0,
+    retail_price: 410.0,
+    retailPrice: 410.0,
+    halfWholesalePrice: 395.0,
+    wholesalePrice: 380.0,
+    vipPrice: 375.0,
+    purchase_price: 320.0,
+    cost_price: 320.0,
+    qty: 18,
+    current_stock: 18,
+    min_stock_level: 6,
+    status: 'متوفر',
+    is_active: true,
+    batterySpec: '100Ah - 12V Heavy Duty',
+    warrantyMonths: 18,
+    scrapDiscountValue: 70.0,
+    requiresSerial: true,
+  },
+  {
+    id: 'prod-5',
+    sku: 'OIL-20W50',
+    barcode: '628100500556',
+    name: 'زيت محرك بترومين سوبر 20W-50 (4 لتر)',
+    category: 'زيوت وقطع غيار',
+    activityType: 'oil',
+    unit: 'جالون',
+    baseUnitName: 'جالون',
+    majorUnitName: 'كرتون (6 جوالين)',
+    majorUnitFactor: 6,
+    majorUnitPrice: 430,
+    price: 75.0,
+    selling_price: 75.0,
+    retail_price: 75.0,
+    retailPrice: 75.0,
+    halfWholesalePrice: 72.0,
+    wholesalePrice: 69.0,
+    vipPrice: 68.0,
+    purchase_price: 54.0,
+    cost_price: 54.0,
+    qty: 65,
+    current_stock: 65,
+    min_stock_level: 12,
+    status: 'متوفر',
+    is_active: true,
+    viscosityGrade: '20W-50',
+    oemCode: 'PET-20W50-SL',
+    litersPerUnit: 4,
+  },
+  {
+    id: 'prod-5b',
+    sku: 'OIL-5W30',
+    barcode: '628100500557',
+    name: 'زيت كاسترول ماجناتيك تخليقي 5W-30 (1 لتر)',
+    category: 'زيوت وقطع غيار',
+    activityType: 'oil',
+    unit: 'لتر',
+    baseUnitName: 'لتر',
+    majorUnitName: 'كرتون (12 لتر)',
+    majorUnitFactor: 12,
+    majorUnitPrice: 410,
+    price: 36.0,
+    selling_price: 36.0,
+    retail_price: 36.0,
+    retailPrice: 36.0,
+    halfWholesalePrice: 34.5,
+    wholesalePrice: 33.0,
+    vipPrice: 32.5,
+    purchase_price: 26.0,
+    cost_price: 26.0,
+    qty: 48,
+    current_stock: 48,
+    min_stock_level: 10,
+    status: 'متوفر',
+    is_active: true,
+    viscosityGrade: '5W-30 Fully Synthetic',
+    oemCode: 'CAS-5W30-SN',
+    litersPerUnit: 1,
+  },
+  {
+    id: 'prod-6',
+    sku: 'GEN-01',
+    barcode: '629100600667',
+    name: 'مناديل ورقية فاخرة عبوة عائلية',
+    category: 'عام',
+    activityType: 'general',
+    unit: 'باكت',
+    baseUnitName: 'باكت',
+    majorUnitName: 'كرتون (10 باكت)',
+    majorUnitFactor: 10,
+    majorUnitPrice: 75,
+    price: 8.5,
+    selling_price: 8.5,
+    retail_price: 8.5,
+    retailPrice: 8.5,
+    halfWholesalePrice: 8.0,
+    wholesalePrice: 7.5,
+    vipPrice: 7.2,
+    purchase_price: 5.5,
+    cost_price: 5.5,
+    qty: 92,
+    current_stock: 92,
+    min_stock_level: 20,
+    status: 'متوفر',
+    is_active: true,
+  },
+];
+
+let mockInventoryMovements = [
+  {
+    id: 'mov-1',
+    product_id: 'prod-4',
+    product_name: 'بطارية هانكوك 70 أمبير جافة',
+    type: 'IN',
+    quantity: 15,
+    remaining_stock: 28,
+    reference_type: 'PURCHASE_INVOICE',
+    reference_id: 'PUR-2026-0012',
+    date: '2026-10-18T10:30:00Z',
+    notes: 'توريد دفعة بطاريات جديدة من الوكيل',
+  },
+  {
+    id: 'mov-2',
+    product_id: 'prod-1',
+    product_name: 'شاي سيلاني فاخر 100 كيس',
+    type: 'OUT',
+    quantity: 12,
+    remaining_stock: 240,
+    reference_type: 'SALES_INVOICE',
+    reference_id: 'INV-2026-0042',
+    date: '2026-10-18T14:15:00Z',
+    notes: 'صرف مبيعات بالكرتون لعميل جملة',
+  },
+  {
+    id: 'mov-3',
+    product_id: 'prod-5',
+    product_name: 'زيت محرك بترومين سوبر 20W-50 (4 لتر)',
+    type: 'OUT',
+    quantity: 4,
+    remaining_stock: 65,
+    reference_type: 'POS_RECEIPT',
+    reference_id: 'POS-REC-1092',
+    date: '2026-10-18T16:45:00Z',
+    notes: 'بيع كاشير سريع فوري',
+  },
+  {
+    id: 'mov-4',
+    product_id: 'prod-3',
+    product_name: 'أرز بسمتي هندي ممتاز 5 كجم',
+    type: 'ADJUSTMENT',
+    quantity: -2,
+    remaining_stock: 14,
+    reference_type: 'PHYSICAL_INVENTORY',
+    reference_id: 'AUDIT-2026-10',
+    date: '2026-10-17T09:00:00Z',
+    notes: 'تسوية فارق جرد دوري فعلي (تلف كيس أثناء النقل)',
+  },
+];
+
+app.get('/api/v1/products', (req: Request, res: Response) => {
+  const { search, category, lowStock, activityType } = req.query as any;
+  let result = [...mockProducts];
+
+  if (search) {
+    const q = String(search).toLowerCase();
+    result = result.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.sku.toLowerCase().includes(q) ||
+        (p.barcode && p.barcode.includes(q))
+    );
+  }
+
+  if (category && category !== 'ALL') {
+    result = result.filter((p) => p.category === category);
+  }
+
+  if (activityType && activityType !== 'ALL') {
+    result = result.filter((p) => p.activityType === activityType);
+  }
+
+  if (lowStock === 'true') {
+    result = result.filter((p) => (p.current_stock || 0) <= (p.min_stock_level || 5));
+  }
+
+  res.json({ success: true, data: result });
+});
+
+app.post('/api/v1/products', (req: Request, res: Response) => {
+  const body = req.body || {};
+  const newProduct = {
+    id: `prod-${Date.now()}`,
+    sku: body.sku || `SKU-${Date.now()}`,
+    barcode: body.barcode || '',
+    name: body.name || 'منتج جديد',
+    category: body.category || 'عام',
+    activityType: body.activityType || 'general',
+    unit: body.unit || body.baseUnitName || 'حبة',
+    baseUnitName: body.baseUnitName || body.unit || 'حبة',
+    subUnitName: body.subUnitName,
+    subUnitFactor: Number(body.subUnitFactor || 1),
+    subUnitPrice: Number(body.subUnitPrice || 0),
+    majorUnitName: body.majorUnitName,
+    majorUnitFactor: Number(body.majorUnitFactor || 1),
+    majorUnitPrice: Number(body.majorUnitPrice || 0),
+    price: Number(body.sellingPrice || body.retailPrice || body.price || 0),
+    selling_price: Number(body.sellingPrice || body.retailPrice || body.price || 0),
+    retail_price: Number(body.sellingPrice || body.retailPrice || body.price || 0),
+    retailPrice: Number(body.retailPrice || body.sellingPrice || 0),
+    halfWholesalePrice: Number(body.halfWholesalePrice || 0),
+    wholesalePrice: Number(body.wholesalePrice || 0),
+    vipPrice: Number(body.vipPrice || 0),
+    purchase_price: Number(body.purchasePrice || body.cost_price || 0),
+    cost_price: Number(body.purchasePrice || body.cost_price || 0),
+    qty: Number(body.currentStock || body.qty || 0),
+    current_stock: Number(body.currentStock || body.qty || 0),
+    min_stock_level: Number(body.minStockLevel || body.min_stock_level || 5),
+    status: Number(body.currentStock || 0) > 0 ? 'متوفر' : 'نفد',
+    is_active: body.isActive !== false,
+    batchNumber: body.batchNumber,
+    productionDate: body.productionDate,
+    expiryDate: body.expiryDate,
+    batterySpec: body.batterySpec,
+    warrantyMonths: Number(body.warrantyMonths || 0),
+    scrapDiscountValue: Number(body.scrapDiscountValue || 0),
+    requiresSerial: Boolean(body.requiresSerial),
+    viscosityGrade: body.viscosityGrade,
+    oemCode: body.oemCode,
+    litersPerUnit: Number(body.litersPerUnit || 1),
+    description: body.description || '',
+    created_at: new Date().toISOString(),
+  };
+
+  mockProducts.unshift(newProduct);
+  res.status(201).json({ success: true, data: newProduct });
+});
+
+app.put('/api/v1/products/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const idx = mockProducts.findIndex((p) => p.id === id);
+  if (idx === -1) {
+    return res.status(404).json({ success: false, error: 'Product not found' });
+  }
+
+  const body = req.body || {};
+  mockProducts[idx] = {
+    ...mockProducts[idx],
+    ...body,
+    selling_price: body.sellingPrice !== undefined ? Number(body.sellingPrice) : mockProducts[idx].selling_price,
+    purchase_price: body.purchasePrice !== undefined ? Number(body.purchasePrice) : mockProducts[idx].purchase_price,
+    current_stock: body.currentStock !== undefined ? Number(body.currentStock) : mockProducts[idx].current_stock,
+    min_stock_level: body.minStockLevel !== undefined ? Number(body.minStockLevel) : mockProducts[idx].min_stock_level,
+    price: body.sellingPrice !== undefined ? Number(body.sellingPrice) : mockProducts[idx].price,
+  };
+
+  res.json({ success: true, data: mockProducts[idx] });
+});
+
+app.delete('/api/v1/products/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  mockProducts = mockProducts.filter((p) => p.id !== id);
+  res.json({ success: true, message: 'Product deleted' });
+});
+
+app.post('/api/v1/products/:productId/adjust-stock', (req: Request, res: Response) => {
+  const { productId } = req.params;
+  const { quantity, reason, type } = req.body || {};
+  const product = mockProducts.find((p) => p.id === productId);
+
+  if (!product) {
+    return res.status(404).json({ success: false, error: 'Product not found' });
+  }
+
+  const oldStock = product.current_stock || 0;
+  const newStock = Math.max(0, oldStock + Number(quantity || 0));
+  product.current_stock = newStock;
+  product.qty = newStock;
+
+  const mov = {
+    id: `mov-${Date.now()}`,
+    product_id: product.id,
+    product_name: product.name,
+    type: type || (quantity >= 0 ? 'IN' : 'ADJUSTMENT'),
+    quantity: Math.abs(Number(quantity || 0)),
+    remaining_stock: newStock,
+    reference_type: 'STOCK_ADJUSTMENT',
+    reference_id: `ADJ-${Date.now()}`,
+    date: new Date().toISOString(),
+    notes: reason || 'تسوية يدوية للمخزون',
+  };
+  mockInventoryMovements.unshift(mov);
+
+  res.json({ success: true, data: { product, movement: mov } });
+});
+
+app.get('/api/v1/inventory', (req: Request, res: Response) => {
+  const { search, type } = req.query as any;
+  let result = [...mockInventoryMovements];
+
+  if (search) {
+    const q = String(search).toLowerCase();
+    result = result.filter(
+      (m) =>
+        m.product_name.toLowerCase().includes(q) ||
+        (m.reference_id && m.reference_id.toLowerCase().includes(q))
+    );
+  }
+
+  if (type) {
+    result = result.filter((m) => m.type === type);
+  }
+
+  res.json({ success: true, data: result });
 });
 
 app.get('/api/v1/invoices', (_req: Request, res: Response) => {

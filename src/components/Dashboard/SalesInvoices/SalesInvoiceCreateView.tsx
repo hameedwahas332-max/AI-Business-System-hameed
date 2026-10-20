@@ -27,7 +27,11 @@ import {
   Clock,
   Sparkles,
   Zap,
+  Tag,
+  Layers,
 } from 'lucide-react';
+import { ModuleSettingsModal } from '../../Common/ModuleSettingsModal';
+import { PriceTier, ProductActivityType } from '../../../types';
 
 export type PaymentMethodType = 'CASH' | 'BANK' | 'CREDIT' | 'WALLET';
 
@@ -46,6 +50,24 @@ interface InvoiceLineItem {
   total: number;
   current_stock?: number;
   is_manual?: boolean;
+
+  // Multi-UOM
+  selectedUnit?: 'base' | 'sub' | 'major';
+  unitFactor?: number;
+  baseUnitName?: string;
+  subUnitName?: string;
+  subUnitFactor?: number;
+  subUnitPrice?: number;
+  majorUnitName?: string;
+  majorUnitFactor?: number;
+  majorUnitPrice?: number;
+
+  // Battery Spec & Warranty & Scrap
+  activityType?: ProductActivityType;
+  serialNumber?: string;
+  warrantyMonths?: number;
+  warrantyEndDate?: string;
+  scrapDiscount?: number;
 }
 
 interface SalesInvoiceCreateViewProps {
@@ -136,6 +158,8 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [quickNotice, setQuickNotice] = useState<string | null>(null);
 
+  const [selectedPriceTier, setSelectedPriceTier] = useState<PriceTier>('retail');
+
   // Selected customer details
   const selectedCustomer = customerList.find((c) => c.id === selectedCustomerId);
 
@@ -147,9 +171,9 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
     else if (newCurr === 'USD') setExchangeRate(1620.0);
   };
 
-  // Grand Totals Calculation
+  // Grand Totals Calculation (Accounting for scrap discounts)
   const subtotal = items.reduce((acc, it) => acc + (it.quantity || 0) * (it.unit_price || 0), 0);
-  const totalDiscount = items.reduce((acc, it) => acc + (it.discount || 0), 0);
+  const totalDiscount = items.reduce((acc, it) => acc + (it.discount || 0) + (it.scrapDiscount || 0), 0);
   const totalTax = items.reduce((acc, it) => acc + (it.tax || 0), 0);
   const grandTotal = Number((subtotal - totalDiscount + totalTax).toFixed(2));
   const remainingDue = Math.max(0, Number((grandTotal - paidAmount).toFixed(2)));
@@ -201,6 +225,54 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
     setTimeout(() => setQuickNotice(null), 3000);
   };
 
+  // Helper for Tiered Pricing
+  const getProductPriceForTier = (prod: any, tier: PriceTier = selectedPriceTier) => {
+    if (tier === 'vip' && Number(prod.vipPrice) > 0) return Number(prod.vipPrice);
+    if (tier === 'wholesale' && Number(prod.wholesalePrice) > 0) return Number(prod.wholesalePrice);
+    if (tier === 'half_wholesale' && Number(prod.halfWholesalePrice) > 0) return Number(prod.halfWholesalePrice);
+    return Number(prod.retailPrice ?? prod.retail_price ?? prod.selling_price ?? prod.price ?? 0);
+  };
+
+  // Helper for Auto-Calculating Warranty End Date (Months from now)
+  const calculateWarrantyEndDate = (months: number = 12) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + months);
+    return d.toISOString().split('T')[0];
+  };
+
+  // Change Price Tier & update all line items
+  const handlePriceTierChange = (newTier: PriceTier) => {
+    setSelectedPriceTier(newTier);
+    setItems((prev) =>
+      prev.map((it) => {
+        if (!it.product_id) return it;
+        const prod = productList.find((p) => p.id === it.product_id);
+        if (!prod) return it;
+        let basePrice = getProductPriceForTier(prod, newTier);
+        let price = basePrice;
+        if (it.selectedUnit === 'sub' && it.subUnitFactor) {
+          price = it.subUnitPrice && it.subUnitPrice > 0 ? it.subUnitPrice : basePrice * it.subUnitFactor;
+        } else if (it.selectedUnit === 'major' && it.majorUnitFactor) {
+          price = it.majorUnitPrice && it.majorUnitPrice > 0 ? it.majorUnitPrice : basePrice * it.majorUnitFactor;
+        }
+        const qty = it.quantity || 1;
+        const disc = it.discount || 0;
+        const scrap = it.scrapDiscount || 0;
+        const taxPerc = it.tax_percent || 0;
+        const lineSubtotal = qty * price;
+        const afterDisc = Math.max(0, lineSubtotal - disc - scrap);
+        const taxVal = Number(((afterDisc * taxPerc) / 100).toFixed(2));
+        return {
+          ...it,
+          unit_price: price,
+          tax: taxVal,
+          total: Number((afterDisc + taxVal).toFixed(2)),
+        };
+      })
+    );
+    showNotice(`تم تطبيق مستوى السعر (${newTier === 'retail' ? 'تجزئة' : newTier === 'half_wholesale' ? 'نصف جملة' : newTier === 'wholesale' ? 'جملة' : 'VIP'})`);
+  };
+
   // Recalculate single item line
   const updateItem = (index: number, patch: Partial<InvoiceLineItem>) => {
     const updated = [...items];
@@ -209,10 +281,11 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
     const qty = Math.max(0, current.quantity || 0);
     const price = Math.max(0, current.unit_price || 0);
     const disc = Math.max(0, current.discount || 0);
+    const scrap = Math.max(0, current.scrapDiscount || 0);
     const taxPerc = Math.max(0, current.tax_percent || 0);
 
     const lineSubtotal = qty * price;
-    const baseAfterDiscount = Math.max(0, lineSubtotal - disc);
+    const baseAfterDiscount = Math.max(0, lineSubtotal - disc - scrap);
     const taxVal = Number(((baseAfterDiscount * taxPerc) / 100).toFixed(2));
     const lineTotal = Number((baseAfterDiscount + taxVal).toFixed(2));
 
@@ -225,11 +298,40 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
     // If Cash / Bank / Wallet and was fully paid, update paid amount to match new grand total
     if (paymentMethod !== 'CREDIT' && paidAmount === grandTotal) {
       const newSubtotal = updated.reduce((acc, it) => acc + (it.quantity || 0) * (it.unit_price || 0), 0);
-      const newDiscount = updated.reduce((acc, it) => acc + (it.discount || 0), 0);
+      const newDiscount = updated.reduce((acc, it) => acc + (it.discount || 0) + (it.scrapDiscount || 0), 0);
       const newTax = updated.reduce((acc, it) => acc + (it.tax || 0), 0);
       const newGrand = Number((newSubtotal - newDiscount + newTax).toFixed(2));
       setPaidAmount(newGrand);
     }
+  };
+
+  // Update item unit (Base / Sub / Major)
+  const handleUpdateLineUnit = (index: number, unitType: 'base' | 'sub' | 'major') => {
+    const item = items[index];
+    if (!item) return;
+    const prod = productList.find((p) => p.id === item.product_id);
+    const basePrice = prod ? getProductPriceForTier(prod, selectedPriceTier) : (item.unit_price || 0);
+
+    let newUnit = item.baseUnitName || 'حبة';
+    let newFactor = 1;
+    let newPrice = basePrice;
+
+    if (unitType === 'sub' && item.subUnitName) {
+      newUnit = item.subUnitName;
+      newFactor = item.subUnitFactor || 1;
+      newPrice = item.subUnitPrice && item.subUnitPrice > 0 ? item.subUnitPrice : basePrice * newFactor;
+    } else if (unitType === 'major' && item.majorUnitName) {
+      newUnit = item.majorUnitName;
+      newFactor = item.majorUnitFactor || 1;
+      newPrice = item.majorUnitPrice && item.majorUnitPrice > 0 ? item.majorUnitPrice : basePrice * newFactor;
+    }
+
+    updateItem(index, {
+      selectedUnit: unitType,
+      unit: newUnit,
+      unitFactor: newFactor,
+      unit_price: newPrice,
+    });
   };
 
   // Product selection handler
@@ -243,21 +345,45 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
         unit_price: 0,
         current_stock: undefined,
         is_manual: true,
+        selectedUnit: 'base',
+        unitFactor: 1,
+        activityType: undefined,
+        serialNumber: undefined,
+        warrantyMonths: undefined,
+        warrantyEndDate: undefined,
+        scrapDiscount: undefined,
       });
       return;
     }
 
     const prod = productList.find((p) => p.id === prodId);
     if (prod) {
-      const price = parseFloat(prod.selling_price || '0') || 0;
+      const price = getProductPriceForTier(prod, selectedPriceTier);
+      const isBattery = prod.activityType === 'battery';
+      const warrantyMonths = Number(prod.warrantyMonths || 12);
+
       updateItem(index, {
         product_id: prod.id,
         name: prod.name,
         sku: prod.sku || '',
-        unit: prod.unit || 'حبة',
+        unit: prod.baseUnitName || prod.unit || 'حبة',
+        baseUnitName: prod.baseUnitName || prod.unit || 'حبة',
+        subUnitName: prod.subUnitName,
+        subUnitFactor: Number(prod.subUnitFactor || 1),
+        subUnitPrice: Number(prod.subUnitPrice || 0),
+        majorUnitName: prod.majorUnitName,
+        majorUnitFactor: Number(prod.majorUnitFactor || 1),
+        majorUnitPrice: Number(prod.majorUnitPrice || 0),
+        selectedUnit: 'base',
+        unitFactor: 1,
         unit_price: price,
         current_stock: parseFloat(prod.current_stock || '0'),
         is_manual: false,
+        activityType: prod.activityType,
+        serialNumber: isBattery ? '' : undefined,
+        warrantyMonths: isBattery ? warrantyMonths : undefined,
+        warrantyEndDate: isBattery ? calculateWarrantyEndDate(warrantyMonths) : undefined,
+        scrapDiscount: 0,
       });
     }
   };
@@ -267,14 +393,15 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
     if (!prod) return;
 
     // Check if product is already in the list
-    const existingIndex = items.findIndex((it) => it.product_id === prod.id);
+    const existingIndex = items.findIndex((it) => it.product_id === prod.id && it.selectedUnit === 'base');
     if (existingIndex >= 0) {
       const currentQty = items[existingIndex].quantity || 1;
       updateItem(existingIndex, { quantity: currentQty + 1 });
       showNotice(`تمت زيادة كمية "${prod.name}" إلى ${currentQty + 1} ${items[existingIndex].unit}`);
     } else {
-      // If first row is empty, replace it
-      const price = parseFloat(prod.selling_price || '0') || 0;
+      const price = getProductPriceForTier(prod, selectedPriceTier);
+      const isBattery = prod.activityType === 'battery';
+      const warrantyMonths = Number(prod.warrantyMonths || 12);
       const isFirstRowEmpty = items.length === 1 && !items[0].product_id && !items[0].name && items[0].unit_price === 0;
 
       const newItem: InvoiceLineItem = {
@@ -282,7 +409,16 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
         product_id: prod.id,
         name: prod.name,
         sku: prod.sku || '',
-        unit: prod.unit || 'حبة',
+        unit: prod.baseUnitName || prod.unit || 'حبة',
+        baseUnitName: prod.baseUnitName || prod.unit || 'حبة',
+        subUnitName: prod.subUnitName,
+        subUnitFactor: Number(prod.subUnitFactor || 1),
+        subUnitPrice: Number(prod.subUnitPrice || 0),
+        majorUnitName: prod.majorUnitName,
+        majorUnitFactor: Number(prod.majorUnitFactor || 1),
+        majorUnitPrice: Number(prod.majorUnitPrice || 0),
+        selectedUnit: 'base',
+        unitFactor: 1,
         quantity: 1,
         unit_price: price,
         discount: 0,
@@ -291,6 +427,11 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
         total: price,
         current_stock: parseFloat(prod.current_stock || '0'),
         is_manual: false,
+        activityType: prod.activityType,
+        serialNumber: isBattery ? '' : undefined,
+        warrantyMonths: isBattery ? warrantyMonths : undefined,
+        warrantyEndDate: isBattery ? calculateWarrantyEndDate(warrantyMonths) : undefined,
+        scrapDiscount: 0,
       };
 
       if (isFirstRowEmpty) {
@@ -453,10 +594,17 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
         items: validItems.map((it) => ({
           product_id: it.product_id || null,
           name: it.name || 'صنف مبيعات',
-          unit: it.unit === 'أخرى' && it.customUnit?.trim() ? it.customUnit.trim() : it.unit || 'حبة',
+          unit: it.unit || 'حبة',
+          unitFactor: it.unitFactor || 1,
+          conversionFactor: it.unitFactor || 1,
+          totalBaseQuantityDeducted: (it.quantity || 1) * (it.unitFactor || 1),
           quantity: it.quantity,
           unit_price: it.unit_price,
           discount: it.discount,
+          scrapDiscount: it.scrapDiscount || 0,
+          serialNumber: it.serialNumber,
+          warrantyEndDate: it.warrantyEndDate,
+          warrantyMonths: it.warrantyMonths,
           tax: it.tax,
         })),
       };
@@ -465,7 +613,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
 
       if (res.success && res.data) {
         if (shouldPrint) {
-          // Print invoice preview
+          // Print invoice preview with unit, serial & scrap info
           printInvoiceDocument({
             companyName: 'المؤسسة التجارية',
             invoiceType: 'SALES',
@@ -476,15 +624,21 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
             partyName: selectedCustomer?.name || 'العميل',
             partyPhone: selectedCustomer?.phone,
             partyAddress: selectedCustomer?.address,
-            items: validItems.map((it) => ({
-              name: it.name || 'صنف مبيعات',
-              sku: it.sku,
-              quantity: it.quantity,
-              unitPrice: it.unit_price,
-              discount: it.discount,
-              tax: it.tax,
-              total: it.total,
-            })),
+            items: validItems.map((it) => {
+              let title = it.name || 'صنف مبيعات';
+              if (it.unit && it.unit !== 'حبة') title += ` (${it.unit})`;
+              if (it.serialNumber) title += ` [سيريال: ${it.serialNumber}] (ضمان حتى: ${it.warrantyEndDate || ''})`;
+              if (Number(it.scrapDiscount) > 0) title += ` [خصم رجيع: -${it.scrapDiscount}]`;
+              return {
+                name: title,
+                sku: it.sku,
+                quantity: it.quantity,
+                unitPrice: it.unit_price,
+                discount: (it.discount || 0) + (it.scrapDiscount || 0),
+                tax: it.tax,
+                total: it.total,
+              };
+            }),
             subtotal,
             discount: totalDiscount,
             tax: totalTax,
@@ -531,6 +685,8 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2.5">
+          <ModuleSettingsModal module="invoices" buttonLabel="⚙️ إعدادات القسم" />
+
           <button
             type="button"
             onClick={() => handleSave('DRAFT')}
@@ -584,6 +740,34 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
           <span>{quickNotice}</span>
         </div>
       )}
+
+      {/* Price Tier Selector Bar */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-sm flex items-center gap-2 overflow-x-auto">
+        <span className="text-xs font-bold text-slate-400 px-2 shrink-0 flex items-center gap-1.5">
+          <Tag className="w-3.5 h-3.5 text-blue-400" />
+          مستوى تسعير الفاتورة:
+        </span>
+        {[
+          { id: 'retail', label: 'تجزئة (Retail)', icon: '🛍️' },
+          { id: 'half_wholesale', label: 'نصف جملة', icon: '📦' },
+          { id: 'wholesale', label: 'جملة (Wholesale)', icon: '🏬' },
+          { id: 'vip', label: 'VIP عملاء كبار', icon: '⭐' },
+        ].map((tier) => (
+          <button
+            key={tier.id}
+            type="button"
+            onClick={() => handlePriceTierChange(tier.id as PriceTier)}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              selectedPriceTier === tier.id
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-950/40 border border-blue-400/40'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+            }`}
+          >
+            <span>{tier.icon}</span>
+            <span>{tier.label}</span>
+          </button>
+        ))}
+      </div>
 
       {/* Invoice Meta Section Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -882,161 +1066,226 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                   it.quantity > it.current_stock;
 
                 return (
-                  <tr key={it.id} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="py-2.5 px-3 text-center text-slate-500 text-xs font-mono">
-                      {idx + 1}
-                    </td>
+                  <React.Fragment key={it.id}>
+                    <tr className="hover:bg-slate-800/30 transition-colors">
+                      <td className="py-2.5 px-3 text-center text-slate-500 text-xs font-mono">
+                        {idx + 1}
+                      </td>
 
-                    {/* Catalog Product Dropdown */}
-                    <td className="py-2.5 px-3">
-                      <select
-                        value={it.product_id || ''}
-                        onChange={(e) => handleProductSelect(idx, e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500"
-                      >
-                        <option value="">-- أو صنف يدوي غير مسجل --</option>
-                        {productList.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name} {p.sku ? `[${p.sku}]` : ''} ({formatNumber(p.current_stock ?? 0)} {p.unit || 'حبة'})
-                          </option>
-                        ))}
-                      </select>
-                      {it.product_id && (
-                        <div className="flex items-center gap-2 mt-1 text-[11px]">
-                          <span className="text-slate-400">
-                            المخزون: <span className="font-mono text-slate-200">{formatNumber(it.current_stock ?? 0)}</span>
-                          </span>
-                          {isOverStock && (
-                            <span className="text-rose-400 flex items-center gap-0.5">
-                              <AlertTriangle className="w-3 h-3" /> الكمية تتجاوز الرصيد
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Custom Name / Description */}
-                    <td className="py-2.5 px-3">
-                      <input
-                        type="text"
-                        value={it.name || ''}
-                        onChange={(e) => updateItem(idx, { name: e.target.value })}
-                        placeholder="اسم الصنف / البيان"
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500"
-                      />
-                    </td>
-
-                    {/* Unit with Presets */}
-                    <td className="py-2.5 px-3">
-                      <div className="space-y-1">
+                      {/* Catalog Product Dropdown */}
+                      <td className="py-2.5 px-3">
                         <select
-                          value={COMMON_UNITS.includes(it.unit) ? it.unit : 'أخرى'}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === 'أخرى') {
-                              updateItem(idx, { unit: 'أخرى', customUnit: it.unit || '' });
-                            } else {
-                              updateItem(idx, { unit: val });
-                            }
-                          }}
-                          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 text-center font-medium"
+                          value={it.product_id || ''}
+                          onChange={(e) => handleProductSelect(idx, e.target.value)}
+                          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500"
                         >
-                          {COMMON_UNITS.map((u) => (
-                            <option key={u} value={u}>
-                              {u}
+                          <option value="">-- أو صنف يدوي غير مسجل --</option>
+                          {productList.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name} {p.sku ? `[${p.sku}]` : ''} ({formatNumber(p.current_stock ?? 0)} {p.unit || 'حبة'})
                             </option>
                           ))}
                         </select>
-                        {(it.unit === 'أخرى' || !COMMON_UNITS.includes(it.unit)) && (
-                          <input
-                            type="text"
-                            value={it.customUnit !== undefined ? it.customUnit : it.unit}
-                            onChange={(e) =>
-                              updateItem(idx, { customUnit: e.target.value, unit: e.target.value || 'أخرى' })
-                            }
-                            placeholder="حدد الوحدة..."
-                            className="w-full bg-slate-950 border border-slate-700 rounded-md px-1.5 py-1 text-[11px] text-center text-blue-300 focus:outline-none focus:border-blue-500"
-                          />
+                        {it.product_id && (
+                          <div className="flex items-center gap-2 mt-1 text-[11px]">
+                            <span className="text-slate-400">
+                              المخزون: <span className="font-mono text-slate-200">{formatNumber(it.current_stock ?? 0)}</span>
+                            </span>
+                            {isOverStock && (
+                              <span className="text-rose-400 flex items-center gap-0.5">
+                                <AlertTriangle className="w-3 h-3" /> الكمية تتجاوز الرصيد
+                              </span>
+                            )}
+                          </div>
                         )}
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Quantity */}
-                    <td className="py-2.5 px-3 text-center">
-                      <input
-                        type="number"
-                        step="any"
-                        min="0.01"
-                        value={it.quantity}
-                        onChange={(e) => updateItem(idx, { quantity: parseEnglishNumber(e.target.value, 0) })}
-                        className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-blue-500 font-mono font-bold"
-                      />
-                    </td>
+                      {/* Custom Name / Description */}
+                      <td className="py-2.5 px-3">
+                        <input
+                          type="text"
+                          value={it.name || ''}
+                          onChange={(e) => updateItem(idx, { name: e.target.value })}
+                          placeholder="اسم الصنف / البيان"
+                          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500"
+                        />
+                      </td>
 
-                    {/* Unit Price */}
-                    <td className="py-2.5 px-3">
-                      <input
-                        type="number"
-                        step="any"
-                        min="0"
-                        value={it.unit_price}
-                        onChange={(e) => updateItem(idx, { unit_price: parseEnglishNumber(e.target.value, 0) })}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-left text-white focus:outline-none focus:border-blue-500 font-mono"
-                      />
-                    </td>
+                      {/* Unit with Multi-UOM Presets */}
+                      <td className="py-2.5 px-3">
+                        <div className="space-y-1">
+                          {it.product_id ? (
+                            <select
+                              value={it.selectedUnit || 'base'}
+                              onChange={(e) => handleUpdateLineUnit(idx, e.target.value as any)}
+                              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 text-center font-bold"
+                            >
+                              <option value="base">{it.baseUnitName || it.unit || 'حبة'} (أساسي)</option>
+                              {it.subUnitName && (
+                                <option value="sub">{it.subUnitName} ({it.subUnitFactor || 1}x)</option>
+                              )}
+                              {it.majorUnitName && (
+                                <option value="major">{it.majorUnitName} ({it.majorUnitFactor || 1}x)</option>
+                              )}
+                            </select>
+                          ) : (
+                            <select
+                              value={COMMON_UNITS.includes(it.unit) ? it.unit : 'أخرى'}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === 'أخرى') {
+                                  updateItem(idx, { unit: 'أخرى', customUnit: it.unit || '' });
+                                } else {
+                                  updateItem(idx, { unit: val });
+                                }
+                              }}
+                              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 text-center font-medium"
+                            >
+                              {COMMON_UNITS.map((u) => (
+                                <option key={u} value={u}>
+                                  {u}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                          {(it.unit === 'أخرى' || !COMMON_UNITS.includes(it.unit)) && !it.product_id && (
+                            <input
+                              type="text"
+                              value={it.customUnit !== undefined ? it.customUnit : it.unit}
+                              onChange={(e) =>
+                                updateItem(idx, { customUnit: e.target.value, unit: e.target.value || 'أخرى' })
+                              }
+                              placeholder="حدد الوحدة..."
+                              className="w-full bg-slate-950 border border-slate-700 rounded-md px-1.5 py-1 text-[11px] text-center text-blue-300 focus:outline-none focus:border-blue-500"
+                            />
+                          )}
+                        </div>
+                      </td>
 
-                    {/* Discount */}
-                    <td className="py-2.5 px-3">
-                      <input
-                        type="number"
-                        step="any"
-                        min="0"
-                        value={it.discount}
-                        onChange={(e) => updateItem(idx, { discount: parseEnglishNumber(e.target.value, 0) })}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-left text-rose-400 focus:outline-none focus:border-blue-500 font-mono"
-                      />
-                    </td>
+                      {/* Quantity */}
+                      <td className="py-2.5 px-3 text-center">
+                        <input
+                          type="number"
+                          step="any"
+                          min="0.01"
+                          value={it.quantity}
+                          onChange={(e) => updateItem(idx, { quantity: parseEnglishNumber(e.target.value, 0) })}
+                          className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-blue-500 font-mono font-bold"
+                        />
+                      </td>
 
-                    {/* Tax Percent */}
-                    <td className="py-2.5 px-3 text-center">
-                      <select
-                        value={it.tax_percent}
-                        onChange={(e) => updateItem(idx, { tax_percent: parseEnglishNumber(e.target.value, 0) })}
-                        className="w-16 bg-slate-800 border border-slate-700 rounded-lg px-1 py-1.5 text-xs text-center text-slate-300 focus:outline-none focus:border-blue-500 font-mono"
-                      >
-                        <option value="0">0%</option>
-                        <option value="5">5%</option>
-                        <option value="15">15%</option>
-                      </select>
-                    </td>
+                      {/* Unit Price */}
+                      <td className="py-2.5 px-3">
+                        <input
+                          type="number"
+                          step="any"
+                          min="0"
+                          value={it.unit_price}
+                          onChange={(e) => updateItem(idx, { unit_price: parseEnglishNumber(e.target.value, 0) })}
+                          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-left text-white focus:outline-none focus:border-blue-500 font-mono"
+                        />
+                      </td>
 
-                    {/* Total */}
-                    <td className="py-2.5 px-3 text-left font-mono font-bold text-white text-xs">
-                      {formatAmount(it.total, currency)}
-                    </td>
+                      {/* Discount */}
+                      <td className="py-2.5 px-3">
+                        <input
+                          type="number"
+                          step="any"
+                          min="0"
+                          value={it.discount}
+                          onChange={(e) => updateItem(idx, { discount: parseEnglishNumber(e.target.value, 0) })}
+                          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-left text-rose-400 focus:outline-none focus:border-blue-500 font-mono"
+                        />
+                      </td>
 
-                    {/* Action buttons */}
-                    <td className="py-2.5 px-3 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => duplicateItemRow(idx)}
-                          className="p-1 text-slate-400 hover:text-slate-200 rounded transition-colors"
-                          title="تكرار البند"
+                      {/* Tax Percent */}
+                      <td className="py-2.5 px-3 text-center">
+                        <select
+                          value={it.tax_percent}
+                          onChange={(e) => updateItem(idx, { tax_percent: parseEnglishNumber(e.target.value, 0) })}
+                          className="w-16 bg-slate-800 border border-slate-700 rounded-lg px-1 py-1.5 text-xs text-center text-slate-300 focus:outline-none focus:border-blue-500 font-mono"
                         >
-                          <Copy className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => removeItemRow(idx)}
-                          className="p-1 text-rose-400/80 hover:text-rose-400 rounded transition-colors"
-                          title="حذف البند"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                          <option value="0">0%</option>
+                          <option value="5">5%</option>
+                          <option value="15">15%</option>
+                        </select>
+                      </td>
+
+                      {/* Total */}
+                      <td className="py-2.5 px-3 text-left font-mono font-bold text-white text-xs">
+                        {formatAmount(it.total, currency)}
+                      </td>
+
+                      {/* Action buttons */}
+                      <td className="py-2.5 px-3 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => duplicateItemRow(idx)}
+                            className="p-1 text-slate-400 hover:text-slate-200 rounded transition-colors"
+                            title="تكرار البند"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeItemRow(idx)}
+                            className="p-1 text-rose-400/80 hover:text-rose-400 rounded transition-colors"
+                            title="حذف البند"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    {/* Battery Spec & Inline Warranty & Scrap Discount Row */}
+                    {it.activityType === 'battery' && (
+                      <tr className="bg-amber-950/20 border-b border-amber-900/40">
+                        <td colSpan={10} className="px-4 py-2.5">
+                          <div className="flex items-center gap-4 flex-wrap text-xs">
+                            <span className="font-bold text-amber-400 flex items-center gap-1.5 shrink-0">
+                              <Zap className="w-4 h-4 text-amber-400" />
+                              بيانات ضمان وسيريال البطارية:
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[11px] text-slate-400">الرقم التسلسلي (Serial No):</span>
+                              <input
+                                type="text"
+                                placeholder="SN-BAT-..."
+                                value={it.serialNumber || ''}
+                                onChange={(e) => updateItem(idx, { serialNumber: e.target.value })}
+                                className="bg-slate-900 border border-amber-500/40 rounded-lg px-2.5 py-1 text-xs text-white font-mono focus:outline-none focus:border-amber-400"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[11px] text-slate-400">نهاية الضمان:</span>
+                              <input
+                                type="date"
+                                value={it.warrantyEndDate || ''}
+                                onChange={(e) => updateItem(idx, { warrantyEndDate: e.target.value })}
+                                className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-amber-300 font-mono focus:outline-none"
+                              />
+                              <span className="text-[10px] text-slate-500 font-mono">({it.warrantyMonths || 12} شهر)</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[11px] text-slate-400">خصم استبدال رجيع قديم:</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="any"
+                                placeholder="0.00"
+                                value={it.scrapDiscount || ''}
+                                onChange={(e) => updateItem(idx, { scrapDiscount: parseEnglishNumber(e.target.value, 0) })}
+                                className="w-24 bg-slate-900 border border-emerald-500/40 rounded-lg px-2 py-1 text-xs text-emerald-400 font-mono font-bold focus:outline-none"
+                              />
+                              <span className="text-[10px] text-emerald-400">{currency}</span>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 );
               })}
             </tbody>

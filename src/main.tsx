@@ -44,11 +44,14 @@ Date.prototype.toLocaleString = function (locales?: Intl.LocalesArgument, option
 };
 
 import { AuthProvider } from './context/AuthContext';
+import { ModuleSettingsProvider } from './context/ModuleSettingsContext';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <AuthProvider>
-      <App />
+      <ModuleSettingsProvider>
+        <App />
+      </ModuleSettingsProvider>
     </AuthProvider>
   </React.StrictMode>
 );

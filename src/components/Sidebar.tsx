@@ -31,6 +31,7 @@ import {
   PanelRight,
 } from 'lucide-react';
 import { AppIcon } from './Common/AppIcon';
+import { useModuleSettings } from '../context/ModuleSettingsContext';
 
 export type TabType =
   | 'overview'
@@ -186,6 +187,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
     },
   ];
 
+  const { settings } = useModuleSettings();
+  const hiddenTabs = settings?.hiddenSidebarTabs || [];
+
+  const visibleSections = sections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => !hiddenTabs.includes(item.id)),
+    }))
+    .filter((section) => section.items.length > 0);
+
   return (
     <aside
       className={`bg-slate-900 border-l border-slate-800 flex flex-col h-full flex-shrink-0 select-none z-20 transition-all duration-300 ease-in-out ${
@@ -225,7 +236,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
 
       {/* Navigation Links */}
       <nav className="flex-1 overflow-y-auto p-2 space-y-3 custom-scrollbar">
-        {sections.map((section, idx) => {
+        {visibleSections.map((section, idx) => {
           const isSectionCollapsed = Boolean(collapsedSections[section.title]);
           const hasActiveItem = section.items.some((item) => item.id === activeTab);
 
