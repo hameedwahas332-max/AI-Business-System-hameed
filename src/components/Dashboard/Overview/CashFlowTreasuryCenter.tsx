@@ -20,8 +20,8 @@ interface CashFlowTreasuryCenterProps {
 }
 
 export const CashFlowTreasuryCenter: React.FC<CashFlowTreasuryCenterProps> = ({
-  stats = {},
-  treasuryData = {},
+  stats = {} as any,
+  treasuryData = {} as any,
   currency = 'SAR',
   onNavigate,
 }) => {

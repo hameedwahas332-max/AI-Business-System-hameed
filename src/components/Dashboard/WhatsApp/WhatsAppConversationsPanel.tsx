@@ -57,20 +57,20 @@ interface WhatsAppConversationsPanelProps {
 export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProps> = ({
   conversations = [],
   selectedPhone = null,
-  onSelectConversation = () => {},
+  onSelectConversation = (_phone: string) => {},
   messages = [],
   isLoadingMessages = false,
-  onSendMessage = async () => true,
-  onSendInvoiceReminder = async () => true,
-  onSendPaymentReminder = async () => true,
-  onSendStatement = async () => true,
-  onRetryMessage = async () => true,
-  onLinkMessage = async () => true,
+  onSendMessage = async (_phone: string, _text: string, _meta?: any) => true,
+  onSendInvoiceReminder = async (_invoiceId: string, _phone: string) => true,
+  onSendPaymentReminder = async (_paymentId: string, _phone: string) => true,
+  onSendStatement = async (_entityId: string, _type: 'CUSTOMER' | 'SUPPLIER', _phone: string) => true,
+  onRetryMessage = async (_messageId: string) => true,
+  onLinkMessage = async (_messageId: string, _entityType: string, _entityId: string) => true,
   erpContext = null,
   isLoadingERPContext = false,
   templates = [],
   companyName = 'مؤسسة السحابي ERP',
-  onScheduleMessagePrompt = () => {},
+  onScheduleMessagePrompt = (_phone: string, _text: string) => {},
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'CUSTOMERS' | 'SUPPLIERS' | 'UNREAD' | 'OVERDUE'>('ALL');

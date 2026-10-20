@@ -21,7 +21,7 @@ interface WhatsAppCampaignsTabProps {
 
 export const WhatsAppCampaignsTab: React.FC<WhatsAppCampaignsTabProps> = ({
   campaigns = [],
-  onCreateCampaign = async () => true,
+  onCreateCampaign = async (_data?: any) => true,
   totalCustomersCount = 120,
   totalSuppliersCount = 45,
 }) => {

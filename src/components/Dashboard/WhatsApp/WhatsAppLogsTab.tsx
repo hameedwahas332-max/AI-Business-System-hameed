@@ -19,7 +19,7 @@ interface WhatsAppLogsTabProps {
 
 export const WhatsAppLogsTab: React.FC<WhatsAppLogsTabProps> = ({
   logs = [],
-  onRetryMessage = async () => true,
+  onRetryMessage = async (_messageId?: string, _phone?: string, _text?: string) => true,
 }) => {
   const [search, setSearch] = useState('');
   const [filterDirection, setFilterDirection] = useState<'ALL' | 'INBOUND' | 'OUTBOUND'>('ALL');

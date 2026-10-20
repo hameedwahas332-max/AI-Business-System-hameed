@@ -13,6 +13,10 @@ export interface TableExportConfig {
   headers: string[];
   rows: (string | number)[][];
   alignments?: string[];
+  companyName?: string;
+  companyCode?: string;
+  filterBadges?: Array<{ label: string; value: string }>;
+  [key: string]: any;
 }
 
 export interface AccountStatementPrintConfig {
@@ -35,6 +39,8 @@ export interface AccountStatementPrintConfig {
   totalDebit?: number;
   totalCredit?: number;
   transactions?: any[];
+  partyAddress?: string;
+  [key: string]: any;
 }
 
 export function escapeHtml(str: string | number | null | undefined): string {
@@ -156,10 +162,66 @@ export function renderAndPrintDocument(htmlBody: string, documentTitle: string =
 </body>
 </html>`;
 
-  // 3. Direct Native Print Engine with Isolated Print Mount
+  // 3. Isolated Hidden Iframe Print Driver
+  const triggerIframePrint = () => {
+    try {
+      let printFrame = document.getElementById('erp-hidden-print-frame') as HTMLIFrameElement;
+      if (printFrame) {
+        printFrame.remove();
+      }
+      printFrame = document.createElement('iframe');
+      printFrame.id = 'erp-hidden-print-frame';
+      printFrame.style.cssText = 'position:fixed;right:-9999px;bottom:-9999px;width:1px;height:1px;opacity:0;border:0;pointer-events:none;';
+      document.body.appendChild(printFrame);
+
+      const frameDoc = printFrame.contentWindow?.document || printFrame.contentDocument;
+      if (frameDoc) {
+        frameDoc.open();
+        frameDoc.write(fullHtml);
+        frameDoc.close();
+        setTimeout(() => {
+          try {
+            printFrame.contentWindow?.focus();
+            printFrame.contentWindow?.print();
+          } catch (err) {
+            console.warn('Iframe print warning:', err);
+          }
+        }, 250);
+      }
+    } catch (err) {
+      console.warn('Silent iframe print driver notice:', err);
+    }
+  };
+
+  // 4. Standalone Window / Blob Print Opener (100% reliable bypass for iframe sandbox constraints)
+  const openStandalonePrintWindow = () => {
+    try {
+      const htmlWithAutoPrint = fullHtml.replace(
+        '</body>',
+        `<script>
+          window.addEventListener('load', function() {
+            setTimeout(function() {
+              window.focus();
+              window.print();
+            }, 300);
+          });
+        </script></body>`
+      );
+      const blob = new Blob([htmlWithAutoPrint], { type: 'text/html;charset=utf-8' });
+      const blobUrl = URL.createObjectURL(blob);
+      const newWin = window.open(blobUrl, '_blank');
+      if (!newWin || newWin.closed || typeof newWin.closed === 'undefined') {
+        // Popup was blocked by browser, trigger direct download
+        downloadHtmlDocument();
+      }
+    } catch {
+      downloadHtmlDocument();
+    }
+  };
+
+  // 5. Direct Page Print Mount
   const triggerDirectPrint = () => {
     try {
-      // 1. Mount directly into page for window.print()
       let printMount = document.getElementById('erp-print-direct-mount');
       if (!printMount) {
         printMount = document.createElement('div');
@@ -172,7 +234,6 @@ export function renderAndPrintDocument(htmlBody: string, documentTitle: string =
         </div>
       `;
 
-      // 2. Ensure print media styles exist
       let printStyle = document.getElementById('erp-print-media-style');
       if (!printStyle) {
         printStyle = document.createElement('style');
@@ -193,7 +254,7 @@ export function renderAndPrintDocument(htmlBody: string, documentTitle: string =
               position: static !important;
               width: 100% !important;
               margin: 0 !important;
-              padding: 10mm 15mm !important;
+              padding: 8mm 12mm !important;
               background: #ffffff !important;
               color: #0f172a !important;
               font-family: 'Cairo', system-ui, sans-serif !important;
@@ -207,17 +268,16 @@ export function renderAndPrintDocument(htmlBody: string, documentTitle: string =
         document.head.appendChild(printStyle);
       }
 
-      // 3. Fire native print dialog
+      // Try native window.print()
       window.print();
     } catch (err) {
       console.warn('Native window.print() notice:', err);
     }
+    // Also trigger iframe print driver
+    triggerIframePrint();
   };
 
-  // Trigger direct print immediately
-  triggerDirectPrint();
-
-  // 4. Download Standalone HTML/PDF File Handler
+  // 6. Download Standalone HTML/PDF File Handler
   const downloadHtmlDocument = () => {
     const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -230,7 +290,7 @@ export function renderAndPrintDocument(htmlBody: string, documentTitle: string =
     URL.revokeObjectURL(url);
   };
 
-  // 5. Render Interactive Print Preview Modal (Guarantees visual response in all iframe environments)
+  // 7. Render Interactive Print Preview Modal (Guarantees visual response in all iframe environments)
   const modal = document.createElement('div');
   modal.id = 'erp-print-preview-modal';
   modal.className = 'erp-print-overlay';
@@ -253,36 +313,41 @@ export function renderAndPrintDocument(htmlBody: string, documentTitle: string =
   modal.innerHTML = `
     <div style="width: 100%; max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px;">
       <!-- Floating Action Toolbar -->
-      <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 16px; padding: 12px 20px; display: flex; items-center; justify-content: space-between; gap: 12px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+      <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 16px; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); flex-wrap: wrap;">
         <div style="display: flex; align-items: center; gap: 10px; color: #f8fafc;">
-          <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: center; color: #34d399;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+          <div style="width: 38px; height: 38px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: center; color: #34d399; shrink: 0;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
           </div>
           <div>
-            <div style="font-weight: 700; font-size: 14px; color: #ffffff;">${escapeHtml(documentTitle)}</div>
-            <div style="font-size: 11px; color: #94a3b8;">جاهز للطباعة الفورية والتصدير الرسمي</div>
+            <div style="font-weight: 800; font-size: 14px; color: #ffffff;">${escapeHtml(documentTitle)}</div>
+            <div style="font-size: 11px; color: #34d399; font-weight: 600;">جاهز للطباعة الفورية والتصدير الرسمي</div>
           </div>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <button id="erp-btn-trigger-print" style="background: #10b981; hover:background: #059669; color: #ffffff; border: none; padding: 8px 16px; border-radius: 10px; font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s;">
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <button id="erp-btn-trigger-print" style="background: #10b981; color: #ffffff; border: none; padding: 8px 16px; border-radius: 10px; font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-            <span>طباعة الآن (Ctrl+P)</span>
+            <span>طباعة فورية (Print)</span>
+          </button>
+
+          <button id="erp-btn-open-tab" style="background: #0284c7; color: #ffffff; border: none; padding: 8px 14px; border-radius: 10px; font-weight: 700; font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            <span>نافذة مستقلة للطباعة</span>
           </button>
 
           <button id="erp-btn-download-doc" style="background: #1e293b; color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 8px 14px; border-radius: 10px; font-weight: 600; font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            <span>حفظ المستند HTML/PDF</span>
+            <span>حفظ المستند HTML</span>
           </button>
 
-          <button id="erp-btn-close-print-modal" style="background: #334155; color: #e2e8f0; border: none; padding: 8px 12px; border-radius: 10px; font-weight: 600; font-size: 12px; cursor: pointer;">
+          <button id="erp-btn-close-print-modal" style="background: #334155; color: #e2e8f0; border: none; padding: 8px 14px; border-radius: 10px; font-weight: 600; font-size: 12px; cursor: pointer;">
             إغلاق (Esc)
           </button>
         </div>
       </div>
 
       <!-- Printable Paper Container -->
-      <div style="background: #ffffff; color: #0f172a; border-radius: 16px; padding: 36px 40px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); min-height: 700px; border: 1px solid #e2e8f0;">
+      <div style="background: #ffffff; color: #0f172a; border-radius: 16px; padding: 36px 40px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); min-height: 600px; border: 1px solid #e2e8f0;">
         ${htmlBody}
       </div>
     </div>
@@ -295,6 +360,10 @@ export function renderAndPrintDocument(htmlBody: string, documentTitle: string =
     triggerDirectPrint();
   });
 
+  document.getElementById('erp-btn-open-tab')?.addEventListener('click', () => {
+    openStandalonePrintWindow();
+  });
+
   document.getElementById('erp-btn-download-doc')?.addEventListener('click', () => {
     downloadHtmlDocument();
   });
@@ -304,6 +373,10 @@ export function renderAndPrintDocument(htmlBody: string, documentTitle: string =
     const mount = document.getElementById('erp-print-direct-mount');
     if (mount) {
       mount.remove();
+    }
+    const frame = document.getElementById('erp-hidden-print-frame');
+    if (frame) {
+      frame.remove();
     }
   };
 
@@ -316,7 +389,7 @@ export function renderAndPrintDocument(htmlBody: string, documentTitle: string =
     }
   });
 
-  // ESC to close
+  // ESC to close, Ctrl+P to print
   const escHandler = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       closeModal();
@@ -328,6 +401,9 @@ export function renderAndPrintDocument(htmlBody: string, documentTitle: string =
     }
   };
   window.addEventListener('keydown', escHandler);
+
+  // Also execute iframe print driver once modal is opened
+  triggerIframePrint();
 }
 
 /**

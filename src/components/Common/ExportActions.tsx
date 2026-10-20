@@ -4,7 +4,8 @@ import { exportToExcel, exportToCSV, printReport, TableExportConfig } from '../.
 import { useAuth } from '../../context/AuthContext';
 
 export interface ExportActionsProps {
-  getConfig: () => TableExportConfig;
+  getConfig?: () => TableExportConfig;
+  getExportConfig?: () => TableExportConfig;
   variant?: 'buttons' | 'dropdown' | 'compact';
   disabled?: boolean;
   className?: string;
@@ -13,6 +14,7 @@ export interface ExportActionsProps {
 
 export const ExportActions: React.FC<ExportActionsProps> = ({
   getConfig,
+  getExportConfig,
   variant = 'buttons',
   disabled = false,
   className = '',
@@ -23,7 +25,8 @@ export const ExportActions: React.FC<ExportActionsProps> = ({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const enrichConfig = (): TableExportConfig => {
-    const base = getConfig();
+    const fn = getConfig || getExportConfig;
+    const base = typeof fn === 'function' ? fn() : { headers: [], rows: [] };
     return {
       ...base,
       companyName: base.companyName || company?.name || 'المؤسسة التجارية',

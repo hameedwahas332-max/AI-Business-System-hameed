@@ -24,8 +24,8 @@ interface SmartAlertsAIWidgetProps {
 }
 
 export const SmartAlertsAIWidget: React.FC<SmartAlertsAIWidgetProps> = ({
-  stats = {},
-  kpis = {},
+  stats = {} as any,
+  kpis = {} as any,
   currency = 'SAR',
   onNavigate,
 }) => {

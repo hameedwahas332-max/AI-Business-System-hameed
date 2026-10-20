@@ -1,6 +1,6 @@
 export interface WhatsAppMessage {
   id: string;
-  company_id: string;
+  company_id?: string;
   direction: 'INBOUND' | 'OUTBOUND';
   phone_number: string;
   message_body: string;
@@ -131,4 +131,6 @@ export interface WhatsAppKPIStats {
   failedCount: number;
   scheduledCount: number;
   deliveryRate: number;
+  responseRatePercent?: number;
+  [key: string]: any;
 }

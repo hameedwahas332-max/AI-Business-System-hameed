@@ -474,7 +474,7 @@ export const PaymentsTab: React.FC = () => {
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
 
-          <ExportActions getExportConfig={getPaymentExportConfig} />
+          <ExportActions getConfig={getPaymentExportConfig} />
 
           <button
             onClick={() => handleOpenCreateModal('CUSTOMER_PAYMENT')}

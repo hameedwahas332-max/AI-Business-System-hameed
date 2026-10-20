@@ -4,12 +4,12 @@ export function toEnglishDigits(val: string | number | null | undefined): string
   return str.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 1632));
 }
 
-export function parseEnglishNumber(val: string | number | null | undefined): number {
-  if (val === null || val === undefined || val === '') return 0;
-  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+export function parseEnglishNumber(val: string | number | null | undefined, fallback: number = 0): number {
+  if (val === null || val === undefined || val === '') return fallback;
+  if (typeof val === 'number') return isNaN(val) ? fallback : val;
   const cleaned = toEnglishDigits(val).replace(/,/g, '').trim();
   const num = parseFloat(cleaned);
-  return isNaN(num) ? 0 : num;
+  return isNaN(num) ? fallback : num;
 }
 
 export function roundMoney(amount: number | string | null | undefined, decimals = 2): number {

@@ -19,8 +19,8 @@ interface SalesAnalyticsCenterProps {
 }
 
 export const SalesAnalyticsCenter: React.FC<SalesAnalyticsCenterProps> = ({
-  stats = {},
-  topData = {},
+  stats = {} as any,
+  topData = {} as any,
   currency = 'SAR',
   onNavigate,
 }) => {

@@ -23,8 +23,8 @@ export const WhatsAppRemindersTab: React.FC<WhatsAppRemindersTabProps> = ({
   invoices = [],
   payments = [],
   customers = [],
-  onSendInvoiceReminder = async () => true,
-  onSendPaymentReminder = async () => true,
+  onSendInvoiceReminder = async (_invoiceId?: string, _phone?: string) => true,
+  onSendPaymentReminder = async (_paymentId?: string, _phone?: string) => true,
 }) => {
   const safeInvoices = Array.isArray(invoices) ? invoices : [];
   const safePayments = Array.isArray(payments) ? payments : [];

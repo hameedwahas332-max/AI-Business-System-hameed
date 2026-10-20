@@ -20,8 +20,8 @@ interface WhatsAppConfigTabProps {
 export const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({
   phoneNumberId = 'PHONE-966-501234567',
   displayPhoneNumber = '+966 50 123 4567',
-  onSaveConfig = async () => true,
-  onSendTestMessage = async () => true,
+  onSaveConfig = async (_phoneId?: string, _displayPhone?: string) => true,
+  onSendTestMessage = async (_phone?: string, _text?: string) => true,
 }) => {
   const [phoneId, setPhoneId] = useState(phoneNumberId || '');
   const [displayPhone, setDisplayPhone] = useState(displayPhoneNumber || '');

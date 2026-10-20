@@ -24,8 +24,8 @@ interface ReceivablesPayablesHubProps {
 }
 
 export const ReceivablesPayablesHub: React.FC<ReceivablesPayablesHubProps> = ({
-  stats = {},
-  topData = {},
+  stats = {} as any,
+  topData = {} as any,
   customersList = [],
   suppliersList = [],
   currency = 'SAR',

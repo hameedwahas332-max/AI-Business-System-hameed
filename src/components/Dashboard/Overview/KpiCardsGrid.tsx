@@ -23,8 +23,8 @@ interface KpiCardsGridProps {
 }
 
 export const KpiCardsGrid: React.FC<KpiCardsGridProps> = ({
-  stats = {},
-  kpis = {},
+  stats = {} as any,
+  kpis = {} as any,
   currency = 'SAR',
   onNavigate,
 }) => {

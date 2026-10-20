@@ -22,8 +22,8 @@ interface WhatsAppAutomationsTabProps {
 
 export const WhatsAppAutomationsTab: React.FC<WhatsAppAutomationsTabProps> = ({
   automations = [],
-  onToggleAutomation = async () => {},
-  onSaveAutomation = async () => true,
+  onToggleAutomation = async (_id?: string, _active?: boolean) => {},
+  onSaveAutomation = async (_data?: any) => true,
 }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [name, setName] = useState('');

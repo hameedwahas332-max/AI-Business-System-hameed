@@ -20,7 +20,7 @@ interface InventoryIntelligenceHubProps {
 }
 
 export const InventoryIntelligenceHub: React.FC<InventoryIntelligenceHubProps> = ({
-  stats = {},
+  stats = {} as any,
   productsList = [],
   currency = 'SAR',
   onNavigate,

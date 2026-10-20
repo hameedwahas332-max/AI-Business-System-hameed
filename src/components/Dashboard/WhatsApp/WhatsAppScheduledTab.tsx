@@ -20,7 +20,7 @@ interface WhatsAppScheduledTabProps {
 
 export const WhatsAppScheduledTab: React.FC<WhatsAppScheduledTabProps> = ({
   scheduledMessages = [],
-  onCancelScheduled = async () => true,
+  onCancelScheduled = async (_id?: string) => true,
   onOpenScheduleModal = () => {},
 }) => {
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
