@@ -55,7 +55,9 @@ import {
   Copy,
   Check,
   Share2,
+  Coins,
 } from 'lucide-react';
+import { getAccountingRate, toBaseCurrencyAmount } from '../../lib/exchangeRates';
 
 export type MainTabFilter = 'ALL' | 'CUSTOMERS' | 'SUPPLIERS' | 'DEBIT' | 'CREDIT' | 'OVERDUE' | 'ACTIVE';
 
@@ -228,6 +230,53 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
   const totalSupplierCount = suppliers.length;
   const activeSupplierCount = suppliers.filter((s) => Number(s.current_balance || 0) !== 0 || s.updated_at).length;
   const totalSupplierPayables = suppliers.reduce((sum, s) => sum + Math.max(0, Number(s.current_balance || 0)), 0);
+
+  // Multi-currency breakdown & base currency (YER) conversion summary
+  const currencyBreakdown = useMemo(() => {
+    let yerReceivables = 0;
+    let sarReceivables = 0;
+    let usdReceivables = 0;
+    let yerPayables = 0;
+    let sarPayables = 0;
+    let usdPayables = 0;
+
+    customers.forEach((c) => {
+      const cur = (c.currency || 'YER').toUpperCase();
+      const bal = Math.max(0, Number(c.current_balance || 0));
+      if (cur === 'SAR') sarReceivables += bal;
+      else if (cur === 'USD') usdReceivables += bal;
+      else yerReceivables += bal;
+    });
+
+    suppliers.forEach((s) => {
+      const cur = (s.currency || 'YER').toUpperCase();
+      const bal = Math.max(0, Number(s.current_balance || 0));
+      if (cur === 'SAR') sarPayables += bal;
+      else if (cur === 'USD') usdPayables += bal;
+      else yerPayables += bal;
+    });
+
+    const sarRate = getAccountingRate('SAR');
+    const usdRate = getAccountingRate('USD');
+
+    const totalReceivablesInBase = yerReceivables + (sarReceivables * sarRate) + (usdReceivables * usdRate);
+    const totalPayablesInBase = yerPayables + (sarPayables * sarRate) + (usdPayables * usdRate);
+    const netBaseEquivalent = totalReceivablesInBase - totalPayablesInBase;
+
+    return {
+      yerReceivables,
+      sarReceivables,
+      usdReceivables,
+      yerPayables,
+      sarPayables,
+      usdPayables,
+      sarRate,
+      usdRate,
+      totalReceivablesInBase,
+      totalPayablesInBase,
+      netBaseEquivalent,
+    };
+  }, [customers, suppliers]);
 
   // Filtered List
   const filteredAccounts = useMemo(() => {
@@ -924,6 +973,182 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
         </div>
       </div>
 
+      {/* ========================================================================= */}
+      {/* 2.1 MULTI-CURRENCY BALANCE & EXCHANGE RATE CONVERSION SUMMARY BANNER       */}
+      {/* ========================================================================= */}
+      <div className="bg-[#091712] border border-emerald-500/30 rounded-2xl p-4 shadow-lg">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-3 mb-3 border-b border-emerald-500/20 gap-2">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              <Coins className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+                <span>ملخص الأرصدة بحسب العملات ومعادل الصرف المحاسبي</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 font-mono">
+                  Base: YER
+                </span>
+              </h3>
+              <p className="text-[11px] text-emerald-300/70">
+                أسعار الصرف اللحظية: 1 SAR = {currencyBreakdown.sarRate} YER | 1 USD = {currencyBreakdown.usdRate} YER
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-slate-400">تصفية سريعة:</span>
+            {(['ALL', 'YER', 'SAR', 'USD'] as const).map((curr) => (
+              <button
+                key={curr}
+                onClick={() => setCurrencyFilter(curr)}
+                className={`px-2 py-0.5 rounded-lg text-[10px] font-bold font-mono transition-all cursor-pointer ${
+                  currencyFilter === curr
+                    ? 'bg-emerald-500 text-black font-black shadow-sm'
+                    : 'bg-[#050f0c] text-slate-300 hover:text-white border border-emerald-500/20'
+                }`}
+              >
+                {curr === 'ALL' ? 'الكل' : curr}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* YER Card */}
+          <div
+            onClick={() => setCurrencyFilter(currencyFilter === 'YER' ? 'ALL' : 'YER')}
+            className={`p-3 rounded-xl border transition-all cursor-pointer ${
+              currencyFilter === 'YER'
+                ? 'bg-[#12281e] border-emerald-400 shadow-md ring-1 ring-emerald-400/50'
+                : 'bg-[#06120d] border-emerald-500/20 hover:border-emerald-500/40'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-bold text-emerald-300">الريال اليمني (YER)</span>
+              <span className="text-[9px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded font-mono">
+                الأساس
+              </span>
+            </div>
+            <div className="space-y-1 text-xs">
+              <div className="flex justify-between items-center text-slate-300">
+                <span className="text-[10px] text-slate-400">مستحق لنا (عملاء):</span>
+                <span className="font-mono font-bold text-emerald-300">{formatNumber(currencyBreakdown.yerReceivables)}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-300">
+                <span className="text-[10px] text-slate-400">مستحق علينا (موردون):</span>
+                <span className="font-mono font-bold text-amber-300">{formatNumber(currencyBreakdown.yerPayables)}</span>
+              </div>
+              <div className="pt-1 mt-1 border-t border-emerald-500/20 flex justify-between items-center text-[11px]">
+                <span className="text-slate-400">الصافي:</span>
+                <span className={`font-mono font-bold ${currencyBreakdown.yerReceivables >= currencyBreakdown.yerPayables ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {formatNumber(currencyBreakdown.yerReceivables - currencyBreakdown.yerPayables)} YER
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* SAR Card */}
+          <div
+            onClick={() => setCurrencyFilter(currencyFilter === 'SAR' ? 'ALL' : 'SAR')}
+            className={`p-3 rounded-xl border transition-all cursor-pointer ${
+              currencyFilter === 'SAR'
+                ? 'bg-[#12281e] border-amber-400 shadow-md ring-1 ring-amber-400/50'
+                : 'bg-[#06120d] border-emerald-500/20 hover:border-amber-500/40'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-bold text-amber-300">الريال السعودي (SAR)</span>
+              <span className="text-[9px] bg-amber-500/10 text-amber-300 px-1.5 py-0.5 rounded font-mono">
+                1 SAR = {currencyBreakdown.sarRate} YER
+              </span>
+            </div>
+            <div className="space-y-1 text-xs">
+              <div className="flex justify-between items-center text-slate-300">
+                <span className="text-[10px] text-slate-400">مستحق لنا (عملاء):</span>
+                <span className="font-mono font-bold text-amber-200">{formatNumber(currencyBreakdown.sarReceivables)} SAR</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-300">
+                <span className="text-[10px] text-slate-400">مستحق علينا (موردون):</span>
+                <span className="font-mono font-bold text-amber-300">{formatNumber(currencyBreakdown.sarPayables)} SAR</span>
+              </div>
+              <div className="pt-1 mt-1 border-t border-amber-500/20 flex justify-between items-center text-[10px]">
+                <span className="text-amber-400/80">المعادل بالريال اليمني:</span>
+                <span className="font-mono font-bold text-amber-300">
+                  ≈ {formatNumber((currencyBreakdown.sarReceivables - currencyBreakdown.sarPayables) * currencyBreakdown.sarRate)} YER
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* USD Card */}
+          <div
+            onClick={() => setCurrencyFilter(currencyFilter === 'USD' ? 'ALL' : 'USD')}
+            className={`p-3 rounded-xl border transition-all cursor-pointer ${
+              currencyFilter === 'USD'
+                ? 'bg-[#12281e] border-emerald-400 shadow-md ring-1 ring-emerald-400/50'
+                : 'bg-[#06120d] border-emerald-500/20 hover:border-emerald-500/40'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-bold text-emerald-200">الدولار الأمريكي (USD)</span>
+              <span className="text-[9px] bg-emerald-500/10 text-emerald-300 px-1.5 py-0.5 rounded font-mono">
+                1 USD = {currencyBreakdown.usdRate} YER
+              </span>
+            </div>
+            <div className="space-y-1 text-xs">
+              <div className="flex justify-between items-center text-slate-300">
+                <span className="text-[10px] text-slate-400">مستحق لنا (عملاء):</span>
+                <span className="font-mono font-bold text-emerald-200">{formatNumber(currencyBreakdown.usdReceivables)} USD</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-300">
+                <span className="text-[10px] text-slate-400">مستحق علينا (موردون):</span>
+                <span className="font-mono font-bold text-amber-200">{formatNumber(currencyBreakdown.usdPayables)} USD</span>
+              </div>
+              <div className="pt-1 mt-1 border-t border-emerald-500/20 flex justify-between items-center text-[10px]">
+                <span className="text-emerald-400/80">المعادل بالريال اليمني:</span>
+                <span className="font-mono font-bold text-emerald-300">
+                  ≈ {formatNumber((currencyBreakdown.usdReceivables - currencyBreakdown.usdPayables) * currencyBreakdown.usdRate)} YER
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Consolidated Net Base Valuation Card */}
+          <div className="p-3 rounded-xl bg-gradient-to-br from-[#122e23] via-[#0b2118] to-[#06120d] border border-emerald-400/40 shadow-lg flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] font-black text-emerald-300">إجمالي المعادل الشامل</span>
+              <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-bold">
+                محاسبي موحّد
+              </span>
+            </div>
+            <div className="space-y-1 text-xs">
+              <div className="flex justify-between items-center text-slate-300">
+                <span className="text-[10px] text-slate-400">إجمالي حقوقنا المحولة:</span>
+                <span className="font-mono font-bold text-emerald-300">
+                  {formatNumber(currencyBreakdown.totalReceivablesInBase)} YER
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-slate-300">
+                <span className="text-[10px] text-slate-400">إجمالي التزاماتنا المحولة:</span>
+                <span className="font-mono font-bold text-amber-300">
+                  {formatNumber(currencyBreakdown.totalPayablesInBase)} YER
+                </span>
+              </div>
+              <div className="pt-1.5 mt-1 border-t border-emerald-500/30 flex justify-between items-center">
+                <span className="text-[11px] font-bold text-white">صافي المركز المالي:</span>
+                <span
+                  className={`font-mono font-black text-xs ${
+                    currencyBreakdown.netBaseEquivalent >= 0 ? 'text-emerald-400' : 'text-red-400'
+                  }`}
+                >
+                  {formatNumber(currencyBreakdown.netBaseEquivalent)} YER
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Notifications / Feedback */}
       {error && (
         <div className="p-3.5 bg-red-950/80 border border-red-500/40 text-red-200 text-xs rounded-xl flex items-center justify-between gap-3 shadow-lg">
@@ -1545,6 +1770,11 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
                     <span className="text-base font-black font-mono text-purple-200">
                       {formatNumber(clBalance)} {cur}
                     </span>
+                    {cur !== 'YER' && (
+                      <span className="block text-[10px] text-emerald-300 font-mono mt-0.5">
+                        ≈ {formatNumber(toBaseCurrencyAmount(clBalance, cur))} YER
+                      </span>
+                    )}
                   </div>
 
                   <div className="p-3 bg-[#0d221b] rounded-xl border border-emerald-500/20 col-span-2 sm:col-span-1">

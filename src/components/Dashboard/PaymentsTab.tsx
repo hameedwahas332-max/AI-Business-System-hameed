@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../../api';
-import { formatAmount } from '../../lib/formatters';
+import { formatAmount, formatNumber } from '../../lib/formatters';
+import { getAccountingRate } from '../../lib/exchangeRates';
 import { ExportActions } from '../Common/ExportActions';
 import { TableExportConfig, printPaymentReceipt } from '../../lib/exportUtils';
 import { useAuth } from '../../context/AuthContext';
@@ -1009,8 +1010,9 @@ export const PaymentsTab: React.FC = () => {
                   <select
                     value={currency}
                     onChange={(e) => {
-                      setCurrency(e.target.value);
-                      if (e.target.value === 'YER') setExchangeRate('1.0');
+                      const cur = e.target.value;
+                      setCurrency(cur);
+                      setExchangeRate(String(getAccountingRate(cur)));
                     }}
                     className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
                   >
@@ -1035,10 +1037,15 @@ export const PaymentsTab: React.FC = () => {
 
               {/* Exchange rate if foreign */}
               {currency !== 'YER' && (
-                <div className="p-3 bg-amber-950/40 border border-amber-800/60 rounded-xl flex items-center justify-between gap-4 text-xs">
+                <div className="p-3 bg-amber-950/40 border border-amber-800/60 rounded-xl flex items-center justify-between gap-4 text-xs flex-wrap">
                   <div className="flex items-center gap-2 text-amber-300 font-bold">
                     <Sparkles className="w-4 h-4 text-amber-400" />
                     <span>سعر صرف {currency} مقابل YER:</span>
+                    {amount && Number(amount) > 0 && (
+                      <span className="font-mono text-emerald-400 font-bold mr-2">
+                        (المعادل: ≈ {formatNumber(Number(amount) * Number(exchangeRate))} YER)
+                      </span>
+                    )}
                   </div>
                   <input
                     type="number"
@@ -1046,7 +1053,7 @@ export const PaymentsTab: React.FC = () => {
                     min="0.0001"
                     value={exchangeRate}
                     onChange={(e) => setExchangeRate(e.target.value)}
-                    className="w-32 px-3 py-1.5 bg-slate-950 border border-amber-700 rounded-lg font-mono font-bold text-xs text-white"
+                    className="w-32 px-3 py-1.5 bg-slate-900 border border-amber-700 rounded-lg font-mono font-bold text-xs text-white focus:outline-none"
                   />
                 </div>
               )}

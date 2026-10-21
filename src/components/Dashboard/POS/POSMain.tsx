@@ -24,10 +24,21 @@ import {
   Tag,
   Package,
   Zap,
+  Keyboard,
+  Coins,
 } from 'lucide-react';
 import { api } from '../../../api';
 import { useAuth } from '../../../context/AuthContext';
 import { POSCartItem, POSShift, POSHeldSale, PriceTier } from '../../../types';
+import {
+  getStoredExchangeRates,
+  saveStoredExchangeRates,
+  EVENT_EXCHANGE_RATES_CHANGED,
+  toBaseCurrencyAmount,
+  getAccountingRate,
+  ExchangeRateConfig,
+} from '../../../lib/exchangeRates';
+import { formatNumber } from '../../../lib/formatters';
 import { ModuleSettingsModal } from '../../Common/ModuleSettingsModal';
 import { POSQuickItemModal } from './POSQuickItemModal';
 import { POSCustomerSelector } from './POSCustomerSelector';
@@ -148,56 +159,64 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
     loadInitialData();
   }, []);
 
-  // Keyboard Shortcuts Listener
+  // Sync with live exchange rates
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // F2: New Sale / Clear
-      if (e.key === 'F2') {
-        e.preventDefault();
-        handleClearCart();
-      }
-      // F3: Quick Manual Item
-      else if (e.key === 'F3') {
-        e.preventDefault();
-        setIsQuickItemOpen(true);
-      }
-      // F4 or Ctrl+Enter: Pay & Checkout
-      else if (e.key === 'F4' || (e.ctrlKey && e.key === 'Enter')) {
-        e.preventDefault();
-        if (cart.length > 0) {
-          setIsPaymentModalOpen(true);
-        }
-      }
-      // F6: Hold Sale
-      else if (e.key === 'F6') {
-        e.preventDefault();
-        if (cart.length > 0) handleHoldSale();
-      }
-      // F7: Open Held Drawer
-      else if (e.key === 'F7') {
-        e.preventDefault();
-        setIsHeldDrawerOpen((prev) => !prev);
-      }
-      // F8: Returns Modal
-      else if (e.key === 'F8') {
-        e.preventDefault();
-        setIsReturnsModalOpen(true);
-      }
-      // F9: Shift Modal
-      else if (e.key === 'F9') {
-        e.preventDefault();
-        setIsShiftModalOpen(true);
-      }
-      // '/' or F1 to focus search bar
-      else if (e.key === '/' && document.activeElement !== searchInputRef.current) {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      }
+    const handleExchangeRatesUpdate = () => {
+      const stored = getStoredExchangeRates();
+      setExchangeRates({
+        YER: 1,
+        SAR: stored.rates.SAR.accountingRate,
+        USD: stored.rates.USD.accountingRate,
+      });
     };
+    handleExchangeRatesUpdate();
+    window.addEventListener(EVENT_EXCHANGE_RATES_CHANGED, handleExchangeRatesUpdate);
+    return () => window.removeEventListener(EVENT_EXCHANGE_RATES_CHANGED, handleExchangeRatesUpdate);
+  }, []);
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cart, selectedCustomer]);
+  // Shortcut Actions
+  const handleCycleTier = () => {
+    const tiers: PriceTier[] = ['retail', 'half_wholesale', 'wholesale', 'vip'];
+    const currentIndex = tiers.indexOf(selectedPriceTier);
+    const nextTier = tiers[(currentIndex + 1) % tiers.length];
+    setSelectedPriceTier(nextTier);
+
+    // Update prices in cart based on next tier
+    setCart((prev) =>
+      prev.map((item) => {
+        const prod = products.find((p) => p.id === item.productId);
+        if (!prod) return item;
+        const baseTierPrice = getProductPriceForTier(prod, nextTier);
+        let newUnitPrice = baseTierPrice;
+        if (item.selectedUnit === 'major' && item.majorUnitFactor) {
+          newUnitPrice = prod.majorUnitPrice || baseTierPrice * item.majorUnitFactor;
+        } else if (item.selectedUnit === 'sub' && item.subUnitFactor) {
+          newUnitPrice = prod.subUnitPrice || baseTierPrice / item.subUnitFactor;
+        }
+        return {
+          ...item,
+          unitPrice: newUnitPrice,
+        };
+      })
+    );
+  };
+
+  const handleF4Action = () => {
+    if (cart.length === 0) return;
+    const lastIndex = cart.length - 1;
+    const item = cart[lastIndex];
+    if (item.majorUnitName || item.subUnitName) {
+      if (item.selectedUnit === 'base' && item.subUnitName) {
+        handleUpdateItemUnit(lastIndex, 'sub');
+      } else if ((item.selectedUnit === 'base' || item.selectedUnit === 'sub') && item.majorUnitName) {
+        handleUpdateItemUnit(lastIndex, 'major');
+      } else {
+        handleUpdateItemUnit(lastIndex, 'base');
+      }
+    } else {
+      handleUpdateQty(lastIndex, item.quantity + 1);
+    }
+  };
 
   // Cart Calculations (Accounting for item discounts and battery scrap deductions)
   const subtotal = cart.reduce(
@@ -210,6 +229,127 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
   );
   const taxAmount = (subtotal - cartDiscount) * (cartTaxRate / 100);
   const grandTotal = Math.max(0, subtotal - cartDiscount + taxAmount);
+
+  const handleQuickCashCheckout = async () => {
+    if (cart.length === 0 || checkoutLoading) return;
+    try {
+      setCheckoutLoading(true);
+      const accountingRate = getAccountingRate(currency);
+      const payload = {
+        customerId: selectedCustomer?.id || null,
+        customerName: selectedCustomer?.name || 'عميل نقدي سريع',
+        paymentMethod: 'CASH',
+        currency,
+        exchangeRate: accountingRate,
+        items: cart.map((it) => ({
+          product_id: it.productId,
+          name: it.name,
+          quantity: it.quantity,
+          unit: it.unitName || it.unit || 'حبة',
+          unit_price: it.unitPrice,
+          discount: it.discount || 0,
+          scrapDiscount: it.scrapDiscount || 0,
+          serialNumber: it.serialNumber,
+          warrantyEndDate: it.warrantyEndDate,
+          warrantyMonths: it.warrantyMonths,
+          total: Math.max(0, it.quantity * it.unitPrice - (it.discount || 0) - (it.scrapDiscount || 0)),
+        })),
+        subtotal,
+        discount: cartDiscount,
+        tax: taxAmount,
+        total: grandTotal,
+        paidAmount: grandTotal,
+        changeAmount: 0,
+      };
+
+      const res = await api.posCheckout(payload);
+      const invoiceNum = res.data?.invoice_number || `POS-${Date.now().toString().slice(-6)}`;
+      const receiptDataObj = {
+        ...payload,
+        id: res.data?.id || `sale-${Date.now()}`,
+        invoiceNumber: invoiceNum,
+        invoiceDate: new Date().toLocaleDateString('ar-YE'),
+        receipt: {
+          date: new Date().toLocaleDateString('ar-YE'),
+          time: new Date().toLocaleTimeString('ar-YE', { hour: '2-digit', minute: '2-digit' }),
+        },
+        customer: selectedCustomer || { name: 'عميل نقدي سريع' },
+      };
+
+      setCompletedReceiptData(receiptDataObj);
+      setIsReceiptModalOpen(true);
+      setCart([]);
+      setSelectedCustomer(null);
+      setCartDiscount(0);
+    } catch (err: any) {
+      setError(err.message || 'فشل إتمام الدفع النقدي السريع');
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
+  // Keyboard Shortcuts Listener (F2, F4, F6, F8, F9, F10)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // F2: Fast focus on barcode & product search
+      if (e.key === 'F2') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      }
+      // F3: Quick manual item
+      else if (e.key === 'F3') {
+        e.preventDefault();
+        setIsQuickItemOpen(true);
+      }
+      // F4: Adjust quantity or toggle unit (piece/carton)
+      else if (e.key === 'F4') {
+        e.preventDefault();
+        handleF4Action();
+      }
+      // F6: Cycle Price Tier (Retail / Semi-Wholesale / Wholesale / VIP)
+      else if (e.key === 'F6') {
+        e.preventDefault();
+        handleCycleTier();
+      }
+      // F7: Open held sales drawer
+      else if (e.key === 'F7') {
+        e.preventDefault();
+        setIsHeldDrawerOpen((prev) => !prev);
+      }
+      // F8: Hold current sale or call held orders
+      else if (e.key === 'F8') {
+        e.preventDefault();
+        if (cart.length > 0) {
+          handleHoldSale();
+        } else {
+          setIsHeldDrawerOpen((prev) => !prev);
+        }
+      }
+      // F9: Quick Cash Checkout & Print
+      else if (e.key === 'F9') {
+        e.preventDefault();
+        if (cart.length > 0) {
+          handleQuickCashCheckout();
+        }
+      }
+      // F10: Open Multi-Payment / Credit Modal
+      else if (e.key === 'F10' || (e.ctrlKey && e.key === 'Enter')) {
+        e.preventDefault();
+        if (cart.length > 0) {
+          setIsPaymentModalOpen(true);
+        }
+      }
+      // '/' or F1 to focus search bar
+      else if (e.key === '/' && document.activeElement !== searchInputRef.current) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [cart, selectedCustomer, selectedPriceTier, currency, subtotal, grandTotal, cartDiscount, taxAmount, checkoutLoading]);
 
   // Add Product to Cart with Multi-UOM, Tiered Price, & Battery Spec
   const handleAddToCart = (product: any) => {
@@ -985,48 +1125,144 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
             </div>
 
             {/* Grand Total Highlight */}
-            <div className="p-3.5 bg-gradient-to-r from-slate-900 to-slate-800 border border-slate-700/80 rounded-2xl flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-300">المجموع الصافي:</span>
-              <div className="text-2xl font-black text-emerald-400">
-                {grandTotal.toLocaleString()} <span className="text-xs font-bold text-slate-300">{currency}</span>
+            <div className="p-3.5 bg-gradient-to-r from-slate-900 to-slate-800 border border-slate-700/80 rounded-2xl flex flex-col gap-1.5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-300">المجموع الصافي:</span>
+                <div className="text-2xl font-black text-emerald-400 font-mono">
+                  {grandTotal.toLocaleString()} <span className="text-xs font-bold text-slate-300">{currency}</span>
+                </div>
               </div>
+              {currency !== 'YER' && (
+                <div className="flex items-center justify-between text-[11px] text-amber-300/90 pt-1 border-t border-slate-800/80 font-mono">
+                  <span>المعادل بالريال اليمني:</span>
+                  <span className="font-bold">
+                    ≈ {formatNumber(toBaseCurrencyAmount(grandTotal, currency))} YER
+                  </span>
+                </div>
+              )}
             </div>
 
-            {/* Action Buttons: Hold, Clear, and Checkout */}
+            {/* Action Buttons: Clear, Hold, Quick Cash, and Multi-Pay */}
             <div className="grid grid-cols-4 gap-2 pt-1">
-              <button
-                onClick={handleHoldSale}
-                disabled={cart.length === 0}
-                className="py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-2xl text-xs font-bold disabled:opacity-40 transition-all flex flex-col items-center justify-center gap-0.5"
-                title="تعليق الفاتورة الحالية (F6)"
-              >
-                <Pause className="w-4 h-4" />
-                <span>تعليق (F6)</span>
-              </button>
-
               <button
                 onClick={handleClearCart}
                 disabled={cart.length === 0}
-                className="py-3 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-rose-400 rounded-2xl text-xs font-bold disabled:opacity-40 transition-all flex flex-col items-center justify-center gap-0.5"
+                className="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-rose-400 rounded-xl text-xs font-bold disabled:opacity-40 transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer"
                 title="إلغاء وتفريغ السلة (F2)"
               >
-                <Trash2 className="w-4 h-4" />
-                <span>إلغاء (F2)</span>
+                <Trash2 className="w-3.5 h-3.5" />
+                <span className="text-[10px]">إلغاء (F2)</span>
+              </button>
+
+              <button
+                onClick={handleHoldSale}
+                disabled={cart.length === 0}
+                className="py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-bold disabled:opacity-40 transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer"
+                title="تعليق الفاتورة الحالية (F8)"
+              >
+                <Pause className="w-3.5 h-3.5" />
+                <span className="text-[10px]">تعليق (F8)</span>
+              </button>
+
+              <button
+                onClick={handleQuickCashCheckout}
+                disabled={cart.length === 0 || checkoutLoading}
+                className="py-2.5 bg-emerald-700/30 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-bold disabled:opacity-40 transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer shadow-sm"
+                title="دفع نقدي فوري وإصدار الفاتورة فوراً (F9)"
+              >
+                <Banknote className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-[10px] font-black">نقدي سريع (F9)</span>
               </button>
 
               <button
                 onClick={() => setIsPaymentModalOpen(true)}
                 disabled={cart.length === 0}
-                className="col-span-2 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-sm font-black shadow-lg shadow-emerald-950/40 disabled:opacity-40 transition-all flex items-center justify-center gap-2"
-                title="سداد ودفع الفاتورة (F4 أو Ctrl+Enter)"
+                className="py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-black shadow-lg shadow-blue-950/40 disabled:opacity-40 transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer"
+                title="سداد ودفع متعدد / آجل / محافظ (F10)"
               >
-                <CheckCircle2 className="w-5 h-5" />
-                <span>دفع الفاتورة (F4)</span>
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span className="text-[10px]">دفع متعدد (F10)</span>
               </button>
             </div>
           </div>
         </aside>
       </div>
+
+      {/* Hardware Keyboard Shortcuts Legend Bar */}
+      <footer className="bg-slate-900/95 border-t border-slate-800 px-4 py-2 flex items-center justify-between text-[11px] text-slate-400 overflow-x-auto shrink-0 select-none z-10">
+        <div className="flex items-center gap-1.5 text-slate-300 font-bold shrink-0">
+          <Keyboard className="w-3.5 h-3.5 text-emerald-400" />
+          <span>اختصارات الكاشير (بدون ماوس):</span>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => searchInputRef.current?.focus()}
+            className="flex items-center gap-1 px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            title="التركيز الفوري على حقل البحث والباركود (F2)"
+          >
+            <kbd className="px-1.5 py-0.5 bg-slate-700/80 border border-slate-600 rounded text-[10px] font-mono text-emerald-400 font-bold">F2</kbd>
+            <span>بحث وباركود</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleF4Action}
+            className="flex items-center gap-1 px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            title="تعديل كمية الصنف المحدد أو تبديل الوحدة (F4)"
+          >
+            <kbd className="px-1.5 py-0.5 bg-slate-700/80 border border-slate-600 rounded text-[10px] font-mono text-cyan-400 font-bold">F4</kbd>
+            <span>تبديل الوحدة / الكمية</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleCycleTier}
+            className="flex items-center gap-1 px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            title="تبديل مستوى السعر: تجزئة / نصف جملة / جملة / VIP (F6)"
+          >
+            <kbd className="px-1.5 py-0.5 bg-slate-700/80 border border-slate-600 rounded text-[10px] font-mono text-purple-400 font-bold">F6</kbd>
+            <span>تبديل السعر ({selectedPriceTier})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (cart.length > 0) handleHoldSale();
+              else setIsHeldDrawerOpen((prev) => !prev);
+            }}
+            className="flex items-center gap-1 px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            title="تعليق الفاتورة أو استدعاء المعلق (F8)"
+          >
+            <kbd className="px-1.5 py-0.5 bg-slate-700/80 border border-slate-600 rounded text-[10px] font-mono text-amber-400 font-bold">F8</kbd>
+            <span>تعليق / استدعاء</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleQuickCashCheckout}
+            disabled={cart.length === 0 || checkoutLoading}
+            className="flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 transition-colors disabled:opacity-40 cursor-pointer"
+            title="دفع نقدي سريع وإصدار الفاتورة فوراً (F9)"
+          >
+            <kbd className="px-1.5 py-0.5 bg-emerald-700 border border-emerald-500 rounded text-[10px] font-mono text-white font-bold">F9</kbd>
+            <span className="font-semibold">دفع نقدي سريع</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (cart.length > 0) setIsPaymentModalOpen(true);
+            }}
+            disabled={cart.length === 0}
+            className="flex items-center gap-1 px-2 py-0.5 rounded bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 transition-colors disabled:opacity-40 cursor-pointer"
+            title="فتح نافذة الدفع المتعدد / الآجل / المحافظ (F10)"
+          >
+            <kbd className="px-1.5 py-0.5 bg-blue-700 border border-blue-500 rounded text-[10px] font-mono text-white font-bold">F10</kbd>
+            <span className="font-semibold">دفع متعدد / آجل</span>
+          </button>
+        </div>
+      </footer>
 
       {/* Quick Item Modal */}
       <POSQuickItemModal

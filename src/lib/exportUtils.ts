@@ -57,8 +57,29 @@ export function escapeHtml(str: string | number | null | undefined): string {
  * Universal In-App Print Modal & Hidden Iframe Trigger
  * Completely solves the issue where window.print() is silently blocked in sandboxed iframes.
  */
-export function renderAndPrintDocument(htmlBody: string, documentTitle: string = 'مستند مالي'): void {
+export function renderAndPrintDocument(
+  htmlBody: string,
+  titleOrOptions: string | { documentTitle?: string; pageSize?: 'A4' | '80mm'; maxWidth?: string } = 'مستند مالي',
+  options?: { pageSize?: 'A4' | '80mm'; maxWidth?: string }
+): void {
   if (typeof document === 'undefined') return;
+
+  let documentTitle = 'مستند مالي';
+  let mergedOptions = options;
+
+  if (typeof titleOrOptions === 'string') {
+    documentTitle = titleOrOptions;
+  } else if (titleOrOptions && typeof titleOrOptions === 'object') {
+    documentTitle = titleOrOptions.documentTitle || 'مستند مالي';
+    mergedOptions = { ...titleOrOptions, ...options };
+  }
+
+  const isThermal = mergedOptions?.pageSize === '80mm';
+  const pageCss = isThermal
+    ? `@page { size: 80mm auto; margin: 3mm 4mm; }
+       .print-sheet { max-width: 76mm; margin: 0 auto; padding: 6px; background: #ffffff; font-size: 11px; }`
+    : `@page { size: A4; margin: 12mm 15mm; }
+       .print-sheet { max-width: 800px; margin: 0 auto; padding: 24px; background: #ffffff; }`;
 
   // 1. Remove existing modal if open
   const existingModal = document.getElementById('erp-print-preview-modal');
@@ -73,10 +94,7 @@ export function renderAndPrintDocument(htmlBody: string, documentTitle: string =
   <meta charset="utf-8">
   <title>${escapeHtml(documentTitle)}</title>
   <style>
-    @page {
-      size: A4;
-      margin: 12mm 15mm;
-    }
+    ${pageCss}
     * {
       box-sizing: border-box;
       -webkit-print-color-adjust: exact !important;
@@ -88,15 +106,9 @@ export function renderAndPrintDocument(htmlBody: string, documentTitle: string =
       background: #ffffff;
       color: #0f172a;
       font-family: 'Cairo', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-      font-size: 13px;
-      line-height: 1.5;
+      font-size: ${isThermal ? '11px' : '13px'};
+      line-height: 1.4;
       direction: rtl;
-    }
-    .print-sheet {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 24px;
-      background: #ffffff;
     }
     .text-center { text-align: center; }
     .text-left { text-align: left; }
@@ -411,10 +423,16 @@ export function renderAndPrintDocument(htmlBody: string, documentTitle: string =
  */
 export function printInvoiceDocument(inv?: any): void {
   const invoice = inv || {};
+  const isThermal = invoice.layout === '80mm';
+  const currency = invoice.currency || 'YER';
   const isPurchase = invoice.invoiceType === 'PURCHASE';
-  const docTitle = isPurchase ? 'فاتورة مشتريات وتوريد' : 'فاتورة ضريبية معتمدة';
+  const docTitle = isThermal
+    ? 'إيصال مبيعات كاشير'
+    : isPurchase
+    ? 'فاتورة مشتريات وتوريد'
+    : 'فاتورة ضريبية وشهادة ضمان معتمدة';
   const invoiceNo = invoice.invoiceNumber || invoice.invoice_number || invoice.id || `INV-${Date.now().toString().slice(-6)}`;
-  const dateStr = invoice.date || invoice.invoice_date || new Date().toLocaleDateString('ar-SA');
+  const dateStr = invoice.date || invoice.invoice_date || new Date().toLocaleDateString('ar-YE');
   const companyName = invoice.companyName || invoice.company_name || 'مؤسسة السحابي للتجارة والتقنية';
   const partyName = invoice.partyName || invoice.customer_name || invoice.supplier_name || invoice.customer || 'العميل النقدي';
   const partyPhone = invoice.partyPhone || invoice.customer_phone || invoice.supplier_phone || '';
@@ -429,29 +447,154 @@ export function printInvoiceDocument(inv?: any): void {
           name: 'بضائع وخدمات تجارية معتمدة',
           quantity: 1,
           unitPrice: Number(invoice.total || invoice.amount || 0),
-          tax: (Number(invoice.total || invoice.amount || 0) * 0.15) / 1.15,
+          tax: 0,
           total: Number(invoice.total || invoice.amount || 0),
         },
       ];
 
   const subtotal = Number(invoice.subtotal || invoice.total || invoice.amount || 0);
-  const tax = Number(invoice.tax || (subtotal * 0.15));
+  const tax = Number(invoice.tax || 0);
   const total = Number(invoice.total || invoice.amount || (subtotal + tax));
   const paidAmount = Number(invoice.paidAmount !== undefined ? invoice.paidAmount : (invoice.paid_amount !== undefined ? invoice.paid_amount : total));
   const remaining = Number(invoice.remainingAmount !== undefined ? invoice.remainingAmount : (total - paidAmount));
 
+  // --- 80MM COMPACT THERMAL LAYOUT ---
+  if (isThermal) {
+    const thermalItemsHtml = items
+      .map((it: any) => {
+        const q = Number(it.quantity || it.qty || 1);
+        const p = Number(it.unitPrice || it.unit_price || it.price || 0);
+        const t = Number(it.total || q * p);
+        const u = it.unit || it.unitName || 'حبة';
+        return `
+          <div style="border-bottom: 1px dotted #94a3b8; padding: 4px 0; font-size: 10px;">
+            <div style="display: flex; justify-content: space-between; font-weight: bold;">
+              <span>${escapeHtml(it.name || it.product_name || 'صنف')}</span>
+              <span class="font-mono">${t.toLocaleString()} ${currency}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; color: #475569; font-size: 9px; margin-top: 1px;">
+              <span>${q} ${escapeHtml(u)} × ${p.toLocaleString()} ${currency}</span>
+              ${it.sku ? `<span class="font-mono">[${escapeHtml(it.sku)}]</span>` : ''}
+            </div>
+            ${it.serialNumber ? `
+              <div style="color: #b45309; font-size: 8.5px; font-family: monospace; margin-top: 2px;">
+                ⚡ سيريال: ${escapeHtml(it.serialNumber)} ${it.warrantyEndDate ? `(ضمان حتى: ${escapeHtml(it.warrantyEndDate)})` : ''}
+              </div>
+            ` : ''}
+            ${Number(it.scrapDiscount) > 0 ? `
+              <div style="color: #15803d; font-size: 8.5px; font-weight: bold; margin-top: 1px;">
+                ♻️ خصم رجيع بطارية: -${Number(it.scrapDiscount).toLocaleString()} ${currency}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      })
+      .join('');
+
+    const thermalHtml = `
+      <div style="font-family: 'Cairo', monospace, sans-serif; text-align: center; color: #000000; padding: 2px;">
+        <!-- Header -->
+        <div style="border-bottom: 2px dashed #000; padding-bottom: 8px; margin-bottom: 8px;">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 900;">${escapeHtml(companyName)}</h2>
+          <div style="font-size: 10px; margin-top: 2px;">فاتورة مبيعات نقدية مبسطة</div>
+          <div style="font-size: 9px; margin-top: 2px;">هاتف: 0501234567 | المركز الرئيسي</div>
+        </div>
+
+        <!-- Meta -->
+        <div style="text-align: right; font-size: 9.5px; border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px; line-height: 1.5;">
+          <div style="display: flex; justify-content: space-between;">
+            <span>رقم الفاتورة:</span>
+            <span class="font-mono font-bold">#${escapeHtml(invoiceNo)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>التاريخ:</span>
+            <span class="font-mono">${escapeHtml(dateStr)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>العميل:</span>
+            <span class="font-bold">${escapeHtml(partyName)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>طريقة الدفع:</span>
+            <span class="font-bold">${escapeHtml(paymentMethod)}</span>
+          </div>
+        </div>
+
+        <!-- Items Header -->
+        <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 9.5px; border-bottom: 1px solid #000; padding-bottom: 3px;">
+          <span>الصنف والكمية</span>
+          <span>الإجمالي</span>
+        </div>
+
+        <!-- Items Rows -->
+        <div style="text-align: right; margin-bottom: 6px;">
+          ${thermalItemsHtml}
+        </div>
+
+        <!-- Financial Summary -->
+        <div style="border-top: 1px dashed #000; padding-top: 6px; font-size: 10px; text-align: right; line-height: 1.6;">
+          <div style="display: flex; justify-content: space-between;">
+            <span>المجموع الفرعي:</span>
+            <span class="font-mono">${subtotal.toLocaleString()} ${currency}</span>
+          </div>
+          ${tax > 0 ? `
+            <div style="display: flex; justify-content: space-between;">
+              <span>ضريبة القيمة المضافة:</span>
+              <span class="font-mono">+${tax.toLocaleString()} ${currency}</span>
+            </div>
+          ` : ''}
+          <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 900; border-top: 1px solid #000; padding-top: 4px; margin-top: 4px;">
+            <span>الإجمالي الصافي:</span>
+            <span class="font-mono">${total.toLocaleString()} ${currency}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 9.5px; margin-top: 3px;">
+            <span>المدفوع:</span>
+            <span class="font-mono font-bold">${paidAmount.toLocaleString()} ${currency}</span>
+          </div>
+          ${remaining > 0 ? `
+            <div style="display: flex; justify-content: space-between; font-size: 9.5px; color: #b91c1c; font-weight: bold;">
+              <span>المتبقي ذمة:</span>
+              <span class="font-mono">${remaining.toLocaleString()} ${currency}</span>
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- QR Code Placeholder & Footer -->
+        <div style="margin-top: 10px; border-top: 2px dashed #000; padding-top: 8px;">
+          <div style="border: 2px solid #000; width: 68px; height: 68px; margin: 0 auto; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: bold; background: #fff;">
+            QR • ZATCA
+          </div>
+          <div style="font-size: 8.5px; font-weight: bold; margin-top: 6px;">شكراً لزيارتكم ونسعد بخدمتكم دائماً!</div>
+          <div style="font-size: 7.5px; color: #475569; font-family: monospace; margin-top: 2px;">Powered by Enterprise Cloud ERP</div>
+        </div>
+      </div>
+    `;
+
+    renderAndPrintDocument(thermalHtml, `إيصال_كاشير_${invoiceNo}`, { pageSize: '80mm' });
+    return;
+  }
+
+  // --- FULL OFFICIAL A4 LAYOUT ---
   const itemsRows = items
     .map((it: any, idx: number) => {
       const q = Number(it.quantity || it.qty || 1);
       const p = Number(it.unitPrice || it.unit_price || it.price || 0);
       const t = Number(it.total || q * p);
+      let nameDesc = escapeHtml(it.name || it.product_name || 'صنف مبيعات');
+      if (it.unit && it.unit !== 'حبة') nameDesc += ` <span style="color: #64748b; font-size: 11px;">(${escapeHtml(it.unit)})</span>`;
+      if (it.serialNumber) {
+        nameDesc += `<br><span style="color: #b45309; font-size: 10px; font-family: monospace;">⚡ سيريال: ${escapeHtml(it.serialNumber)} (ضمان حتى: ${escapeHtml(it.warrantyEndDate || '-')})</span>`;
+      }
+      if (Number(it.scrapDiscount) > 0) {
+        nameDesc += `<br><span style="color: #15803d; font-size: 10px; font-weight: bold;">♻️ خصم استبدال رجيع: -${Number(it.scrapDiscount).toLocaleString()} ${currency}</span>`;
+      }
       return `<tr>
         <td class="text-center font-mono">${idx + 1}</td>
-        <td class="font-bold">${escapeHtml(it.name || it.product_name || 'صنف مبيعات')}</td>
+        <td class="font-bold">${nameDesc}</td>
         <td class="text-center font-mono">${escapeHtml(it.sku || it.product_sku || '-')}</td>
         <td class="text-center font-mono font-bold">${q}</td>
-        <td class="text-left font-mono">${p.toLocaleString()} ر.س</td>
-        <td class="text-left font-mono font-bold">${t.toLocaleString()} ر.س</td>
+        <td class="text-left font-mono">${p.toLocaleString()} ${currency}</td>
+        <td class="text-left font-mono font-bold">${t.toLocaleString()} ${currency}</td>
       </tr>`;
     })
     .join('');
@@ -464,7 +607,7 @@ export function printInvoiceDocument(inv?: any): void {
         <div style="font-size: 11px; color: #64748b; margin-top: 4px;">
           السجل التجاري: <span class="font-mono">1010998877</span> | الرقم الضريبي: <span class="font-mono">300998877600003</span>
         </div>
-        <div style="font-size: 11px; color: #64748b;">المركز الرئيسي: الرياض - طريق الملك فهد | هاتف: <span class="font-mono">0501234567</span></div>
+        <div style="font-size: 11px; color: #64748b;">المركز الرئيسي: طريق الملك فهد | هاتف: <span class="font-mono">0501234567</span></div>
       </div>
       <div style="text-align: left;">
         <div style="display: inline-block; background: #0f172a; color: #ffffff; padding: 6px 14px; border-radius: 8px; font-size: 14px; font-weight: 800;">
@@ -480,15 +623,16 @@ export function printInvoiceDocument(inv?: any): void {
     <!-- Client / Bill To Card -->
     <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
       <div>
-        <span style="font-size: 11px; color: #64748b; display: block;">بيانات العميل / المشتري:</span>
+        <span style="font-size: 11px; color: #64748b; display: block;">بيانات العميل / الطرف الآخر:</span>
         <span style="font-size: 14px; font-weight: 800; color: #0f172a;">${escapeHtml(partyName)}</span>
         ${partyPhone ? `<div style="font-size: 11px; color: #475569;">الهاتف: <span class="font-mono">${escapeHtml(partyPhone)}</span></div>` : ''}
         ${partyAddress ? `<div style="font-size: 11px; color: #475569;">العنوان: ${escapeHtml(partyAddress)}</div>` : ''}
       </div>
       <div style="text-align: left;">
-        <span style="font-size: 11px; color: #64748b; display: block;">شروط الدفع والحالة:</span>
+        <span style="font-size: 11px; color: #64748b; display: block;">شروط الدفع والعملة:</span>
         <span class="badge ${status === 'مدفوعة' ? 'badge-success' : 'badge-amber'}">${escapeHtml(status)}</span>
         <div style="font-size: 11px; color: #475569; margin-top: 4px;">طريقة الدفع: <strong>${escapeHtml(paymentMethod)}</strong></div>
+        <div style="font-size: 11px; color: #475569;">عملة المعاملة: <strong class="font-mono">${escapeHtml(currency)}</strong></div>
       </div>
     </div>
 
@@ -497,8 +641,8 @@ export function printInvoiceDocument(inv?: any): void {
       <thead>
         <tr>
           <th style="width: 40px;" class="text-center">م</th>
-          <th>الصنف / البيان</th>
-          <th style="width: 100px;" class="text-center">الكود</th>
+          <th>الصنف / البيان والمواصفات</th>
+          <th style="width: 100px;" class="text-center">الكود / SKU</th>
           <th style="width: 70px;" class="text-center">الكمية</th>
           <th style="width: 110px;" class="text-left">سعر الوحدة</th>
           <th style="width: 120px;" class="text-left">الإجمالي</th>
@@ -509,40 +653,43 @@ export function printInvoiceDocument(inv?: any): void {
       </tbody>
     </table>
 
-    <!-- Totals Summary & ZATCA Stamp Box -->
+    <!-- Totals Summary & Warranty Terms Box -->
     <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; margin-top: 16px; align-items: start;">
       <div style="border: 1px dashed #cbd5e1; border-radius: 10px; padding: 12px; background: #fafafa; font-size: 11px; color: #475569;">
-        <div style="font-weight: 700; color: #0f172a; margin-bottom: 4px;">الامتثال الضريبي والفاتورة الإلكترونية:</div>
-        <div>• هذه الفاتورة صادرة وفق متطلبات هيئة الزكاة والضريبة والجمارك (ZATCA Phase 2).</div>
-        <div>• الختم الرقمي والتوقيع الإلكتروني مشفر وموثق بسجلات النظام المحاسبي السحابي.</div>
+        <div style="font-weight: 700; color: #0f172a; margin-bottom: 4px;">وثيقة الضمان والشروط القانونية:</div>
+        <div>• يسري الضمان للأصناف التي تحمل أرقاماً تسلسلية (سيريال) بموجب هذه الفاتورة.</div>
+        <div>• استبدال الرجيع والبطاريات التالفة يتم خصمه فورياً بناء على تقييم الفني المعتمد.</div>
+        <div>• البضاعة المباعة تخضع لسياسة الفحص والاستبدال خلال المدة النظامية.</div>
         <div style="margin-top: 8px; font-family: ui-monospace, monospace; color: #64748b; font-size: 10px;">
-          Hash: e4a899cf...88219 | Verified by ERP Engine
+          Hash: e4a899cf...88219 | Verified by Enterprise Cloud ERP
         </div>
       </div>
 
       <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px 16px; font-size: 12px;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-          <span style="color: #64748b;">المجموع الفرعي (غير شامل الضريبة):</span>
-          <span class="font-mono font-bold">${subtotal.toLocaleString()} ر.س</span>
+          <span style="color: #64748b;">المجموع الفرعي:</span>
+          <span class="font-mono font-bold">${subtotal.toLocaleString()} ${currency}</span>
         </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-          <span style="color: #64748b;">ضريبة القيمة المضافة (15%):</span>
-          <span class="font-mono font-bold">${tax.toLocaleString()} ر.س</span>
-        </div>
+        ${tax > 0 ? `
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            <span style="color: #64748b;">ضريبة القيمة المضافة:</span>
+            <span class="font-mono font-bold">${tax.toLocaleString()} ${currency}</span>
+          </div>
+        ` : ''}
         <div style="display: flex; justify-content: space-between; border-top: 2px solid #0f172a; padding-top: 6px; margin-top: 6px; font-size: 15px; font-weight: 900; color: #0f172a;">
           <span>الإجمالي النهائي المستحق:</span>
-          <span class="font-mono text-emerald-700">${total.toLocaleString()} ر.س</span>
+          <span class="font-mono text-emerald-700">${total.toLocaleString()} ${currency}</span>
         </div>
         ${paidAmount > 0 ? `
           <div style="display: flex; justify-content: space-between; margin-top: 6px; color: #15803d; font-size: 12px;">
             <span>المبلغ المدفوع:</span>
-            <span class="font-mono font-bold">${paidAmount.toLocaleString()} ر.س</span>
+            <span class="font-mono font-bold">${paidAmount.toLocaleString()} ${currency}</span>
           </div>
         ` : ''}
         ${remaining > 0 ? `
           <div style="display: flex; justify-content: space-between; margin-top: 4px; color: #b91c1c; font-size: 12px;">
             <span>المتبقي ذمة قائمة:</span>
-            <span class="font-mono font-bold">${remaining.toLocaleString()} ر.س</span>
+            <span class="font-mono font-bold">${remaining.toLocaleString()} ${currency}</span>
           </div>
         ` : ''}
       </div>
@@ -567,7 +714,14 @@ export function printInvoiceDocument(inv?: any): void {
     </div>
   `;
 
-  renderAndPrintDocument(html, `${docTitle} #${invoiceNo}`);
+  renderAndPrintDocument(html, `${docTitle} #${invoiceNo}`, { pageSize: 'A4' });
+}
+
+/**
+ * Convenience helper for 80mm thermal receipt printing
+ */
+export function printThermalReceipt80mm(inv?: any): void {
+  printInvoiceDocument({ ...inv, layout: '80mm' });
 }
 
 /**

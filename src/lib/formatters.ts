@@ -69,3 +69,28 @@ export function formatDateTime(val: string | Date | null | undefined): string {
   if (isNaN(date.getTime())) return '';
   return date.toLocaleString('en-GB');
 }
+
+/**
+ * Multi-Currency Equivalent Formatter
+ * Shows base amount and live equivalent in YER when transacting in SAR or USD
+ */
+export function formatAmountWithEquivalent(
+  val: number | string | null | undefined,
+  currency: string = 'YER',
+  exchangeRate?: number
+): { formatted: string; equivalent: string; isBase: boolean } {
+  const num = parseEnglishNumber(val, 0);
+  const cur = (currency || 'YER').toUpperCase();
+  const formatted = `${formatNumber(num)} ${cur}`;
+
+  if (cur === 'YER') {
+    return { formatted, equivalent: '', isBase: true };
+  }
+
+  const rate = exchangeRate || (cur === 'SAR' ? 535 : cur === 'USD' ? 2050 : 1);
+  const baseEquivalent = num * rate;
+  const equivalent = `≈ ${formatNumber(baseEquivalent)} YER`;
+
+  return { formatted, equivalent, isBase: false };
+}
+

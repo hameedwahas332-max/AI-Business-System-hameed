@@ -35,7 +35,9 @@ import {
   TrendingUp,
   Wallet,
   Server,
+  Coins,
 } from 'lucide-react';
+import { DailyExchangeRateModal } from '../Common/DailyExchangeRateModal';
 
 interface SettingItem {
   definition: {
@@ -495,6 +497,7 @@ const DEFAULT_CHANGE_REQUESTS: ChangeRequest[] = [
 export const EnterpriseControlCenterTab: React.FC = () => {
   // Main view level
   const [activeLevel, setActiveLevel] = useState<'SETTINGS' | 'CONTROL_CENTER'>('SETTINGS');
+  const [isRatesModalOpen, setIsRatesModalOpen] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<
     'OVERVIEW' | 'REQUESTS' | 'DRIFT' | 'VERSIONS' | 'SNAPSHOTS' | 'DIAGNOSTICS' | 'PRESETS' | 'AI_ASSISTANT'
   >('OVERVIEW');
@@ -1035,6 +1038,16 @@ export const EnterpriseControlCenterTab: React.FC = () => {
             >
               <Shield className="w-4 h-4" />
               المستوى 2: مركز التحكم والسياسات
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsRatesModalOpen(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-all cursor-pointer mr-1"
+              title="عرض وتعديل نشرة أسعار الصرف اليومية للعملات"
+            >
+              <Coins className="w-4 h-4 text-amber-400" />
+              <span>نشرة أسعار الصرف (YER / SAR / USD)</span>
             </button>
           </div>
         </div>
@@ -2094,6 +2107,11 @@ export const EnterpriseControlCenterTab: React.FC = () => {
           </div>
         </div>
       )}
+
+      <DailyExchangeRateModal
+        isOpen={isRatesModalOpen}
+        onClose={() => setIsRatesModalOpen(false)}
+      />
     </div>
   );
 };

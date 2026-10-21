@@ -26,10 +26,209 @@ import {
   Tag,
   Phone,
   FileText,
+  Building2,
+  Truck,
+  ArrowLeftRight,
+  Plus,
+  Printer,
+  X,
+  Eye,
+  MapPin,
+  User,
 } from 'lucide-react';
+import { renderAndPrintDocument } from '../../lib/exportUtils';
+
+export interface Warehouse {
+  id: string;
+  name: string;
+  code: string;
+  type: 'CENTRAL' | 'RETAIL' | 'BRANCH' | 'VAN';
+  location: string;
+  manager: string;
+  phone: string;
+}
+
+export const PRESET_WAREHOUSES: Warehouse[] = [
+  {
+    id: 'wh-main',
+    name: 'المستودع الرئيسي - الجملة',
+    code: 'WH-01-MAIN',
+    type: 'CENTRAL',
+    location: 'صنعاء - شارع الستين الجنوبي',
+    manager: 'م. يحيى الشامي',
+    phone: '771234567',
+  },
+  {
+    id: 'wh-retail',
+    name: 'معرض البيع المباشر - التجزئة',
+    code: 'WH-02-RETAIL',
+    type: 'RETAIL',
+    location: 'صنعاء - حدة ريفيرا',
+    manager: 'أ. طارق عبدالكريم',
+    phone: '772345678',
+  },
+  {
+    id: 'wh-battery',
+    name: 'فرع البطاريات والزيوت',
+    code: 'WH-03-BATTERY',
+    type: 'BRANCH',
+    location: 'صنعاء - شارع تعز جوار جولة النصر',
+    manager: 'م. فؤاد الحرازي',
+    phone: '773456789',
+  },
+  {
+    id: 'wh-van',
+    name: 'مستودع سيارة التوزيع (مندوب المبيعات)',
+    code: 'WH-04-VAN',
+    type: 'VAN',
+    location: 'خط سير الأمانة والضواحي - سيارة جامبو #5421',
+    manager: 'الكابتن صدام الوادعي',
+    phone: '774567890',
+  },
+];
+
+export interface StockTransferItem {
+  productId: string;
+  productName: string;
+  sku: string;
+  unit: 'PIECE' | 'CARTON';
+  unitName: string;
+  factor: number;
+  quantity: number;
+  totalPieces: number;
+  notes?: string;
+}
+
+export interface StockTransferVoucher {
+  id: string;
+  voucherNumber: string;
+  date: string;
+  fromWarehouseId: string;
+  fromWarehouseName: string;
+  toWarehouseId: string;
+  toWarehouseName: string;
+  driverName: string;
+  vehicleNumber?: string;
+  items: StockTransferItem[];
+  totalPieces: number;
+  notes: string;
+  status: 'COMPLETED' | 'PENDING' | 'CANCELLED';
+  createdAt: string;
+  createdBy: string;
+}
 
 export const InventoryTab: React.FC = () => {
-  const [activeSubTab, setActiveSubTab] = useState<'movements_balances' | 'physical_audit' | 'expiry_warranty_radar'>('movements_balances');
+  const [activeSubTab, setActiveSubTab] = useState<'movements_balances' | 'physical_audit' | 'expiry_warranty_radar' | 'stock_transfers'>('movements_balances');
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('ALL');
+
+  const [warehouses, setWarehouses] = useState<Warehouse[]>(() => {
+    try {
+      const saved = localStorage.getItem('erp_warehouses_v1');
+      return saved ? JSON.parse(saved) : PRESET_WAREHOUSES;
+    } catch {
+      return PRESET_WAREHOUSES;
+    }
+  });
+
+  // Stock Transfers State
+  const [transfers, setTransfers] = useState<StockTransferVoucher[]>(() => {
+    try {
+      const saved = localStorage.getItem('erp_stock_transfers_v1');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [
+      {
+        id: 'tr-001',
+        voucherNumber: 'TR-2026-0001',
+        date: new Date().toISOString().split('T')[0],
+        fromWarehouseId: 'wh-main',
+        fromWarehouseName: 'المستودع الرئيسي - الجملة',
+        toWarehouseId: 'wh-retail',
+        toWarehouseName: 'معرض البيع المباشر - التجزئة',
+        driverName: 'صادق المريسي',
+        vehicleNumber: 'نقل 10294',
+        items: [
+          {
+            productId: 'p1',
+            productName: 'حليب نيدو مجفف 2.5 كجم',
+            sku: 'FOOD-NID-001',
+            unit: 'CARTON',
+            unitName: 'كرتون',
+            factor: 6,
+            quantity: 10,
+            totalPieces: 60,
+            notes: 'تغذية أرفف المعرض',
+          },
+        ],
+        totalPieces: 60,
+        notes: 'تغذية صباحية لمعرض التجزئة',
+        status: 'COMPLETED',
+        createdAt: new Date().toISOString(),
+        createdBy: 'أمين المستودع الرئيسي',
+      },
+      {
+        id: 'tr-002',
+        voucherNumber: 'TR-2026-0002',
+        date: new Date().toISOString().split('T')[0],
+        fromWarehouseId: 'wh-battery',
+        fromWarehouseName: 'فرع البطاريات والزيوت',
+        toWarehouseId: 'wh-van',
+        toWarehouseName: 'مستودع سيارة التوزيع (مندوب المبيعات)',
+        driverName: 'صدام الوادعي',
+        vehicleNumber: 'جامبو #5421',
+        items: [
+          {
+            productId: 'p2',
+            productName: 'بطارية هانكوك 70 أمبير جافة',
+            sku: 'BAT-HK-70',
+            unit: 'PIECE',
+            unitName: 'حبة',
+            factor: 1,
+            quantity: 15,
+            totalPieces: 15,
+            notes: 'شحنة خط سير اليوم',
+          },
+        ],
+        totalPieces: 15,
+        notes: 'تحميل خط سير مندوب التوزيع الأمانة',
+        status: 'COMPLETED',
+        createdAt: new Date().toISOString(),
+        createdBy: 'مسؤول فرع البطاريات',
+      },
+    ];
+  });
+
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [selectedTransferForView, setSelectedTransferForView] = useState<StockTransferVoucher | null>(null);
+
+  // New Transfer Form State
+  const [newTransfer, setNewTransfer] = useState<{
+    fromWarehouseId: string;
+    toWarehouseId: string;
+    driverName: string;
+    vehicleNumber: string;
+    notes: string;
+    items: {
+      productId: string;
+      unit: 'PIECE' | 'CARTON';
+      quantity: string;
+      notes: string;
+    }[];
+  }>({
+    fromWarehouseId: 'wh-main',
+    toWarehouseId: 'wh-retail',
+    driverName: '',
+    vehicleNumber: '',
+    notes: '',
+    items: [
+      {
+        productId: '',
+        unit: 'CARTON',
+        quantity: '1',
+        notes: '',
+      },
+    ],
+  });
 
   // Products and movements data
   const [products, setProducts] = useState<any[]>([]);
@@ -248,6 +447,229 @@ export const InventoryTab: React.FC = () => {
     })
     .sort((a, b) => a.daysLeft - b.daysLeft);
 
+  // Add item row to new transfer
+  const handleAddTransferItemRow = () => {
+    setNewTransfer((prev) => ({
+      ...prev,
+      items: [
+        ...prev.items,
+        { productId: '', unit: 'CARTON', quantity: '1', notes: '' },
+      ],
+    }));
+  };
+
+  // Remove item row from new transfer
+  const handleRemoveTransferItemRow = (index: number) => {
+    setNewTransfer((prev) => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index),
+    }));
+  };
+
+  // Update item row in new transfer
+  const handleUpdateTransferItemRow = (index: number, field: string, val: any) => {
+    setNewTransfer((prev) => {
+      const updated = [...prev.items];
+      updated[index] = { ...updated[index], [field]: val };
+      return { ...prev, items: updated };
+    });
+  };
+
+  // Save and post Stock Transfer Voucher
+  const handleSaveTransferVoucher = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newTransfer.fromWarehouseId === newTransfer.toWarehouseId) {
+      setError('لا يمكن التحويل من وإلى نفس المستودع، يرجى اختيار مستودعين مختلفين');
+      return;
+    }
+
+    const validItems = newTransfer.items.filter((it) => it.productId && Number(it.quantity) > 0);
+    if (validItems.length === 0) {
+      setError('يرجى اختيار صنف واحد على الأقل وتحديد كمية أكبر من صفر للتحويل');
+      return;
+    }
+
+    try {
+      const fromWh = warehouses.find((w) => w.id === newTransfer.fromWarehouseId);
+      const toWh = warehouses.find((w) => w.id === newTransfer.toWarehouseId);
+
+      const voucherNumber = `TR-${new Date().getFullYear()}-${String(transfers.length + 1).padStart(4, '0')}`;
+      let totalPiecesCalculated = 0;
+
+      const preparedItems: StockTransferItem[] = validItems.map((it) => {
+        const prod = products.find((p) => p.id === it.productId);
+        const factor = Number(prod?.majorUnitFactor ?? prod?.major_unit_factor ?? 1);
+        const qty = Number(it.quantity);
+        const totalPieces = it.unit === 'CARTON' ? qty * factor : qty;
+        totalPiecesCalculated += totalPieces;
+
+        return {
+          productId: it.productId,
+          productName: prod?.name || 'صنف غير محدد',
+          sku: prod?.sku || '',
+          unit: it.unit,
+          unitName: it.unit === 'CARTON' ? (prod?.majorUnitName || 'كرتون') : (prod?.baseUnitName || 'حبة'),
+          factor,
+          quantity: qty,
+          totalPieces,
+          notes: it.notes,
+        };
+      });
+
+      const newVoucher: StockTransferVoucher = {
+        id: `tr_${Date.now()}`,
+        voucherNumber,
+        date: new Date().toISOString().split('T')[0],
+        fromWarehouseId: newTransfer.fromWarehouseId,
+        fromWarehouseName: fromWh?.name || 'مستودع المصدر',
+        toWarehouseId: newTransfer.toWarehouseId,
+        toWarehouseName: toWh?.name || 'مستودع الوجهة',
+        driverName: newTransfer.driverName || 'المندوب / السائق المعتمد',
+        vehicleNumber: newTransfer.vehicleNumber,
+        items: preparedItems,
+        totalPieces: totalPiecesCalculated,
+        notes: newTransfer.notes,
+        status: 'COMPLETED',
+        createdAt: new Date().toISOString(),
+        createdBy: 'مدير العمليات المخزنية',
+      };
+
+      const updatedTransfers = [newVoucher, ...transfers];
+      setTransfers(updatedTransfers);
+      localStorage.setItem('erp_stock_transfers_v1', JSON.stringify(updatedTransfers));
+
+      // Attempt to record adjustment stock movements
+      for (const item of preparedItems) {
+        try {
+          await api.adjustStock(item.productId, {
+            quantity: item.totalPieces,
+            reason: `تحويل مخزني (${voucherNumber}): من ${fromWh?.name} إلى ${toWh?.name}`,
+            type: 'TRANSFER' as any,
+          });
+        } catch {}
+      }
+
+      setSuccess(`تم بنجاح تسجيل وترحيل سند التحويل المخزني (${voucherNumber}) وتحديث الأرصدة!`);
+      setIsTransferModalOpen(false);
+      setNewTransfer({
+        fromWarehouseId: 'wh-main',
+        toWarehouseId: 'wh-retail',
+        driverName: '',
+        vehicleNumber: '',
+        notes: '',
+        items: [{ productId: '', unit: 'CARTON', quantity: '1', notes: '' }],
+      });
+      fetchData();
+      setTimeout(() => setSuccess(null), 5000);
+    } catch (err: any) {
+      setError(err.message || 'فشل حفظ سند التحويل المخزني');
+    }
+  };
+
+  // Printable Official Stock Transfer Slip
+  const handlePrintTransferSlip = (voucher: StockTransferVoucher) => {
+    const html = `
+      <div style="font-family: 'Segoe UI', Tahoma, Arial, sans-serif; direction: rtl; color: #1e293b; padding: 24px; max-width: 800px; margin: auto;">
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f766e; padding-bottom: 14px; margin-bottom: 16px;">
+          <div>
+            <h1 style="margin: 0; font-size: 20px; font-weight: 800; color: #0f766e;">إذن ومستند تحويل مخزني رسمي</h1>
+            <p style="margin: 4px 0 0; font-size: 12px; color: #64748b;">نظام إدارة المستودعات والتحويلات البينية (Inter-Warehouse Stock Transfer)</p>
+          </div>
+          <div style="text-align: left; font-family: monospace;">
+            <div style="font-size: 15px; font-weight: bold; color: #0f172a;">${voucher.voucherNumber}</div>
+            <div style="font-size: 11px; color: #64748b;">التاريخ: ${voucher.date}</div>
+            <div style="display: inline-block; background: #ecfdf5; color: #065f46; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 9999px; margin-top: 4px; border: 1px solid #a7f3d0;">
+              معتمد ومرحل مخزنياً ✅
+            </div>
+          </div>
+        </div>
+
+        <!-- Routing Info Cards -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; font-size: 12px;">
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
+            <div style="font-weight: bold; color: #dc2626; margin-bottom: 4px;">🔻 من مستودع (المصدر):</div>
+            <div style="font-weight: bold; font-size: 13px; color: #0f172a;">${voucher.fromWarehouseName}</div>
+          </div>
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
+            <div style="font-weight: bold; color: #16a34a; margin-bottom: 4px;">🟢 إلى مستودع (الوجهة):</div>
+            <div style="font-weight: bold; font-size: 13px; color: #0f172a;">${voucher.toWarehouseName}</div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; font-size: 11px; background: #f1f5f9; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px;">
+          <div><strong>السائق / الناقل:</strong> ${voucher.driverName || 'المندوب المعتمد'}</div>
+          ${voucher.vehicleNumber ? `<div><strong>رقم وسيلة النقل / السيارة:</strong> <span style="font-family: monospace;">${voucher.vehicleNumber}</span></div>` : ''}
+          <div><strong>بيان التحويل:</strong> ${voucher.notes || 'تحويل مخزني لتغذية المخزون'}</div>
+        </div>
+
+        <!-- Table of items -->
+        <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 20px;">
+          <thead>
+            <tr style="background: #0f766e; color: #ffffff;">
+              <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: center; width: 35px;">#</th>
+              <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">الصنف والبيان</th>
+              <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">رمز الصنف SKU</th>
+              <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">الوحدة المحولة</th>
+              <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">الكمية بالوحدة</th>
+              <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">معامل الكرتون</th>
+              <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">إجمالي الحبات</th>
+              <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">ملاحظات</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${voucher.items.map((it, idx) => `
+              <tr style="border-bottom: 1px solid #e2e8f0; background: ${idx % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+                <td style="padding: 6px 8px; border: 1px solid #e2e8f0; text-align: center; font-family: monospace;">${idx + 1}</td>
+                <td style="padding: 6px 8px; border: 1px solid #e2e8f0; font-weight: bold;">${it.productName}</td>
+                <td style="padding: 6px 8px; border: 1px solid #e2e8f0; text-align: center; font-family: monospace;">${it.sku || '-'}</td>
+                <td style="padding: 6px 8px; border: 1px solid #e2e8f0; text-align: center;">${it.unit === 'CARTON' ? 'كرتون (جملة)' : 'حبة (مفرد)'}</td>
+                <td style="padding: 6px 8px; border: 1px solid #e2e8f0; text-align: center; font-family: monospace; font-weight: bold;">${it.quantity}</td>
+                <td style="padding: 6px 8px; border: 1px solid #e2e8f0; text-align: center; font-family: monospace;">${it.factor > 1 ? `1 = ${it.factor}` : '1'}</td>
+                <td style="padding: 6px 8px; border: 1px solid #e2e8f0; text-align: center; font-family: monospace; font-weight: bold; color: #0f766e;">${it.totalPieces}</td>
+                <td style="padding: 6px 8px; border: 1px solid #e2e8f0;">${it.notes || '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+          <tfoot>
+            <tr style="background: #e6fffa; font-weight: bold; border-top: 2px solid #0f766e;">
+              <td colspan="4" style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">إجمالي الأصناف والكمية المحولة:</td>
+              <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: center; font-family: monospace;">${voucher.items.reduce((s, i) => s + i.quantity, 0)}</td>
+              <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">—</td>
+              <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: center; font-family: monospace; font-size: 13px; color: #0f766e;">${voucher.totalPieces} حبة</td>
+              <td style="padding: 8px; border: 1px solid #cbd5e1;"></td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <!-- Signatures Grid -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 35px; text-align: center; font-size: 11px;">
+          <div style="border-top: 1px dashed #94a3b8; padding-top: 8px;">
+            <div style="font-weight: bold; color: #0f172a;">أمين مستودع المصدر</div>
+            <div style="color: #64748b; margin-top: 25px;">التوقيع: ....................</div>
+          </div>
+          <div style="border-top: 1px dashed #94a3b8; padding-top: 8px;">
+            <div style="font-weight: bold; color: #0f172a;">السائق / المندوب الناقل</div>
+            <div style="color: #64748b; margin-top: 25px;">التوقيع: ....................</div>
+          </div>
+          <div style="border-top: 1px dashed #94a3b8; padding-top: 8px;">
+            <div style="font-weight: bold; color: #0f172a;">أمين مستودع المستلم</div>
+            <div style="color: #64748b; margin-top: 25px;">التوقيع: ....................</div>
+          </div>
+          <div style="border-top: 1px dashed #94a3b8; padding-top: 8px;">
+            <div style="font-weight: bold; color: #0f172a;">الاعتماد الإداري / المالي</div>
+            <div style="color: #64748b; margin-top: 25px;">الختم والتوقيع</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    renderAndPrintDocument(html, {
+      documentTitle: `سند_تحويل_مخزني_${voucher.voucherNumber}`,
+      pageSize: 'A4',
+    });
+  };
+
   return (
     <div className="space-y-6 text-right text-slate-100 font-sans" dir="rtl">
       
@@ -282,7 +704,69 @@ export const InventoryTab: React.FC = () => {
         </div>
       </div>
 
-      {/* 3 Main Sub-Tabs Navigation Bar */}
+      {/* ========================================================================= */}
+      {/* MULTI-WAREHOUSE & BRANCH BAR (إدارة المستودعات والفروع وسندات التحويل)   */}
+      {/* ========================================================================= */}
+      <div className="bg-[#0b1b16] border border-emerald-500/30 rounded-2xl p-4 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-white shadow-md">
+            <Building2 className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold text-white">إدارة المستودعات والفروع وتوزيع المخزون</h3>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono">
+                {warehouses.length} مستودعات وفروع
+              </span>
+            </div>
+            <p className="text-[11px] text-emerald-300/70">
+              {selectedWarehouseId === 'ALL'
+                ? 'عرض المخزون المجمّع لكافة المستودعات والفروع ومستودعات سيارات التوزيع'
+                : `المستودع المحدد: ${warehouses.find((w) => w.id === selectedWarehouseId)?.name} • المسؤول: ${warehouses.find((w) => w.id === selectedWarehouseId)?.manager}`}
+            </p>
+          </div>
+        </div>
+
+        {/* Warehouse Selector & New Transfer Button */}
+        <div className="flex items-center gap-2 flex-wrap w-full md:w-auto justify-between md:justify-end">
+          <div className="flex items-center gap-1 bg-[#06120e] p-1 rounded-xl border border-emerald-500/20 text-xs overflow-x-auto">
+            <button
+              onClick={() => setSelectedWarehouseId('ALL')}
+              className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer whitespace-nowrap ${
+                selectedWarehouseId === 'ALL'
+                  ? 'bg-emerald-600 text-white shadow'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              كافة المستودعات
+            </button>
+            {warehouses.map((wh) => (
+              <button
+                key={wh.id}
+                onClick={() => setSelectedWarehouseId(wh.id)}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+                  selectedWarehouseId === wh.id
+                    ? 'bg-emerald-600 text-white shadow'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {wh.type === 'VAN' ? <Truck className="w-3.5 h-3.5 text-amber-400" /> : <Building2 className="w-3.5 h-3.5 text-emerald-400" />}
+                <span className="max-w-[120px] truncate">{wh.name.split(' - ')[0]}</span>
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => setIsTransferModalOpen(true)}
+            className="px-3.5 py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-1.5 cursor-pointer transition-all shrink-0"
+          >
+            <ArrowLeftRight className="w-4 h-4" />
+            <span>+ سند تحويل مخزني</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 4 Main Sub-Tabs Navigation Bar */}
       <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto">
         <button
           type="button"
@@ -329,6 +813,22 @@ export const InventoryTab: React.FC = () => {
           <span>رادار الصلاحية وفاحص ضمان البطاريات</span>
           <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-950/60 text-amber-300 border border-amber-800/40">
             FEFO + السيريال
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSubTab('stock_transfers')}
+          className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
+            activeSubTab === 'stock_transfers'
+              ? 'bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-lg shadow-teal-950/60 border border-teal-400/40'
+              : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <ArrowLeftRight className="w-4 h-4" />
+          <span>سندات التحويل بين الفروع والمستودعات</span>
+          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-teal-950/60 text-teal-300 border border-teal-800/40 font-mono font-bold">
+            {transfers.length}
           </span>
         </button>
       </div>
@@ -962,7 +1462,458 @@ export const InventoryTab: React.FC = () => {
               </div>
             )}
           </div>
+        </div>
+      )}
 
+      {/* ========================================================================= */}
+      {/* SUB-TAB 4: سندات التحويل بين الفروع والمستودعات (Inter-Warehouse Transfers) */}
+      {/* ========================================================================= */}
+      {activeSubTab === 'stock_transfers' && (
+        <div className="space-y-6">
+          {/* Top Control & KPI Header */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <ArrowLeftRight className="w-5 h-5 text-teal-400" />
+                <span>سجل أذونات وسندات التحويل المخزني بين الفروع</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 font-mono">
+                  {transfers.length} سندات
+                </span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                نقل البضائع والمنتجات بين المستودع الرئيسي ومعارض التجزئة وفروع البطاريات وسيارات المناديب مع الترحيل الفوري للأرصدة
+              </p>
+            </div>
+
+            <button
+              onClick={() => setIsTransferModalOpen(true)}
+              className="px-4 py-2.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-teal-950/60 flex items-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ إنشاء سند تحويل مخزني جديد</span>
+            </button>
+          </div>
+
+          {/* Transfers Table */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between gap-3 flex-wrap">
+              <span className="text-xs font-bold text-slate-300">سندات التحويل المعتمدة:</span>
+              <span className="text-[11px] text-slate-400">
+                إجمالي القطع المحولة بالكامل:{' '}
+                <strong className="text-teal-400 font-mono">
+                  {formatNumber(transfers.reduce((s, t) => s + t.totalPieces, 0))} حبة
+                </strong>
+              </span>
+            </div>
+
+            {transfers.length === 0 ? (
+              <div className="p-12 text-center text-slate-500 space-y-3">
+                <ArrowLeftRight className="w-12 h-12 mx-auto text-slate-600" />
+                <p className="text-sm font-semibold">لا توجد سندات تحويل مخزني مسجلة حتى الآن</p>
+                <button
+                  onClick={() => setIsTransferModalOpen(true)}
+                  className="px-3.5 py-2 bg-teal-600 text-white rounded-xl text-xs font-bold"
+                >
+                  + إنشاء أول سند تحويل
+                </button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-right">
+                  <thead>
+                    <tr className="bg-slate-950/80 text-slate-400 border-b border-slate-800 text-[11px]">
+                      <th className="py-3 px-4 font-bold">رقم السند</th>
+                      <th className="py-3 px-4 font-bold">التاريخ</th>
+                      <th className="py-3 px-4 font-bold">من مستودع (المصدر)</th>
+                      <th className="py-3 px-4 font-bold">إلى مستودع (الوجهة)</th>
+                      <th className="py-3 px-4 font-bold">السائق / المندوب الناقل</th>
+                      <th className="py-3 px-4 font-bold text-center">عدد الأصناف</th>
+                      <th className="py-3 px-4 font-bold text-center">إجمالي الحبات</th>
+                      <th className="py-3 px-4 font-bold text-center">الحالة</th>
+                      <th className="py-3 px-4 font-bold text-center">إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 font-mono">
+                    {transfers.map((voucher) => (
+                      <tr key={voucher.id} className="hover:bg-slate-800/40 transition-colors">
+                        <td className="py-3.5 px-4 font-bold text-teal-300">
+                          {voucher.voucherNumber}
+                        </td>
+                        <td className="py-3.5 px-4 text-slate-300">
+                          {voucher.date}
+                        </td>
+                        <td className="py-3.5 px-4 font-sans font-medium text-red-300">
+                          <span className="inline-block bg-red-950/40 border border-red-800/40 px-2 py-0.5 rounded text-[11px]">
+                            🔻 {voucher.fromWarehouseName}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 font-sans font-medium text-emerald-300">
+                          <span className="inline-block bg-emerald-950/40 border border-emerald-800/40 px-2 py-0.5 rounded text-[11px]">
+                            🟢 {voucher.toWarehouseName}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 font-sans text-slate-300">
+                          <div>{voucher.driverName}</div>
+                          {voucher.vehicleNumber && (
+                            <span className="text-[10px] text-slate-400 font-mono">{voucher.vehicleNumber}</span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4 text-center text-slate-200">
+                          {voucher.items.length} صنف
+                        </td>
+                        <td className="py-3.5 px-4 text-center font-bold text-teal-400">
+                          {formatNumber(voucher.totalPieces)}
+                        </td>
+                        <td className="py-3.5 px-4 text-center font-sans">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
+                            مرحل ومطابق ✅
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-center font-sans">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              onClick={() => setSelectedTransferForView(voucher)}
+                              title="عرض تفاصيل السند"
+                              className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handlePrintTransferSlip(voucher)}
+                              title="طباعة إذن التحويل المخزني الرسمي"
+                              className="p-1.5 bg-teal-900/60 hover:bg-teal-700 text-teal-300 hover:text-white rounded-lg border border-teal-700/50 transition-colors cursor-pointer"
+                            >
+                              <Printer className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 1: إنشاء سند تحويل مخزني جديد (Create Stock Transfer Modal)       */}
+      {/* ========================================================================= */}
+      {isTransferModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-teal-500/30 rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden my-6">
+            <div className="p-4 sm:p-5 bg-gradient-to-l from-slate-900 to-[#0c1f19] border-b border-teal-500/20 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-teal-500/20 text-teal-300 flex items-center justify-center border border-teal-500/30">
+                  <ArrowLeftRight className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-white">
+                    إنشاء سند تحويل مخزني بين المستودعات والفروع
+                  </h3>
+                  <p className="text-[11px] text-teal-300/70">
+                    نقل الأصناف والكميات بالكرتون أو الحبة مع خصم المصدر وتغذية الوجهة
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsTransferModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1.5 rounded-lg bg-slate-800"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveTransferVoucher} className="p-5 space-y-4 text-xs">
+              {/* Routing: From -> To */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-slate-950 rounded-xl border border-slate-800">
+                <div>
+                  <label className="block text-[11px] font-bold text-red-300 mb-1">
+                    🔻 من مستودع (المصدر الخارق/المخصوم منه):
+                  </label>
+                  <select
+                    value={newTransfer.fromWarehouseId}
+                    onChange={(e) => setNewTransfer({ ...newTransfer, fromWarehouseId: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-teal-500"
+                  >
+                    {warehouses.map((wh) => (
+                      <option key={wh.id} value={wh.id}>
+                        {wh.name} ({wh.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-emerald-300 mb-1">
+                    🟢 إلى مستودع (الوجهة / المستلم):
+                  </label>
+                  <select
+                    value={newTransfer.toWarehouseId}
+                    onChange={(e) => setNewTransfer({ ...newTransfer, toWarehouseId: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-teal-500"
+                  >
+                    {warehouses.map((wh) => (
+                      <option key={wh.id} value={wh.id}>
+                        {wh.name} ({wh.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Driver and Vehicle */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                    اسم السائق / المندوب الناقل:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: صادق المريسي"
+                    value={newTransfer.driverName}
+                    onChange={(e) => setNewTransfer({ ...newTransfer, driverName: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-teal-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                    رقم السيارة / وسيلة النقل (اختياري):
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: سيارة جامبو #5421"
+                    value={newTransfer.vehicleNumber}
+                    onChange={(e) => setNewTransfer({ ...newTransfer, vehicleNumber: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-teal-500"
+                  />
+                </div>
+              </div>
+
+              {/* Items Section */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-white text-xs">الأصناف المراد تحويلها:</span>
+                  <button
+                    type="button"
+                    onClick={handleAddTransferItemRow}
+                    className="px-2.5 py-1 bg-teal-600/30 hover:bg-teal-600/50 text-teal-300 border border-teal-500/30 rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ إضافة صنف</span>
+                  </button>
+                </div>
+
+                <div className="space-y-2 max-h-60 overflow-y-auto p-1">
+                  {newTransfer.items.map((it, idx) => {
+                    const prod = products.find((p) => p.id === it.productId);
+                    const factor = Number(prod?.majorUnitFactor ?? prod?.major_unit_factor ?? 1);
+                    const pieces = it.unit === 'CARTON' ? Number(it.quantity || 0) * factor : Number(it.quantity || 0);
+
+                    return (
+                      <div
+                        key={idx}
+                        className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center gap-2"
+                      >
+                        {/* Product Select */}
+                        <div className="flex-1 w-full">
+                          <select
+                            value={it.productId}
+                            onChange={(e) => handleUpdateTransferItemRow(idx, 'productId', e.target.value)}
+                            className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-none"
+                            required
+                          >
+                            <option value="">-- اختر الصنف --</option>
+                            {products.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.name} {p.sku ? `(${p.sku})` : ''} - متوفر: {p.current_stock ?? p.qty ?? 0}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Unit Toggle */}
+                        <div className="w-28">
+                          <select
+                            value={it.unit}
+                            onChange={(e) => handleUpdateTransferItemRow(idx, 'unit', e.target.value)}
+                            className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-none"
+                          >
+                            <option value="CARTON">
+                              كرتون {factor > 1 ? `(${factor})` : ''}
+                            </option>
+                            <option value="PIECE">حبة (مفرد)</option>
+                          </select>
+                        </div>
+
+                        {/* Quantity */}
+                        <div className="w-24">
+                          <input
+                            type="number"
+                            min="1"
+                            step="1"
+                            placeholder="الكمية"
+                            value={it.quantity}
+                            onChange={(e) => handleUpdateTransferItemRow(idx, 'quantity', e.target.value)}
+                            className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-mono text-xs text-center focus:outline-none"
+                            required
+                          />
+                        </div>
+
+                        {/* Pieces Equiv Badge */}
+                        <div className="w-24 text-center font-mono text-teal-400 font-bold text-[11px]">
+                          = {pieces} حبة
+                        </div>
+
+                        {/* Delete Row Button */}
+                        {newTransfer.items.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveTransferItemRow(idx)}
+                            className="p-1.5 text-red-400 hover:text-white hover:bg-red-950 rounded-lg cursor-pointer"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                  ملاحظات وبيان التحويل (سبب النقل):
+                </label>
+                <input
+                  type="text"
+                  placeholder="مثال: تغذية يومية لمعرض التجزئة / شحنة مندوب المبيعات"
+                  value={newTransfer.notes}
+                  onChange={(e) => setNewTransfer({ ...newTransfer, notes: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs focus:outline-none"
+                />
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsTransferModalOpen(false)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-teal-950/60 cursor-pointer"
+                >
+                  اعتماد وترحيل سند التحويل المخزني ✅
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 2: عرض تفاصيل سند التحويل (View Transfer Modal)                     */}
+      {/* ========================================================================= */}
+      {selectedTransferForView && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-slate-900 border border-teal-500/30 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden">
+            <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <span>سند تحويل مخزني: {selectedTransferForView.voucherNumber}</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono">
+                    معتمد
+                  </span>
+                </h3>
+                <p className="text-[11px] text-slate-400">التاريخ: {selectedTransferForView.date}</p>
+              </div>
+              <button
+                onClick={() => setSelectedTransferForView(null)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-950 rounded-xl border border-slate-800 text-[11px]">
+                <div>
+                  <span className="text-red-400 font-bold block">🔻 من مستودع:</span>
+                  <strong className="text-white text-xs">{selectedTransferForView.fromWarehouseName}</strong>
+                </div>
+                <div>
+                  <span className="text-emerald-400 font-bold block">🟢 إلى مستودع:</span>
+                  <strong className="text-white text-xs">{selectedTransferForView.toWarehouseName}</strong>
+                </div>
+                <div>
+                  <span className="text-slate-400 block">السائق / الناقل:</span>
+                  <span className="text-slate-200">{selectedTransferForView.driverName}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block">بيان التحويل:</span>
+                  <span className="text-slate-200">{selectedTransferForView.notes || '-'}</span>
+                </div>
+              </div>
+
+              {/* Items List */}
+              <div className="border border-slate-800 rounded-xl overflow-hidden">
+                <table className="w-full text-xs text-right">
+                  <thead>
+                    <tr className="bg-slate-950 text-slate-400 border-b border-slate-800 text-[11px]">
+                      <th className="py-2.5 px-3">الصنف</th>
+                      <th className="py-2.5 px-3 text-center">الوحدة المحولة</th>
+                      <th className="py-2.5 px-3 text-center">الكمية</th>
+                      <th className="py-2.5 px-3 text-center">إجمالي الحبات</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 font-mono">
+                    {selectedTransferForView.items.map((it, i) => (
+                      <tr key={i}>
+                        <td className="py-2 px-3 font-sans font-medium text-white">{it.productName}</td>
+                        <td className="py-2 px-3 text-center font-sans text-slate-300">
+                          {it.unit === 'CARTON' ? 'كرتون' : 'حبة'}
+                        </td>
+                        <td className="py-2 px-3 text-center font-bold text-slate-100">{it.quantity}</td>
+                        <td className="py-2 px-3 text-center font-bold text-teal-400">{it.totalPieces}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-slate-950/80 font-bold border-t border-slate-800">
+                      <td colSpan={3} className="py-2 px-3 text-right text-slate-300">
+                        إجمالي الحبات:
+                      </td>
+                      <td className="py-2 px-3 text-center text-teal-300 font-mono">
+                        {selectedTransferForView.totalPieces} حبة
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              <div className="flex items-center justify-between pt-3 border-t border-slate-800">
+                <button
+                  onClick={() => handlePrintTransferSlip(selectedTransferForView)}
+                  className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>طباعة إذن التحويل الرسمي</span>
+                </button>
+                <button
+                  onClick={() => setSelectedTransferForView(null)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold"
+                >
+                  إغلاق
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

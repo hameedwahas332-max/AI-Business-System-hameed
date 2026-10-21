@@ -10,8 +10,12 @@ import {
   User,
   ShieldCheck,
   RefreshCw,
+  Coins,
 } from 'lucide-react';
 import { TabType } from './Sidebar';
+import { DailyExchangeRateModal } from './Common/DailyExchangeRateModal';
+import { getStoredExchangeRates, EVENT_EXCHANGE_RATES_CHANGED, ExchangeRateConfig } from '../lib/exchangeRates';
+import { formatNumber } from '../lib/formatters';
 
 export type ThemeMode = 'dark' | 'light';
 export type AccentColor = 'indigo' | 'sapphire' | 'emerald' | 'amber';
@@ -36,6 +40,16 @@ export const Header: React.FC<HeaderProps> = ({
   onChangeAccent,
 }) => {
   const [showColorPalette, setShowColorPalette] = useState(false);
+  const [isRatesOpen, setIsRatesOpen] = useState(false);
+  const [exchangeConfig, setExchangeConfig] = useState<ExchangeRateConfig>(getStoredExchangeRates);
+
+  React.useEffect(() => {
+    const handleRatesChanged = () => {
+      setExchangeConfig(getStoredExchangeRates());
+    };
+    window.addEventListener(EVENT_EXCHANGE_RATES_CHANGED, handleRatesChanged);
+    return () => window.removeEventListener(EVENT_EXCHANGE_RATES_CHANGED, handleRatesChanged);
+  }, []);
 
   const colorThemes: { id: AccentColor; name: string; bgClass: string; hex: string }[] = [
     { id: 'indigo', name: 'إنديجو ملكي', bgClass: 'bg-indigo-600', hex: '#6366f1' },
@@ -45,14 +59,33 @@ export const Header: React.FC<HeaderProps> = ({
   ];
 
   return (
-    <header className="h-16 bg-slate-900/85 backdrop-blur-md border-b border-slate-800 px-6 flex items-center justify-between flex-shrink-0 z-10 select-none">
-      {/* Title / Current Tab Indicator */}
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-xs font-semibold text-slate-400">نظام ERP السحابي المعتمد</span>
+    <>
+      <header className="h-16 bg-slate-900/85 backdrop-blur-md border-b border-slate-800 px-6 flex items-center justify-between flex-shrink-0 z-10 select-none">
+        {/* Title / Current Tab Indicator */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-xs font-semibold text-slate-400">نظام ERP السحابي المعتمد</span>
+          </div>
+
+          {/* Daily Exchange Rate Badge Button */}
+          <button
+            type="button"
+            onClick={() => setIsRatesOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold transition-all cursor-pointer"
+            title="فتح نشرة أسعار الصرف اليومية وحاسبة العملات"
+          >
+            <Coins className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">أسعار الصرف:</span>
+            <span className="font-mono text-[11px] text-amber-200">
+              1 SAR = {formatNumber(exchangeConfig.rates.SAR.accountingRate)}
+            </span>
+            <span className="text-slate-500 hidden md:inline">|</span>
+            <span className="font-mono text-[11px] text-blue-300 hidden md:inline">
+              1 USD = {formatNumber(exchangeConfig.rates.USD.accountingRate)}
+            </span>
+          </button>
         </div>
-      </div>
 
       {/* Quick Search & Switchers */}
       <div className="flex items-center gap-3">
@@ -143,5 +176,11 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
       </div>
     </header>
-  );
+
+    <DailyExchangeRateModal
+      isOpen={isRatesOpen}
+      onClose={() => setIsRatesOpen(false)}
+    />
+  </>
+);
 };

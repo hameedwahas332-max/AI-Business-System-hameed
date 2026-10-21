@@ -29,9 +29,109 @@ import {
   Lock,
   Unlock,
   Layers,
-  ArrowLeftRight
+  ArrowLeftRight,
+  Users,
+  Target,
+  Percent,
+  Printer,
+  Award,
+  Truck,
+  Phone,
+  MapPin,
+  X,
+  Eye,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { renderAndPrintDocument } from '../../lib/exportUtils';
+
+export interface SalesRep {
+  id: string;
+  name: string;
+  code: string;
+  phone: string;
+  territory: string;
+  vehicle: string;
+  dailyTarget: number;
+  monthlyTarget: number;
+  achievedSales: number;
+  collectedCash: number;
+  pendingReceivables: number;
+  commissionRate: number; // e.g. 3.5%
+  earnedCommission: number;
+  status: 'ACTIVE' | 'INACTIVE';
+  lastActivityDate: string;
+}
+
+export const INITIAL_SALES_REPS: SalesRep[] = [
+  {
+    id: 'rep-01',
+    name: 'أحمد ناصر العمري',
+    code: 'REP-01',
+    phone: '771239876',
+    territory: 'صنعاء الوسطى وحدّة',
+    vehicle: 'هايلوكس غمارتين #3421',
+    dailyTarget: 250000,
+    monthlyTarget: 6500000,
+    achievedSales: 5420000,
+    collectedCash: 4150000,
+    pendingReceivables: 1270000,
+    commissionRate: 3.5,
+    earnedCommission: 189700,
+    status: 'ACTIVE',
+    lastActivityDate: new Date().toISOString().split('T')[0],
+  },
+  {
+    id: 'rep-02',
+    name: 'صلاح محمد القدسي',
+    code: 'REP-02',
+    phone: '772348765',
+    territory: 'شارع تعز والحثيلي ودار سلم',
+    vehicle: 'دباب تويوتا مغلق #1892',
+    dailyTarget: 180000,
+    monthlyTarget: 4800000,
+    achievedSales: 4120000,
+    collectedCash: 3600000,
+    pendingReceivables: 520000,
+    commissionRate: 4.0,
+    earnedCommission: 164800,
+    status: 'ACTIVE',
+    lastActivityDate: new Date().toISOString().split('T')[0],
+  },
+  {
+    id: 'rep-03',
+    name: 'عبدالرحمن الصبري',
+    code: 'REP-03',
+    phone: '773457654',
+    territory: 'مذبح وشارع الستين وشملان',
+    vehicle: 'سيارة جامبو مجهزة #5421',
+    dailyTarget: 300000,
+    monthlyTarget: 7800000,
+    achievedSales: 6950000,
+    collectedCash: 5400000,
+    pendingReceivables: 1550000,
+    commissionRate: 3.0,
+    earnedCommission: 208500,
+    status: 'ACTIVE',
+    lastActivityDate: new Date().toISOString().split('T')[0],
+  },
+  {
+    id: 'rep-04',
+    name: 'مروان قائد الحكيمي',
+    code: 'REP-04',
+    phone: '774566543',
+    territory: 'الحصبة وشعوب وشارع مأرب',
+    vehicle: 'دينا إيسوزو #7104',
+    dailyTarget: 220000,
+    monthlyTarget: 5700000,
+    achievedSales: 4680000,
+    collectedCash: 3890000,
+    pendingReceivables: 790000,
+    commissionRate: 3.5,
+    earnedCommission: 163800,
+    status: 'ACTIVE',
+    lastActivityDate: new Date().toISOString().split('T')[0],
+  },
+];
 
 type SubTab =
   | 'dashboard'
@@ -42,7 +142,8 @@ type SubTab =
   | 'returns'
   | 'period_close'
   | 'documents'
-  | 'search_mode';
+  | 'search_mode'
+  | 'sales_reps';
 
 export const RealBusinessOperationsTab: React.FC = () => {
   const { token } = useAuth();
@@ -132,6 +233,210 @@ export const RealBusinessOperationsTab: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any>(null);
   const [dataMode, setDataMode] = useState<string>('PRODUCTION');
+
+  // 10. Sales Representatives & Commissions State
+  const [salesReps, setSalesReps] = useState<SalesRep[]>(() => {
+    try {
+      const saved = localStorage.getItem('erp_sales_reps_v1');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_SALES_REPS;
+  });
+
+  const [isRepModalOpen, setIsRepModalOpen] = useState(false);
+  const [editingRep, setEditingRep] = useState<SalesRep | null>(null);
+  const [selectedRepForStatement, setSelectedRepForStatement] = useState<SalesRep | null>(null);
+
+  const [repFormData, setRepFormData] = useState({
+    name: '',
+    code: '',
+    phone: '',
+    territory: '',
+    vehicle: '',
+    dailyTarget: '250000',
+    monthlyTarget: '6500000',
+    commissionRate: '3.5',
+    status: 'ACTIVE' as 'ACTIVE' | 'INACTIVE',
+  });
+
+  const handleOpenCreateRep = () => {
+    setEditingRep(null);
+    setRepFormData({
+      name: '',
+      code: `REP-0${salesReps.length + 1}`,
+      phone: '',
+      territory: '',
+      vehicle: '',
+      dailyTarget: '250000',
+      monthlyTarget: '6500000',
+      commissionRate: '3.5',
+      status: 'ACTIVE',
+    });
+    setIsRepModalOpen(true);
+  };
+
+  const handleOpenEditRep = (rep: SalesRep) => {
+    setEditingRep(rep);
+    setRepFormData({
+      name: rep.name,
+      code: rep.code,
+      phone: rep.phone,
+      territory: rep.territory,
+      vehicle: rep.vehicle,
+      dailyTarget: String(rep.dailyTarget),
+      monthlyTarget: String(rep.monthlyTarget),
+      commissionRate: String(rep.commissionRate),
+      status: rep.status,
+    });
+    setIsRepModalOpen(true);
+  };
+
+  const handleSaveRep = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!repFormData.name.trim()) {
+      showFeedback('error', 'يرجى إدخال اسم مندوب المبيعات');
+      return;
+    }
+
+    const dTarget = parseFloat(repFormData.dailyTarget) || 0;
+    const mTarget = parseFloat(repFormData.monthlyTarget) || 0;
+    const cRate = parseFloat(repFormData.commissionRate) || 0;
+
+    let updated: SalesRep[];
+    if (editingRep) {
+      updated = salesReps.map((r) =>
+        r.id === editingRep.id
+          ? {
+              ...r,
+              name: repFormData.name,
+              code: repFormData.code,
+              phone: repFormData.phone,
+              territory: repFormData.territory,
+              vehicle: repFormData.vehicle,
+              dailyTarget: dTarget,
+              monthlyTarget: mTarget,
+              commissionRate: cRate,
+              earnedCommission: Math.round(r.achievedSales * (cRate / 100)),
+              status: repFormData.status,
+            }
+          : r
+      );
+      showFeedback('success', `تم تحديث بيانات المندوب (${repFormData.name}) بنجاح`);
+    } else {
+      const newRep: SalesRep = {
+        id: `rep_${Date.now()}`,
+        name: repFormData.name,
+        code: repFormData.code || `REP-0${salesReps.length + 1}`,
+        phone: repFormData.phone,
+        territory: repFormData.territory,
+        vehicle: repFormData.vehicle,
+        dailyTarget: dTarget,
+        monthlyTarget: mTarget,
+        achievedSales: 0,
+        collectedCash: 0,
+        pendingReceivables: 0,
+        commissionRate: cRate,
+        earnedCommission: 0,
+        status: repFormData.status,
+        lastActivityDate: new Date().toISOString().split('T')[0],
+      };
+      updated = [...salesReps, newRep];
+      showFeedback('success', `تم تسجيل مندوب المبيعات الجديد (${newRep.name}) بنجاح`);
+    }
+
+    setSalesReps(updated);
+    localStorage.setItem('erp_sales_reps_v1', JSON.stringify(updated));
+    setIsRepModalOpen(false);
+  };
+
+  const handlePrintRepStatement = (rep: SalesRep) => {
+    const html = `
+      <div style="font-family: 'Segoe UI', Tahoma, Arial, sans-serif; direction: rtl; color: #1e293b; padding: 24px; max-width: 800px; margin: auto;">
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #059669; padding-bottom: 14px; margin-bottom: 16px;">
+          <div>
+            <h1 style="margin: 0; font-size: 20px; font-weight: 800; color: #059669;">كشف أداء وتصفية عمولة مندوب مبيعات</h1>
+            <p style="margin: 4px 0 0; font-size: 12px; color: #64748b;">إدارة المبيعات والتوزيع الميداني (Field Sales Rep Performance & Commission)</p>
+          </div>
+          <div style="text-align: left; font-family: monospace;">
+            <div style="font-size: 15px; font-weight: bold; color: #0f172a;">${rep.code}</div>
+            <div style="font-size: 11px; color: #64748b;">تاريخ التقرير: ${new Date().toLocaleDateString('ar-YE')}</div>
+            <div style="display: inline-block; background: #ecfdf5; color: #065f46; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 9999px; margin-top: 4px; border: 1px solid #a7f3d0;">
+              حساب نشط ومطابق ✅
+            </div>
+          </div>
+        </div>
+
+        <!-- Rep Profile Card -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 18px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">
+            <div><strong>اسم المندوب:</strong> <span style="font-size: 13px; color: #0f172a; font-weight: bold;">${rep.name}</span></div>
+            <div><strong>رقم الهاتف:</strong> <span style="font-family: monospace;">${rep.phone}</span></div>
+            <div><strong>منطقة وخط السير:</strong> ${rep.territory}</div>
+            <div><strong>سيارة التوزيع:</strong> ${rep.vehicle}</div>
+            <div><strong>الهدف الشهري المقرر:</strong> <span style="font-family: monospace; font-weight: bold;">${formatNumber(rep.monthlyTarget)} YER</span></div>
+            <div><strong>نسبة العمولة المعتمدة:</strong> <span style="font-family: monospace; font-weight: bold; color: #059669;">${rep.commissionRate}%</span></div>
+          </div>
+        </div>
+
+        <!-- KPI Performance Grid -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; text-align: center;">
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px;">
+            <div style="font-size: 10px; color: #166534; font-weight: bold;">المبيعات المحققة</div>
+            <div style="font-size: 14px; font-weight: bold; font-family: monospace; color: #15803d; margin-top: 4px;">${formatNumber(rep.achievedSales)}</div>
+            <div style="font-size: 9px; color: #166534;">YER</div>
+          </div>
+          <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px;">
+            <div style="font-size: 10px; color: #1e40af; font-weight: bold;">التحصيلات النقدية الموردة</div>
+            <div style="font-size: 14px; font-weight: bold; font-family: monospace; color: #1d4ed8; margin-top: 4px;">${formatNumber(rep.collectedCash)}</div>
+            <div style="font-size: 9px; color: #1e40af;">YER</div>
+          </div>
+          <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 10px;">
+            <div style="font-size: 10px; color: #92400e; font-weight: bold;">الذمم الآجلة المعلقة</div>
+            <div style="font-size: 14px; font-weight: bold; font-family: monospace; color: #b45309; margin-top: 4px;">${formatNumber(rep.pendingReceivables)}</div>
+            <div style="font-size: 9px; color: #92400e;">YER</div>
+          </div>
+          <div style="background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 8px; padding: 10px;">
+            <div style="font-size: 10px; color: #6b21a8; font-weight: bold;">صافي العمولة المستحقة</div>
+            <div style="font-size: 14px; font-weight: bold; font-family: monospace; color: #7e22ce; margin-top: 4px;">${formatNumber(rep.earnedCommission)}</div>
+            <div style="font-size: 9px; color: #6b21a8;">YER</div>
+          </div>
+        </div>
+
+        <!-- Target vs Achievement -->
+        <div style="background: #f1f5f9; padding: 12px; border-radius: 8px; margin-bottom: 24px; font-size: 11px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            <span>نسبة إنجاز الهدف الشهري:</span>
+            <span style="font-weight: bold; font-family: monospace;">${((rep.achievedSales / rep.monthlyTarget) * 100).toFixed(1)}%</span>
+          </div>
+          <div style="width: 100%; height: 8px; background: #cbd5e1; border-radius: 4px; overflow: hidden;">
+            <div style="width: ${Math.min(100, (rep.achievedSales / rep.monthlyTarget) * 100)}%; height: 100%; background: #059669;"></div>
+          </div>
+        </div>
+
+        <!-- Signatures Grid -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 40px; text-align: center; font-size: 11px;">
+          <div style="border-top: 1px dashed #94a3b8; padding-top: 8px;">
+            <div style="font-weight: bold; color: #0f172a;">المندوب المستلم للعمولة</div>
+            <div style="color: #64748b; margin-top: 25px;">التوقيع: ....................</div>
+          </div>
+          <div style="border-top: 1px dashed #94a3b8; padding-top: 8px;">
+            <div style="font-weight: bold; color: #0f172a;">مدير المبيعات والتوزيع</div>
+            <div style="color: #64748b; margin-top: 25px;">التوقيع: ....................</div>
+          </div>
+          <div style="border-top: 1px dashed #94a3b8; padding-top: 8px;">
+            <div style="font-weight: bold; color: #0f172a;">المدير المالي والاعتماد الصرفي</div>
+            <div style="color: #64748b; margin-top: 25px;">الختم والتوقيع</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    renderAndPrintDocument(html, {
+      documentTitle: `كشف_عمولة_${rep.code}_${rep.name.replace(/\s+/g, '_')}`,
+      pageSize: 'A4',
+    });
+  };
 
   const headers = {
     'Content-Type': 'application/json',
@@ -567,6 +872,7 @@ export const RealBusinessOperationsTab: React.FC = () => {
           { id: 'returns', label: 'المردودات (مبيعات ومشتريات)', icon: RotateCcw },
           { id: 'period_close', label: 'إغلاق الفترات والشهر', icon: Calendar },
           { id: 'documents', label: 'خزينة المستندات', icon: FileCheck },
+          { id: 'sales_reps', label: 'إدارة مناديب التوزيع والعمولات', icon: Users },
           { id: 'search_mode', label: 'البحث الشامل ووضع البيانات', icon: Search }
         ].map((tab) => {
           const Icon = tab.icon;
@@ -1682,6 +1988,322 @@ export const RealBusinessOperationsTab: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* 10. SUBTAB: SALES REPRESENTATIVES & COMMISSIONS (إدارة مناديب التوزيع)     */}
+      {/* ========================================================================= */}
+      {activeSubTab === 'sales_reps' && (
+        <div className="space-y-6">
+          {/* Header Banner */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <Users className="w-5 h-5 text-emerald-400" />
+                <span>إدارة مناديب التوزيع الميداني والأهداف والعمولات</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono">
+                  {salesReps.length} مناديب
+                </span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                متابعة خطوط السير اليومية، تتبع تحقيق التارجت والمبيعات، موازنة التحصيل النقدي والذمم، واحتساب العمولات آلياً
+              </p>
+            </div>
+
+            <button
+              onClick={handleOpenCreateRep}
+              className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-950/60 flex items-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ تسجيل مندوب جديد</span>
+            </button>
+          </div>
+
+          {/* KPI Summary Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl flex flex-col justify-between">
+              <span className="text-slate-400 text-[11px] font-bold">إجمالي مبيعات المناديب:</span>
+              <div className="text-lg font-bold font-mono text-emerald-400 mt-1">
+                {formatNumber(salesReps.reduce((s, r) => s + r.achievedSales, 0))}
+                <span className="text-[10px] text-slate-400 mr-1">YER</span>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl flex flex-col justify-between">
+              <span className="text-slate-400 text-[11px] font-bold">إجمالي النقدية الموردة:</span>
+              <div className="text-lg font-bold font-mono text-blue-400 mt-1">
+                {formatNumber(salesReps.reduce((s, r) => s + r.collectedCash, 0))}
+                <span className="text-[10px] text-slate-400 mr-1">YER</span>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl flex flex-col justify-between">
+              <span className="text-slate-400 text-[11px] font-bold">الذمم الآجلة المعلقة:</span>
+              <div className="text-lg font-bold font-mono text-amber-400 mt-1">
+                {formatNumber(salesReps.reduce((s, r) => s + r.pendingReceivables, 0))}
+                <span className="text-[10px] text-slate-400 mr-1">YER</span>
+              </div>
+            </div>
+
+            <div className="p-4 bg-gradient-to-br from-[#132d22] to-slate-900 border border-emerald-500/30 rounded-xl flex flex-col justify-between">
+              <span className="text-emerald-300 text-[11px] font-bold">إجمالي العمولات المستحقة:</span>
+              <div className="text-lg font-bold font-mono text-emerald-300 mt-1">
+                {formatNumber(salesReps.reduce((s, r) => s + r.earnedCommission, 0))}
+                <span className="text-[10px] text-emerald-400/80 mr-1">YER</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Reps Table */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-right">
+                <thead>
+                  <tr className="bg-slate-950/80 text-slate-400 border-b border-slate-800 text-[11px]">
+                    <th className="py-3 px-4 font-bold">المندوب</th>
+                    <th className="py-3 px-4 font-bold">خط السير والسيارة</th>
+                    <th className="py-3 px-4 font-bold text-center">الهدف الشهري</th>
+                    <th className="py-3 px-4 font-bold text-center">المبيعات المحققة</th>
+                    <th className="py-3 px-4 font-bold text-center">نسبة الإنجاز</th>
+                    <th className="py-3 px-4 font-bold text-center">التحصيل النقدي</th>
+                    <th className="py-3 px-4 font-bold text-center">الذمم المعلقة</th>
+                    <th className="py-3 px-4 font-bold text-center">نسبة العمولة</th>
+                    <th className="py-3 px-4 font-bold text-center">صافي العمولة</th>
+                    <th className="py-3 px-4 font-bold text-center">الحالة</th>
+                    <th className="py-3 px-4 font-bold text-center">إجراءات</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 font-mono">
+                  {salesReps.map((rep) => {
+                    const achievementPct = rep.monthlyTarget > 0 ? (rep.achievedSales / rep.monthlyTarget) * 100 : 0;
+                    return (
+                      <tr key={rep.id} className="hover:bg-slate-800/40 transition-colors">
+                        <td className="py-3.5 px-4 font-sans">
+                          <div className="font-bold text-white text-xs">{rep.name}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">
+                            {rep.code} • {rep.phone}
+                          </div>
+                        </td>
+
+                        <td className="py-3.5 px-4 font-sans">
+                          <div className="text-slate-200">{rep.territory}</div>
+                          <div className="text-[10px] text-slate-400">{rep.vehicle}</div>
+                        </td>
+
+                        <td className="py-3.5 px-4 text-center font-bold text-slate-300">
+                          {formatNumber(rep.monthlyTarget)}
+                        </td>
+
+                        <td className="py-3.5 px-4 text-center font-bold text-emerald-400">
+                          {formatNumber(rep.achievedSales)}
+                        </td>
+
+                        <td className="py-3.5 px-4 text-center">
+                          <div className="space-y-1">
+                            <span className="font-bold text-[11px] text-slate-200">
+                              {achievementPct.toFixed(1)}%
+                            </span>
+                            <div className="w-16 h-1.5 bg-slate-800 rounded-full mx-auto overflow-hidden">
+                              <div
+                                style={{ width: `${Math.min(100, achievementPct)}%` }}
+                                className="h-full bg-emerald-500 rounded-full"
+                              />
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="py-3.5 px-4 text-center text-blue-300 font-bold">
+                          {formatNumber(rep.collectedCash)}
+                        </td>
+
+                        <td className="py-3.5 px-4 text-center text-amber-300 font-bold">
+                          {formatNumber(rep.pendingReceivables)}
+                        </td>
+
+                        <td className="py-3.5 px-4 text-center text-slate-300 font-bold">
+                          {rep.commissionRate}%
+                        </td>
+
+                        <td className="py-3.5 px-4 text-center text-emerald-300 font-black text-xs">
+                          {formatNumber(rep.earnedCommission)} YER
+                        </td>
+
+                        <td className="py-3.5 px-4 text-center font-sans">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              rep.status === 'ACTIVE'
+                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                : 'bg-slate-800 text-slate-400'
+                            }`}
+                          >
+                            {rep.status === 'ACTIVE' ? 'نشط في الميدان' : 'متوقف'}
+                          </span>
+                        </td>
+
+                        <td className="py-3.5 px-4 text-center font-sans">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              onClick={() => handleOpenEditRep(rep)}
+                              title="تعديل بيانات المندوب والهدف"
+                              className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
+                            >
+                              تعديل
+                            </button>
+                            <button
+                              onClick={() => handlePrintRepStatement(rep)}
+                              title="طباعة كشف أداء وتصفية عمولة المندوب"
+                              className="p-1.5 bg-emerald-950/60 hover:bg-emerald-800 text-emerald-300 hover:text-white rounded-lg border border-emerald-700/40 transition-colors cursor-pointer flex items-center gap-1"
+                            >
+                              <Printer className="w-3.5 h-3.5" />
+                              <span className="text-[10px]">كشف</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: إضافة / تعديل مندوب مبيعات (Add/Edit Sales Rep Modal)               */}
+      {/* ========================================================================= */}
+      {isRepModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
+            <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Users className="w-4 h-4 text-emerald-400" />
+                <span>{editingRep ? 'تعديل بيانات مندوب المبيعات' : 'تسجيل مندوب مبيعات وتوزيع جديد'}</span>
+              </h3>
+              <button
+                onClick={() => setIsRepModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveRep} className="p-5 space-y-3.5 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-300 mb-1">اسم المندوب:</label>
+                  <input
+                    type="text"
+                    required
+                    value={repFormData.name}
+                    onChange={(e) => setRepFormData({ ...repFormData, name: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 focus:outline-none focus:border-emerald-500"
+                    placeholder="مثال: أحمد ناصر العمري"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-300 mb-1">كود المندوب:</label>
+                  <input
+                    type="text"
+                    value={repFormData.code}
+                    onChange={(e) => setRepFormData({ ...repFormData, code: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 font-mono focus:outline-none"
+                    placeholder="REP-01"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-300 mb-1">رقم الهاتف:</label>
+                  <input
+                    type="text"
+                    value={repFormData.phone}
+                    onChange={(e) => setRepFormData({ ...repFormData, phone: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 font-mono focus:outline-none"
+                    placeholder="771234567"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-300 mb-1">نسبة العمولة (%):</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    value={repFormData.commissionRate}
+                    onChange={(e) => setRepFormData({ ...repFormData, commissionRate: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 font-mono focus:outline-none"
+                    placeholder="3.5"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-300 mb-1">منطقة وخط السير:</label>
+                  <input
+                    type="text"
+                    value={repFormData.territory}
+                    onChange={(e) => setRepFormData({ ...repFormData, territory: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 focus:outline-none"
+                    placeholder="صنعاء الوسطى وحدّة"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-300 mb-1">سيارة التوزيع / وسيلة النقل:</label>
+                  <input
+                    type="text"
+                    value={repFormData.vehicle}
+                    onChange={(e) => setRepFormData({ ...repFormData, vehicle: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 focus:outline-none"
+                    placeholder="هايلوكس غمارتين #3421"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-300 mb-1">الهدف اليومي (YER):</label>
+                  <input
+                    type="number"
+                    value={repFormData.dailyTarget}
+                    onChange={(e) => setRepFormData({ ...repFormData, dailyTarget: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 font-mono focus:outline-none"
+                    placeholder="250000"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-300 mb-1">الهدف الشهري (YER):</label>
+                  <input
+                    type="number"
+                    value={repFormData.monthlyTarget}
+                    onChange={(e) => setRepFormData({ ...repFormData, monthlyTarget: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 font-mono focus:outline-none"
+                    placeholder="6500000"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsRepModalOpen(false)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold shadow-md"
+                >
+                  حفظ البيانات ✅
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+

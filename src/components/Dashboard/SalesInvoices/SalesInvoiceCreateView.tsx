@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { ModuleSettingsModal } from '../../Common/ModuleSettingsModal';
 import { PriceTier, ProductActivityType } from '../../../types';
+import { getAccountingRate, getStoredExchangeRates } from '../../../lib/exchangeRates';
 
 export type PaymentMethodType = 'CASH' | 'BANK' | 'CREDIT' | 'WALLET';
 
@@ -166,9 +167,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
   // Currency change handler
   const handleCurrencyChange = (newCurr: string) => {
     setCurrency(newCurr);
-    if (newCurr === 'YER') setExchangeRate(1.0);
-    else if (newCurr === 'SAR') setExchangeRate(430.0);
-    else if (newCurr === 'USD') setExchangeRate(1620.0);
+    setExchangeRate(getAccountingRate(newCurr));
   };
 
   // Grand Totals Calculation (Accounting for scrap discounts)
@@ -1576,6 +1575,13 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
               <span>الإجمالي النهائي (Grand Total):</span>
               <span className="font-mono text-xl text-blue-400">{formatAmount(grandTotal, currency)}</span>
             </div>
+
+            {currency !== 'YER' && (
+              <div className="flex justify-between text-xs text-amber-300 font-mono font-bold pt-1 border-t border-slate-800/60">
+                <span>المعادل بالعملة الأساسية:</span>
+                <span>≈ {formatNumber(grandTotal * (exchangeRate || 1))} YER</span>
+              </div>
+            )}
 
             <div className="flex justify-between text-xs text-emerald-400 pt-1">
               <span>المسدد ({paymentMethod === 'CASH' ? 'نقداً' : paymentMethod === 'BANK' ? 'بنكي' : paymentMethod === 'WALLET' ? 'محفظة' : 'آجل'}):</span>

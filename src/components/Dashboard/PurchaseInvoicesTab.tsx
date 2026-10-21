@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../api';
 import { formatAmount, formatSupplierAmount } from '../../lib/formatters';
+import { getAccountingRate } from '../../lib/exchangeRates';
 import { ExportActions } from '../Common/ExportActions';
 import { TableExportConfig, printInvoiceDocument } from '../../lib/exportUtils';
 import { useAuth } from '../../context/AuthContext';
@@ -478,7 +479,7 @@ export const PurchaseInvoicesTab: React.FC = () => {
                     onChange={(e) => {
                       const cur = e.target.value;
                       setCurrency(cur);
-                      if (cur === 'YER') setExchangeRate('1.0');
+                      setExchangeRate(String(getAccountingRate(cur)));
                     }}
                     className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:border-emerald-500"
                   >

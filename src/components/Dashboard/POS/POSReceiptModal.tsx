@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   X,
   Printer,
@@ -31,11 +31,14 @@ export const POSReceiptModal: React.FC<POSReceiptModalProps> = ({
 }) => {
   const { company, user } = useAuth();
   const receiptRef = useRef<HTMLDivElement>(null);
+  const [printLayout, setPrintLayout] = useState<'80mm' | 'A4'>('80mm');
 
   if (!isOpen || !receiptData) return null;
 
   const handlePrint = () => {
     printInvoiceDocument({
+      layout: printLayout,
+      currency: receiptData.currency || 'YER',
       companyName: company?.name || 'مؤسسة السحابي للتجارة والتقنية',
       invoiceType: 'SALES',
       invoiceNumber: receiptData.invoiceNumber,
@@ -50,9 +53,13 @@ export const POSReceiptModal: React.FC<POSReceiptModalProps> = ({
         if (Number(it.scrapDiscount) > 0) title += ` [خصم رجيع: -${it.scrapDiscount}]`;
         return {
           name: title,
+          sku: it.sku || it.product_sku,
           quantity: it.quantity,
           unitPrice: it.unit_price || it.price || it.unitPrice,
           total: it.total,
+          serialNumber: it.serialNumber,
+          warrantyEndDate: it.warrantyEndDate,
+          scrapDiscount: it.scrapDiscount,
         };
       }),
       subtotal: receiptData.subtotal,
@@ -85,29 +92,58 @@ export const POSReceiptModal: React.FC<POSReceiptModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 overflow-y-auto" dir="rtl">
       <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Header Actions */}
-        <div className="px-6 py-4 bg-slate-800/80 border-b border-slate-800 flex items-center justify-between no-print">
+        <div className="px-6 py-4 bg-slate-800/80 border-b border-slate-800 flex items-center justify-between no-print flex-wrap gap-2">
           <div className="flex items-center gap-2 text-emerald-400">
             <CheckCircle2 className="w-5 h-5" />
             <span className="text-sm font-bold">تم إتمام الفاتورة بنجاح</span>
           </div>
+
           <div className="flex items-center gap-2">
+            {/* Print Format Selector Pill */}
+            <div className="flex items-center bg-slate-900 p-0.5 rounded-xl border border-slate-700 text-[11px] font-bold">
+              <button
+                type="button"
+                onClick={() => setPrintLayout('80mm')}
+                className={`px-2.5 py-1 rounded-lg transition-all ${
+                  printLayout === '80mm'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="طابعة إيصالات الكاشير الحرارية (80mm)"
+              >
+                إيصال 80mm
+              </button>
+              <button
+                type="button"
+                onClick={() => setPrintLayout('A4')}
+                className={`px-2.5 py-1 rounded-lg transition-all ${
+                  printLayout === 'A4'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="فاتورة رسمية كاملة وشهادة ضمان (A4)"
+              >
+                رسمي A4
+              </button>
+            </div>
+
             <button
               onClick={handlePrint}
-              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm"
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
             >
               <Printer className="w-4 h-4" />
-              طباعة إيصال (80mm)
+              <span>طباعة ({printLayout})</span>
             </button>
             <button
               onClick={handleWhatsAppShare}
-              className="px-3 py-1.5 bg-emerald-700/20 text-emerald-400 border border-emerald-600/30 hover:bg-emerald-700/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+              className="px-3 py-1.5 bg-emerald-700/20 text-emerald-400 border border-emerald-600/30 hover:bg-emerald-700/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Share2 className="w-4 h-4" />
               واتساب
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg"
+              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
