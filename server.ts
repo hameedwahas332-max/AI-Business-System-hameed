@@ -5,6 +5,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import pg from 'pg';
 import { S3Client, HeadBucketCommand, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { enterpriseRouter, mockCustomersList, mockSuppliersList } from './server/routes/enterpriseApi';
 
 const { Pool } = pg;
 const app = express();
@@ -230,24 +231,31 @@ app.get('/api/v1/pos/ai-insights', (_req: Request, res: Response) => {
   });
 });
 
-app.get('/api/v1/customers', (_req: Request, res: Response) => {
+app.get('/api/v1/customers', (req: Request, res: Response) => {
+  const q = String(req.query.q || req.query.search || '').trim().toLowerCase();
+  let list = [...mockCustomersList];
+  if (q) {
+    list = list.filter((c) => c.name.toLowerCase().includes(q) || (c.phone && c.phone.includes(q)));
+  }
   res.json({
     success: true,
-    data: [
-      { id: '1', name: 'مؤسسة الأفق للتجارة', phone: '0501234567', balance: 8200, creditLimit: 20000, current_balance: 8200 },
-      { id: '2', name: 'شركة الوفاق المحدودة', phone: '0559876543', balance: 5400, creditLimit: 50000, current_balance: 5400 },
-      { id: '3', name: 'مجمع الرياض الطبي', phone: '0543322110', balance: 4600, creditLimit: 30000, current_balance: 4600 },
-    ],
+    data: list,
+    customers: list,
+    total: list.length,
   });
 });
 
-app.get('/api/v1/suppliers', (_req: Request, res: Response) => {
+app.get('/api/v1/suppliers', (req: Request, res: Response) => {
+  const q = String(req.query.q || req.query.search || '').trim().toLowerCase();
+  let list = [...mockSuppliersList];
+  if (q) {
+    list = list.filter((s) => s.name.toLowerCase().includes(q) || (s.category && s.category.toLowerCase().includes(q)));
+  }
   res.json({
     success: true,
-    data: [
-      { id: '1', name: 'شركة التوريدات الوطنية الكبرى', category: 'أغذية ومواد استهلاكية', balance: 14200, current_balance: 14200 },
-      { id: '2', name: 'مؤسسة الاستيراد المباشر', category: 'معدات ومستلزمات تشغيل', balance: 4000, current_balance: 4000 },
-    ],
+    data: list,
+    suppliers: list,
+    total: list.length,
   });
 });
 
@@ -1046,28 +1054,8 @@ app.get('/api/v1/reports/top-performance', (req: Request, res: Response) => {
   });
 });
 
-app.get('/api/v1/roles', (_req: Request, res: Response) => {
-  res.json({
-    success: true,
-    data: [
-      { id: 'role-1', name: 'admin', name_ar: 'المدير العام', description: 'صلاحيات كاملة على كافة وحدات النظام', permissions: ['*'] },
-      { id: 'role-2', name: 'accountant', name_ar: 'المحاسب المالي', description: 'إدارة القيود والفواتير والحسابات', permissions: ['invoices:*', 'payments:*', 'reports:*'] },
-      { id: 'role-3', name: 'cashier', name_ar: 'كاشير نقاط البيع', description: 'إصدار فواتير نقاط البيع وسندات القبض', permissions: ['pos:*', 'invoices:create'] },
-    ],
-  });
-});
-
-app.get('/api/v1/permissions', (_req: Request, res: Response) => {
-  res.json({
-    success: true,
-    data: [
-      { id: 'p-1', code: 'invoices:read', name_ar: 'استعراض فواتير المبيعات' },
-      { id: 'p-2', code: 'invoices:create', name_ar: 'إصدار فواتير المبيعات' },
-      { id: 'p-3', code: 'payments:create', name_ar: 'تسجيل سندات القبض والصرف' },
-      { id: 'p-4', code: 'inventory:adjust', name_ar: 'تسوية الجرد المخزني' },
-    ],
-  });
-});
+// Enterprise ERP Modules & RBAC Routes (Registered BEFORE catch-all 404 guard)
+app.use('/api/v1', enterpriseRouter);
 
 app.get('/api/v1/audit-logs', (_req: Request, res: Response) => {
   res.json({
