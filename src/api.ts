@@ -84,6 +84,7 @@ class ApiClient {
     }
     this.token = token;
     this.setStorageItem('erp_token', token);
+    this.setStorageItem('erp_auth_token', token);
   }
 
   public setCompanyId(companyId: string | null) {
@@ -100,12 +101,13 @@ class ApiClient {
     this.token = null;
     this.companyId = null;
     this.removeStorageItem('erp_token');
+    this.removeStorageItem('erp_auth_token');
     this.removeStorageItem('erp_company_id');
   }
 
   public getToken(): string | null {
     if (!this.token) {
-      this.token = this.getStorageItem('erp_token');
+      this.token = this.getStorageItem('erp_auth_token') || this.getStorageItem('erp_token');
     }
     return this.token;
   }
@@ -142,27 +144,55 @@ class ApiClient {
       headers['x-company-id'] = companyId;
     }
 
-    const res = await fetch(url, {
-      ...options,
-      headers,
-    });
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        ...options,
+        headers,
+      });
+    } catch (networkErr: any) {
+      // Do not wipe session on transient network timeouts or offline states
+      throw new Error(networkErr?.message || 'Network communication error');
+    }
 
-    const data = await res.json().catch(() => ({}));
+    let data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
       const isLoginRequest = url.includes('/auth/login');
+      const isRefreshRequest = url.includes('/auth/refresh');
+      const isLogoutRequest = url.includes('/auth/logout');
       const errorCode = data?.error?.code || data?.code;
 
-      // When a protected request receives an authentication failure indicating an invalid, expired, or unusable JWT:
-      const isSessionAuthFailure =
-        res.status === 401 &&
-        !isLoginRequest &&
-        (Boolean(headers['Authorization']) ||
-          errorCode === 'INVALID_TOKEN' ||
-          errorCode === 'UNAUTHORIZED' ||
-          errorCode === 'ACCOUNT_DISABLED');
+      // Transparent Sliding Session Refresh on 401
+      if (res.status === 401 && !isLoginRequest && !isRefreshRequest && !isLogoutRequest && errorCode !== 'ACCOUNT_DISABLED') {
+        try {
+          const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token || ''}`,
+            },
+          });
 
-      if (isSessionAuthFailure) {
+          if (refreshRes.ok) {
+            const refreshData = await refreshRes.json();
+            const newToken = refreshData?.token || refreshData?.data?.token;
+            if (newToken) {
+              this.setToken(newToken);
+              headers['Authorization'] = `Bearer ${newToken}`;
+              const retryRes = await fetch(url, { ...options, headers });
+              if (retryRes.ok) {
+                return await retryRes.json();
+              }
+            }
+          }
+        } catch {
+          // Keep existing credentials across network glitches
+        }
+      }
+
+      // Explicit account disabled or confirmed unauthorized logout
+      if (errorCode === 'ACCOUNT_DISABLED') {
         this.clearToken();
         this.notifyUnauthorized();
       }

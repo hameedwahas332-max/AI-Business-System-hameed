@@ -2065,7 +2065,7 @@ export const mockCurrentCompany = {
 };
 
 enterpriseRouter.get('/companies/current', (_req: Request, res: Response) => {
-  res.json({ success: true, data: mockCurrentCompany });
+  res.json({ success: true, data: mockCurrentCompany, company: mockCurrentCompany });
 });
 
 enterpriseRouter.put('/companies/current', (req: Request, res: Response) => {

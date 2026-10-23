@@ -2,9 +2,14 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export type BusinessPresetKey =
   | 'multi_activity'
+  | 'grocery_only'
   | 'food_supermarket'
+  | 'fuel_station_only'
+  | 'tires_batteries_only'
   | 'batteries_electronics'
+  | 'autoparts_oils_only'
   | 'oils_autoparts'
+  | 'wholesale_retail_general'
   | 'wholesale_distribution';
 
 export interface ModuleSettings {
@@ -15,6 +20,7 @@ export interface ModuleSettings {
   enableTieredPricing: boolean;
   enableExpiryTracking: boolean;
   enableSerialAndWarranty: boolean;
+  enableTiresAndSizes: boolean;
   enableOilViscositySpec: boolean;
   defaultCostingMethod: 'weighted_average' | 'fifo';
   lowStockDefaultThreshold: number;
@@ -45,86 +51,173 @@ export const PRESET_DEFINITIONS: Record<
     name: string;
     description: string;
     badge: string;
+    icon?: string;
     settings: Partial<ModuleSettings>;
   }
 > = {
-  multi_activity: {
-    name: 'نشاط تجاري شامل',
-    description: 'مواد غذائية + بطاريات + زيوت وشحوم + جملة وتجزئة متكاملة',
-    badge: 'شامل • افتراضي',
-    settings: {
-      enableMultiUnits: true,
-      enableTieredPricing: true,
-      enableExpiryTracking: true,
-      enableSerialAndWarranty: true,
-      enableOilViscositySpec: true,
-      enableBatteryScrapTradeIn: true,
-      printWarrantyOnInvoice: true,
-      defaultCustomerPriceTier: 'retail',
-      lowStockDefaultThreshold: 10,
-      expiryWarningDays: 60,
-    },
-  },
-  food_supermarket: {
-    name: 'سوبرماركت ومواد غذائية',
-    description: 'تركيز على تاريخ الانتهاء (FEFO)، الباركود، الكراتين، وخصومات الفواتير',
-    badge: 'أغذية وتموينات',
+  grocery_only: {
+    name: 'وضع البقالة والمواد الغذائية فقط',
+    description: 'يعرض فقط قسم المواد الغذائية، رقم الصنف، تاريخ الصلاحية والوحدات؛ ويخفي البطاريات والإطارات والزيوت ومحطة الوقود',
+    badge: '🍏 بقالة ومواد غذائية',
     settings: {
       enableMultiUnits: true,
       enableTieredPricing: true,
       enableExpiryTracking: true,
       enableSerialAndWarranty: false,
+      enableTiresAndSizes: false,
       enableOilViscositySpec: false,
       enableBatteryScrapTradeIn: false,
       printWarrantyOnInvoice: false,
       defaultCustomerPriceTier: 'retail',
       lowStockDefaultThreshold: 15,
       expiryWarningDays: 45,
+      hiddenSidebarTabs: ['fuel_station'],
     },
   },
-  batteries_electronics: {
-    name: 'بطاريات وإلكترونيات',
-    description: 'تتبع السيريال نمبر، شهادات الضمان، وخصم استبدال البطاريات القديمة (رجيع)',
-    badge: 'ضمان وسيريال',
+  food_supermarket: {
+    name: 'سوبرماركت ومواد غذائية',
+    description: 'تركيز على تاريخ الانتهاء (FEFO)، الباركود، الكراتين، وخصومات الفواتير',
+    badge: '🍏 أغذية وتموينات',
+    settings: {
+      enableMultiUnits: true,
+      enableTieredPricing: true,
+      enableExpiryTracking: true,
+      enableSerialAndWarranty: false,
+      enableTiresAndSizes: false,
+      enableOilViscositySpec: false,
+      enableBatteryScrapTradeIn: false,
+      printWarrantyOnInvoice: false,
+      defaultCustomerPriceTier: 'retail',
+      lowStockDefaultThreshold: 15,
+      expiryWarningDays: 45,
+      hiddenSidebarTabs: ['fuel_station'],
+    },
+  },
+  fuel_station_only: {
+    name: 'وضع محطة تعبئة الغاز والبترول فقط',
+    description: 'يعرض شاشة جرد عدادات وخزانات المحطة، المبيعات، العملاء والموردين والسندات؛ ويخفي البقالة والإطارات',
+    badge: '⛽ محطة وقود وغاز',
+    settings: {
+      enableMultiUnits: false,
+      enableTieredPricing: false,
+      enableExpiryTracking: false,
+      enableSerialAndWarranty: false,
+      enableTiresAndSizes: false,
+      enableOilViscositySpec: false,
+      enableBatteryScrapTradeIn: false,
+      printWarrantyOnInvoice: false,
+      defaultCustomerPriceTier: 'retail',
+      defaultPrintFormat: 'A4',
+      hiddenSidebarTabs: ['ocr', 'whatsapp'],
+    },
+  },
+  tires_batteries_only: {
+    name: 'وضع الإطارات والبطاريات فقط',
+    description: 'يعرض مقاس الإطارات، سعة البطاريات، الأرقام التسلسلية، كود DOT، وشهادات الضمان والرجيع؛ ويخفي البقالة ومحطة الوقود',
+    badge: '🛞 إطارات وبطاريات',
     settings: {
       enableMultiUnits: true,
       enableTieredPricing: true,
       enableExpiryTracking: false,
       enableSerialAndWarranty: true,
+      enableTiresAndSizes: true,
       enableOilViscositySpec: false,
       enableBatteryScrapTradeIn: true,
       printWarrantyOnInvoice: true,
       defaultCustomerPriceTier: 'retail',
       lowStockDefaultThreshold: 8,
       expiryWarningDays: 0,
+      hiddenSidebarTabs: ['fuel_station'],
     },
   },
-  oils_autoparts: {
-    name: 'زيوت وقطع غيار',
-    description: 'درجات اللزوجة (20W-50 / 10W-40)، سعة اللتر، وكراتين الزيوت',
-    badge: 'زيوت ومحركات',
+  batteries_electronics: {
+    name: 'بطاريات وإلكترونيات',
+    description: 'تتبع السيريال نمبر، شهادات الضمان، وخصم استبدال البطاريات القديمة (رجيع)',
+    badge: '⚡ ضمان وسيريال',
+    settings: {
+      enableMultiUnits: true,
+      enableTieredPricing: true,
+      enableExpiryTracking: false,
+      enableSerialAndWarranty: true,
+      enableTiresAndSizes: true,
+      enableOilViscositySpec: false,
+      enableBatteryScrapTradeIn: true,
+      printWarrantyOnInvoice: true,
+      defaultCustomerPriceTier: 'retail',
+      lowStockDefaultThreshold: 8,
+      expiryWarningDays: 0,
+      hiddenSidebarTabs: ['fuel_station'],
+    },
+  },
+  autoparts_oils_only: {
+    name: 'وضع قطع الغيار والزيوت فقط',
+    description: 'يعرض رقم القطعة OEM، درجات لزوجة الزيوت، سعة اللتر ومقاسات القطع؛ ويخفي البقالة ومحطة الوقود',
+    badge: '🛢️ زيوت وقطع غيار',
     settings: {
       enableMultiUnits: true,
       enableTieredPricing: true,
       enableExpiryTracking: false,
       enableSerialAndWarranty: false,
+      enableTiresAndSizes: false,
       enableOilViscositySpec: true,
       enableBatteryScrapTradeIn: false,
       printWarrantyOnInvoice: false,
       defaultCustomerPriceTier: 'half_wholesale',
       lowStockDefaultThreshold: 12,
       expiryWarningDays: 0,
+      hiddenSidebarTabs: ['fuel_station'],
     },
   },
-  wholesale_distribution: {
-    name: 'تجارة جملة وتوزيع',
-    description: 'تعدد أسعار الجملة ونصف الجملة، البيع بالكرتون، وحدود الائتمان',
-    badge: 'جملة وتوزيع',
+  oils_autoparts: {
+    name: 'زيوت ومحركات',
+    description: 'درجات اللزوجة (20W-50 / 10W-40)، سعة اللتر، وكراتين الزيوت',
+    badge: '🛢️ زيوت ومحركات',
+    settings: {
+      enableMultiUnits: true,
+      enableTieredPricing: true,
+      enableExpiryTracking: false,
+      enableSerialAndWarranty: false,
+      enableTiresAndSizes: false,
+      enableOilViscositySpec: true,
+      enableBatteryScrapTradeIn: false,
+      printWarrantyOnInvoice: false,
+      defaultCustomerPriceTier: 'half_wholesale',
+      lowStockDefaultThreshold: 12,
+      expiryWarningDays: 0,
+      hiddenSidebarTabs: ['fuel_station'],
+    },
+  },
+  wholesale_retail_general: {
+    name: 'وضع التجارة العامة والجملة والتجزئة',
+    description: 'يعرض كروت الأصناف العامة، مستويات التسعير والباركود والكراتين وحدود الائتمان',
+    badge: '📦 تجارة عامة وجملة',
     settings: {
       enableMultiUnits: true,
       enableTieredPricing: true,
       enableExpiryTracking: true,
       enableSerialAndWarranty: true,
+      enableTiresAndSizes: true,
+      enableOilViscositySpec: true,
+      enableBatteryScrapTradeIn: false,
+      printWarrantyOnInvoice: true,
+      defaultCustomerPriceTier: 'wholesale',
+      defaultPrintFormat: 'A4',
+      enforceCreditLimit: true,
+      lowStockDefaultThreshold: 20,
+      expiryWarningDays: 60,
+      hiddenSidebarTabs: ['fuel_station'],
+    },
+  },
+  wholesale_distribution: {
+    name: 'تجارة جملة وتوزيع',
+    description: 'تعدد أسعار الجملة ونصف الجملة، البيع بالكرتون، وحدود الائتمان',
+    badge: '📦 جملة وتوزيع',
+    settings: {
+      enableMultiUnits: true,
+      enableTieredPricing: true,
+      enableExpiryTracking: true,
+      enableSerialAndWarranty: true,
+      enableTiresAndSizes: true,
       enableOilViscositySpec: true,
       enableBatteryScrapTradeIn: true,
       printWarrantyOnInvoice: true,
@@ -133,6 +226,26 @@ export const PRESET_DEFINITIONS: Record<
       enforceCreditLimit: true,
       lowStockDefaultThreshold: 20,
       expiryWarningDays: 60,
+      hiddenSidebarTabs: ['fuel_station'],
+    },
+  },
+  multi_activity: {
+    name: 'الوضع الشامل المتعدد الأنشطة (الكامل)',
+    description: 'يعرض جميع الأقسام والتبويبات: محطة الوقود، البقالة، الإطارات والبطاريات، والزيوت وقطع الغيار دون أي حجب',
+    badge: '🌐 نشاط شامل متكامل',
+    settings: {
+      enableMultiUnits: true,
+      enableTieredPricing: true,
+      enableExpiryTracking: true,
+      enableSerialAndWarranty: true,
+      enableTiresAndSizes: true,
+      enableOilViscositySpec: true,
+      enableBatteryScrapTradeIn: true,
+      printWarrantyOnInvoice: true,
+      defaultCustomerPriceTier: 'retail',
+      lowStockDefaultThreshold: 10,
+      expiryWarningDays: 60,
+      hiddenSidebarTabs: [],
     },
   },
 };
@@ -144,6 +257,7 @@ export const DEFAULT_MODULE_SETTINGS: ModuleSettings = {
   enableTieredPricing: true,
   enableExpiryTracking: true,
   enableSerialAndWarranty: true,
+  enableTiresAndSizes: true,
   enableOilViscositySpec: true,
   defaultCostingMethod: 'weighted_average',
   lowStockDefaultThreshold: 10,

@@ -433,7 +433,16 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
                   </p>
 
                   <div className="grid grid-cols-1 gap-2.5">
-                    {(Object.keys(PRESET_DEFINITIONS) as BusinessPresetKey[]).map((key) => {
+                    {(
+                      [
+                        'multi_activity',
+                        'grocery_only',
+                        'fuel_station_only',
+                        'tires_batteries_only',
+                        'autoparts_oils_only',
+                        'wholesale_retail_general',
+                      ] as BusinessPresetKey[]
+                    ).map((key) => {
                       const preset = PRESET_DEFINITIONS[key];
                       const isActive = settings.activePreset === key;
 

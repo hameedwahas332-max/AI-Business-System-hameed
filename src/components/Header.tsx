@@ -11,11 +11,14 @@ import {
   ShieldCheck,
   RefreshCw,
   Coins,
+  ChevronDown,
+  Sparkles,
 } from 'lucide-react';
 import { TabType } from './Sidebar';
 import { DailyExchangeRateModal } from './Common/DailyExchangeRateModal';
 import { getStoredExchangeRates, EVENT_EXCHANGE_RATES_CHANGED, ExchangeRateConfig } from '../lib/exchangeRates';
 import { formatNumber } from '../lib/formatters';
+import { useModuleSettings, PRESET_DEFINITIONS, BusinessPresetKey } from '../context/ModuleSettingsContext';
 
 export type ThemeMode = 'dark' | 'light';
 export type AccentColor = 'indigo' | 'sapphire' | 'emerald' | 'amber';
@@ -41,7 +44,21 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [showColorPalette, setShowColorPalette] = useState(false);
   const [isRatesOpen, setIsRatesOpen] = useState(false);
+  const [showPresetMenu, setShowPresetMenu] = useState(false);
   const [exchangeConfig, setExchangeConfig] = useState<ExchangeRateConfig>(getStoredExchangeRates);
+
+  const { settings, applyPreset } = useModuleSettings();
+
+  const PRIMARY_PRESETS: { key: BusinessPresetKey; label: string; icon: string; short: string }[] = [
+    { key: 'multi_activity', label: 'الوضع الشامل (متعدد الأنشطة)', icon: '🌐', short: 'شامل' },
+    { key: 'grocery_only', label: 'وضع البقالة والمواد الغذائية فقط', icon: '🍏', short: 'بقالة' },
+    { key: 'fuel_station_only', label: 'وضع محطة تعبئة الغاز والبترول فقط', icon: '⛽', short: 'محطة وقود' },
+    { key: 'tires_batteries_only', label: 'وضع الإطارات والبطاريات فقط', icon: '🛞', short: 'إطارات وبطاريات' },
+    { key: 'autoparts_oils_only', label: 'وضع قطع الغيار والزيوت فقط', icon: '🛢️', short: 'قطع وزيوت' },
+    { key: 'wholesale_retail_general', label: 'وضع التجارة العامة والجملة والتجزئة', icon: '📦', short: 'تجارة عامة' },
+  ];
+
+  const currentPresetObj = PRIMARY_PRESETS.find((p) => p.key === settings.activePreset) || PRIMARY_PRESETS[0];
 
   React.useEffect(() => {
     const handleRatesChanged = () => {
@@ -60,29 +77,74 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <>
-      <header className="h-16 bg-slate-900/85 backdrop-blur-md border-b border-slate-800 px-6 flex items-center justify-between flex-shrink-0 z-10 select-none">
-        {/* Title / Current Tab Indicator */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
+      <header className="h-16 bg-slate-900/85 backdrop-blur-md border-b border-slate-800 px-4 sm:px-6 flex items-center justify-between flex-shrink-0 z-10 select-none">
+        {/* Title / Current Tab Indicator & Profile Switcher */}
+        <div className="flex items-center gap-2.5">
+          <div className="hidden lg:flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-semibold text-slate-400">نظام ERP السحابي المعتمد</span>
+            <span className="text-xs font-semibold text-slate-400">ERP سحابي</span>
+          </div>
+
+          {/* Business Activity Profile Selector Dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowPresetMenu((prev) => !prev)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
+              title="تغيير نشاط المنشأة وتخصيص شاشات النظام فورياً"
+            >
+              <span>{currentPresetObj.icon}</span>
+              <span className="hidden sm:inline font-bold">نشاط: {currentPresetObj.short}</span>
+              <span className="sm:hidden font-bold">{currentPresetObj.short}</span>
+              <ChevronDown className="w-3.5 h-3.5 text-indigo-400" />
+            </button>
+
+            {showPresetMenu && (
+              <div className="absolute right-0 mt-2 w-72 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-2 z-50 space-y-1 text-right">
+                <div className="text-[11px] font-bold text-slate-400 px-3 py-1.5 border-b border-slate-800 flex items-center justify-between">
+                  <span>تخصيص النظام حسب نشاط المنشأة:</span>
+                  <Sparkles className="w-3 h-3 text-amber-400" />
+                </div>
+                {PRIMARY_PRESETS.map((preset) => {
+                  const isSelected = settings.activePreset === preset.key;
+                  return (
+                    <button
+                      key={preset.key}
+                      onClick={() => {
+                        applyPreset(preset.key);
+                        setShowPresetMenu(false);
+                      }}
+                      className={`w-full flex items-center justify-between p-2 rounded-xl text-xs font-medium transition-all text-right cursor-pointer ${
+                        isSelected
+                          ? 'bg-indigo-600/20 text-indigo-200 border border-indigo-500/40 font-bold'
+                          : 'text-slate-300 hover:bg-slate-800/70'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">{preset.icon}</span>
+                        <div className="text-right">
+                          <div className="font-bold text-white text-[11px]">{preset.label}</div>
+                        </div>
+                      </div>
+                      {isSelected && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Daily Exchange Rate Badge Button */}
           <button
             type="button"
             onClick={() => setIsRatesOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold transition-all cursor-pointer"
             title="فتح نشرة أسعار الصرف اليومية وحاسبة العملات"
           >
             <Coins className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">أسعار الصرف:</span>
+            <span className="hidden md:inline">الصرف:</span>
             <span className="font-mono text-[11px] text-amber-200">
               1 SAR = {formatNumber(exchangeConfig.rates.SAR.accountingRate)}
-            </span>
-            <span className="text-slate-500 hidden md:inline">|</span>
-            <span className="font-mono text-[11px] text-blue-300 hidden md:inline">
-              1 USD = {formatNumber(exchangeConfig.rates.USD.accountingRate)}
             </span>
           </button>
         </div>

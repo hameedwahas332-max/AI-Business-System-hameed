@@ -38,7 +38,7 @@ import {
   getAccountingRate,
   ExchangeRateConfig,
 } from '../../../lib/exchangeRates';
-import { formatNumber } from '../../../lib/formatters';
+import { formatNumber, parseEnglishNumber, toEnglishDigits } from '../../../lib/formatters';
 import { ModuleSettingsModal } from '../../Common/ModuleSettingsModal';
 import { POSQuickItemModal } from './POSQuickItemModal';
 import { POSCustomerSelector } from './POSCustomerSelector';
@@ -355,6 +355,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
   const handleAddToCart = (product: any) => {
     const price = getProductPriceForTier(product, selectedPriceTier);
     const isBattery = product.activityType === 'battery';
+    const isTire = product.activityType === 'tire';
     const warrantyMonths = Number(product.warrantyMonths || 12);
 
     setCart((prev) => {
@@ -378,6 +379,8 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
             productId: product.id,
             name: product.name,
             sku: product.sku,
+            itemCode: product.itemCode || product.sku,
+            partNumber: product.partNumber,
             barcode: product.barcode,
             category: product.category,
             activityType: product.activityType,
@@ -401,9 +404,12 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
             total: price,
             currentStock: Number(product.current_stock ?? product.qty ?? 0),
             serialNumber: isBattery ? '' : undefined,
-            warrantyMonths: isBattery ? warrantyMonths : undefined,
-            warrantyEndDate: isBattery ? calculateWarrantyEndDate(warrantyMonths) : undefined,
+            warrantyMonths: isBattery || isTire ? warrantyMonths : undefined,
+            warrantyEndDate: isBattery || isTire ? calculateWarrantyEndDate(warrantyMonths) : undefined,
             scrapDiscount: 0,
+            tireSize: product.tireSize,
+            tireProductionDot: product.tireProductionDot,
+            tirePlyOrigin: product.tirePlyOrigin,
           },
         ];
       }
@@ -952,7 +958,14 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <h4 className="text-xs font-bold text-white truncate">{item.name}</h4>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h4 className="text-xs font-bold text-white truncate">{item.name}</h4>
+                        {(item.itemCode || item.partNumber || item.sku) && (
+                          <span className="font-mono text-[10px] font-bold text-blue-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700">
+                            {item.itemCode || item.partNumber || item.sku}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 flex-wrap">
                         <span className="font-mono text-emerald-400 font-bold">
                           {item.unitPrice.toLocaleString()} {currency}
@@ -1021,15 +1034,38 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                         <div>
                           <label className="block text-[9px] text-slate-400 mb-0.5">خصم رجيع بطارية قديمة</label>
                           <input
-                            type="number"
-                            min="0"
-                            step="any"
+                            type="text"
+                            inputMode="decimal"
+                            dir="ltr"
+                            lang="en"
                             placeholder="0.00"
                             value={item.scrapDiscount || ''}
-                            onChange={(e) => handleUpdateScrapDiscount(idx, parseFloat(e.target.value) || 0)}
+                            onChange={(e) => handleUpdateScrapDiscount(idx, parseEnglishNumber(e.target.value, 0))}
                             className="w-full bg-slate-900 border border-emerald-500/40 rounded px-1.5 py-1 text-[10px] text-emerald-400 font-mono font-bold focus:outline-none"
                           />
                         </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tires Spec (قسم الإطارات في الكاشير) */}
+                  {item.activityType === 'tire' && (
+                    <div className="bg-sky-950/20 border border-sky-800/40 rounded-xl p-2 space-y-1 text-xs">
+                      <div className="flex items-center justify-between text-[10px] text-sky-300 font-bold">
+                        <span className="flex items-center gap-1">
+                          <span>🛞</span>
+                          بيانات وضمان الإطار
+                        </span>
+                        {item.warrantyMonths && (
+                          <span className="text-[9px] text-sky-300 font-mono font-bold">
+                            ضمان {item.warrantyMonths} شهر
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] text-slate-300 font-mono flex-wrap">
+                        {item.tireSize && <span className="bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700">مقاس: {item.tireSize}</span>}
+                        {item.tireProductionDot && <span className="bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700">DOT: {item.tireProductionDot}</span>}
+                        {item.tirePlyOrigin && <span className="bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700">{item.tirePlyOrigin}</span>}
                       </div>
                     </div>
                   )}
@@ -1044,12 +1080,13 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                         -
                       </button>
                       <input
-                        type="number"
-                        min="0.01"
-                        step="any"
+                        type="text"
+                        inputMode="decimal"
+                        dir="ltr"
+                        lang="en"
                         value={item.quantity}
-                        onChange={(e) => handleUpdateQty(idx, parseFloat(e.target.value) || 0)}
-                        className="w-12 bg-transparent text-center font-black text-xs text-white focus:outline-none"
+                        onChange={(e) => handleUpdateQty(idx, parseEnglishNumber(e.target.value, 1))}
+                        className="w-12 bg-transparent text-center font-black text-xs text-white focus:outline-none font-mono"
                       />
                       <button
                         onClick={() => handleUpdateQty(idx, item.quantity + 1)}

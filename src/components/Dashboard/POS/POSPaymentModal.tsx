@@ -17,7 +17,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { POSPaymentSplit } from '../../../types';
-import { roundMoney } from '../../../lib/formatters';
+import { roundMoney, parseEnglishNumber, toEnglishDigits } from '../../../lib/formatters';
 
 interface POSPaymentModalProps {
   isOpen: boolean;
@@ -250,12 +250,13 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
                 <div className="relative">
                   <DollarSign className="w-5 h-5 text-slate-500 absolute right-3.5 top-3" />
                   <input
-                    type="number"
-                    min="0"
-                    step="any"
+                    type="text"
+                    inputMode="decimal"
+                    dir="ltr"
+                    lang="en"
                     value={tenderedAmount || ''}
-                    onChange={(e) => setTenderedAmount(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl pr-11 pl-4 py-2.5 text-lg font-black text-white focus:outline-none focus:border-emerald-500"
+                    onChange={(e) => setTenderedAmount(parseEnglishNumber(e.target.value, 0))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl pr-11 pl-4 py-2.5 text-lg font-black text-white focus:outline-none focus:border-emerald-500 font-mono"
                     placeholder="0.00"
                     autoFocus
                   />
@@ -335,13 +336,14 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
                   </select>
 
                   <input
-                    type="number"
-                    min="0"
-                    step="any"
+                    type="text"
+                    inputMode="decimal"
+                    dir="ltr"
+                    lang="en"
                     value={p.amount || ''}
-                    onChange={(e) => handleUpdateSplitRow(idx, 'amount', parseFloat(e.target.value) || 0)}
+                    onChange={(e) => handleUpdateSplitRow(idx, 'amount', parseEnglishNumber(e.target.value, 0))}
                     placeholder="المبلغ"
-                    className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold focus:outline-none focus:border-indigo-500"
+                    className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold font-mono focus:outline-none focus:border-indigo-500"
                   />
 
                   {splitPayments.length > 1 && (

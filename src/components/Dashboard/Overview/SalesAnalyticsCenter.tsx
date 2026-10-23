@@ -97,13 +97,23 @@ export const SalesAnalyticsCenter: React.FC<SalesAnalyticsCenterProps> = ({
             </button>
           </div>
 
-          <button
-            onClick={() => onNavigate && onNavigate('invoices')}
-            className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
-          >
-            <span>سجل الفواتير</span>
-            <ArrowUpRight className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onNavigate && onNavigate('real_business')}
+              className="text-xs font-bold text-amber-300 hover:text-amber-200 flex items-center gap-1 cursor-pointer px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/25"
+            >
+              <span>مناديب التوزيع</span>
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </button>
+
+            <button
+              onClick={() => onNavigate && onNavigate('invoices')}
+              className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer px-2.5 py-1 rounded-xl bg-slate-800 border border-slate-700"
+            >
+              <span>سجل الفواتير</span>
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
 

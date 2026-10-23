@@ -198,7 +198,14 @@ export const POSReceiptModal: React.FC<POSReceiptModalProps> = ({
                   <div key={idx} className="border-b border-dotted border-slate-300 pb-1 pt-0.5 text-[10px]">
                     <div className="flex justify-between items-start">
                       <div className="w-1/2 text-right font-sans leading-tight">
-                        <div className="font-bold">{item.itemName || item.name}</div>
+                        <div className="font-bold flex items-center gap-1">
+                          <span>{item.itemName || item.name}</span>
+                          {(item.itemCode || item.partNumber || item.sku) && (
+                            <span className="font-mono text-[8px] bg-slate-200 px-1 rounded">
+                              [{item.itemCode || item.partNumber || item.sku}]
+                            </span>
+                          )}
+                        </div>
                         <span className="text-[9px] text-slate-500">
                           {item.quantity} {item.unit || item.unitName || 'حبة'} × {item.unitPrice?.toLocaleString()} {receiptData.currency}
                         </span>
@@ -209,6 +216,11 @@ export const POSReceiptModal: React.FC<POSReceiptModalProps> = ({
                     {item.serialNumber && (
                       <div className="text-[9px] text-amber-800 font-mono mt-0.5">
                         ⚡ سيريال: {item.serialNumber} {item.warrantyEndDate ? `(ضمان حتى ${item.warrantyEndDate})` : ''}
+                      </div>
+                    )}
+                    {(item.activityType === 'tire' || item.tireSize) && (
+                      <div className="text-[9px] text-sky-800 font-mono mt-0.5">
+                        🛞 مقاس: {item.tireSize || '-'} {item.tireProductionDot ? `[DOT: ${item.tireProductionDot}]` : ''} {item.warrantyMonths ? `(ضمان ${item.warrantyMonths} شهر)` : ''}
                       </div>
                     )}
                     {Number(item.scrapDiscount) > 0 && (

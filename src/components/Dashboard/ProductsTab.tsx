@@ -36,7 +36,9 @@ export const ACTIVITY_OPTIONS: { id: ProductActivityType | 'ALL'; label: string;
   { id: 'ALL', label: 'كافة الأنشطة', icon: '🌐' },
   { id: 'food', label: 'مواد غذائية', icon: '🍏' },
   { id: 'battery', label: 'بطاريات وأجهزة', icon: '⚡' },
+  { id: 'tire', label: 'إطارات السيارات', icon: '🛞' },
   { id: 'oil', label: 'زيوت وقطع غيار', icon: '🛢️' },
+  { id: 'fuel', label: 'محطة وقود وغاز', icon: '⛽' },
   { id: 'general', label: 'عام', icon: '📦' },
 ];
 
@@ -58,6 +60,8 @@ export const ProductsTab: React.FC = () => {
   const [formData, setFormData] = useState({
     name: '',
     sku: '',
+    itemCode: '',
+    partNumber: '',
     barcode: '',
     category: 'عام',
     activityType: 'general' as ProductActivityType,
@@ -97,10 +101,20 @@ export const ProductsTab: React.FC = () => {
     scrapDiscountValue: '0',
     requiresSerial: false,
 
+    // Tires Spec (قسم الإطارات)
+    tireSize: '',
+    tireProductionDot: '',
+    tirePlyOrigin: '',
+
     // Oil / Auto Parts
     viscosityGrade: '',
     oemCode: '',
     litersPerUnit: '1',
+
+    // Fuel Station
+    fuelType: 'petrol_91' as any,
+    tankId: '',
+    meterId: '',
   });
 
   const fetchProducts = async () => {
@@ -128,12 +142,17 @@ export const ProductsTab: React.FC = () => {
 
   const handleOpenCreate = () => {
     setEditingProduct(null);
+    const act = selectedActivity !== 'ALL' ? selectedActivity : 'general';
+    const autoCode = act === 'oil' ? `PRT-${Math.floor(1000 + Math.random() * 9000)}` : `ITM-${Math.floor(1000 + Math.random() * 9000)}`;
+
     setFormData({
       name: '',
       sku: `SKU-${Math.floor(1000 + Math.random() * 9000)}`,
+      itemCode: autoCode,
+      partNumber: act === 'oil' ? autoCode : '',
       barcode: '',
       category: 'عام',
-      activityType: selectedActivity !== 'ALL' ? selectedActivity : 'general',
+      activityType: act,
       unit: 'حبة',
       purchasePrice: '0',
       sellingPrice: '0',
@@ -166,9 +185,17 @@ export const ProductsTab: React.FC = () => {
       scrapDiscountValue: '0',
       requiresSerial: false,
 
+      tireSize: '',
+      tireProductionDot: '',
+      tirePlyOrigin: '',
+
       viscosityGrade: '',
       oemCode: '',
       litersPerUnit: '1',
+
+      fuelType: 'petrol_91' as any,
+      tankId: '',
+      meterId: '',
     });
     setIsModalOpen(true);
   };
@@ -178,6 +205,8 @@ export const ProductsTab: React.FC = () => {
     setFormData({
       name: prod.name || '',
       sku: prod.sku || '',
+      itemCode: prod.itemCode || prod.sku || '',
+      partNumber: prod.partNumber || '',
       barcode: prod.barcode || '',
       category: prod.category || 'عام',
       activityType: (prod.activityType || 'general') as ProductActivityType,
@@ -213,9 +242,17 @@ export const ProductsTab: React.FC = () => {
       scrapDiscountValue: String(prod.scrapDiscountValue ?? 0),
       requiresSerial: Boolean(prod.requiresSerial),
 
+      tireSize: prod.tireSize || '',
+      tireProductionDot: prod.tireProductionDot || '',
+      tirePlyOrigin: prod.tirePlyOrigin || '',
+
       viscosityGrade: prod.viscosityGrade || '',
       oemCode: prod.oemCode || '',
       litersPerUnit: String(prod.litersPerUnit ?? 1),
+
+      fuelType: prod.fuelType || 'petrol_91',
+      tankId: prod.tankId || '',
+      meterId: prod.meterId || '',
     });
     setIsModalOpen(true);
   };
@@ -228,6 +265,8 @@ export const ProductsTab: React.FC = () => {
       const payload: any = {
         name: formData.name,
         sku: formData.sku,
+        itemCode: formData.itemCode || formData.sku,
+        partNumber: formData.partNumber,
         barcode: formData.barcode,
         category: formData.category,
         activityType: formData.activityType,
@@ -263,9 +302,17 @@ export const ProductsTab: React.FC = () => {
         scrapDiscountValue: parseFloat(formData.scrapDiscountValue || '0'),
         requiresSerial: formData.requiresSerial,
 
+        tireSize: formData.tireSize,
+        tireProductionDot: formData.tireProductionDot,
+        tirePlyOrigin: formData.tirePlyOrigin,
+
         viscosityGrade: formData.viscosityGrade,
         oemCode: formData.oemCode,
         litersPerUnit: parseFloat(formData.litersPerUnit || '1'),
+
+        fuelType: formData.fuelType,
+        tankId: formData.tankId,
+        meterId: formData.meterId,
       };
 
       if (editingProduct) {
@@ -618,10 +665,10 @@ export const ProductsTab: React.FC = () => {
             <thead className="bg-slate-950 text-slate-400 font-semibold border-b border-slate-800 text-[11px] uppercase tracking-wider">
               <tr>
                 <th className="p-3.5">اسم المنتج / النشاط</th>
-                <th className="p-3.5">الرمز SKU / الباركود</th>
+                <th className="p-3.5">رقم الصنف / القطعة / SKU</th>
                 <th className="p-3.5">مستويات التسعير</th>
                 <th className="p-3.5">المخزون والكراتين</th>
-                <th className="p-3.5">مواصفات النشاط والصلاحية</th>
+                <th className="p-3.5">مواصفات النشاط والصلاحية والضمان</th>
                 <th className="p-3.5">الحالة</th>
                 <th className="p-3.5 text-center">الإجراءات</th>
               </tr>
@@ -653,9 +700,15 @@ export const ProductsTab: React.FC = () => {
                       ? '🍏 مواد غذائية'
                       : prod.activityType === 'battery'
                       ? '⚡ بطاريات وأجهزة'
+                      : prod.activityType === 'tire'
+                      ? '🛞 إطارات وكفرات'
                       : prod.activityType === 'oil'
                       ? '🛢️ زيوت وقطع غيار'
+                      : prod.activityType === 'fuel'
+                      ? '⛽ محروقات وغاز'
                       : '📦 عام';
+
+                  const displayCode = prod.itemCode || prod.partNumber || prod.sku;
 
                   return (
                     <tr key={prod.id} className="hover:bg-slate-800/40 transition-colors">
@@ -674,10 +727,18 @@ export const ProductsTab: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* SKU & Barcode */}
+                      {/* Item Code / Part Number & SKU & Barcode */}
                       <td className="p-3.5 font-mono text-slate-400 dir-ltr text-right">
-                        <div className="text-slate-200 font-semibold">{prod.sku || '-'}</div>
-                        {prod.barcode && <div className="text-[10px] text-slate-500 font-mono">📊 {prod.barcode}</div>}
+                        <div className="text-emerald-400 font-bold text-xs">
+                          {displayCode ? (
+                            <span className="bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/40">
+                              {prod.itemCode ? `ITM: ${prod.itemCode}` : prod.partNumber ? `OEM: ${prod.partNumber}` : prod.sku}
+                            </span>
+                          ) : (
+                            '-'
+                          )}
+                        </div>
+                        {prod.barcode && <div className="text-[10px] text-slate-400 font-mono mt-1">📊 {prod.barcode}</div>}
                       </td>
 
                       {/* Tiered Pricing */}
@@ -741,6 +802,21 @@ export const ProductsTab: React.FC = () => {
                           </div>
                         )}
 
+                        {prod.activityType === 'tire' && (
+                          <div className="space-y-1">
+                            {prod.tireSize && (
+                              <div className="text-xs font-bold text-cyan-300 font-mono flex items-center gap-1">
+                                <span>🛞 مقاس: {prod.tireSize}</span>
+                              </div>
+                            )}
+                            <div className="text-[10px] text-slate-400 flex items-center gap-1.5 flex-wrap">
+                              {prod.tireProductionDot && <span className="bg-slate-800 px-1 py-0.2 rounded font-mono">DOT: {prod.tireProductionDot}</span>}
+                              {prod.tirePlyOrigin && <span>{prod.tirePlyOrigin}</span>}
+                              {prod.warrantyMonths && <span className="text-teal-300">ضمان: {prod.warrantyMonths} شهر</span>}
+                            </div>
+                          </div>
+                        )}
+
                         {prod.activityType === 'oil' && (
                           <div className="space-y-1">
                             {prod.viscosityGrade && (
@@ -752,6 +828,17 @@ export const ProductsTab: React.FC = () => {
                             <div className="text-[10px] text-slate-400">
                               {prod.oemCode && <span>OEM: {prod.oemCode} | </span>}
                               <span>سعة: {prod.litersPerUnit || 1} لتر</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {prod.activityType === 'fuel' && (
+                          <div className="space-y-1">
+                            <div className="text-xs font-bold text-amber-300 flex items-center gap-1">
+                              ⛽ وقود / غاز مسال
+                            </div>
+                            <div className="text-[10px] text-slate-400">
+                              مضخات وعدادات وخزانات
                             </div>
                           </div>
                         )}
@@ -827,20 +914,31 @@ export const ProductsTab: React.FC = () => {
               {/* Activity Type Selection */}
               <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
                 <label className="block text-slate-300 font-bold">نوع النشاط التجاري للصنف:</label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                   {[
-                    { id: 'food', label: '🍏 مواد غذائية', sub: 'تاريخ وتتبع الصلاحية' },
-                    { id: 'battery', label: '⚡ بطاريات وأجهزة', sub: 'ضمان وسيريال ورجيع' },
-                    { id: 'oil', label: '🛢️ زيوت وقطع غيار', sub: 'لزوجة وكود ولتر' },
-                    { id: 'general', label: '📦 عام', sub: 'تجارة ومخزون عام' },
+                    { id: 'food', label: '🍏 مواد غذائية', sub: 'صلاحية وتتبع' },
+                    { id: 'battery', label: '⚡ بطاريات', sub: 'ضمان ورجيع' },
+                    { id: 'tire', label: '🛞 إطارات وكفرات', sub: 'مقاس وسنة DOT' },
+                    { id: 'oil', label: '🛢️ زيوت وقطع', sub: 'لزوجة وOEM' },
+                    { id: 'fuel', label: '⛽ محطة وقود', sub: 'خزان وعداد' },
+                    { id: 'general', label: '📦 عام', sub: 'تجارة ومخزون' },
                   ].map((act) => (
                     <button
                       key={act.id}
                       type="button"
-                      onClick={() => setFormData({ ...formData, activityType: act.id as any })}
+                      onClick={() => {
+                        const newAct = act.id as any;
+                        const autoCode = newAct === 'oil' ? `PRT-${Math.floor(1000 + Math.random() * 9000)}` : `ITM-${Math.floor(1000 + Math.random() * 9000)}`;
+                        setFormData({
+                          ...formData,
+                          activityType: newAct,
+                          itemCode: formData.itemCode || autoCode,
+                          partNumber: newAct === 'oil' ? (formData.partNumber || autoCode) : formData.partNumber,
+                        });
+                      }}
                       className={`p-2 rounded-xl text-right border transition-all cursor-pointer ${
                         formData.activityType === act.id
-                          ? 'bg-emerald-600/20 border-emerald-500 text-white shadow-sm'
+                          ? 'bg-emerald-600/20 border-emerald-500 text-white shadow-sm ring-1 ring-emerald-500/50'
                           : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'
                       }`}
                     >
@@ -858,10 +956,34 @@ export const ProductsTab: React.FC = () => {
                   <input
                     type="text"
                     required
-                    placeholder="مثال: شاي سيلاني فاخر 100 كيس / بطارية هانكوك 70A"
+                    placeholder="مثال: شاي سيلاني فاخر 100 كيس / بطارية هانكوك 70A / إطار يوكوهاما 205/55R16"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full p-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                {/* Dynamic Item Code / Part Number Field */}
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1 flex items-center justify-between">
+                    <span>
+                      {formData.activityType === 'oil' ? 'رقم القطعة (Part Number / OEM)' : 'رقم الصنف / المنتج (Item Code)'}
+                    </span>
+                    <span className="text-[10px] text-blue-400 font-normal">تسلسلي تلقائي</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={formData.activityType === 'oil' ? 'PRT-1001 / OEM Code' : 'ITM-1001'}
+                    value={formData.activityType === 'oil' ? (formData.partNumber || formData.itemCode) : formData.itemCode}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (formData.activityType === 'oil') {
+                        setFormData({ ...formData, partNumber: val, itemCode: val });
+                      } else {
+                        setFormData({ ...formData, itemCode: val });
+                      }
+                    }}
+                    className="w-full p-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-blue-300 font-bold placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono dir-ltr text-right"
                   />
                 </div>
 
@@ -1204,6 +1326,105 @@ export const ProductsTab: React.FC = () => {
                         placeholder="4"
                         value={formData.litersPerUnit}
                         onChange={(e) => setFormData({ ...formData, litersPerUnit: e.target.value })}
+                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tires Section (قسم الإطارات والكفرات) */}
+              {formData.activityType === 'tire' && (
+                <div className="bg-sky-950/30 p-3.5 rounded-xl border border-sky-800/40 space-y-3">
+                  <div className="flex items-center gap-2 font-bold text-sky-400 text-xs border-b border-sky-900/60 pb-1.5">
+                    <span className="text-base">🛞</span>
+                    <span>مواصفات إطارات السيارات والكفرات والضمان (Tires Spec & Warranty)</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className="block text-slate-300 text-[11px] mb-1">مقاس الإطار (Tire Size) <span className="text-sky-400">*</span></label>
+                      <input
+                        type="text"
+                        placeholder="مثال: 205/55 R16 أو 265/65 R17"
+                        value={formData.tireSize}
+                        onChange={(e) => setFormData({ ...formData, tireSize: e.target.value })}
+                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-bold font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-300 text-[11px] mb-1">تاريخ الصنع DOT (الأسبوع والسنة)</label>
+                      <input
+                        type="text"
+                        placeholder="مثال: الأسبوع 40 - 2025"
+                        value={formData.tireProductionDot}
+                        onChange={(e) => setFormData({ ...formData, tireProductionDot: e.target.value })}
+                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-300 text-[11px] mb-1">بلد المنشأ ونقشة الغاط (Ply / Origin)</label>
+                      <input
+                        type="text"
+                        placeholder="مثال: ياباني - 8 غاط"
+                        value={formData.tirePlyOrigin}
+                        onChange={(e) => setFormData({ ...formData, tirePlyOrigin: e.target.value })}
+                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                    <div>
+                      <label className="block text-slate-300 text-[11px] mb-1">مدة الضمان بالأشهر (ضد عيوب التصنيع)</label>
+                      <input
+                        type="number"
+                        placeholder="12"
+                        value={formData.warrantyMonths}
+                        onChange={(e) => setFormData({ ...formData, warrantyMonths: e.target.value })}
+                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Fuel Station Section */}
+              {formData.activityType === 'fuel' && (
+                <div className="bg-amber-950/30 p-3.5 rounded-xl border border-amber-800/40 space-y-3">
+                  <div className="flex items-center gap-2 font-bold text-amber-400 text-xs border-b border-amber-900/60 pb-1.5">
+                    <span className="text-base">⛽</span>
+                    <span>بيانات محطة الوقود والغاز وربط الخزان (Fuel Station Spec)</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className="block text-slate-300 text-[11px] mb-1">نوع الوقود / المشتق</label>
+                      <select
+                        value={formData.fuelType}
+                        onChange={(e) => setFormData({ ...formData, fuelType: e.target.value as any })}
+                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-bold"
+                      >
+                        <option value="petrol_91">بترول عادي 91</option>
+                        <option value="petrol_95">بترول ممتاز 95</option>
+                        <option value="diesel">ديزل شاحنات ومعدات</option>
+                        <option value="gas">غاز منزلي وتجاري</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-slate-300 text-[11px] mb-1">معرف الخزان الأرضي (Tank ID)</label>
+                      <input
+                        type="text"
+                        placeholder="TANK-01"
+                        value={formData.tankId}
+                        onChange={(e) => setFormData({ ...formData, tankId: e.target.value })}
+                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-300 text-[11px] mb-1">معرف طرمبة التعبئة (Meter ID)</label>
+                      <input
+                        type="text"
+                        placeholder="PUMP-01-MTR"
+                        value={formData.meterId}
+                        onChange={(e) => setFormData({ ...formData, meterId: e.target.value })}
                         className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-mono"
                       />
                     </div>

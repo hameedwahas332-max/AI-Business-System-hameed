@@ -1,13 +1,22 @@
 export function toEnglishDigits(val: string | number | null | undefined): string {
   if (val === null || val === undefined) return '';
-  const str = String(val);
-  return str.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 1632));
+  let str = String(val);
+  // Arabic-Indic digits ٠-٩ (U+0660 to U+0669)
+  str = str.replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 1632));
+  // Eastern Arabic-Indic / Persian digits ۰-۹ (U+06F0 to U+06F9)
+  str = str.replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 1776));
+  // Arabic decimal separator ٫ (U+066B) or Arabic comma ، (U+060C)
+  str = str.replace(/[\u066B\u060C]/g, '.');
+  return str;
 }
 
 export function parseEnglishNumber(val: string | number | null | undefined, fallback: number = 0): number {
   if (val === null || val === undefined || val === '') return fallback;
   if (typeof val === 'number') return isNaN(val) ? fallback : val;
-  const cleaned = toEnglishDigits(val).replace(/,/g, '').trim();
+  const cleaned = toEnglishDigits(val)
+    .replace(/,/g, '') // remove thousands separators
+    .replace(/[^0-9.-]/g, '') // remove non-numeric
+    .trim();
   const num = parseFloat(cleaned);
   return isNaN(num) ? fallback : num;
 }

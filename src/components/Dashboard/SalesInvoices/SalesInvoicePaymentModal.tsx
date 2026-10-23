@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../../../api';
-import { formatAmount } from '../../../lib/formatters';
+import { formatAmount, parseEnglishNumber, toEnglishDigits } from '../../../lib/formatters';
 import { X, DollarSign, AlertCircle, Loader2 } from 'lucide-react';
 
 interface SalesInvoicePaymentModalProps {
@@ -123,12 +123,12 @@ export const SalesInvoicePaymentModal: React.FC<SalesInvoicePaymentModalProps> =
             <label className="block text-xs font-medium text-slate-400 mb-1">المبلغ المراد تحصيله الآن</label>
             <div className="relative">
               <input
-                type="number"
-                step="any"
-                min="0.01"
-                max={remaining > 0 ? remaining * 2 : 100000000}
+                type="text"
+                inputMode="decimal"
+                dir="ltr"
+                lang="en"
                 value={amount}
-                onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
+                onChange={(e) => setAmount(parseEnglishNumber(e.target.value, 0))}
                 className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-base font-bold text-emerald-400 focus:outline-none focus:border-emerald-500 font-mono"
                 required
               />

@@ -63,12 +63,21 @@ interface InvoiceLineItem {
   majorUnitFactor?: number;
   majorUnitPrice?: number;
 
+  // Dynamic Code & OEM
+  itemCode?: string;
+  partNumber?: string;
+
   // Battery Spec & Warranty & Scrap
   activityType?: ProductActivityType;
   serialNumber?: string;
   warrantyMonths?: number;
   warrantyEndDate?: string;
   scrapDiscount?: number;
+
+  // Tires Spec (قسم الإطارات)
+  tireSize?: string;
+  tireProductionDot?: string;
+  tirePlyOrigin?: string;
 }
 
 interface SalesInvoiceCreateViewProps {
@@ -379,10 +388,15 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
         current_stock: parseFloat(prod.current_stock || '0'),
         is_manual: false,
         activityType: prod.activityType,
+        itemCode: prod.itemCode || prod.sku,
+        partNumber: prod.partNumber,
         serialNumber: isBattery ? '' : undefined,
-        warrantyMonths: isBattery ? warrantyMonths : undefined,
-        warrantyEndDate: isBattery ? calculateWarrantyEndDate(warrantyMonths) : undefined,
+        warrantyMonths: isBattery || prod.activityType === 'tire' ? (prod.warrantyMonths || 12) : undefined,
+        warrantyEndDate: isBattery || prod.activityType === 'tire' ? calculateWarrantyEndDate(Number(prod.warrantyMonths || 12)) : undefined,
         scrapDiscount: 0,
+        tireSize: prod.tireSize,
+        tireProductionDot: prod.tireProductionDot,
+        tirePlyOrigin: prod.tirePlyOrigin,
       });
     }
   };
@@ -400,6 +414,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
     } else {
       const price = getProductPriceForTier(prod, selectedPriceTier);
       const isBattery = prod.activityType === 'battery';
+      const isTire = prod.activityType === 'tire';
       const warrantyMonths = Number(prod.warrantyMonths || 12);
       const isFirstRowEmpty = items.length === 1 && !items[0].product_id && !items[0].name && items[0].unit_price === 0;
 
@@ -408,6 +423,8 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
         product_id: prod.id,
         name: prod.name,
         sku: prod.sku || '',
+        itemCode: prod.itemCode || prod.sku,
+        partNumber: prod.partNumber,
         unit: prod.baseUnitName || prod.unit || 'حبة',
         baseUnitName: prod.baseUnitName || prod.unit || 'حبة',
         subUnitName: prod.subUnitName,
@@ -428,9 +445,12 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
         is_manual: false,
         activityType: prod.activityType,
         serialNumber: isBattery ? '' : undefined,
-        warrantyMonths: isBattery ? warrantyMonths : undefined,
-        warrantyEndDate: isBattery ? calculateWarrantyEndDate(warrantyMonths) : undefined,
+        warrantyMonths: isBattery || isTire ? warrantyMonths : undefined,
+        warrantyEndDate: isBattery || isTire ? calculateWarrantyEndDate(warrantyMonths) : undefined,
         scrapDiscount: 0,
+        tireSize: prod.tireSize,
+        tireProductionDot: prod.tireProductionDot,
+        tirePlyOrigin: prod.tirePlyOrigin,
       };
 
       if (isFirstRowEmpty) {
@@ -1046,6 +1066,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
             <thead className="bg-slate-950/70 border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase">
               <tr>
                 <th className="py-3 px-3 w-10 text-center">#</th>
+                <th className="py-3 px-2 w-28 text-center">رقم الصنف/القطعة</th>
                 <th className="py-3 px-3 min-w-[200px]">المنتج من المخزن / الصنف</th>
                 <th className="py-3 px-3 min-w-[130px]">الوصف اليدوي</th>
                 <th className="py-3 px-3 w-28 text-center">الوحدة</th>
@@ -1071,6 +1092,13 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                         {idx + 1}
                       </td>
 
+                      {/* Item Code / Part Number */}
+                      <td className="py-2.5 px-2 text-center">
+                        <span className="font-mono text-xs font-bold text-blue-400 bg-slate-950/70 px-2 py-1 rounded-md border border-slate-800 inline-block">
+                          {it.itemCode || it.partNumber || it.sku || '-'}
+                        </span>
+                      </td>
+
                       {/* Catalog Product Dropdown */}
                       <td className="py-2.5 px-3">
                         <select
@@ -1081,7 +1109,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                           <option value="">-- أو صنف يدوي غير مسجل --</option>
                           {productList.map((p) => (
                             <option key={p.id} value={p.id}>
-                              {p.name} {p.sku ? `[${p.sku}]` : ''} ({formatNumber(p.current_stock ?? 0)} {p.unit || 'حبة'})
+                              {p.name} {p.itemCode ? `[${p.itemCode}]` : p.sku ? `[${p.sku}]` : ''} ({formatNumber(p.current_stock ?? 0)} {p.unit || 'حبة'})
                             </option>
                           ))}
                         </select>
@@ -1161,36 +1189,39 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                         </div>
                       </td>
 
-                      {/* Quantity */}
+                      {/* Quantity (Resilient English Input) */}
                       <td className="py-2.5 px-3 text-center">
                         <input
-                          type="number"
-                          step="any"
-                          min="0.01"
+                          type="text"
+                          inputMode="decimal"
+                          dir="ltr"
+                          lang="en"
                           value={it.quantity}
                           onChange={(e) => updateItem(idx, { quantity: parseEnglishNumber(e.target.value, 0) })}
                           className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-blue-500 font-mono font-bold"
                         />
                       </td>
 
-                      {/* Unit Price */}
+                      {/* Unit Price (Resilient English Input) */}
                       <td className="py-2.5 px-3">
                         <input
-                          type="number"
-                          step="any"
-                          min="0"
+                          type="text"
+                          inputMode="decimal"
+                          dir="ltr"
+                          lang="en"
                           value={it.unit_price}
                           onChange={(e) => updateItem(idx, { unit_price: parseEnglishNumber(e.target.value, 0) })}
                           className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-left text-white focus:outline-none focus:border-blue-500 font-mono"
                         />
                       </td>
 
-                      {/* Discount */}
+                      {/* Discount (Resilient English Input) */}
                       <td className="py-2.5 px-3">
                         <input
-                          type="number"
-                          step="any"
-                          min="0"
+                          type="text"
+                          inputMode="decimal"
+                          dir="ltr"
+                          lang="en"
                           value={it.discount}
                           onChange={(e) => updateItem(idx, { discount: parseEnglishNumber(e.target.value, 0) })}
                           className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-left text-rose-400 focus:outline-none focus:border-blue-500 font-mono"
@@ -1241,7 +1272,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                     {/* Battery Spec & Inline Warranty & Scrap Discount Row */}
                     {it.activityType === 'battery' && (
                       <tr className="bg-amber-950/20 border-b border-amber-900/40">
-                        <td colSpan={10} className="px-4 py-2.5">
+                        <td colSpan={11} className="px-4 py-2.5">
                           <div className="flex items-center gap-4 flex-wrap text-xs">
                             <span className="font-bold text-amber-400 flex items-center gap-1.5 shrink-0">
                               <Zap className="w-4 h-4 text-amber-400" />
@@ -1270,15 +1301,64 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                             <div className="flex items-center gap-1.5">
                               <span className="text-[11px] text-slate-400">خصم استبدال رجيع قديم:</span>
                               <input
-                                type="number"
-                                min="0"
-                                step="any"
+                                type="text"
+                                inputMode="decimal"
+                                dir="ltr"
+                                lang="en"
                                 placeholder="0.00"
                                 value={it.scrapDiscount || ''}
                                 onChange={(e) => updateItem(idx, { scrapDiscount: parseEnglishNumber(e.target.value, 0) })}
                                 className="w-24 bg-slate-900 border border-emerald-500/40 rounded-lg px-2 py-1 text-xs text-emerald-400 font-mono font-bold focus:outline-none"
                               />
                               <span className="text-[10px] text-emerald-400">{currency}</span>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+
+                    {/* Tires Spec (قسم الإطارات والكفرات) */}
+                    {it.activityType === 'tire' && (
+                      <tr className="bg-sky-950/20 border-b border-sky-900/40">
+                        <td colSpan={11} className="px-4 py-2.5">
+                          <div className="flex items-center gap-4 flex-wrap text-xs">
+                            <span className="font-bold text-sky-400 flex items-center gap-1.5 shrink-0">
+                              <span className="text-sm">🛞</span>
+                              مواصفات وضمان الإطار:
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[11px] text-slate-400">المقاس:</span>
+                              <input
+                                type="text"
+                                placeholder="مثال: 205/55 R16"
+                                value={it.tireSize || ''}
+                                onChange={(e) => updateItem(idx, { tireSize: e.target.value })}
+                                className="bg-slate-900 border border-sky-500/40 rounded-lg px-2.5 py-1 text-xs text-white font-mono focus:outline-none focus:border-sky-400"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[11px] text-slate-400">سنة والصنع (DOT):</span>
+                              <input
+                                type="text"
+                                placeholder="مثال: 4025 (أسبوع 40 - 2025)"
+                                value={it.tireProductionDot || ''}
+                                onChange={(e) => updateItem(idx, { tireProductionDot: e.target.value })}
+                                className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-sky-200 font-mono focus:outline-none"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[11px] text-slate-400">المنشأ / الغاط:</span>
+                              <input
+                                type="text"
+                                placeholder="ياباني - 8PR"
+                                value={it.tirePlyOrigin || ''}
+                                onChange={(e) => updateItem(idx, { tirePlyOrigin: e.target.value })}
+                                className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-300 focus:outline-none"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[11px] text-slate-400">الضمان:</span>
+                              <span className="text-sky-300 font-mono font-bold">{it.warrantyMonths || 12} شهر</span>
                             </div>
                           </div>
                         </td>
@@ -1513,13 +1593,13 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">
-                المسدد فورا عند الإصدار ({currency})
+                المبلغ المسلم / المسدد فورا ({currency})
               </label>
               <input
-                type="number"
-                step="any"
-                min="0"
-                max={grandTotal}
+                type="text"
+                inputMode="decimal"
+                dir="ltr"
+                lang="en"
                 value={paidAmount}
                 onChange={(e) => setPaidAmount(parseEnglishNumber(e.target.value, 0))}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-emerald-400 font-bold font-mono focus:outline-none focus:border-emerald-500"
@@ -1584,7 +1664,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
             )}
 
             <div className="flex justify-between text-xs text-emerald-400 pt-1">
-              <span>المسدد ({paymentMethod === 'CASH' ? 'نقداً' : paymentMethod === 'BANK' ? 'بنكي' : paymentMethod === 'WALLET' ? 'محفظة' : 'آجل'}):</span>
+              <span>المسلم / المسدد ({paymentMethod === 'CASH' ? 'نقداً' : paymentMethod === 'BANK' ? 'بنكي' : paymentMethod === 'WALLET' ? 'محفظة' : 'آجل'}):</span>
               <span className="font-mono font-bold">{formatAmount(paidAmount, currency)}</span>
             </div>
 
@@ -1592,6 +1672,13 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
               <span>الرصيد المتبقي على العميل (الذمة):</span>
               <span className="font-mono text-base">{formatAmount(remainingDue, currency)}</span>
             </div>
+
+            {paidAmount > grandTotal && (
+              <div className="flex justify-between text-sm font-bold text-cyan-400 pt-1 bg-cyan-950/40 p-2 rounded-xl border border-cyan-800/40">
+                <span>المتبقي للعميل (الباقي / الفكة):</span>
+                <span className="font-mono text-base">{formatAmount(paidAmount - grandTotal, currency)}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

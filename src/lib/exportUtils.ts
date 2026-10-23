@@ -474,11 +474,16 @@ export function printInvoiceDocument(inv?: any): void {
             </div>
             <div style="display: flex; justify-content: space-between; color: #475569; font-size: 9px; margin-top: 1px;">
               <span>${q} ${escapeHtml(u)} × ${p.toLocaleString()} ${currency}</span>
-              ${it.sku ? `<span class="font-mono">[${escapeHtml(it.sku)}]</span>` : ''}
+              ${(it.itemCode || it.partNumber || it.sku) ? `<span class="font-mono">[${escapeHtml(it.itemCode || it.partNumber || it.sku)}]</span>` : ''}
             </div>
             ${it.serialNumber ? `
               <div style="color: #b45309; font-size: 8.5px; font-family: monospace; margin-top: 2px;">
                 ⚡ سيريال: ${escapeHtml(it.serialNumber)} ${it.warrantyEndDate ? `(ضمان حتى: ${escapeHtml(it.warrantyEndDate)})` : ''}
+              </div>
+            ` : ''}
+            ${(it.activityType === 'tire' || it.tireSize) ? `
+              <div style="color: #0369a1; font-size: 8.5px; font-family: monospace; margin-top: 2px;">
+                🛞 مقاس: ${escapeHtml(it.tireSize || '-')} ${it.tireProductionDot ? `[DOT: ${escapeHtml(it.tireProductionDot)}]` : ''} ${it.warrantyMonths ? `(ضمان ${escapeHtml(it.warrantyMonths)} شهر)` : ''}
               </div>
             ` : ''}
             ${Number(it.scrapDiscount) > 0 ? `
@@ -585,13 +590,16 @@ export function printInvoiceDocument(inv?: any): void {
       if (it.serialNumber) {
         nameDesc += `<br><span style="color: #b45309; font-size: 10px; font-family: monospace;">⚡ سيريال: ${escapeHtml(it.serialNumber)} (ضمان حتى: ${escapeHtml(it.warrantyEndDate || '-')})</span>`;
       }
+      if (it.activityType === 'tire' || it.tireSize) {
+        nameDesc += `<br><span style="color: #0284c7; font-size: 10px; font-family: monospace;">🛞 مقاس: ${escapeHtml(it.tireSize || '-')} | DOT: ${escapeHtml(it.tireProductionDot || '-')} | المنشأ: ${escapeHtml(it.tirePlyOrigin || '-')} | ضمان ${escapeHtml(it.warrantyMonths || 12)} شهر</span>`;
+      }
       if (Number(it.scrapDiscount) > 0) {
         nameDesc += `<br><span style="color: #15803d; font-size: 10px; font-weight: bold;">♻️ خصم استبدال رجيع: -${Number(it.scrapDiscount).toLocaleString()} ${currency}</span>`;
       }
       return `<tr>
         <td class="text-center font-mono">${idx + 1}</td>
         <td class="font-bold">${nameDesc}</td>
-        <td class="text-center font-mono">${escapeHtml(it.sku || it.product_sku || '-')}</td>
+        <td class="text-center font-mono font-bold" style="color: #1d4ed8;">${escapeHtml(it.itemCode || it.partNumber || it.sku || it.product_sku || '-')}</td>
         <td class="text-center font-mono font-bold">${q}</td>
         <td class="text-left font-mono">${p.toLocaleString()} ${currency}</td>
         <td class="text-left font-mono font-bold">${t.toLocaleString()} ${currency}</td>

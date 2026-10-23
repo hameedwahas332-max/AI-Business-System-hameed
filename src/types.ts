@@ -71,7 +71,7 @@ export interface Supplier {
   created_at?: string;
 }
 
-export type ProductActivityType = 'food' | 'battery' | 'oil' | 'general';
+export type ProductActivityType = 'food' | 'battery' | 'tire' | 'oil' | 'fuel' | 'general';
 export type PriceTier = 'retail' | 'half_wholesale' | 'wholesale' | 'vip';
 
 export interface Product {
@@ -86,6 +86,10 @@ export interface Product {
   qty: number;
   min_qty?: number;
   status?: string;
+
+  // Dynamic Item Code & Spare Part Number
+  itemCode?: string; // رقم الصنف / المنتج
+  partNumber?: string; // رقم القطعة (OEM)
 
   // Multi-UOM & Tiered Pricing
   baseUnitName?: string; // e.g. حبة
@@ -115,11 +119,86 @@ export interface Product {
   scrapDiscountValue?: number; // e.g. 5000 YER / 50 SAR
   requiresSerial?: boolean;
 
+  // Tires Spec (قسم الإطارات والكفرات)
+  tireSize?: string; // مقاس الإطار e.g. 205/55 R16, 265/65 R17
+  tireProductionDot?: string; // أسبوع وسنة صنع الإطار DOT e.g. الأسبوع 40 - 2025
+  tirePlyOrigin?: string; // بلد المنشأ والغاط والنقشة e.g. ياباني - 8 غاط
+
   // Oil / Auto Parts Spec
   viscosityGrade?: string; // e.g. 20W-50, 10W-40, 5W-30
   oemCode?: string;
   litersPerUnit?: number;
 
+  // Fuel & Gas Station Spec (محطة الوقود والغاز)
+  fuelType?: 'petrol_91' | 'petrol_95' | 'diesel' | 'gas';
+  tankId?: string;
+  meterId?: string;
+  density?: number;
+
+  created_at?: string;
+}
+
+export interface FuelTank {
+  id: string;
+  tankNumber: string;
+  name: string;
+  fuelType: 'petrol_91' | 'petrol_95' | 'diesel' | 'gas';
+  capacityLiters: number;
+  currentStockLiters: number;
+  safeThresholdLiters: number;
+  density?: number;
+  lastDipReadingLiters?: number;
+  lastDipDate?: string;
+}
+
+export interface FuelPumpMeter {
+  id: string;
+  tankId: string;
+  pumpNumber: string;
+  pumpName: string;
+  meterCode: string;
+  fuelType: 'petrol_91' | 'petrol_95' | 'diesel' | 'gas';
+  pricePerLiter: number;
+  previousReading: number;
+  currentReading: number;
+  calibrationLiters: number;
+  notes?: string;
+}
+
+export interface FuelShiftRecord {
+  id: string;
+  shiftNumber: string;
+  shiftDate: string;
+  shiftType: 'MORNING' | 'EVENING' | 'NIGHT';
+  attendantName: string;
+  meterReadings: Array<{
+    pumpId: string;
+    pumpName: string;
+    meterCode: string;
+    fuelType: string;
+    previousReading: number;
+    currentReading: number;
+    calibrationLiters: number;
+    dispensedLiters: number;
+    pricePerLiter: number;
+    totalAmount: number;
+  }>;
+  totalLitersDispensed: number;
+  totalExpectedSales: number;
+  actualCashReceived: number;
+  varianceAmount: number; // positive = surplus, negative = shortage
+  tankDipReadings?: Array<{
+    tankId: string;
+    tankName: string;
+    openingLiters: number;
+    deliveredLiters: number;
+    dispensedLiters: number;
+    theoreticalRemaining: number;
+    actualDipLiters: number;
+    tankVarianceLiters: number;
+  }>;
+  notes?: string;
+  status: 'DRAFT' | 'CONFIRMED' | 'POSTED_TO_LEDGER';
   created_at?: string;
 }
 

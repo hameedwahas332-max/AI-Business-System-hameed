@@ -29,6 +29,7 @@ import {
   ChevronDown,
   PanelRightClose,
   PanelRight,
+  Fuel,
 } from 'lucide-react';
 import { AppIcon } from './Common/AppIcon';
 import { useModuleSettings } from '../context/ModuleSettingsContext';
@@ -54,6 +55,7 @@ export type TabType =
   | 'payments'
   | 'ledger'
   | 'inventory'
+  | 'fuel_station'
   | 'users'
   | 'roles'
   | 'control_center'
@@ -144,6 +146,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
         { id: 'suppliers', label: 'الموردين والدائنون', icon: Truck },
         { id: 'products', label: 'الأصناف والأسعار', icon: Package },
         { id: 'inventory', label: 'حركة المخزون', icon: Layers },
+        { id: 'fuel_station', label: 'محطة الغاز والوقود (العدادات والخزانات)', icon: Fuel, badge: 'عدادات' },
       ],
     },
     {

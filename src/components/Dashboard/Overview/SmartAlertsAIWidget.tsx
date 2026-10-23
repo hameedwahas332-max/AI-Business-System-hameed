@@ -66,6 +66,16 @@ export const SmartAlertsAIWidget: React.FC<SmartAlertsAIWidgetProps> = ({
       actionLabel: 'استعراض التنبؤ التفاعلي بالسيولة',
       actionTab: 'cashflow_forecast' as TabType,
     },
+    {
+      id: 'ai-sales-reps',
+      tag: 'مناديب التوزيع والعمولات',
+      title: 'تحفيز خطوط التوزيع وسيارات الفان الميدانية',
+      description: `حقق مناديب التوزيع الميداني (سيارات الفان 1-4) مبيعات بقيمة 114,500 ${currency} هذا الشهر مع نسبة تحصيل 87%. صرف العمولات المستحقة يعزز معدل التوزيع بنسبة 18%.`,
+      icon: Sparkles,
+      color: 'from-blue-500/20 to-indigo-500/10 border-blue-500/30 text-blue-400',
+      actionLabel: 'إدارة أداء وعمولات المناديب',
+      actionTab: 'real_business' as TabType,
+    },
   ];
 
   return (

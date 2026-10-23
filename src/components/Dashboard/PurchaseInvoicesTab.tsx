@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../api';
-import { formatAmount, formatSupplierAmount } from '../../lib/formatters';
+import { formatAmount, formatSupplierAmount, parseEnglishNumber, toEnglishDigits } from '../../lib/formatters';
 import { getAccountingRate } from '../../lib/exchangeRates';
 import { ExportActions } from '../Common/ExportActions';
 import { TableExportConfig, printInvoiceDocument } from '../../lib/exportUtils';
@@ -41,6 +41,7 @@ export const PurchaseInvoicesTab: React.FC = () => {
   const [dueDate, setDueDate] = useState('');
   const [status, setStatus] = useState('PENDING'); // DRAFT, PENDING
   const [notes, setNotes] = useState('');
+  const [paidAmount, setPaidAmount] = useState<number>(0);
   const [builderItems, setBuilderItems] = useState<
     Array<{
       product_id: string;
@@ -85,6 +86,7 @@ export const PurchaseInvoicesTab: React.FC = () => {
     setDueDate('');
     setStatus('PENDING');
     setNotes('');
+    setPaidAmount(0);
     setBuilderItems([
       {
         product_id: products[0]?.id || '',
@@ -220,13 +222,17 @@ export const PurchaseInvoicesTab: React.FC = () => {
         throw new Error('يرجى اختيار المورد');
       }
 
+      const remainingToSupplier = Math.max(0, calculatedTotal - Number(paidAmount || 0));
+
       await api.createPurchaseInvoice({
         supplier_id: selectedSupplierId,
         currency: currency || 'YER',
         exchange_rate: parseFloat(exchangeRate || '1.0'),
         invoice_date: invoiceDate,
         due_date: dueDate || undefined,
-        status,
+        status: status === 'PENDING' && Number(paidAmount) >= calculatedTotal ? 'PAID' : status === 'PENDING' && Number(paidAmount) > 0 ? 'PARTIALLY_PAID' : status,
+        paid_amount: Number(paidAmount || 0),
+        remaining_amount: remainingToSupplier,
         notes,
         items: builderItems,
       });
@@ -548,7 +554,7 @@ export const PurchaseInvoicesTab: React.FC = () => {
                       className="grid grid-cols-12 gap-2 items-center p-2.5 bg-slate-950 border border-slate-800 rounded-xl"
                     >
                       <div className="col-span-4">
-                        <label className="block text-[10px] text-slate-400 mb-0.5">الصنف</label>
+                        <label className="block text-[10px] text-slate-400 mb-0.5">الصنف / رقم القطعة</label>
                         <select
                           value={item.product_id}
                           onChange={(e) => handleProductChange(index, e.target.value)}
@@ -557,7 +563,7 @@ export const PurchaseInvoicesTab: React.FC = () => {
                           <option value="">-- اختر صنف --</option>
                           {products.map((p) => (
                             <option key={p.id} value={p.id}>
-                              {p.name} (المخزون الحالي: {p.current_stock})
+                              {p.name} {p.itemCode ? `[${p.itemCode}]` : p.partNumber ? `[${p.partNumber}]` : p.sku ? `[${p.sku}]` : ''} (المخزون: {p.current_stock})
                             </option>
                           ))}
                         </select>
@@ -566,31 +572,34 @@ export const PurchaseInvoicesTab: React.FC = () => {
                       <div className="col-span-2">
                         <label className="block text-[10px] text-slate-400 mb-0.5">الكمية الموردة</label>
                         <input
-                          type="number"
-                          step="0.01"
-                          min="0.01"
+                          type="text"
+                          inputMode="decimal"
+                          dir="ltr"
+                          lang="en"
                           value={item.quantity}
                           onChange={(e) => {
                             const updated = [...builderItems];
-                            updated[index].quantity = parseFloat(e.target.value || '0');
+                            updated[index].quantity = parseEnglishNumber(e.target.value, 0);
                             setBuilderItems(updated);
                           }}
-                          className="w-full p-1.5 bg-slate-900 border border-slate-700 rounded-lg font-mono text-xs text-slate-100 focus:border-emerald-500"
+                          className="w-full p-1.5 bg-slate-900 border border-slate-700 rounded-lg font-mono text-xs text-slate-100 focus:border-emerald-500 text-center"
                         />
                       </div>
 
                       <div className="col-span-2">
                         <label className="block text-[10px] text-slate-400 mb-0.5">تكلفة الشراء للوحدة</label>
                         <input
-                          type="number"
-                          step="0.01"
+                          type="text"
+                          inputMode="decimal"
+                          dir="ltr"
+                          lang="en"
                           value={item.unit_cost}
                           onChange={(e) => {
                             const updated = [...builderItems];
-                            updated[index].unit_cost = parseFloat(e.target.value || '0');
+                            updated[index].unit_cost = parseEnglishNumber(e.target.value, 0);
                             setBuilderItems(updated);
                           }}
-                          className="w-full p-1.5 bg-slate-900 border border-slate-700 rounded-lg font-mono text-xs text-slate-100 focus:border-emerald-500"
+                          className="w-full p-1.5 bg-slate-900 border border-slate-700 rounded-lg font-mono text-xs text-slate-100 focus:border-emerald-500 text-center"
                         />
                       </div>
 
@@ -609,6 +618,33 @@ export const PurchaseInvoicesTab: React.FC = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* Payment to Supplier & Balances */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1 text-xs">
+                    المبلغ المسدد للمورد فورا ({currency})
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    dir="ltr"
+                    lang="en"
+                    value={paidAmount}
+                    onChange={(e) => setPaidAmount(parseEnglishNumber(e.target.value, 0))}
+                    placeholder="0.00"
+                    className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-emerald-400 font-bold font-mono focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1 text-xs">
+                    المتبقي للمورد (دين آجل على المنشأة)
+                  </label>
+                  <div className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl font-bold font-mono text-amber-400 text-sm">
+                    {formatAmount(Math.max(0, calculatedTotal - paidAmount))} {currency}
+                  </div>
                 </div>
               </div>
 

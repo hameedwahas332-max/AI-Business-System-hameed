@@ -549,7 +549,7 @@ export const SalesInvoiceDetailView: React.FC<SalesInvoiceDetailViewProps> = ({
                 <tr>
                   <th className="py-3.5 px-4">#</th>
                   <th className="py-3.5 px-4">الصنف / الوصف</th>
-                  <th className="py-3.5 px-4">الرمز / SKU</th>
+                  <th className="py-3.5 px-4 text-center">رقم الصنف / القطعة</th>
                   <th className="py-3.5 px-4 text-center">الوحدة</th>
                   <th className="py-3.5 px-4 text-center">الكمية</th>
                   <th className="py-3.5 px-4 text-left">سعر الوحدة</th>
@@ -571,14 +571,26 @@ export const SalesInvoiceDetailView: React.FC<SalesInvoiceDetailViewProps> = ({
                     <tr key={it.id || idx} className="hover:bg-slate-800/30 transition-colors">
                       <td className="py-3 px-4 text-slate-500 text-xs font-mono">{idx + 1}</td>
                       <td className="py-3 px-4 font-medium text-slate-100">
-                        {it.product_name || it.name || it.description || 'صنف مبيعات'}
+                        <div>{it.product_name || it.name || it.description || 'صنف مبيعات'}</div>
+                        {(it.activityType === 'tire' || it.tireSize) && (
+                          <div className="text-[10px] text-sky-400 font-mono mt-0.5">
+                            🛞 مقاس: {it.tireSize || '-'} {it.tireProductionDot ? `[DOT: ${it.tireProductionDot}]` : ''} {it.warrantyMonths ? `(ضمان ${it.warrantyMonths} شهر)` : ''}
+                          </div>
+                        )}
+                        {it.serialNumber && (
+                          <div className="text-[10px] text-amber-400 font-mono mt-0.5">
+                            ⚡ سيريال: {it.serialNumber} {it.warrantyEndDate ? `(ضمان حتى ${it.warrantyEndDate})` : ''}
+                          </div>
+                        )}
                         {!it.product_id && (
                           <span className="mr-2 text-[10px] px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded">
                             صنف يدوي
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-slate-400 text-xs font-mono">{it.product_sku || '-'}</td>
+                      <td className="py-3 px-4 text-center text-blue-400 font-bold text-xs font-mono">
+                        {it.itemCode || it.partNumber || it.product_sku || it.sku || '-'}
+                      </td>
                       <td className="py-3 px-4 text-center text-xs text-slate-300 font-medium">{unitStr}</td>
                       <td className="py-3 px-4 text-center font-mono font-medium text-white">{qty}</td>
                       <td className="py-3 px-4 text-left font-mono text-slate-300">

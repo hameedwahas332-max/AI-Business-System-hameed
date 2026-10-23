@@ -407,6 +407,30 @@ export const InventoryTab: React.FC = () => {
         invoiceNumber: 'INV-2026-0040',
         scrapDiscountValue: 40,
       },
+      {
+        serialNumber: 'DOT-TIRE-205-55-R16',
+        productName: 'إطار يوكوهاما ياباني 205/55 R16',
+        batterySpec: 'مقاس: 205/55 R16 | DOT: الأسبوع 40 - 2025 | ياباني 8 غاط',
+        warrantyMonths: 12,
+        purchaseDate: '2026-02-10',
+        warrantyEndDate: '2027-02-10',
+        customerName: 'مؤسسة السلام للمقاولات',
+        customerPhone: '967770001122',
+        invoiceNumber: 'INV-2026-0095',
+        scrapDiscountValue: 0,
+      },
+      {
+        serialNumber: 'DOT-TIRE-265-65-R17',
+        productName: 'إطار بريدجستون هانكوك 265/65 R17',
+        batterySpec: 'مقاس: 265/65 R17 | DOT: الأسبوع 12 - 2026 | كوري أصلي',
+        warrantyMonths: 18,
+        purchaseDate: '2026-03-01',
+        warrantyEndDate: '2027-09-01',
+        customerName: 'مجموعة المجد للنقل السريع',
+        customerPhone: '967733998877',
+        invoiceNumber: 'INV-2026-0112',
+        scrapDiscountValue: 0,
+      },
     ];
 
     const found = sampleWarrantyDb.find(
@@ -810,9 +834,9 @@ export const InventoryTab: React.FC = () => {
           }`}
         >
           <ShieldCheck className="w-4 h-4" />
-          <span>رادار الصلاحية وفاحص ضمان البطاريات</span>
+          <span>رادار الصلاحية وفاحص ضمان البطاريات والإطارات</span>
           <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-950/60 text-amber-300 border border-amber-800/40">
-            FEFO + السيريال
+            FEFO + كود DOT
           </span>
         </button>
 
@@ -1320,8 +1344,8 @@ export const InventoryTab: React.FC = () => {
                   <ShieldCheck className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-sm">فاحص ضمان وسيريال البطاريات الفوري</h3>
-                  <p className="text-[11px] text-slate-400">التحقق بالرقم التسلسلي (Serial No) أو رقم الفاتورة أو الهاتف</p>
+                  <h3 className="font-bold text-white text-sm">فاحص ضمان وسيريال البطاريات والإطارات الفوري</h3>
+                  <p className="text-[11px] text-slate-400">التحقق بالرقم التسلسلي للبطارية (Serial No) أو كود DOT للإطار أو رقم الفاتورة</p>
                 </div>
               </div>
             </div>
@@ -1333,7 +1357,7 @@ export const InventoryTab: React.FC = () => {
                   <QrCode className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    placeholder="اكتب السيريال أو رقم الفاتورة... (مثال: SN-BAT-70-2026)"
+                    placeholder="اكتب السيريال أو كود DOT أو رقم الفاتورة... (مثال: DOT-TIRE-205-55-R16)"
                     value={warrantySearch}
                     onChange={(e) => setWarrantySearch(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleWarrantySearch()}
@@ -1352,7 +1376,7 @@ export const InventoryTab: React.FC = () => {
               {/* Sample Quick Test Buttons */}
               <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
                 <span className="text-slate-400">نماذج سريعة:</span>
-                {['SN-BAT-70-2026', 'SN-BAT-100-2025', 'INV-2026-0042'].map((sn) => (
+                {['SN-BAT-70-2026', 'DOT-TIRE-205-55-R16', 'DOT-TIRE-265-65-R17', 'INV-2026-0042'].map((sn) => (
                   <button
                     key={sn}
                     type="button"

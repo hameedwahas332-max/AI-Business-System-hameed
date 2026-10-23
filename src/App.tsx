@@ -24,6 +24,7 @@ import { PurchaseInvoicesTab } from './components/Dashboard/PurchaseInvoicesTab'
 import { PaymentsTab } from './components/Dashboard/PaymentsTab';
 import { LedgerTab } from './components/Dashboard/LedgerTab';
 import { InventoryTab } from './components/Dashboard/InventoryTab';
+import { FuelStationTab } from './components/Dashboard/FuelStationTab';
 import { UsersTab } from './components/Dashboard/UsersTab';
 import { RolesTab } from './components/Dashboard/RolesTab';
 import { SubscriptionTab } from './components/Dashboard/SubscriptionTab';
@@ -137,6 +138,8 @@ export function App() {
         return <LedgerTab />;
       case 'inventory':
         return <InventoryTab />;
+      case 'fuel_station':
+        return <FuelStationTab />;
       case 'users':
         return <UsersTab />;
       case 'roles':
