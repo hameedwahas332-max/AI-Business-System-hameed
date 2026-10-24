@@ -36,8 +36,21 @@ import {
   Wallet,
   Server,
   Coins,
+  Fuel,
+  ShoppingBag,
+  Store,
+  Boxes,
+  Globe,
+  ToggleLeft,
+  ToggleRight,
 } from 'lucide-react';
 import { DailyExchangeRateModal } from '../Common/DailyExchangeRateModal';
+import {
+  useModuleSettings,
+  PRESET_DEFINITIONS,
+  BusinessPresetKey,
+  ModuleSettings,
+} from '../../context/ModuleSettingsContext';
 
 interface SettingItem {
   definition: {
@@ -495,6 +508,13 @@ const DEFAULT_CHANGE_REQUESTS: ChangeRequest[] = [
 ];
 
 export const EnterpriseControlCenterTab: React.FC = () => {
+  // Sync with Global Module Settings & Business Isolation
+  const {
+    settings: moduleSettings,
+    updateSettings: updateModuleSettings,
+    applyPreset: applyBusinessPreset,
+  } = useModuleSettings();
+
   // Main view level
   const [activeLevel, setActiveLevel] = useState<'SETTINGS' | 'CONTROL_CENTER'>('SETTINGS');
   const [isRatesModalOpen, setIsRatesModalOpen] = useState(false);
@@ -1126,6 +1146,271 @@ export const EnterpriseControlCenterTab: React.FC = () => {
             </div>
           </div>
         )}
+      </div>
+
+      {/* ========================================================================= */}
+      {/* BUSINESS ACTIVITY ISOLATION & MODULE SETTINGS COCKPIT                      */}
+      {/* ========================================================================= */}
+      <div className="bg-slate-900/90 border border-indigo-900/50 rounded-2xl p-5 shadow-2xl backdrop-blur-md space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center shadow-md">
+              <Store className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-bold text-white">
+                  تخصيص النظام حسب نشاط المنشأة التجاري (Business Isolation)
+                </h2>
+                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800 font-bold font-mono">
+                  ACTIVE: {moduleSettings.activePreset}
+                </span>
+              </div>
+              <p className="text-xs text-slate-400">
+                عزل شاشات النظام وإظهار الحقول والتبويبات المتوافقة فقط مع طبيعة عمل التاجر لتسريع العمليات ومنع التشتت
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Currency Selector */}
+          <div className="flex items-center gap-2 bg-slate-950/80 p-1.5 rounded-xl border border-slate-800">
+            <span className="text-xs text-slate-400 font-semibold px-2">العملة الافتراضية:</span>
+            {(['YER', 'SAR', 'USD'] as const).map((curr) => {
+              const isSelected = (localStorage.getItem('erp_default_currency') || 'SAR') === curr;
+              return (
+                <button
+                  key={curr}
+                  type="button"
+                  onClick={() => {
+                    try {
+                      localStorage.setItem('erp_default_currency', curr);
+                      setStatusMessage({
+                        type: 'success',
+                        text: `تم تعيين العملة الافتراضية للنظام إلى ${curr} بنجاح`,
+                      });
+                    } catch {}
+                  }}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer font-mono ${
+                    isSelected
+                      ? 'bg-amber-500 text-slate-950 shadow-md font-black'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  }`}
+                >
+                  {curr}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 6 Business Isolation Modes Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {[
+            {
+              key: 'multi_activity',
+              name: 'الوضع الشامل المتعدد الأنشطة',
+              icon: '🌐',
+              badge: 'شامل كامل',
+              desc: 'يعرض كافة الأقسام: محطة الوقود، البقالة، الإطارات والبطاريات، والزيوت وقطع الغيار دون أي حجب.',
+              color: 'from-blue-600/20 to-indigo-600/10 border-blue-500/40',
+            },
+            {
+              key: 'grocery_only',
+              name: 'وضع البقالة والمواد الغذائية فقط',
+              icon: '🍏',
+              badge: 'أغذية وتموينات',
+              desc: 'يعرض الأصناف، الصلاحية (FEFO)، والوحدات المتعددة، ويخفي البطاريات والإطارات والزيوت ومحطة الوقود.',
+              color: 'from-emerald-600/20 to-teal-600/10 border-emerald-500/40',
+            },
+            {
+              key: 'fuel_station_only',
+              name: 'وضع محطة تعبئة الغاز والبترول فقط',
+              icon: '⛽',
+              badge: 'محروقات وغاز',
+              desc: 'يركز على عدادات الطرمبات، الخزانات الأرضية، وفروقات التبخر والمعايرة ويخفي البقالة والإطارات.',
+              color: 'from-amber-600/20 to-orange-600/10 border-amber-500/40',
+            },
+            {
+              key: 'tires_batteries_only',
+              name: 'وضع الإطارات والبطاريات فقط',
+              icon: '🛞',
+              badge: 'إطارات وبطاريات',
+              desc: 'يركز على مقاس الإطارات، كود DOT، سعة الأمبير، أرقام السيريال، شهادات الضمان، والرجيع.',
+              color: 'from-purple-600/20 to-pink-600/10 border-purple-500/40',
+            },
+            {
+              key: 'autoparts_oils_only',
+              name: 'وضع قطع الغيار والزيوت فقط',
+              icon: '🛢️',
+              badge: 'قطع غيار وزيوت',
+              desc: 'يركز على رقم القطعة المصنعي OEM، درجات لزوجة الزيوت (20W-50)، وسعة اللتر والكراتين.',
+              color: 'from-cyan-600/20 to-blue-600/10 border-cyan-500/40',
+            },
+            {
+              key: 'wholesale_retail_general',
+              name: 'وضع التجارة العامة والجملة والتجزئة',
+              icon: '📦',
+              badge: 'تجارة عامة وجملة',
+              desc: 'كروت أصناف عامة، مستويات التسعير المتعددة (جملة/تجزئة)، الباركود، والبيع بالكرتون.',
+              color: 'from-slate-700/30 to-slate-800/20 border-slate-700/60',
+            },
+          ].map((mode) => {
+            const isActive = moduleSettings.activePreset === mode.key;
+            return (
+              <div
+                key={mode.key}
+                onClick={() => {
+                  applyBusinessPreset(mode.key as BusinessPresetKey);
+                  setStatusMessage({
+                    type: 'success',
+                    text: `تم تفعيل ${mode.name} بنجاح وضبط شاشات المنظومة فورياً!`,
+                  });
+                }}
+                className={`p-3.5 rounded-xl border transition-all cursor-pointer relative flex flex-col justify-between ${
+                  isActive
+                    ? `bg-gradient-to-br ${mode.color} border-indigo-500 shadow-lg shadow-indigo-950/40 ring-1 ring-indigo-500/50`
+                    : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 hover:bg-slate-900/60'
+                }`}
+              >
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xl">{mode.icon}</span>
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                        isActive
+                          ? 'bg-indigo-500 text-white shadow-sm'
+                          : 'bg-slate-800 text-slate-400'
+                      }`}
+                    >
+                      {mode.badge}
+                    </span>
+                  </div>
+                  <h3 className="font-bold text-white text-xs leading-snug">{mode.name}</h3>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">{mode.desc}</p>
+                </div>
+
+                <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                  <span className={isActive ? 'text-indigo-300 font-bold' : 'text-slate-500'}>
+                    {isActive ? '✓ الوضع النشط حالياً' : 'انقر للتحويل إلى هذا الوضع'}
+                  </span>
+                  <div
+                    className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                      isActive
+                        ? 'bg-indigo-500 border-indigo-400 text-slate-950'
+                        : 'border-slate-700'
+                    }`}
+                  >
+                    {isActive && <Check className="w-3 h-3 stroke-[3]" />}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Live Module Capability Toggles Ribbon */}
+        <div className="pt-3 border-t border-slate-800">
+          <div className="text-xs font-bold text-slate-300 mb-2 flex items-center gap-2">
+            <Sliders className="w-3.5 h-3.5 text-indigo-400" />
+            <span>مفاتيح التحكم المباشر في ميزات وتشغيل الأقسام:</span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+            {[
+              {
+                key: 'enableMultiUnits',
+                label: 'تعدد الوحدات والكراتين',
+                val: moduleSettings.enableMultiUnits,
+              },
+              {
+                key: 'enableTieredPricing',
+                label: 'مستويات الأسعار (تجزئة/جملة)',
+                val: moduleSettings.enableTieredPricing,
+              },
+              {
+                key: 'enableExpiryTracking',
+                label: 'صلاحيات الأغذية (FEFO)',
+                val: moduleSettings.enableExpiryTracking,
+              },
+              {
+                key: 'enableSerialAndWarranty',
+                label: 'تتبع السيريال والضمان',
+                val: moduleSettings.enableSerialAndWarranty,
+              },
+              {
+                key: 'enableTiresAndSizes',
+                label: 'مقاسات وكود DOT للإطارات',
+                val: moduleSettings.enableTiresAndSizes,
+              },
+              {
+                key: 'enableOilViscositySpec',
+                label: 'درجات اللزوجة ورقم OEM',
+                val: moduleSettings.enableOilViscositySpec,
+              },
+              {
+                key: 'enableBatteryScrapTradeIn',
+                label: 'خصم استبدال بطاريات (رجيع)',
+                val: moduleSettings.enableBatteryScrapTradeIn,
+              },
+              {
+                key: 'enforceCreditLimit',
+                label: 'إلزام الحد الائتماني للعميل',
+                val: moduleSettings.enforceCreditLimit,
+              },
+              {
+                key: 'allowNegativeStockSale',
+                label: 'السماح بالبيع بالسالب',
+                val: moduleSettings.allowNegativeStockSale,
+              },
+              {
+                key: 'enableTaxVat',
+                label: 'تطبيق ضريبة VAT 15%',
+                val: moduleSettings.enableTaxVat,
+              },
+              {
+                key: 'allowCashierPriceEdit',
+                label: 'تعديل السعر في الكاشير',
+                val: moduleSettings.allowCashierPriceEdit,
+              },
+              {
+                key: 'printWarrantyOnInvoice',
+                label: 'طباعة كشف الضمان بالفاتورة',
+                val: moduleSettings.printWarrantyOnInvoice,
+              },
+            ].map((toggle) => (
+              <button
+                key={toggle.key}
+                type="button"
+                onClick={() => {
+                  updateModuleSettings({ [toggle.key]: !toggle.val });
+                  setStatusMessage({
+                    type: 'info',
+                    text: `تم ${!toggle.val ? 'تفعيل' : 'تعطيل'} خيار "${toggle.label}"`,
+                  });
+                }}
+                className={`p-2.5 rounded-xl border text-right transition-all flex flex-col justify-between cursor-pointer ${
+                  toggle.val
+                    ? 'bg-indigo-950/40 border-indigo-500/50 text-white'
+                    : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                }`}
+              >
+                <span className="text-[11px] font-semibold leading-tight">{toggle.label}</span>
+                <span
+                  className={`text-[10px] font-bold mt-2 font-mono flex items-center gap-1 ${
+                    toggle.val ? 'text-emerald-400' : 'text-slate-500'
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      toggle.val ? 'bg-emerald-400' : 'bg-slate-600'
+                    }`}
+                  />
+                  {toggle.val ? 'مفعّل' : 'معطّل'}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Real Enterprise Operational & Financial Counters Grid (100% Real from Backend Endpoints) */}

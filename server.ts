@@ -5,7 +5,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import pg from 'pg';
 import { S3Client, HeadBucketCommand, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
-import { enterpriseRouter, mockCustomersList, mockSuppliersList } from './server/routes/enterpriseApi';
+import { enterpriseRouter, mockCustomersList, mockSuppliersList, setEnterpriseDbPool, mockBackupsDatabase } from './server/routes/enterpriseApi';
 
 const { Pool } = pg;
 const app = express();
@@ -39,6 +39,7 @@ if (rawDbUrl.startsWith('postgres://') || rawDbUrl.startsWith('postgresql://')) 
     dbPool.on('error', (err) => {
       console.warn('[DB_POOL_WARN]', err?.message || err);
     });
+    setEnterpriseDbPool(dbPool);
   } catch (err: any) {
     console.warn('[DB_INIT_WARN] Database pool initialization failed:', err?.message || err);
   }
@@ -1344,7 +1345,10 @@ app.get('/api/v1/backups', async (_req: Request, res: Response) => {
     bucket: b2Bucket,
     region: b2Region,
     configured: Boolean(s3Client),
-    lastBackup: new Date().toISOString(),
+    lastBackup: mockBackupsDatabase.length > 0 ? mockBackupsDatabase[0].created_at : new Date().toISOString(),
+    data: mockBackupsDatabase,
+    backups: mockBackupsDatabase,
+    total: mockBackupsDatabase.length,
   });
 });
 

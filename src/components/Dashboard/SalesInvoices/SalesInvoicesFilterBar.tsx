@@ -11,6 +11,8 @@ interface SalesInvoicesFilterBarProps {
   onCustomerChange: (id: string) => void;
   selectedCurrency: string;
   onCurrencyChange: (curr: string) => void;
+  selectedPriceTier?: string;
+  onPriceTierChange?: (tier: string) => void;
   startDate: string;
   onStartDateChange: (d: string) => void;
   endDate: string;
@@ -30,6 +32,8 @@ export const SalesInvoicesFilterBar: React.FC<SalesInvoicesFilterBarProps> = ({
   onCustomerChange,
   selectedCurrency,
   onCurrencyChange,
+  selectedPriceTier = '',
+  onPriceTierChange,
   startDate,
   onStartDateChange,
   endDate,
@@ -41,16 +45,16 @@ export const SalesInvoicesFilterBar: React.FC<SalesInvoicesFilterBarProps> = ({
 }) => {
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         {/* Search */}
-        <div className="relative">
+        <div className="relative lg:col-span-1">
           <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="بحث برقم الفاتورة أو العميل..."
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl pr-9 pl-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+            placeholder="بحث برقم الفاتورة، العميل، رقم الصنف/القطعة، أو السيريال..."
+            className="w-full bg-slate-800 border border-slate-700 rounded-xl pr-9 pl-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 font-sans"
           />
         </div>
 
@@ -86,17 +90,32 @@ export const SalesInvoicesFilterBar: React.FC<SalesInvoicesFilterBarProps> = ({
           </select>
         </div>
 
-        {/* Currency */}
+        {/* Currency Filter */}
         <div>
           <select
             value={selectedCurrency}
             onChange={(e) => onCurrencyChange(e.target.value)}
             className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
           >
-            <option value="">جميع العملات (All Currencies)</option>
+            <option value="">جميع العملات (YER / SAR / USD)</option>
             <option value="YER">ريال يمني (YER)</option>
             <option value="SAR">ريال سعودي (SAR)</option>
             <option value="USD">دولار أمريكي (USD)</option>
+          </select>
+        </div>
+
+        {/* Price Tier Filter */}
+        <div>
+          <select
+            value={selectedPriceTier}
+            onChange={(e) => onPriceTierChange && onPriceTierChange(e.target.value)}
+            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+          >
+            <option value="">جميع فئات التسعير (All Tiers)</option>
+            <option value="retail">تجزئة (Retail)</option>
+            <option value="half_wholesale">نصف جملة (Half-Wholesale)</option>
+            <option value="wholesale">جملة (Wholesale)</option>
+            <option value="vip">خاص / VIP</option>
           </select>
         </div>
       </div>

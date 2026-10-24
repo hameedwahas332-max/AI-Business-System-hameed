@@ -42,6 +42,7 @@ export const InvoicesTab: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [selectedCurrency, setSelectedCurrency] = useState('');
+  const [selectedPriceTier, setSelectedPriceTier] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [isOverdueOnly, setIsOverdueOnly] = useState(false);
@@ -70,6 +71,7 @@ export const InvoicesTab: React.FC = () => {
       if (statusFilter) params.status = statusFilter;
       if (selectedCustomerId) params.customer_id = selectedCustomerId;
       if (selectedCurrency) params.currency = selectedCurrency;
+      if (selectedPriceTier) params.price_tier = selectedPriceTier;
       if (startDate) params.start_date = startDate;
       if (endDate) params.end_date = endDate;
       if (isOverdueOnly) params.is_overdue = 'true';
@@ -80,11 +82,36 @@ export const InvoicesTab: React.FC = () => {
         api.getProducts(),
       ]);
 
-      setInvoices(Array.isArray(invRes?.data) ? invRes.data : []);
+      let loadedInvoices = Array.isArray(invRes?.data) ? invRes.data : [];
+
+      // Client-side fallback filter for price tier and itemCode/serial
+      if (selectedPriceTier) {
+        loadedInvoices = loadedInvoices.filter(
+          (inv: any) => (inv.price_tier || inv.tier || 'retail') === selectedPriceTier
+        );
+      }
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.trim().toLowerCase();
+        loadedInvoices = loadedInvoices.filter((inv: any) => {
+          const invNum = String(inv.invoice_number || '').toLowerCase();
+          const custName = String(inv.customer_name || '').toLowerCase();
+          const custPhone = String(inv.customer_phone || '').toLowerCase();
+          const repName = String(inv.sales_rep_name || '').toLowerCase();
+          const hasItemCode = Array.isArray(inv.items) && inv.items.some((i: any) => 
+            String(i.item_code || i.part_number || i.sku || '').toLowerCase().includes(q) ||
+            String(i.serial_number || i.dot_code || '').toLowerCase().includes(q) ||
+            String(i.name || '').toLowerCase().includes(q)
+          );
+          return invNum.includes(q) || custName.includes(q) || custPhone.includes(q) || repName.includes(q) || hasItemCode;
+        });
+      }
+
+      setInvoices(loadedInvoices);
       setTotalCount(
         (invRes as any)?.pagination?.totalRecords ??
         (invRes as any)?.pagination?.total ??
-        (Array.isArray(invRes?.data) ? invRes.data.length : 0)
+        loadedInvoices.length
       );
       setCustomers(Array.isArray(custRes?.data) ? custRes.data : []);
       setProducts(Array.isArray(prodRes?.data) ? prodRes.data : []);
@@ -105,6 +132,7 @@ export const InvoicesTab: React.FC = () => {
     statusFilter,
     selectedCustomerId,
     selectedCurrency,
+    selectedPriceTier,
     startDate,
     endDate,
     isOverdueOnly,
@@ -116,6 +144,7 @@ export const InvoicesTab: React.FC = () => {
     setStatusFilter('');
     setSelectedCustomerId('');
     setSelectedCurrency('');
+    setSelectedPriceTier('');
     setStartDate('');
     setEndDate('');
     setIsOverdueOnly(false);
@@ -375,6 +404,8 @@ export const InvoicesTab: React.FC = () => {
                 onCustomerChange={setSelectedCustomerId}
                 selectedCurrency={selectedCurrency}
                 onCurrencyChange={setSelectedCurrency}
+                selectedPriceTier={selectedPriceTier}
+                onPriceTierChange={setSelectedPriceTier}
                 startDate={startDate}
                 onStartDateChange={setStartDate}
                 endDate={endDate}

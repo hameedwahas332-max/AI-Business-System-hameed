@@ -16,7 +16,12 @@ import {
   CheckCircle2,
   Clock,
   AlertTriangle,
+  ShieldCheck,
+  User,
+  Tag,
+  Coins,
 } from 'lucide-react';
+import { getStoredExchangeRates } from '../../../lib/exchangeRates';
 
 interface SalesInvoicesTableProps {
   invoices: any[];
@@ -143,11 +148,12 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
                   className="w-4 h-4 rounded text-blue-600 bg-slate-800 border-slate-700 focus:ring-blue-500 cursor-pointer"
                 />
               </th>
-              <th className="py-3.5 px-4">رقم الفاتورة</th>
-              <th className="py-3.5 px-4">العميل</th>
+              <th className="py-3.5 px-4">رقم الفاتورة والضمان</th>
+              <th className="py-3.5 px-4">العميل وفئة السعر</th>
+              <th className="py-3.5 px-4">المندوب / البائع</th>
               <th className="py-3.5 px-4">تاريخ الإصدار</th>
-              <th className="py-3.5 px-4">تاريخ الاستحقاق</th>
-              <th className="py-3.5 px-4 text-left">الإجمالي</th>
+              <th className="py-3.5 px-4">الاستحقاق</th>
+              <th className="py-3.5 px-4 text-left">العملة والإجمالي</th>
               <th className="py-3.5 px-4 text-left">المدفوع</th>
               <th className="py-3.5 px-4 text-left">المتبقي</th>
               <th className="py-3.5 px-4 text-center">الحالة</th>
@@ -162,6 +168,34 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
               const remaining = Math.max(0, parseFloat(inv.remaining_amount || `${total - paid}`));
               const todayStr = new Date().toISOString().split('T')[0];
               const isOverdue = remaining > 0.01 && inv.due_date && inv.due_date < todayStr && inv.status !== 'DRAFT';
+              const currency = inv.currency || 'YER';
+              
+              const rates = getStoredExchangeRates();
+              const rateMultiplier = currency === 'SAR' ? (rates.rates.SAR.accountingRate || 140) : currency === 'USD' ? (rates.rates.USD.accountingRate || 530) : 1;
+              const baseEquivalent = currency === 'YER' ? total : total * (parseFloat(inv.exchange_rate) || rateMultiplier);
+
+              const priceTier = inv.price_tier || inv.tier || 'retail';
+              const tierNameMap: Record<string, { label: string; color: string }> = {
+                retail: { label: 'تجزئة', color: 'bg-slate-800 text-slate-300 border-slate-700' },
+                half_wholesale: { label: 'نصف جملة', color: 'bg-sky-950 text-sky-300 border-sky-800' },
+                wholesale: { label: 'جملة', color: 'bg-emerald-950 text-emerald-300 border-emerald-800' },
+                vip: { label: 'VIP خاص', color: 'bg-amber-950 text-amber-300 border-amber-800' },
+              };
+              const tierInfo = tierNameMap[priceTier] || tierNameMap.retail;
+
+              const salesRep = inv.sales_rep_name || inv.sales_rep || inv.cashier_name || inv.created_by_name || 'الكاشير العام';
+
+              const hasWarranty = Boolean(
+                inv.has_warranty ||
+                (inv.warranty_months && inv.warranty_months > 0) ||
+                (Array.isArray(inv.items) && inv.items.some((i: any) => 
+                  (i.warranty_months && Number(i.warranty_months) > 0) || 
+                  i.serial_number || 
+                  i.dot_code || 
+                  i.battery_spec || 
+                  i.tire_size
+                ))
+              );
 
               return (
                 <tr
@@ -179,42 +213,66 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
                     />
                   </td>
 
-                  {/* Invoice Number */}
+                  {/* Invoice Number & Battery/Tire Warranty Badge */}
                   <td className="py-3.5 px-4">
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => onViewDetails(inv)}
-                        className="font-mono font-bold text-blue-400 hover:text-blue-300 hover:underline text-xs"
-                      >
-                        #{inv.invoice_number}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => copyToClipboard(inv.invoice_number, inv.id)}
-                        className="text-slate-500 hover:text-slate-300 p-0.5 rounded transition-colors"
-                        title="نسخ رقم الفاتورة"
-                      >
-                        {copiedId === inv.id ? (
-                          <Check className="w-3 h-3 text-emerald-400" />
-                        ) : (
-                          <Copy className="w-3 h-3" />
-                        )}
-                      </button>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => onViewDetails(inv)}
+                          className="font-mono font-bold text-blue-400 hover:text-blue-300 hover:underline text-xs"
+                        >
+                          #{inv.invoice_number}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(inv.invoice_number, inv.id)}
+                          className="text-slate-500 hover:text-slate-300 p-0.5 rounded transition-colors"
+                          title="نسخ رقم الفاتورة"
+                        >
+                          {copiedId === inv.id ? (
+                            <Check className="w-3 h-3 text-emerald-400" />
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
+                        </button>
+                      </div>
+
+                      {hasWarranty && (
+                        <div className="flex items-center gap-1">
+                          <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold">
+                            <ShieldCheck className="w-3 h-3 text-amber-400" />
+                            <span>ضمان إطار/بطارية</span>
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </td>
 
-                  {/* Customer */}
+                  {/* Customer & Price Tier */}
                   <td className="py-3.5 px-4">
-                    <div>
+                    <div className="space-y-1">
                       <p className="font-medium text-slate-100 truncate max-w-[180px]">
                         {inv.customer_name || 'عميل نقدي / غير محدد'}
                       </p>
-                      {inv.customer_phone && (
-                        <p className="text-xs text-slate-500 font-mono" dir="ltr">
-                          {inv.customer_phone}
-                        </p>
-                      )}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {inv.customer_phone && (
+                          <span className="text-[11px] text-slate-500 font-mono" dir="ltr">
+                            {inv.customer_phone}
+                          </span>
+                        )}
+                        <span className={`text-[10px] px-2 py-0.5 rounded border font-semibold ${tierInfo.color}`}>
+                          {tierInfo.label}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* Sales Rep / Cashier */}
+                  <td className="py-3.5 px-4">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium">
+                      <User className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                      <span className="truncate max-w-[130px]">{salesRep}</span>
                     </div>
                   </td>
 
@@ -235,20 +293,38 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
                     )}
                   </td>
 
-                  {/* Total */}
-                  <td className="py-3.5 px-4 text-left font-mono font-bold text-white">
-                    {formatAmount(total, inv.currency || 'YER')}
+                  {/* Total with Currency & Base Currency Equivalent */}
+                  <td className="py-3.5 px-4 text-left font-mono">
+                    <div className="space-y-0.5">
+                      <div className="font-bold text-white text-sm flex items-center justify-end gap-1.5" dir="ltr">
+                        <span>{formatAmount(total, currency)}</span>
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold border ${
+                          currency === 'YER'
+                            ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
+                            : currency === 'SAR'
+                            ? 'bg-amber-950 text-amber-300 border-amber-800'
+                            : 'bg-blue-950 text-blue-300 border-blue-800'
+                        }`}>
+                          {currency}
+                        </span>
+                      </div>
+                      {currency !== 'YER' && (
+                        <div className="text-[10px] text-amber-300/90 font-mono text-left" dir="ltr">
+                          ≈ {baseEquivalent.toLocaleString('en-US', { maximumFractionDigits: 0 })} YER
+                        </div>
+                      )}
+                    </div>
                   </td>
 
                   {/* Paid */}
-                  <td className="py-3.5 px-4 text-left font-mono font-semibold text-emerald-400">
-                    {formatAmount(paid, inv.currency || 'YER')}
+                  <td className="py-3.5 px-4 text-left font-mono font-semibold text-emerald-400" dir="ltr">
+                    {formatAmount(paid, currency)}
                   </td>
 
                   {/* Remaining */}
-                  <td className="py-3.5 px-4 text-left font-mono font-bold">
+                  <td className="py-3.5 px-4 text-left font-mono font-bold" dir="ltr">
                     <span className={remaining > 0.01 ? 'text-amber-400' : 'text-slate-500'}>
-                      {formatAmount(remaining, inv.currency || 'YER')}
+                      {formatAmount(remaining, currency)}
                     </span>
                   </td>
 

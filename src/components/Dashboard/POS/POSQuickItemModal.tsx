@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { X, Plus, DollarSign, Tag, Hash, Percent } from 'lucide-react';
+import { X, Plus, DollarSign, Tag, Hash, Percent, Layers, ShieldCheck, Calendar, Droplets, Fuel } from 'lucide-react';
 import { POSCartItem } from '../../../types';
+import { toEnglishDigits, parseEnglishNumber } from '../../../lib/formatters';
+import { useModuleSettings } from '../../../context/ModuleSettingsContext';
 
 interface POSQuickItemModalProps {
   isOpen: boolean;
@@ -15,17 +17,49 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
   onAddItem,
   currency,
 }) => {
+  const { settings } = useModuleSettings();
+  const businessMode = settings?.activePreset || 'multi_activity';
+
+  const defaultActivity =
+    businessMode === 'grocery_only'
+      ? 'food'
+      : businessMode === 'fuel_station_only'
+      ? 'fuel'
+      : businessMode === 'tires_batteries_only'
+      ? 'tire'
+      : businessMode === 'autoparts_oils_only'
+      ? 'oil'
+      : 'general';
+
   const [name, setName] = useState('');
-  const [unit, setUnit] = useState('حبة');
-  const [quantity, setQuantity] = useState<number>(1);
-  const [unitPrice, setUnitPrice] = useState<number>(0);
-  const [discount, setDiscount] = useState<number>(0);
-  const [tax, setTax] = useState<number>(0);
+  const [itemCode, setItemCode] = useState(() => `ITM-${Math.floor(1000 + Math.random() * 9000)}`);
+  const [activityType, setActivityType] = useState<string>(defaultActivity);
+  const [unit, setUnit] = useState(() => (defaultActivity === 'fuel' ? 'لتر' : 'حبة'));
+  const [quantity, setQuantity] = useState<string>('1');
+  const [unitPrice, setUnitPrice] = useState<string>('');
+  const [discount, setDiscount] = useState<string>('0');
+  const [tax, setTax] = useState<string>('0');
+
+  // Dynamic spec fields
+  const [expiryDate, setExpiryDate] = useState('');
+  const [batterySpec, setBatterySpec] = useState('');
+  const [tireSize, setTireSize] = useState('');
+  const [tireProductionDot, setTireProductionDot] = useState('');
+  const [viscosityGrade, setViscosityGrade] = useState('');
+  const [partNumber, setPartNumber] = useState('');
+  const [warrantyMonths, setWarrantyMonths] = useState<string>('12');
+  const [fuelType, setFuelType] = useState('petrol_91');
+  const [pumpNumber, setPumpNumber] = useState('01');
+
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const total = Math.max(0, quantity * unitPrice - discount + tax);
+  const qNum = parseEnglishNumber(quantity, 1);
+  const pNum = parseEnglishNumber(unitPrice, 0);
+  const dNum = parseEnglishNumber(discount, 0);
+  const tNum = parseEnglishNumber(tax, 0);
+  const total = Math.max(0, qNum * pNum - dNum + tNum);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,34 +67,47 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
       setError('يرجى إدخال اسم أو وصف الصنف');
       return;
     }
-    if (quantity <= 0) {
+    if (qNum <= 0) {
       setError('الكمية يجب أن تكون أكبر من الصفر');
       return;
     }
-    if (unitPrice <= 0) {
+    if (pNum <= 0) {
       setError('السعر الإفرادي يجب أن يكون أكبر من الصفر');
       return;
     }
 
     onAddItem({
       id: 'quick_' + Date.now(),
-      productId: null, // Manual unregistered quick item
+      productId: null,
       name: name.trim(),
+      sku: itemCode.trim() || partNumber.trim(),
+      itemCode: itemCode.trim(),
+      partNumber: partNumber.trim(),
+      activityType: activityType as any,
       unit,
-      quantity,
-      unitPrice,
-      discount,
-      tax,
+      quantity: qNum,
+      unitPrice: pNum,
+      discount: dNum,
+      tax: tNum,
       total,
-      notes: 'صنف يدوي / بيع مباشر',
-    });
+      notes: `صنف يدوي / كود: ${itemCode || partNumber || '-'}`,
+      batterySpec: activityType === 'battery' ? batterySpec : undefined,
+      tireSize: activityType === 'tire' ? tireSize : undefined,
+      tireProductionDot: activityType === 'tire' ? tireProductionDot : undefined,
+      warrantyMonths: activityType === 'tire' || activityType === 'battery' ? parseEnglishNumber(warrantyMonths, 12) : undefined,
+      expiryDate: activityType === 'food' ? expiryDate : undefined,
+      viscosityGrade: activityType === 'oil' ? viscosityGrade : undefined,
+      fuelType: activityType === 'fuel' ? fuelType : undefined,
+      pumpNumber: activityType === 'fuel' ? pumpNumber : undefined,
+    } as any);
 
     // Reset & close
     setName('');
-    setQuantity(1);
-    setUnitPrice(0);
-    setDiscount(0);
-    setTax(0);
+    setItemCode(`ITM-${Math.floor(1000 + Math.random() * 9000)}`);
+    setQuantity('1');
+    setUnitPrice('');
+    setDiscount('0');
+    setTax('0');
     setError(null);
     onClose();
   };
@@ -86,68 +133,257 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
           {error && (
             <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-sm">
               {error}
             </div>
           )}
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              اسم أو بيان الصنف <span className="text-rose-400">*</span>
-            </label>
-            <div className="relative">
-              <Tag className="w-4 h-4 text-slate-500 absolute right-3 top-3" />
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                  setError(null);
-                }}
-                placeholder="مثال: خدمة صيانة، مادة خاصة، صنف سريع..."
-                className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pr-10 pl-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                autoFocus
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                الكمية <span className="text-rose-400">*</span>
+                اسم أو بيان الصنف <span className="text-rose-400">*</span>
               </label>
               <div className="relative">
-                <Hash className="w-4 h-4 text-slate-500 absolute right-3 top-3" />
+                <Tag className="w-4 h-4 text-slate-500 absolute right-3 top-3" />
                 <input
-                  type="number"
-                  min="0.01"
-                  step="any"
-                  value={quantity || ''}
-                  onChange={(e) => setQuantity(parseFloat(e.target.value) || 0)}
-                  className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pr-10 pl-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  type="text"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    setError(null);
+                  }}
+                  placeholder="مثال: بطارية هانكوك 70 أمبير / أرز الشعلان / خدمة صيانة..."
+                  className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pr-10 pl-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                  autoFocus
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">الوحدة</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                رقم الصنف / كود القطعة (Item Code)
+              </label>
+              <div className="relative">
+                <Hash className="w-4 h-4 text-slate-500 absolute right-3 top-3" />
+                <input
+                  type="text"
+                  dir="ltr"
+                  lang="en"
+                  value={itemCode}
+                  onChange={(e) => setItemCode(toEnglishDigits(e.target.value))}
+                  placeholder="ITM-1001"
+                  className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pr-10 pl-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-emerald-500 text-left"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">نوع النشاط / التصنيف</label>
+              <div className="relative">
+                <Layers className="w-4 h-4 text-slate-500 absolute right-3 top-3" />
+                <select
+                  value={activityType}
+                  onChange={(e) => setActivityType(e.target.value)}
+                  className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pr-9 pl-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="general">عام / تجارة متنوعة</option>
+                  <option value="food">مواد غذائية وتموينات</option>
+                  <option value="tire">إطارات وجنوط</option>
+                  <option value="battery">بطاريات وطاقة</option>
+                  <option value="oil">زيوت وسوائل محركات</option>
+                  <option value="autopart">قطع غيار سيارات</option>
+                  <option value="fuel">محطة وقود وغاز</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                الكمية <span className="text-rose-400">*</span>
+              </label>
+              <input
+                type="text"
+                inputMode="decimal"
+                dir="ltr"
+                lang="en"
+                value={quantity}
+                onChange={(e) => setQuantity(toEnglishDigits(e.target.value))}
+                className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-emerald-500 text-center"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">الوحدة المباعة</label>
               <select
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
-                className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
               >
                 <option value="حبة">حبة / قطعة</option>
-                <option value="كيلو">كيلوغرام (kg)</option>
-                <option value="متر">متر (m)</option>
-                <option value="لتر">لتر (L)</option>
-                <option value="علبة">علبة / باكت</option>
+                <option value="باكت">باكت / علبة</option>
                 <option value="كرتون">كرتون</option>
+                <option value="كيلو">كيلوغرام (kg)</option>
+                <option value="لتر">لتر (L)</option>
+                <option value="طقم">طقم / درزن</option>
                 <option value="خدمة">خدمة / مصنعية</option>
               </select>
             </div>
           </div>
+
+          {/* Dynamic spec fields depending on activityType */}
+          {activityType === 'food' && (
+            <div className="p-3 bg-emerald-950/20 border border-emerald-500/20 rounded-xl">
+              <label className="block text-xs font-semibold text-emerald-300 mb-1 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5" /> تاريخ الانتهاء (FEFO)
+              </label>
+              <input
+                type="date"
+                value={expiryDate}
+                onChange={(e) => setExpiryDate(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+          )}
+
+          {activityType === 'battery' && (
+            <div className="p-3 bg-amber-950/20 border border-amber-500/20 rounded-xl grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-amber-300 mb-1 flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5" /> سعة البطارية (Ah) / الموديل
+                </label>
+                <input
+                  type="text"
+                  value={batterySpec}
+                  onChange={(e) => setBatterySpec(e.target.value)}
+                  placeholder="مثال: 70Ah 12V 550CCA"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-amber-300 mb-1">مدة الضمان (بالأشهر)</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  dir="ltr"
+                  lang="en"
+                  value={warrantyMonths}
+                  onChange={(e) => setWarrantyMonths(toEnglishDigits(e.target.value))}
+                  placeholder="12"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white font-mono text-center focus:outline-none focus:border-amber-500"
+                />
+              </div>
+            </div>
+          )}
+
+          {activityType === 'tire' && (
+            <div className="p-3 bg-cyan-950/20 border border-cyan-500/20 rounded-xl space-y-2">
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-[11px] font-semibold text-cyan-300 mb-1">مقاس الإطار</label>
+                  <input
+                    type="text"
+                    dir="ltr"
+                    lang="en"
+                    value={tireSize}
+                    onChange={(e) => setTireSize(toEnglishDigits(e.target.value))}
+                    placeholder="265/65R17"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-cyan-300 mb-1">تاريخ الإنتاج DOT</label>
+                  <input
+                    type="text"
+                    dir="ltr"
+                    lang="en"
+                    value={tireProductionDot}
+                    onChange={(e) => setTireProductionDot(toEnglishDigits(e.target.value))}
+                    placeholder="2425"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-cyan-300 mb-1">الضمان (شهر)</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    dir="ltr"
+                    lang="en"
+                    value={warrantyMonths}
+                    onChange={(e) => setWarrantyMonths(toEnglishDigits(e.target.value))}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono text-center focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {(activityType === 'oil' || activityType === 'autopart') && (
+            <div className="p-3 bg-blue-950/20 border border-blue-500/20 rounded-xl grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-blue-300 mb-1 flex items-center gap-1">
+                  <Droplets className="w-3.5 h-3.5" /> درجة اللزوجة / المواصفة
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  lang="en"
+                  value={viscosityGrade}
+                  onChange={(e) => setViscosityGrade(toEnglishDigits(e.target.value))}
+                  placeholder="5W-30 SN/CF"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-blue-300 mb-1">رقم القطعة OEM / البارت</label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  lang="en"
+                  value={partNumber}
+                  onChange={(e) => setPartNumber(toEnglishDigits(e.target.value))}
+                  placeholder="OEM-90915-YZZD2"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+          )}
+
+          {activityType === 'fuel' && (
+            <div className="p-3 bg-amber-950/20 border border-amber-500/20 rounded-xl grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-amber-300 mb-1 flex items-center gap-1">
+                  <Fuel className="w-3.5 h-3.5" /> نوع المشتق النفطي / الوقود
+                </label>
+                <select
+                  value={fuelType}
+                  onChange={(e) => setFuelType(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                >
+                  <option value="petrol_91">بنزين 91 ممتاز</option>
+                  <option value="petrol_95">بنزين 95 سوبر</option>
+                  <option value="diesel">ديزل عالي الكفاءة</option>
+                  <option value="gas">غاز مركزي LPG</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-amber-300 mb-1">رقم الطرمبة / العداد</label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  lang="en"
+                  value={pumpNumber}
+                  onChange={(e) => setPumpNumber(toEnglishDigits(e.target.value))}
+                  placeholder="01"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-amber-500"
+                />
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-3 gap-3">
             <div>
@@ -157,13 +393,14 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
               <div className="relative">
                 <DollarSign className="w-4 h-4 text-slate-500 absolute right-3 top-3" />
                 <input
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={unitPrice || ''}
-                  onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
+                  type="text"
+                  inputMode="decimal"
+                  dir="ltr"
+                  lang="en"
+                  value={unitPrice}
+                  onChange={(e) => setUnitPrice(toEnglishDigits(e.target.value))}
                   placeholder="0.00"
-                  className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pr-9 pl-3 py-2 text-sm text-white font-medium focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pr-9 pl-3 py-2 text-sm text-white font-mono font-medium focus:outline-none focus:border-emerald-500 text-left"
                 />
               </div>
             </div>
@@ -173,13 +410,14 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
                 الخصم ({currency})
               </label>
               <input
-                type="number"
-                min="0"
-                step="any"
-                value={discount || ''}
-                onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
-                placeholder="0.00"
-                className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                type="text"
+                inputMode="decimal"
+                dir="ltr"
+                lang="en"
+                value={discount}
+                onChange={(e) => setDiscount(toEnglishDigits(e.target.value))}
+                placeholder="0"
+                className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-emerald-500 text-left"
               />
             </div>
 
@@ -188,13 +426,14 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
                 الضريبة ({currency})
               </label>
               <input
-                type="number"
-                min="0"
-                step="any"
-                value={tax || ''}
-                onChange={(e) => setTax(parseFloat(e.target.value) || 0)}
-                placeholder="0.00"
-                className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                type="text"
+                inputMode="decimal"
+                dir="ltr"
+                lang="en"
+                value={tax}
+                onChange={(e) => setTax(toEnglishDigits(e.target.value))}
+                placeholder="0"
+                className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-emerald-500 text-left"
               />
             </div>
           </div>
@@ -202,8 +441,8 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
           {/* Item Net Total Summary */}
           <div className="p-4 bg-slate-800/50 border border-slate-700/60 rounded-xl flex items-center justify-between">
             <span className="text-sm text-slate-300 font-medium">إجمالي الصنف الصافي:</span>
-            <span className="text-lg font-black text-emerald-400">
-              {total.toLocaleString()} {currency}
+            <span className="text-lg font-black text-emerald-400 font-mono" dir="ltr">
+              {total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}
             </span>
           </div>
 

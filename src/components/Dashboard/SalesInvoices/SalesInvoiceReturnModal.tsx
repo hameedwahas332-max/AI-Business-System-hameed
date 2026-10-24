@@ -1,7 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../../api';
 import { formatAmount } from '../../../lib/formatters';
-import { X, RotateCcw, AlertCircle, CheckCircle2, Loader2, DollarSign } from 'lucide-react';
+import {
+  X,
+  RotateCcw,
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
+  DollarSign,
+  ShieldCheck,
+  AlertTriangle,
+  Search,
+  Package,
+} from 'lucide-react';
 
 interface SalesInvoiceReturnModalProps {
   invoice: any;
@@ -16,14 +27,25 @@ export const SalesInvoiceReturnModal: React.FC<SalesInvoiceReturnModalProps> = (
   onClose,
   onSuccess,
 }) => {
+  const [itemSearch, setItemSearch] = useState('');
   const [returnItems, setReturnItems] = useState<
     Array<{
       product_id?: string;
       product_name: string;
+      item_code?: string;
+      part_number?: string;
+      serial_number?: string;
+      tire_size?: string;
+      tire_production_dot?: string;
+      unit: string;
       max_qty: number;
       quantity: number;
       unit_price: number;
       selected: boolean;
+      warranty_status?: {
+        isUnderWarranty: boolean;
+        expiresAtStr: string;
+      } | null;
     }>
   >([]);
 
@@ -34,6 +56,43 @@ export const SalesInvoiceReturnModal: React.FC<SalesInvoiceReturnModalProps> = (
   const [fetchingItems, setFetchingItems] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const calculateWarrantyStatus = (invoiceDateStr: string | undefined, months: number | undefined) => {
+    if (!months || months <= 0) return null;
+    const invDate = invoiceDateStr ? new Date(invoiceDateStr) : new Date();
+    if (isNaN(invDate.getTime())) return null;
+
+    const expiryDate = new Date(invDate);
+    expiryDate.setMonth(expiryDate.getMonth() + months);
+    const today = new Date();
+    const isUnderWarranty = today.getTime() <= expiryDate.getTime();
+    return {
+      isUnderWarranty,
+      expiresAtStr: expiryDate.toISOString().split('T')[0],
+    };
+  };
+
+  const mapRawItems = (items: any[]) => {
+    return items.map((it: any) => {
+      const wMonths = Number(it.warranty_months || it.warrantyMonths || 0);
+      const wStatus = calculateWarrantyStatus(invoice.invoice_date || invoice.created_at, wMonths);
+      return {
+        product_id: it.product_id,
+        product_name: it.product_name || it.item_name || it.description || 'صنف مبيعات',
+        item_code: it.item_code || it.sku,
+        part_number: it.part_number,
+        serial_number: it.battery_serial_number || it.serial_number,
+        tire_size: it.tire_size,
+        tire_production_dot: it.tire_production_dot,
+        unit: it.unit || 'حبة',
+        max_qty: parseFloat(it.quantity || '1'),
+        quantity: parseFloat(it.quantity || '1'),
+        unit_price: parseFloat(it.unit_price || '0'),
+        selected: false,
+        warranty_status: wStatus,
+      };
+    });
+  };
+
   useEffect(() => {
     if (!isOpen || !invoice) {
       setReturnItems([]);
@@ -42,32 +101,14 @@ export const SalesInvoiceReturnModal: React.FC<SalesInvoiceReturnModalProps> = (
 
     const rawItems = Array.isArray(invoice.items) ? invoice.items : [];
     if (rawItems.length > 0) {
-      setReturnItems(
-        rawItems.map((it: any) => ({
-          product_id: it.product_id,
-          product_name: it.product_name || it.item_name || it.description || 'صنف مبيعات',
-          max_qty: parseFloat(it.quantity || '1'),
-          quantity: parseFloat(it.quantity || '1'),
-          unit_price: parseFloat(it.unit_price || '0'),
-          selected: false,
-        }))
-      );
+      setReturnItems(mapRawItems(rawItems));
     } else if (invoice.id) {
       setFetchingItems(true);
       api
         .getInvoiceById(invoice.id)
         .then((res) => {
           if (res.success && res.data && Array.isArray(res.data.items)) {
-            setReturnItems(
-              res.data.items.map((it: any) => ({
-                product_id: it.product_id,
-                product_name: it.product_name || it.item_name || it.description || 'صنف مبيعات',
-                max_qty: parseFloat(it.quantity || '1'),
-                quantity: parseFloat(it.quantity || '1'),
-                unit_price: parseFloat(it.unit_price || '0'),
-                selected: false,
-              }))
-            );
+            setReturnItems(mapRawItems(res.data.items));
           }
         })
         .catch((err) => {
@@ -104,6 +145,9 @@ export const SalesInvoiceReturnModal: React.FC<SalesInvoiceReturnModalProps> = (
       .filter((it) => it.selected && it.quantity > 0)
       .map((it) => ({
         product_id: it.product_id,
+        item_code: it.item_code,
+        serial_number: it.serial_number,
+        unit: it.unit,
         quantity: it.quantity,
         unit_price: it.unit_price,
       }));
@@ -137,7 +181,7 @@ export const SalesInvoiceReturnModal: React.FC<SalesInvoiceReturnModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn" dir="rtl">
       <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
@@ -170,36 +214,105 @@ export const SalesInvoiceReturnModal: React.FC<SalesInvoiceReturnModalProps> = (
             </div>
           )}
 
-          {/* Items selection */}
-          <div>
-            <label className="block text-sm font-semibold text-slate-200 mb-2">
-              حدد الأصناف والكميات المراد إرجاعها للمخزن:
-            </label>
+          {/* Items selection & search */}
+          <div className="space-y-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <label className="block text-sm font-semibold text-slate-200">
+                حدد الأصناف والكميات المراد إرجاعها للمخزن:
+              </label>
+
+              {returnItems.length > 2 && (
+                <div className="relative w-full sm:w-64">
+                  <Search className="w-3.5 h-3.5 absolute right-2.5 top-2.5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={itemSearch}
+                    onChange={(e) => setItemSearch(e.target.value)}
+                    placeholder="بحث بكود الصنف، السيريال، أو المقاس..."
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg pr-8 pl-2.5 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              )}
+            </div>
+
             <div className="border border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-800 bg-slate-950/30">
-              {returnItems.map((it, idx) => (
-                <div
-                  key={idx}
-                  className={`p-3 flex items-center justify-between gap-4 transition-colors ${
-                    it.selected ? 'bg-blue-500/5' : 'hover:bg-slate-800/30'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <input
-                      type="checkbox"
-                      checked={it.selected}
-                      onChange={() => toggleItem(idx)}
-                      className="w-4 h-4 rounded text-blue-600 bg-slate-800 border-slate-700 focus:ring-blue-500 cursor-pointer"
-                    />
-                    <div className="truncate">
-                      <p className="text-sm font-medium text-slate-100 truncate">{it.product_name}</p>
-                      <p className="text-xs text-slate-400">
-                        الكمية الأصلية: {it.max_qty} | السعر: {formatAmount(it.unit_price, invoice.currency || 'YER')}
-                      </p>
+              {returnItems
+                .filter((it) => {
+                  if (!itemSearch.trim()) return true;
+                  const q = itemSearch.trim().toLowerCase();
+                  return (
+                    it.product_name.toLowerCase().includes(q) ||
+                    (it.item_code || '').toLowerCase().includes(q) ||
+                    (it.part_number || '').toLowerCase().includes(q) ||
+                    (it.serial_number || '').toLowerCase().includes(q) ||
+                    (it.tire_size || '').toLowerCase().includes(q)
+                  );
+                })
+                .map((it, idx) => (
+                  <div
+                    key={idx}
+                    className={`p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-colors ${
+                      it.selected ? 'bg-blue-500/5' : 'hover:bg-slate-800/30'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <input
+                        type="checkbox"
+                        checked={it.selected}
+                        onChange={() => toggleItem(idx)}
+                        className="w-4 h-4 mt-1 rounded text-blue-600 bg-slate-800 border-slate-700 focus:ring-blue-500 cursor-pointer"
+                      />
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-bold text-slate-100">{it.product_name}</p>
+                          {(it.item_code || it.part_number) && (
+                            <span className="px-2 py-0.5 bg-slate-800 text-slate-300 rounded text-[10px] font-mono">
+                              #{it.item_code || it.part_number}
+                            </span>
+                          )}
+                          <span className="px-2 py-0.5 bg-blue-500/10 text-blue-300 border border-blue-500/20 rounded text-[10px] font-medium flex items-center gap-1">
+                            <Package className="w-3 h-3" />
+                            الوحدة المباعة: {it.unit}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-wrap text-xs text-slate-400">
+                          {it.serial_number && (
+                            <span className="text-amber-400 font-mono">سيريال: {it.serial_number}</span>
+                          )}
+                          {it.tire_size && (
+                            <span className="text-cyan-400 font-mono">
+                              مقاس: {it.tire_size} {it.tire_production_dot ? `(${it.tire_production_dot})` : ''}
+                            </span>
+                          )}
+                          <span>
+                            الكمية المباعة: <strong className="text-white font-mono">{it.max_qty}</strong> {it.unit}
+                          </span>
+                          <span>
+                            السعر: <strong className="text-white font-mono" dir="ltr">{formatAmount(it.unit_price, invoice.currency || 'YER')}</strong>
+                          </span>
+                        </div>
+
+                        {it.warranty_status && (
+                          <div className="pt-0.5">
+                            {it.warranty_status.isUnderWarranty ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 rounded-md text-[10px] font-bold">
+                                <ShieldCheck className="w-3.5 h-3.5" />
+                                <span>تحت الضمان - ساري حتى {it.warranty_status.expiresAtStr}</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-rose-500/10 text-rose-400 border border-rose-500/25 rounded-md text-[10px] font-bold">
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                                <span>منتهي الضمان (انتهى في {it.warranty_status.expiresAtStr})</span>
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
                   {it.selected && (
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-800">
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs text-slate-400">كمية الإرجاع:</span>
                         <input
@@ -209,11 +322,12 @@ export const SalesInvoiceReturnModal: React.FC<SalesInvoiceReturnModalProps> = (
                           max={it.max_qty}
                           value={it.quantity}
                           onChange={(e) => updateQty(idx, parseFloat(e.target.value) || 0)}
-                          className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-sm text-center text-white focus:outline-none focus:border-blue-500"
+                          className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-sm text-center font-mono font-bold text-white focus:outline-none focus:border-blue-500"
                         />
+                        <span className="text-xs text-slate-400">{it.unit}</span>
                       </div>
-                      <div className="text-right min-w-[80px]">
-                        <span className="text-xs font-bold text-amber-400">
+                      <div className="text-right min-w-[90px]">
+                        <span className="text-xs font-bold text-amber-400 font-mono" dir="ltr">
                           {formatAmount(it.quantity * it.unit_price, invoice.currency || 'YER')}
                         </span>
                       </div>
