@@ -42,8 +42,6 @@ export const InvoicesTab: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [selectedCurrency, setSelectedCurrency] = useState('');
-  const [selectedPriceTier, setSelectedPriceTier] = useState('');
-  const [selectedSalesRep, setSelectedSalesRep] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [isOverdueOnly, setIsOverdueOnly] = useState(false);
@@ -107,8 +105,6 @@ export const InvoicesTab: React.FC = () => {
     statusFilter,
     selectedCustomerId,
     selectedCurrency,
-    selectedPriceTier,
-    selectedSalesRep,
     startDate,
     endDate,
     isOverdueOnly,
@@ -120,8 +116,6 @@ export const InvoicesTab: React.FC = () => {
     setStatusFilter('');
     setSelectedCustomerId('');
     setSelectedCurrency('');
-    setSelectedPriceTier('');
-    setSelectedSalesRep('');
     setStartDate('');
     setEndDate('');
     setIsOverdueOnly(false);
@@ -366,78 +360,51 @@ export const InvoicesTab: React.FC = () => {
           )}
 
           {/* VIEW: INVOICE LIST / REGISTER */}
-          {invoiceSubView === 'list' && (() => {
-            const displayedInvoices = invoices.filter((inv) => {
-              if (selectedPriceTier && (inv.price_tier || inv.priceTier) !== selectedPriceTier) return false;
-              if (selectedSalesRep && (inv.sales_rep_name || inv.salesRepName) !== selectedSalesRep) return false;
-              if (searchQuery.trim()) {
-                const q = searchQuery.toLowerCase().trim();
-                const matchNum = inv.invoice_number?.toLowerCase().includes(q);
-                const matchCust = inv.customer_name?.toLowerCase().includes(q);
-                const matchPhone = inv.customer_phone?.includes(q);
-                const matchItems = inv.items && Array.isArray(inv.items) && inv.items.some((it: any) =>
-                  it.itemCode?.toLowerCase().includes(q) ||
-                  it.partNumber?.toLowerCase().includes(q) ||
-                  it.sku?.toLowerCase().includes(q) ||
-                  it.name?.toLowerCase().includes(q) ||
-                  it.batterySerial?.toLowerCase().includes(q) ||
-                  it.tireSize?.toLowerCase().includes(q)
-                );
-                if (!matchNum && !matchCust && !matchPhone && !matchItems) return false;
-              }
-              return true;
-            });
+          {invoiceSubView === 'list' && (
+            <div className="space-y-6">
+              {/* Dynamic Real-Data KPI Header */}
+              <SalesInvoicesKPIs invoices={invoices} currency={selectedCurrency || 'YER'} />
 
-            return (
-              <div className="space-y-6">
-                {/* Dynamic Real-Data KPI Header */}
-                <SalesInvoicesKPIs invoices={displayedInvoices} currency={selectedCurrency || 'YER'} />
+              {/* Advanced Filter Bar */}
+              <SalesInvoicesFilterBar
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                statusFilter={statusFilter}
+                onStatusChange={setStatusFilter}
+                selectedCustomerId={selectedCustomerId}
+                onCustomerChange={setSelectedCustomerId}
+                selectedCurrency={selectedCurrency}
+                onCurrencyChange={setSelectedCurrency}
+                startDate={startDate}
+                onStartDateChange={setStartDate}
+                endDate={endDate}
+                onEndDateChange={setEndDate}
+                isOverdueOnly={isOverdueOnly}
+                onOverdueToggle={setIsOverdueOnly}
+                customers={customers}
+                onReset={handleResetFilters}
+              />
 
-                {/* Advanced Filter Bar */}
-                <SalesInvoicesFilterBar
-                  searchQuery={searchQuery}
-                  onSearchChange={setSearchQuery}
-                  statusFilter={statusFilter}
-                  onStatusChange={setStatusFilter}
-                  selectedCustomerId={selectedCustomerId}
-                  onCustomerChange={setSelectedCustomerId}
-                  selectedCurrency={selectedCurrency}
-                  onCurrencyChange={setSelectedCurrency}
-                  selectedPriceTier={selectedPriceTier}
-                  onPriceTierChange={setSelectedPriceTier}
-                  selectedSalesRep={selectedSalesRep}
-                  onSalesRepChange={setSelectedSalesRep}
-                  startDate={startDate}
-                  onStartDateChange={setStartDate}
-                  endDate={endDate}
-                  onEndDateChange={setEndDate}
-                  isOverdueOnly={isOverdueOnly}
-                  onOverdueToggle={setIsOverdueOnly}
-                  customers={customers}
-                  onReset={handleResetFilters}
-                />
-
-                {/* Invoices Register Table */}
-                <SalesInvoicesTable
-                  invoices={displayedInvoices}
-                  loading={loading}
-                  selectedIds={selectedIds}
-                  onSelectToggle={handleSelectToggle}
-                  onSelectAll={handleSelectAll}
-                  onViewDetails={handleViewDetails}
-                  onRecordPayment={(inv) => setModalPaymentInvoice(inv)}
-                  onRecordReturn={(inv) => setModalReturnInvoice(inv)}
-                  onSendEmail={handleSendEmail}
-                  onDeleteInvoice={handleDeleteInvoice}
-                  sendingEmailId={sendingEmailId}
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
-                  totalCount={displayedInvoices.length}
-                />
-              </div>
-            );
-          })()}
+              {/* Invoices Register Table */}
+              <SalesInvoicesTable
+                invoices={invoices}
+                loading={loading}
+                selectedIds={selectedIds}
+                onSelectToggle={handleSelectToggle}
+                onSelectAll={handleSelectAll}
+                onViewDetails={handleViewDetails}
+                onRecordPayment={(inv) => setModalPaymentInvoice(inv)}
+                onRecordReturn={(inv) => setModalReturnInvoice(inv)}
+                onSendEmail={handleSendEmail}
+                onDeleteInvoice={handleDeleteInvoice}
+                sendingEmailId={sendingEmailId}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                totalCount={totalCount}
+              />
+            </div>
+          )}
 
           {/* Quick Payment Modal */}
           {modalPaymentInvoice && (

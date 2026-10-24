@@ -30,14 +30,9 @@ export const LedgerTab: React.FC = () => {
         search: searchQuery,
         account_type: accountTypeFilter,
       });
-      const entries = res?.data || [];
-      setLedgerEntries(entries);
+      setLedgerEntries(res?.data || []);
       if ((res as any)?.summary) {
         setSummary((res as any).summary);
-      } else {
-        const totalDebit = entries.reduce((s: number, e: any) => s + (Number(e.debit) || 0), 0);
-        const totalCredit = entries.reduce((s: number, e: any) => s + (Number(e.credit) || 0), 0);
-        setSummary({ totalDebit, totalCredit });
       }
     } catch (err: any) {
       setError(err.message || 'فشل تحميل قيود دفتر الأستاذ');
@@ -66,7 +61,7 @@ export const LedgerTab: React.FC = () => {
     ],
     headers: ['التاريخ', 'الحساب المحاسبي', 'نوع المرجع', 'مدين Debit (YER)', 'دائن Credit (YER)', 'البيان المحاسبي', 'المستخدم'],
     rows: ledgerEntries.map((l) => [
-      l.transaction_date ? new Date(l.transaction_date).toLocaleDateString('ar-YE') : (l.date || '-'),
+      l.transaction_date ? new Date(l.transaction_date).toLocaleDateString('ar-YE') : '-',
       l.account_type === 'ACCOUNTS_RECEIVABLE'
         ? 'الذمم المدينة (العملاء)'
         : l.account_type === 'ACCOUNTS_PAYABLE'
@@ -77,12 +72,8 @@ export const LedgerTab: React.FC = () => {
         ? 'مصروفات المشتريات'
         : l.account_type === 'CASH_BANK'
         ? 'الصندوق والبنك'
-        : l.account_type === 'INVENTORY_ADJUSTMENT'
-        ? 'تسوية المخزون'
-        : l.account_type === 'FUEL_PUMP_SHIFT'
-        ? 'مبيعات محطة الوقود'
-        : l.account_name || l.account_type,
-      l.reference_type || l.entry_number || '-',
+        : l.account_type,
+      l.reference_type || '-',
       l.debit || 0,
       l.credit || 0,
       l.description || '-',
@@ -103,12 +94,6 @@ export const LedgerTab: React.FC = () => {
         return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-800">مصروفات المشتريات</span>;
       case 'CASH_BANK':
         return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-900/50 text-emerald-200 border border-emerald-700">الصندوق والبنك</span>;
-      case 'INVENTORY_ADJUSTMENT':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-950 text-indigo-300 border border-indigo-800">تسوية المخزون</span>;
-      case 'FUEL_PUMP_SHIFT':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-800">مبيعات طرمبات الوقود</span>;
-      case 'FUEL_TANK_REFILL':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">تفريغ محروقات الخزانات</span>;
       default:
         return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">{acc}</span>;
     }

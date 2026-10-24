@@ -211,15 +211,10 @@ export const FuelStationTab: React.FC = () => {
   const [refillLiters, setRefillLiters] = useState<string>('');
   const [refillSupplier, setRefillSupplier] = useState<string>('شركة النفط الوطنية - ناقلة 441');
 
-  // Save to LocalStorage & Backend PostgreSQL Sync
+  // Save to LocalStorage
   useEffect(() => {
     try {
       localStorage.setItem('erp_fuel_tanks_v1', JSON.stringify(tanks));
-      fetch('/api/v1/fuel-station/state', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tanks, records }),
-      }).catch(() => {});
     } catch (e) {
       console.error('Failed to save tanks:', e);
     }
@@ -228,11 +223,6 @@ export const FuelStationTab: React.FC = () => {
   useEffect(() => {
     try {
       localStorage.setItem('erp_fuel_meter_records_v1', JSON.stringify(records));
-      fetch('/api/v1/fuel-station/state', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tanks, records }),
-      }).catch(() => {});
     } catch (e) {
       console.error('Failed to save meter records:', e);
     }
@@ -315,26 +305,7 @@ export const FuelStationTab: React.FC = () => {
     setIsNewEntryOpen(false);
     setEntryCurrMeter('');
     setEntryCashReceived('');
-
-    // Automatically post balanced accounting entry to General Ledger
-    fetch('/api/v1/ledger', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        transaction_date: selectedDate,
-        date: selectedDate,
-        account_type: 'SALES_REVENUE',
-        account_name: 'إيرادات مبيعات الوقود والغاز',
-        reference_type: 'FUEL_PUMP_SHIFT',
-        reference_id: newRecord.id,
-        debit: totalActual,
-        credit: expectedTotal,
-        description: `إثبات مبيعات محطة الوقود - ${entryPump} (${selectedTank.name}) - عداد: ${prevMeterNum} إلى ${currMeterNum} (${netDispensed} لتر) - المسؤول: ${entryOperator}`,
-        created_by_name: entryOperator,
-      }),
-    }).catch((err) => console.warn('Ledger sync failed:', err));
-
-    setSuccessMessage('تم اعتماد وترحيل قراءة العداد وخصم الكمية من الخزان وقيدها محاسبياً بنجاح!');
+    setSuccessMessage('تم اعتماد وترحيل قراءة العداد وخصم الكمية من الخزان بنجاح!');
     setTimeout(() => setSuccessMessage(null), 4000);
   };
 
@@ -343,9 +314,6 @@ export const FuelStationTab: React.FC = () => {
     e.preventDefault();
     const refillL = parseEnglishNumber(refillLiters);
     if (refillL <= 0) return;
-
-    const targetTank = tanks.find((t) => t.id === refillTankId);
-    const refillCost = refillL * (targetTank?.unitPrice || 0);
 
     setTanks((prev) =>
       prev.map((t) => {
@@ -363,27 +331,9 @@ export const FuelStationTab: React.FC = () => {
       })
     );
 
-    // Automatically post balanced accounting entry for fuel inventory purchase
-    fetch('/api/v1/ledger', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        transaction_date: new Date().toISOString().split('T')[0],
-        date: new Date().toISOString().split('T')[0],
-        account_type: 'PURCHASE_EXPENSE',
-        account_name: 'مشتريات وتفريغ محروقات الخزانات',
-        reference_type: 'FUEL_TANK_REFILL',
-        reference_id: `refill-${Date.now()}`,
-        debit: refillCost,
-        credit: refillCost,
-        description: `تفريغ شحنة محروقات (ناقلة) في ${targetTank?.name || 'خزان الوقود'} - ${refillL} لتر من ${refillSupplier}`,
-        created_by_name: 'مدير المحطة',
-      }),
-    }).catch((err) => console.warn('Ledger sync failed:', err));
-
     setIsRefillModalOpen(false);
     setRefillLiters('');
-    setSuccessMessage(`تم بنجاح تسجيل تفريغ شحنة وقود (${formatNumber(refillL)} لتر) وقيدها في دفتر الأستاذ!`);
+    setSuccessMessage(`تم بنجاح تسجيل تفريغ شحنة وقود (${formatNumber(refillL)} لتر) وتحديث رصيد الخزان!`);
     setTimeout(() => setSuccessMessage(null), 4000);
   };
 

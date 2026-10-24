@@ -204,33 +204,17 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
                     </div>
                   </td>
 
-                  {/* Customer & Rep & Tier & Warranty Badge */}
+                  {/* Customer */}
                   <td className="py-3.5 px-4">
                     <div>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <p className="font-bold text-slate-100 truncate max-w-[180px]">
-                          {inv.customer_name || 'عميل نقدي / غير محدد'}
+                      <p className="font-medium text-slate-100 truncate max-w-[180px]">
+                        {inv.customer_name || 'عميل نقدي / غير محدد'}
+                      </p>
+                      {inv.customer_phone && (
+                        <p className="text-xs text-slate-500 font-mono" dir="ltr">
+                          {inv.customer_phone}
                         </p>
-                        {inv.price_tier && (
-                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700 font-medium">
-                            {inv.price_tier === 'wholesale' ? 'جملة' : inv.price_tier === 'half_wholesale' ? 'نصف جملة' : inv.price_tier === 'vip' ? 'VIP' : 'تجزئة'}
-                          </span>
-                        )}
-                        {(inv.hasWarrantyCertificate || inv.warrantyMonths || (inv.items && Array.isArray(inv.items) && inv.items.some((it: any) => it.batterySpec || it.tireSize || it.warrantyMonths))) && (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-800/60" title="شهادة ضمان إطارات/بطاريات">
-                            <ShieldCheck className="w-3 h-3 text-cyan-400" />
-                            <span>ضمان</span>
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 font-mono">
-                        {inv.customer_phone && <span dir="ltr">{inv.customer_phone}</span>}
-                        {(inv.sales_rep_name || inv.salesRepName) && (
-                          <span className="text-sky-400 font-medium font-sans">
-                            • مندوب: {inv.sales_rep_name || inv.salesRepName}
-                          </span>
-                        )}
-                      </div>
+                      )}
                     </div>
                   </td>
 
@@ -251,25 +235,9 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
                     )}
                   </td>
 
-                  {/* Total with Currency Badge & Base Equivalent */}
-                  <td className="py-3.5 px-4 text-left font-mono">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <span className="font-bold text-white text-sm">
-                        {formatAmount(total, inv.currency || 'YER')}
-                      </span>
-                      <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
-                        inv.currency === 'USD' ? 'bg-blue-950 text-blue-300 border border-blue-800' :
-                        inv.currency === 'SAR' ? 'bg-amber-950 text-amber-300 border border-amber-800' :
-                        'bg-emerald-950 text-emerald-300 border border-emerald-800'
-                      }`}>
-                        {inv.currency || 'YER'}
-                      </span>
-                    </div>
-                    {inv.currency && inv.currency !== 'YER' && (
-                      <div className="text-[10px] text-slate-400 font-mono text-left">
-                        ≈ {formatAmount(total * (inv.exchange_rate || (inv.currency === 'SAR' ? 535 : 2050)), 'YER')}
-                      </div>
-                    )}
+                  {/* Total */}
+                  <td className="py-3.5 px-4 text-left font-mono font-bold text-white">
+                    {formatAmount(total, inv.currency || 'YER')}
                   </td>
 
                   {/* Paid */}
