@@ -337,11 +337,14 @@ export const InventoryTab: React.FC = () => {
         return;
       }
 
-      // Process adjustments
+      // Process adjustments and calculate total variance value
+      let totalVarianceValue = 0;
       for (const item of itemsToAdjust) {
         const bookStock = Number(item.current_stock ?? item.qty ?? 0);
         const actualCount = physicalCounts[item.id];
         const diff = actualCount - bookStock;
+        const costPrice = Number(item.purchase_price ?? item.cost_price ?? 0);
+        totalVarianceValue += Math.abs(diff * costPrice);
         const reason = auditNotes[item.id] || `تسوية جرد فعلي معتمد (فارق: ${diff > 0 ? '+' : ''}${diff})`;
 
         await api.adjustStock(item.id, {
@@ -351,7 +354,25 @@ export const InventoryTab: React.FC = () => {
         });
       }
 
-      setSuccess(`تم بنجاح اعتماد الجرد المخزني وتسوية فروقات ${itemsToAdjust.length} صنف وتحديث الأرصدة!`);
+      // Post balanced accounting entry to General Ledger
+      fetch('/api/v1/ledger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transaction_date: new Date().toISOString().split('T')[0],
+          date: new Date().toISOString().split('T')[0],
+          account_type: 'INVENTORY_ADJUSTMENT',
+          account_name: 'تسوية الجرد المخزني وفروقات الأرصدة',
+          reference_type: 'STOCKTAKE_AUDIT',
+          reference_id: `AUDIT-${Date.now()}`,
+          debit: totalVarianceValue,
+          credit: totalVarianceValue,
+          description: `اعتماد وتسوية جردية معتمدة لـ ${itemsToAdjust.length} أصناف بالمستودع`,
+          created_by_name: 'مسؤول الجرد والمستودعات',
+        }),
+      }).catch((err) => console.warn('Ledger audit post sync failed:', err));
+
+      setSuccess(`تم بنجاح اعتماد الجرد المخزني وتسوية فروقات ${itemsToAdjust.length} صنف وتحديث الأرصدة وقيود دفتر الأستاذ!`);
       await fetchData();
       setTimeout(() => setSuccess(null), 5000);
     } catch (err: any) {

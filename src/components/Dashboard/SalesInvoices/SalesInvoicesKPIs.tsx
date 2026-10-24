@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatAmount } from '../../../lib/formatters';
+import { getStoredExchangeRates } from '../../../lib/exchangeRates';
 import { DollarSign, CheckCircle2, Clock, AlertTriangle, FileText } from 'lucide-react';
 
 interface SalesInvoicesKPIsProps {
@@ -8,11 +9,13 @@ interface SalesInvoicesKPIsProps {
 }
 
 export const SalesInvoicesKPIs: React.FC<SalesInvoicesKPIsProps> = ({ invoices, currency = 'YER' }) => {
-  // Aggregate KPIs from real data
-  let totalSales = 0;
-  let totalPaid = 0;
-  let totalRemaining = 0;
-  let overdueAmount = 0;
+  const config = getStoredExchangeRates();
+
+  // Aggregate KPIs in Base Currency (YER)
+  let totalSalesBase = 0;
+  let totalPaidBase = 0;
+  let totalRemainingBase = 0;
+  let overdueAmountBase = 0;
   let overdueCount = 0;
   let paidCount = 0;
   let partialCount = 0;
@@ -25,13 +28,16 @@ export const SalesInvoicesKPIs: React.FC<SalesInvoicesKPIsProps> = ({ invoices, 
     const paid = parseFloat(inv.paid_amount || '0') || 0;
     const remaining = parseFloat(inv.remaining_amount || `${total - paid}`) || 0;
 
+    const cur = (inv.currency || 'YER').toUpperCase();
+    const rate = cur === 'SAR' ? config.rates.SAR.accountingRate : cur === 'USD' ? config.rates.USD.accountingRate : 1;
+
     if (inv.status !== 'CANCELLED') {
-      totalSales += total;
-      totalPaid += paid;
-      totalRemaining += remaining;
+      totalSalesBase += total * rate;
+      totalPaidBase += paid * rate;
+      totalRemainingBase += remaining * rate;
 
       if (remaining > 0.01 && inv.due_date && inv.due_date < todayStr && inv.status !== 'DRAFT') {
-        overdueAmount += remaining;
+        overdueAmountBase += remaining * rate;
         overdueCount++;
       }
 
@@ -50,11 +56,14 @@ export const SalesInvoicesKPIs: React.FC<SalesInvoicesKPIsProps> = ({ invoices, 
       {/* 1. Total Sales */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-sm">
         <div>
-          <p className="text-xs font-medium text-slate-400 mb-1">إجمالي المبيعات</p>
-          <h3 className="text-xl font-bold text-white tracking-tight">
-            {formatAmount(totalSales, currency)}
+          <div className="flex items-center gap-1.5 mb-1">
+            <p className="text-xs font-medium text-slate-400">إجمالي المبيعات المجمعة</p>
+            <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 font-mono">YER أساس</span>
+          </div>
+          <h3 className="text-xl font-bold text-white tracking-tight font-mono">
+            {formatAmount(totalSalesBase, 'YER')}
           </h3>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 mt-1 font-mono">
             {invoices.length} فاتورة مسجلة
           </p>
         </div>
@@ -66,11 +75,14 @@ export const SalesInvoicesKPIs: React.FC<SalesInvoicesKPIsProps> = ({ invoices, 
       {/* 2. Collected Amount */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-sm">
         <div>
-          <p className="text-xs font-medium text-emerald-400 mb-1">إجمالي المحصل</p>
-          <h3 className="text-xl font-bold text-emerald-400 tracking-tight">
-            {formatAmount(totalPaid, currency)}
+          <div className="flex items-center gap-1.5 mb-1">
+            <p className="text-xs font-medium text-emerald-400">إجمالي المحصل الفعلي</p>
+            <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-400 font-mono">YER أساس</span>
+          </div>
+          <h3 className="text-xl font-bold text-emerald-400 tracking-tight font-mono">
+            {formatAmount(totalPaidBase, 'YER')}
           </h3>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 mt-1 font-mono">
             {paidCount} مسددة بالكامل | {partialCount} جزئي
           </p>
         </div>
@@ -82,11 +94,14 @@ export const SalesInvoicesKPIs: React.FC<SalesInvoicesKPIsProps> = ({ invoices, 
       {/* 3. Remaining Receivables */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-sm">
         <div>
-          <p className="text-xs font-medium text-amber-400 mb-1">المتبقي (الذمم المدينة)</p>
-          <h3 className="text-xl font-bold text-amber-400 tracking-tight">
-            {formatAmount(totalRemaining, currency)}
+          <div className="flex items-center gap-1.5 mb-1">
+            <p className="text-xs font-medium text-amber-400">المتبقي (الذمم المدينة)</p>
+            <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-950 text-amber-400 font-mono">YER أساس</span>
+          </div>
+          <h3 className="text-xl font-bold text-amber-400 tracking-tight font-mono">
+            {formatAmount(totalRemainingBase, 'YER')}
           </h3>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 mt-1 font-mono">
             {pendingCount + partialCount} فواتير غير مسددة
           </p>
         </div>
@@ -98,11 +113,14 @@ export const SalesInvoicesKPIs: React.FC<SalesInvoicesKPIsProps> = ({ invoices, 
       {/* 4. Overdue Invoices */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-sm">
         <div>
-          <p className="text-xs font-medium text-rose-400 mb-1">مستحقات متأخرة</p>
-          <h3 className="text-xl font-bold text-rose-400 tracking-tight">
-            {formatAmount(overdueAmount, currency)}
+          <div className="flex items-center gap-1.5 mb-1">
+            <p className="text-xs font-medium text-rose-400">مستحقات متأخرة</p>
+            <span className="text-[9px] px-1.5 py-0.2 rounded bg-rose-950 text-rose-400 font-mono">YER أساس</span>
+          </div>
+          <h3 className="text-xl font-bold text-rose-400 tracking-tight font-mono">
+            {formatAmount(overdueAmountBase, 'YER')}
           </h3>
-          <p className="text-xs text-rose-400/80 mt-1">
+          <p className="text-xs text-rose-400/80 mt-1 font-mono">
             {overdueCount} فاتورة تجاوزت تاريخ الاستحقاق
           </p>
         </div>

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useModuleSettings } from '../../context/ModuleSettingsContext';
 import { api } from '../../api';
-import { formatAmount, formatNumber } from '../../lib/formatters';
+import { formatAmount, formatNumber, toEnglishDigits } from '../../lib/formatters';
 import { printReport, exportToCSV } from '../../lib/exportUtils';
 import {
   FileText,
@@ -18,6 +19,11 @@ import {
   PieChart,
   RefreshCw,
   CheckCircle2,
+  Fuel,
+  ShieldCheck,
+  Layers,
+  Droplets,
+  AlertTriangle,
 } from 'lucide-react';
 
 type SubReportType =
@@ -27,10 +33,15 @@ type SubReportType =
   | 'receivables'
   | 'payables'
   | 'cash_flow'
-  | 'inventory';
+  | 'inventory'
+  | 'fuel_station'
+  | 'warranty_and_expiry';
 
 export const ReportsTab: React.FC = () => {
   const { company, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { settings } = useModuleSettings();
+  const businessMode = settings?.activePreset || 'multi_activity';
+
   const [activeReport, setActiveReport] = useState<SubReportType>('sales');
   const [loading, setLoading] = useState(false);
   const [startDate, setStartDate] = useState('');
@@ -56,7 +67,27 @@ export const ReportsTab: React.FC = () => {
       } else if (activeReport === 'purchases') {
         res = await api.getPurchaseReport({ start_date: startDate, end_date: endDate, group_by: groupBy });
       } else if (activeReport === 'profit_loss') {
-        res = await api.getProfitLossReport({ start_date: startDate, end_date: endDate });
+        const plRes = await api.getProfitLossReport({ start_date: startDate, end_date: endDate });
+        // Retrieve payments expenses
+        let expensesTotal = 0;
+        try {
+          const pStats = await api.getPaymentStats();
+          if (pStats?.data?.totalDisbursed) expensesTotal = Number(pStats.data.totalDisbursed);
+        } catch {}
+
+        const basePl = plRes?.data || { revenue: 0, cogs: 0, grossProfit: 0, operatingExpenses: 0, netProfit: 0 };
+        const operatingExp = Math.max(Number(basePl.operatingExpenses || 0), expensesTotal);
+        const gross = Number(basePl.revenue || 0) - Number(basePl.cogs || 0);
+        const net = gross - operatingExp;
+
+        res = {
+          data: {
+            ...basePl,
+            operatingExpenses: operatingExp,
+            grossProfit: gross,
+            netProfit: net,
+          },
+        };
       } else if (activeReport === 'receivables') {
         res = await api.getReceivablesReport();
       } else if (activeReport === 'payables') {
@@ -65,6 +96,37 @@ export const ReportsTab: React.FC = () => {
         res = await api.getCashFlowReport({ start_date: startDate, end_date: endDate });
       } else if (activeReport === 'inventory') {
         res = await api.getInventoryAnalytics();
+      } else if (activeReport === 'fuel_station') {
+        // Read tanks & meter logs
+        let tanks = [];
+        let meters = [];
+        try {
+          const storedTanks = localStorage.getItem('erp_fuel_tanks_v1');
+          if (storedTanks) tanks = JSON.parse(storedTanks);
+          const storedMeters = localStorage.getItem('erp_fuel_meter_records_v1');
+          if (storedMeters) meters = JSON.parse(storedMeters);
+        } catch {}
+
+        res = {
+          data: {
+            tanks,
+            meters,
+            totalDispensedLiters: meters.reduce((s: number, m: any) => s + (Number(m.dispensedLiters) || 0), 0),
+            totalExpectedRevenue: meters.reduce((s: number, m: any) => s + (Number(m.expectedRevenue) || 0), 0),
+            totalActualReceived: meters.reduce((s: number, m: any) => s + (Number(m.actualCashReceived || 0) + Number(m.actualElectronicReceived || 0)), 0),
+          },
+        };
+      } else if (activeReport === 'warranty_and_expiry') {
+        // Fetch products and active warranties
+        const prodsRes = await api.getProducts({ limit: 100 });
+        const allProds = prodsRes?.data?.products || prodsRes?.data || [];
+        res = {
+          data: {
+            products: allProds,
+            foodItems: allProds.filter((p: any) => p.activityType === 'food' || p.expiryDate),
+            warrantyItems: allProds.filter((p: any) => p.activityType === 'battery' || p.activityType === 'tire' || p.warrantyMonths),
+          },
+        };
       }
       if (res) setReportData(res?.data || null);
     } catch (err: any) {
@@ -293,6 +355,32 @@ export const ReportsTab: React.FC = () => {
           >
             <Boxes className="w-4 h-4" />
             <span>تحليلات المخزون</span>
+          </button>
+
+          {(businessMode === 'fuel_station_only' || businessMode === 'multi_activity') && (
+            <button
+              onClick={() => setActiveReport('fuel_station')}
+              className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${
+                activeReport === 'fuel_station'
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow'
+                  : 'bg-slate-800/80 text-amber-300 hover:bg-slate-800'
+              }`}
+            >
+              <Fuel className="w-4 h-4" />
+              <span>جرد ومبيعات الوقود والغاز</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => setActiveReport('warranty_and_expiry')}
+            className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${
+              activeReport === 'warranty_and_expiry'
+                ? 'bg-emerald-600 text-white font-bold shadow'
+                : 'bg-slate-800/80 text-emerald-300 hover:bg-slate-800'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>حركة الأصناف والضمانات والصلاحية</span>
           </button>
         </div>
       </div>
@@ -581,6 +669,216 @@ export const ReportsTab: React.FC = () => {
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
                   <div className="text-xs text-slate-500">الأصناف بحد النفاذ</div>
                   <div className="text-xl font-bold text-red-600">{formatNumber(reportData.lowStockCount)} أصناف</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Fuel Station Report */}
+          {activeReport === 'fuel_station' && reportData && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <Fuel className="w-5 h-5 text-amber-500" />
+                    <span>تقرير مبيعات وجرد محطة الوقود والغاز (العدادات والخزانات)</span>
+                  </h3>
+                  <p className="text-xs text-slate-500">قراءات العدادات اليومية، اللترات المعبأة، والفوارق المالية لحسابات الوردية</p>
+                </div>
+                <span className="px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-xs font-bold font-mono">
+                  {reportData.meters?.length || 0} قيد جرد مسجل
+                </span>
+              </div>
+
+              {/* Station KPI Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 bg-amber-50/50 border border-amber-200/80 rounded-2xl space-y-1">
+                  <span className="text-xs text-amber-800 font-semibold">إجمالي اللترات المباعة</span>
+                  <div className="text-xl font-black text-amber-700 font-mono" dir="ltr">
+                    {Number(reportData.totalDispensedLiters || 0).toLocaleString('en-US')} لتر
+                  </div>
+                </div>
+                <div className="p-4 bg-emerald-50/50 border border-emerald-200/80 rounded-2xl space-y-1">
+                  <span className="text-xs text-emerald-800 font-semibold">الإيراد الدفتري المطلوب</span>
+                  <div className="text-xl font-black text-emerald-700 font-mono" dir="ltr">
+                    {Number(reportData.totalExpectedRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} YER
+                  </div>
+                </div>
+                <div className="p-4 bg-blue-50/50 border border-blue-200/80 rounded-2xl space-y-1">
+                  <span className="text-xs text-blue-800 font-semibold">المبالغ المستلمة فعلياً</span>
+                  <div className="text-xl font-black text-blue-700 font-mono" dir="ltr">
+                    {Number(reportData.totalActualReceived || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} YER
+                  </div>
+                </div>
+              </div>
+
+              {/* Tanks Stock Table */}
+              {Array.isArray(reportData.tanks) && reportData.tanks.length > 0 && (
+                <div className="space-y-3 pt-2">
+                  <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                    <Droplets className="w-4 h-4 text-teal-600" />
+                    <span>أرصدة الخزانات الأرضية والغاز</span>
+                  </h4>
+                  <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                    <table className="w-full text-xs text-right border-collapse">
+                      <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                        <tr>
+                          <th className="p-3">الخزان</th>
+                          <th className="p-3">نوع الوقود</th>
+                          <th className="p-3">السعة الإجمالية</th>
+                          <th className="p-3">الرصيد الفعلي (لتر)</th>
+                          <th className="p-3">نسبة الامتلاء</th>
+                          <th className="p-3">سعر اللتر</th>
+                          <th className="p-3">قيمة مخزون الخزان</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {reportData.tanks.map((tank: any) => {
+                          const pct = Math.round(((tank.currentStockLiters || 0) / (tank.capacityLiters || 1)) * 100);
+                          const val = (tank.currentStockLiters || 0) * (tank.unitPrice || 0);
+                          return (
+                            <tr key={tank.id} className="hover:bg-slate-50">
+                              <td className="p-3 font-bold text-slate-900">{tank.name}</td>
+                              <td className="p-3 font-mono">{tank.fuelType}</td>
+                              <td className="p-3 font-mono">{Number(tank.capacityLiters || 0).toLocaleString('en-US')} لتر</td>
+                              <td className="p-3 font-mono font-bold text-teal-700">{Number(tank.currentStockLiters || 0).toLocaleString('en-US')} لتر</td>
+                              <td className="p-3 font-mono">
+                                <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${pct < 20 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                  %{pct}
+                                </span>
+                              </td>
+                              <td className="p-3 font-mono">{tank.unitPrice} YER</td>
+                              <td className="p-3 font-mono font-bold text-slate-900">{Number(val).toLocaleString('en-US')} YER</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Warranty & Expiry Radar Report */}
+          {activeReport === 'warranty_and_expiry' && reportData && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                    <span>تقرير حركة الأصناف والضمانات والصلاحية (FEFO & Warranty Audit)</span>
+                  </h3>
+                  <p className="text-xs text-slate-500">متابعة المنتجات الغذائية حسب تواريخ الانتهاء وضمانات الإطارات والبطاريات المعتمدة</p>
+                </div>
+              </div>
+
+              {/* Food Expiry Section */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-emerald-600" />
+                  <span>أصناف المواد الغذائية وتواريخ الصلاحية (FEFO):</span>
+                </h4>
+                <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                  <table className="w-full text-xs text-right border-collapse">
+                    <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                      <tr>
+                        <th className="p-3">اسم الصنف الغذائي</th>
+                        <th className="p-3">رقم الصنف / الكود</th>
+                        <th className="p-3">الرصيد الدفتري</th>
+                        <th className="p-3">تاريخ الانتهاء</th>
+                        <th className="p-3">الأيام المتبقية</th>
+                        <th className="p-3">الحالة الرقابية</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {reportData.foodItems?.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="p-6 text-center text-slate-400">لا توجد أصناف غذائية مسجلة بتواريخ صلاحية</td>
+                        </tr>
+                      ) : (
+                        reportData.foodItems?.map((food: any, idx: number) => {
+                          const now = new Date();
+                          const exp = food.expiryDate ? new Date(food.expiryDate) : null;
+                          const daysLeft = exp ? Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null;
+                          return (
+                            <tr key={idx} className="hover:bg-slate-50">
+                              <td className="p-3 font-bold text-slate-900">{food.name}</td>
+                              <td className="p-3 font-mono text-slate-500">{food.sku || food.itemCode || '-'}</td>
+                              <td className="p-3 font-mono font-bold text-slate-800">{food.current_stock ?? food.qty ?? 0} {food.unit || 'حبة'}</td>
+                              <td className="p-3 font-mono">{food.expiryDate || '-'}</td>
+                              <td className="p-3 font-mono font-bold">
+                                {daysLeft !== null ? (
+                                  <span className={daysLeft <= 30 ? 'text-rose-600' : daysLeft <= 90 ? 'text-amber-600' : 'text-emerald-600'}>
+                                    {daysLeft} يوم
+                                  </span>
+                                ) : '-'}
+                              </td>
+                              <td className="p-3">
+                                {daysLeft !== null && daysLeft <= 30 ? (
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">تنبيه انتهاء وشيك</span>
+                                ) : daysLeft !== null && daysLeft <= 90 ? (
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">قريب الانتهاء</span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">صالح ومطابق</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Batteries and Tires Warranty Section */}
+              <div className="space-y-3 pt-2">
+                <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-cyan-600" />
+                  <span>ضمانات البطاريات والإطارات وقطع الغيار:</span>
+                </h4>
+                <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                  <table className="w-full text-xs text-right border-collapse">
+                    <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                      <tr>
+                        <th className="p-3">اسم المنتج</th>
+                        <th className="p-3">رقم الصنف / البارت</th>
+                        <th className="p-3">نوع النشاط</th>
+                        <th className="p-3">المواصفة / المقاس</th>
+                        <th className="p-3">فترة الضمان</th>
+                        <th className="p-3">الرصيد المتاح</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {reportData.warrantyItems?.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="p-6 text-center text-slate-400">لا توجد أصناف ضمان مسجلة</td>
+                        </tr>
+                      ) : (
+                        reportData.warrantyItems?.map((w: any, idx: number) => (
+                          <tr key={idx} className="hover:bg-slate-50">
+                            <td className="p-3 font-bold text-slate-900">{w.name}</td>
+                            <td className="p-3 font-mono text-slate-500">{w.sku || w.itemCode || w.partNumber || '-'}</td>
+                            <td className="p-3">
+                              <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-[10px] font-bold">
+                                {w.activityType === 'battery' ? 'بطاريات' : w.activityType === 'tire' ? 'إطارات' : 'قطع غيار'}
+                              </span>
+                            </td>
+                            <td className="p-3 font-mono text-slate-600">
+                              {w.batterySpec || w.tireSize || w.viscosityGrade || '-'}
+                            </td>
+                            <td className="p-3 font-mono font-bold text-emerald-700">
+                              {w.warrantyMonths || 12} شهر
+                            </td>
+                            <td className="p-3 font-mono font-bold text-slate-800">
+                              {w.current_stock ?? w.qty ?? 0} {w.unit || 'حبة'}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>

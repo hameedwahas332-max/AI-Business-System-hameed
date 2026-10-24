@@ -14,7 +14,9 @@ import { SmartAlertsAIWidget } from './Overview/SmartAlertsAIWidget';
 import { RecentOperationsFeed } from './Overview/RecentOperationsFeed';
 import { SystemStatusAuditWidget } from './Overview/SystemStatusAuditWidget';
 
-import { RefreshCw, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { RefreshCw, AlertTriangle, ShieldCheck, Fuel, Droplets, Gauge, Calendar, Zap, Droplet, PackageCheck, Layers, ShoppingCart, Search, ArrowRight } from 'lucide-react';
+import { useModuleSettings, PRESET_DEFINITIONS, BusinessPresetKey } from '../../context/ModuleSettingsContext';
+import { formatNumber, formatAmount } from '../../lib/formatters';
 
 interface OverviewTabProps {
   onNavigate?: (tab: TabType, extra?: any) => void;
@@ -22,6 +24,27 @@ interface OverviewTabProps {
 
 export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
   const { company, user } = useAuth();
+  const { settings, applyPreset } = useModuleSettings();
+  const businessMode: BusinessPresetKey = settings?.activePreset || 'multi_activity';
+
+  const [fuelTanks] = useState<any[]>(() => {
+    try {
+      const s = localStorage.getItem('erp_fuel_tanks_v1');
+      return s ? JSON.parse(s) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [fuelRecords] = useState<any[]>(() => {
+    try {
+      const s = localStorage.getItem('erp_fuel_meter_records_v1');
+      return s ? JSON.parse(s) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<any>(null);
@@ -182,6 +205,161 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
             <RefreshCw className="w-3.5 h-3.5" />
             <span>إعادة المحاولة</span>
           </button>
+        </div>
+      )}
+
+      {/* =========================================================================
+          DYNAMIC BUSINESS MODE EXECUTIVE COMMAND HUB (6 Business Profiles)
+          ========================================================================= */}
+      {(businessMode === 'fuel_station_only' || businessMode === 'multi_activity') && (
+        <div className="bg-gradient-to-r from-amber-950/40 via-slate-900 to-slate-900 border border-amber-500/30 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-400 flex items-center justify-center">
+                <Fuel className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-white text-sm sm:text-base">ملخص محطة الوقود والغاز المركزية المباشر</h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    عدادات وخزانات لحظية
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  متابعة منسوب الخزانات الأرضية الأربعة، قراءات العدادات، وصافي اللترات المعبأة لليوم
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onNavigate?.('fuel_station')}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 cursor-pointer"
+              >
+                <Gauge className="w-4 h-4" />
+                <span>فتح شاشة جرد المحطة والعدادات</span>
+                <ArrowRight className="w-3.5 h-3.5 mr-0.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Tanks & Daily Shift Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mt-4">
+            {fuelTanks.length > 0 ? (
+              fuelTanks.slice(0, 4).map((tank: any) => {
+                const pct = Math.round((Number(tank.currentStockLiters || 0) / Number(tank.capacityLiters || 1)) * 100);
+                return (
+                  <div key={tank.id} className="bg-slate-950/70 p-3 rounded-xl border border-slate-800/80 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-slate-200 truncate">{tank.name}</span>
+                      <span className="font-mono text-[11px] font-bold text-amber-400">{pct}%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          pct < 25 ? 'bg-rose-500' : pct > 75 ? 'bg-emerald-500' : 'bg-amber-500'
+                        }`}
+                        style={{ width: `${Math.min(100, pct)}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                      <span>{formatNumber(tank.currentStockLiters)} لتر</span>
+                      <span className="text-slate-500">من {formatNumber(tank.capacityLiters)}</span>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="col-span-full py-4 text-center text-xs text-slate-400">
+                خزانات الوقود والغاز مهيأة وجاهزة للتسجيل من تبويب المحطة.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {businessMode === 'grocery_only' && (
+        <div className="bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/30 rounded-2xl p-5 shadow-xl">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 flex items-center justify-center">
+                <PackageCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-white text-base">مركز إدارة السوبرماركت والتموينات الغذائية</h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    وضع البقالة النشط
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  رادار الصلاحية FEFO، جرد الكراتين والحبات، والكاشير السريع مع قارئ الباركود
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onNavigate?.('pos')}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-600/20 cursor-pointer"
+              >
+                <ShoppingCart className="w-4 h-4" />
+                <span>الكاشير السريع (POS)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigate?.('inventory')}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-emerald-300 font-bold rounded-xl text-xs border border-emerald-500/30 transition-all cursor-pointer"
+              >
+                <Calendar className="w-4 h-4" />
+                <span>رادار تواريخ الصلاحية</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {(businessMode === 'tires_batteries_only' || businessMode === 'autoparts_oils_only') && (
+        <div className="bg-gradient-to-r from-blue-950/40 via-slate-900 to-slate-900 border border-blue-500/30 rounded-2xl p-5 shadow-xl">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/40 text-blue-400 flex items-center justify-center">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-white text-base">مركز الإطارات والبطاريات وقطع الغيار</h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                    ضمان وسيريال وكود DOT
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  مقاسات الإطارات، أرقام القطع OEM، سعات البطاريات، وشهادات الضمان الفورية
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onNavigate?.('inventory')}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-blue-600/20 cursor-pointer"
+              >
+                <Search className="w-4 h-4" />
+                <span>فاحص الضمان والسيريال</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigate?.('products')}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-blue-300 font-bold rounded-xl text-xs border border-blue-500/30 transition-all cursor-pointer"
+              >
+                <Layers className="w-4 h-4" />
+                <span>دليل المقاسات وقطع OEM</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

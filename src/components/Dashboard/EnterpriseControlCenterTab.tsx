@@ -32,12 +32,13 @@ import {
   Package,
   FileText,
   DollarSign,
-  TrendingUp,
-  Wallet,
   Server,
   Coins,
+  Check,
+  Building,
 } from 'lucide-react';
 import { DailyExchangeRateModal } from '../Common/DailyExchangeRateModal';
+import { useModuleSettings, PRESET_DEFINITIONS, BusinessPresetKey } from '../../context/ModuleSettingsContext';
 
 interface SettingItem {
   definition: {
@@ -496,8 +497,9 @@ const DEFAULT_CHANGE_REQUESTS: ChangeRequest[] = [
 
 export const EnterpriseControlCenterTab: React.FC = () => {
   // Main view level
-  const [activeLevel, setActiveLevel] = useState<'SETTINGS' | 'CONTROL_CENTER'>('SETTINGS');
+  const [activeLevel, setActiveLevel] = useState<'BUSINESS_MODES' | 'SETTINGS' | 'CONTROL_CENTER'>('BUSINESS_MODES');
   const [isRatesModalOpen, setIsRatesModalOpen] = useState(false);
+  const { settings: moduleSettings, updateSettings, applyPreset } = useModuleSettings();
   const [activeSubTab, setActiveSubTab] = useState<
     'OVERVIEW' | 'REQUESTS' | 'DRIFT' | 'VERSIONS' | 'SNAPSHOTS' | 'DIAGNOSTICS' | 'PRESETS' | 'AI_ASSISTANT'
   >('OVERVIEW');
@@ -1014,11 +1016,23 @@ export const EnterpriseControlCenterTab: React.FC = () => {
           </div>
 
           {/* Level Switcher */}
-          <div className="flex items-center bg-slate-950/80 p-1.5 rounded-xl border border-slate-800">
+          <div className="flex items-center bg-slate-950/80 p-1.5 rounded-xl border border-slate-800 flex-wrap gap-1">
+            <button
+              id="btn-switch-business-modes"
+              onClick={() => setActiveLevel('BUSINESS_MODES')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                activeLevel === 'BUSINESS_MODES'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Building className="w-4 h-4" />
+              <span>المستوى 0: أنشطة المنشأة والعزل الصارم (6 أوضاع)</span>
+            </button>
             <button
               id="btn-switch-settings"
               onClick={() => setActiveLevel('SETTINGS')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeLevel === 'SETTINGS'
                   ? 'bg-emerald-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-white'
@@ -1030,7 +1044,7 @@ export const EnterpriseControlCenterTab: React.FC = () => {
             <button
               id="btn-switch-control-center"
               onClick={() => setActiveLevel('CONTROL_CENTER')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeLevel === 'CONTROL_CENTER'
                   ? 'bg-emerald-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-white'
@@ -1043,11 +1057,11 @@ export const EnterpriseControlCenterTab: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsRatesModalOpen(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-all cursor-pointer mr-1"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-all cursor-pointer mr-auto"
               title="عرض وتعديل نشرة أسعار الصرف اليومية للعملات"
             >
               <Coins className="w-4 h-4 text-amber-400" />
-              <span>نشرة أسعار الصرف (YER / SAR / USD)</span>
+              <span>أسعار الصرف (YER/SAR/USD)</span>
             </button>
           </div>
         </div>
@@ -1308,6 +1322,211 @@ export const EnterpriseControlCenterTab: React.FC = () => {
           <button onClick={() => setStatusMessage(null)} className="text-slate-400 hover:text-white">
             <X className="w-3.5 h-3.5" />
           </button>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* LEVEL 0: 6 BUSINESS MODES & ACTIVITY ISOLATION (عزل نشاط المنشأة والعملات) */}
+      {/* ========================================================================= */}
+      {activeLevel === 'BUSINESS_MODES' && (
+        <div className="space-y-6">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Building className="w-5 h-5 text-indigo-400" />
+                  <span>تخصيص وضع المنشأة والعزل الصارم للأنشطة (6 Business Activity Modes)</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  اختر نمط نشاط المنشأة ليقوم النظام بإخفاء الأقسام غير ذات الصلة وضبط الحقول والوحدات ومستويات التسعير تلقائياً
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsRatesModalOpen(true)}
+                  className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Coins className="w-4 h-4 text-amber-400" />
+                  <span>نشرة العملات (YER / SAR / USD)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 6 Business Modes Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+              {[
+                {
+                  key: 'multi_activity' as BusinessPresetKey,
+                  name: 'الوضع الشامل المتعدد الأنشطة (الكامل)',
+                  badge: '🌐 شامل متكامل',
+                  desc: 'إتاحة كافة الأقسام (محطة الوقود، البقالة، الإطارات، البطاريات، قطع الغيار) بدون أي حجب.',
+                },
+                {
+                  key: 'grocery_only' as BusinessPresetKey,
+                  name: 'وضع البقالة والمواد الغذائية فقط',
+                  badge: '🍏 تموينات وأغذية',
+                  desc: 'يعرض فقط المواد الغذائية، تاريخ الصلاحية FEFO، الكراتين والحبات؛ ويخفي البطاريات والإطارات والوقود.',
+                },
+                {
+                  key: 'fuel_station_only' as BusinessPresetKey,
+                  name: 'وضع محطة تعبئة الغاز والبترول فقط',
+                  badge: '⛽ محطة وقود وغاز',
+                  desc: 'يعرض فقط شاشة جرد عدادات الطرمبات، منسوب الخزانات، والتوريد والمطابقة المالية؛ ويخفي الأقسام الأخرى.',
+                },
+                {
+                  key: 'tires_batteries_only' as BusinessPresetKey,
+                  name: 'وضع الإطارات والبطاريات فقط',
+                  badge: '🛞 إطارات وبطاريات',
+                  desc: 'يعرض مقاسات الإطارات، كود DOT، سعة البطاريات بالأمبير، شهادات الضمان، والرجيع.',
+                },
+                {
+                  key: 'autoparts_oils_only' as BusinessPresetKey,
+                  name: 'وضع قطع الغيار والزيوت فقط',
+                  badge: '🛢️ زيوت وقطع OEM',
+                  desc: 'يعرض أرقام القطع OEM، درجات لزوجة الزيوت، سعات اللتر، وكراتين الزيت؛ ويخفي الأغذية والوقود.',
+                },
+                {
+                  key: 'wholesale_retail_general' as BusinessPresetKey,
+                  name: 'وضع التجارة العامة والجملة والتجزئة',
+                  badge: '📦 تجارة عامة وجملة',
+                  desc: 'يعرض كروت الأصناف العامة، مستويات الأسعار، الباركود، الكراتين، وحدود الائتمان للعملاء.',
+                },
+              ].map((m) => {
+                const isActive = moduleSettings?.activePreset === m.key;
+                return (
+                  <div
+                    key={m.key}
+                    onClick={() => {
+                      applyPreset(m.key);
+                      setStatusMessage({ type: 'success', text: `تم تفعيل ${m.name} بنجاح!` });
+                    }}
+                    className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
+                      isActive
+                        ? 'bg-indigo-600/15 border-indigo-500 shadow-lg shadow-indigo-950/40'
+                        : 'bg-slate-950/70 border-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          isActive ? 'bg-indigo-500 text-white' : 'bg-slate-800 text-slate-400'
+                        }`}>
+                          {m.badge}
+                        </span>
+                        {isActive && <Check className="w-4 h-4 text-emerald-400" />}
+                      </div>
+                      <h4 className="font-bold text-white text-xs mb-1">{m.name}</h4>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">{m.desc}</p>
+                    </div>
+
+                    <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                      <span className={isActive ? 'text-indigo-300 font-bold' : 'text-slate-500'}>
+                        {isActive ? 'الوضع النشط حالياً' : 'اضغط للتفعيل'}
+                      </span>
+                      <button
+                        type="button"
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${
+                          isActive ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300'
+                        }`}
+                      >
+                        {isActive ? 'مفعّل' : 'تطبيق'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Module Engine Toggles */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
+              <Sliders className="w-4 h-4 text-emerald-400" />
+              <span>مفاتيح تحكم القواعد المحاسبية والمخزنية المتقدمة</span>
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 text-xs">
+              <label className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <div>
+                  <span className="font-bold text-white block">تعدد الوحدات (كرتون / حبة)</span>
+                  <span className="text-[10px] text-slate-400">البيع والتحويل والشراء بمعامل التعبئة</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={moduleSettings?.enableMultiUnits ?? true}
+                  onChange={(e) => updateSettings({ enableMultiUnits: e.target.checked })}
+                  className="w-4 h-4 accent-emerald-500 rounded"
+                />
+              </label>
+
+              <label className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <div>
+                  <span className="font-bold text-white block">مستويات التسعير المتعددة</span>
+                  <span className="text-[10px] text-slate-400">تجزئة، نصف جملة، جملة، VIP</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={moduleSettings?.enableTieredPricing ?? true}
+                  onChange={(e) => updateSettings({ enableTieredPricing: e.target.checked })}
+                  className="w-4 h-4 accent-emerald-500 rounded"
+                />
+              </label>
+
+              <label className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <div>
+                  <span className="font-bold text-white block">رادار تواريخ الصلاحية (FEFO)</span>
+                  <span className="text-[10px] text-slate-400">تنبيهات استباقية قبل انتهاء الصلاحية</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={moduleSettings?.enableExpiryTracking ?? true}
+                  onChange={(e) => updateSettings({ enableExpiryTracking: e.target.checked })}
+                  className="w-4 h-4 accent-emerald-500 rounded"
+                />
+              </label>
+
+              <label className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <div>
+                  <span className="font-bold text-white block">تتبع السيريال والضمان</span>
+                  <span className="text-[10px] text-slate-400">شهادات ضمان البطاريات والإطارات</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={moduleSettings?.enableSerialAndWarranty ?? true}
+                  onChange={(e) => updateSettings({ enableSerialAndWarranty: e.target.checked })}
+                  className="w-4 h-4 accent-emerald-500 rounded"
+                />
+              </label>
+
+              <label className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <div>
+                  <span className="font-bold text-white block">استبدال البطاريات القديمة (رجيع)</span>
+                  <span className="text-[10px] text-slate-400">خصم قيمة السكراب من فاتورة العميل</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={moduleSettings?.enableBatteryScrapTradeIn ?? true}
+                  onChange={(e) => updateSettings({ enableBatteryScrapTradeIn: e.target.checked })}
+                  className="w-4 h-4 accent-emerald-500 rounded"
+                />
+              </label>
+
+              <label className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                <div>
+                  <span className="font-bold text-white block">فرض سقف الحدود الائتمانية</span>
+                  <span className="text-[10px] text-slate-400">منع البيع الآجل عند تجاوز حد الدين</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={moduleSettings?.enforceCreditLimit ?? true}
+                  onChange={(e) => updateSettings({ enforceCreditLimit: e.target.checked })}
+                  className="w-4 h-4 accent-emerald-500 rounded"
+                />
+              </label>
+            </div>
+          </div>
         </div>
       )}
 
