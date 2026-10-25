@@ -6,6 +6,18 @@ import { fileURLToPath } from 'url';
 import pg from 'pg';
 import { S3Client, HeadBucketCommand, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { enterpriseRouter, mockCustomersList, mockSuppliersList, setEnterpriseDbPool, mockBackupsDatabase } from './server/routes/enterpriseApi';
+import {
+  mockProducts,
+  mockInventoryMovements,
+  mockInvoicesList,
+  mockPurchaseInvoicesList,
+  mockPaymentsList,
+  mockAccountTransactions,
+  mockAuditLogsList,
+  cleanupAllSampleData,
+  seedAllSampleData,
+  isSampleDataSeeded,
+} from './server/dataStore';
 
 const { Pool } = pg;
 const app = express();
@@ -530,306 +542,7 @@ app.get('/api/v1/suppliers', (req: Request, res: Response) => {
   });
 });
 
-let mockProducts = [
-  {
-    id: 'prod-1',
-    sku: 'TEA-01',
-    barcode: '629100100112',
-    name: 'شاي سيلاني فاخر 100 كيس',
-    category: 'مواد غذائية',
-    activityType: 'food',
-    unit: 'حبة',
-    baseUnitName: 'حبة',
-    subUnitName: 'باكت',
-    subUnitFactor: 12,
-    subUnitPrice: 210,
-    subUnitBarcode: '629100100113',
-    majorUnitName: 'كرتون',
-    majorUnitFactor: 24,
-    majorUnitPrice: 400,
-    majorUnitBarcode: '629100100114',
-    price: 18.5,
-    selling_price: 18.5,
-    retail_price: 18.5,
-    retailPrice: 18.5,
-    halfWholesalePrice: 17.5,
-    wholesalePrice: 16.5,
-    vipPrice: 16.0,
-    purchase_price: 13.0,
-    cost_price: 13.0,
-    qty: 240,
-    current_stock: 240,
-    min_stock_level: 20,
-    status: 'متوفر',
-    is_active: true,
-    batchNumber: 'B-2026-OCT',
-    productionDate: '2026-09-01',
-    expiryDate: '2027-09-01',
-  },
-  {
-    id: 'prod-2',
-    sku: 'COF-02',
-    barcode: '629100200223',
-    name: 'قهوة عربية بالهيل 500جم',
-    category: 'مواد غذائية',
-    activityType: 'food',
-    unit: 'حبة',
-    baseUnitName: 'حبة',
-    subUnitName: 'درزن',
-    subUnitFactor: 12,
-    subUnitPrice: 480,
-    majorUnitName: 'كرتون',
-    majorUnitFactor: 24,
-    majorUnitPrice: 920,
-    price: 42.0,
-    selling_price: 42.0,
-    retail_price: 42.0,
-    retailPrice: 42.0,
-    halfWholesalePrice: 40.0,
-    wholesalePrice: 38.0,
-    vipPrice: 37.0,
-    purchase_price: 31.0,
-    cost_price: 31.0,
-    qty: 85,
-    current_stock: 85,
-    min_stock_level: 15,
-    status: 'متوفر',
-    is_active: true,
-    batchNumber: 'COF-2026-A',
-    productionDate: '2026-08-15',
-    expiryDate: '2027-08-15',
-  },
-  {
-    id: 'prod-3',
-    sku: 'RIC-03',
-    barcode: '629100300334',
-    name: 'أرز بسمتي هندي ممتاز 5 كجم',
-    category: 'مواد غذائية',
-    activityType: 'food',
-    unit: 'كيس',
-    baseUnitName: 'كيس',
-    majorUnitName: 'شوال (4 أكياس)',
-    majorUnitFactor: 4,
-    majorUnitPrice: 210,
-    price: 55.0,
-    selling_price: 55.0,
-    retail_price: 55.0,
-    retailPrice: 55.0,
-    halfWholesalePrice: 53.0,
-    wholesalePrice: 51.0,
-    vipPrice: 50.0,
-    purchase_price: 43.0,
-    cost_price: 43.0,
-    qty: 14,
-    current_stock: 14,
-    min_stock_level: 15,
-    status: 'قريب من النفاذ',
-    is_active: true,
-    batchNumber: 'RICE-2026-X',
-    productionDate: '2026-07-01',
-    expiryDate: '2026-11-20', // Close to expiry
-  },
-  {
-    id: 'prod-4',
-    sku: 'BAT-70',
-    barcode: '880123456789',
-    name: 'بطارية هانكوك 70 أمبير جافة',
-    category: 'بطاريات وأجهزة',
-    activityType: 'battery',
-    unit: 'حبة',
-    baseUnitName: 'حبة',
-    majorUnitName: 'طبلية (10 حبات)',
-    majorUnitFactor: 10,
-    majorUnitPrice: 2800,
-    price: 290.0,
-    selling_price: 290.0,
-    retail_price: 290.0,
-    retailPrice: 290.0,
-    halfWholesalePrice: 280.0,
-    wholesalePrice: 270.0,
-    vipPrice: 265.0,
-    purchase_price: 220.0,
-    cost_price: 220.0,
-    qty: 28,
-    current_stock: 28,
-    min_stock_level: 8,
-    status: 'متوفر',
-    is_active: true,
-    batterySpec: '70Ah - 12V SMF',
-    warrantyMonths: 12,
-    scrapDiscountValue: 50.0,
-    requiresSerial: true,
-  },
-  {
-    id: 'prod-4b',
-    sku: 'BAT-100',
-    barcode: '880123456790',
-    name: 'بطارية إيه سي ديلكو 100 أمبير ياباني',
-    category: 'بطاريات وأجهزة',
-    activityType: 'battery',
-    unit: 'حبة',
-    baseUnitName: 'حبة',
-    majorUnitName: 'طبلية (8 حبات)',
-    majorUnitFactor: 8,
-    majorUnitPrice: 3100,
-    price: 410.0,
-    selling_price: 410.0,
-    retail_price: 410.0,
-    retailPrice: 410.0,
-    halfWholesalePrice: 395.0,
-    wholesalePrice: 380.0,
-    vipPrice: 375.0,
-    purchase_price: 320.0,
-    cost_price: 320.0,
-    qty: 18,
-    current_stock: 18,
-    min_stock_level: 6,
-    status: 'متوفر',
-    is_active: true,
-    batterySpec: '100Ah - 12V Heavy Duty',
-    warrantyMonths: 18,
-    scrapDiscountValue: 70.0,
-    requiresSerial: true,
-  },
-  {
-    id: 'prod-5',
-    sku: 'OIL-20W50',
-    barcode: '628100500556',
-    name: 'زيت محرك بترومين سوبر 20W-50 (4 لتر)',
-    category: 'زيوت وقطع غيار',
-    activityType: 'oil',
-    unit: 'جالون',
-    baseUnitName: 'جالون',
-    majorUnitName: 'كرتون (6 جوالين)',
-    majorUnitFactor: 6,
-    majorUnitPrice: 430,
-    price: 75.0,
-    selling_price: 75.0,
-    retail_price: 75.0,
-    retailPrice: 75.0,
-    halfWholesalePrice: 72.0,
-    wholesalePrice: 69.0,
-    vipPrice: 68.0,
-    purchase_price: 54.0,
-    cost_price: 54.0,
-    qty: 65,
-    current_stock: 65,
-    min_stock_level: 12,
-    status: 'متوفر',
-    is_active: true,
-    viscosityGrade: '20W-50',
-    oemCode: 'PET-20W50-SL',
-    litersPerUnit: 4,
-  },
-  {
-    id: 'prod-5b',
-    sku: 'OIL-5W30',
-    barcode: '628100500557',
-    name: 'زيت كاسترول ماجناتيك تخليقي 5W-30 (1 لتر)',
-    category: 'زيوت وقطع غيار',
-    activityType: 'oil',
-    unit: 'لتر',
-    baseUnitName: 'لتر',
-    majorUnitName: 'كرتون (12 لتر)',
-    majorUnitFactor: 12,
-    majorUnitPrice: 410,
-    price: 36.0,
-    selling_price: 36.0,
-    retail_price: 36.0,
-    retailPrice: 36.0,
-    halfWholesalePrice: 34.5,
-    wholesalePrice: 33.0,
-    vipPrice: 32.5,
-    purchase_price: 26.0,
-    cost_price: 26.0,
-    qty: 48,
-    current_stock: 48,
-    min_stock_level: 10,
-    status: 'متوفر',
-    is_active: true,
-    viscosityGrade: '5W-30 Fully Synthetic',
-    oemCode: 'CAS-5W30-SN',
-    litersPerUnit: 1,
-  },
-  {
-    id: 'prod-6',
-    sku: 'GEN-01',
-    barcode: '629100600667',
-    name: 'مناديل ورقية فاخرة عبوة عائلية',
-    category: 'عام',
-    activityType: 'general',
-    unit: 'باكت',
-    baseUnitName: 'باكت',
-    majorUnitName: 'كرتون (10 باكت)',
-    majorUnitFactor: 10,
-    majorUnitPrice: 75,
-    price: 8.5,
-    selling_price: 8.5,
-    retail_price: 8.5,
-    retailPrice: 8.5,
-    halfWholesalePrice: 8.0,
-    wholesalePrice: 7.5,
-    vipPrice: 7.2,
-    purchase_price: 5.5,
-    cost_price: 5.5,
-    qty: 92,
-    current_stock: 92,
-    min_stock_level: 20,
-    status: 'متوفر',
-    is_active: true,
-  },
-];
 
-let mockInventoryMovements = [
-  {
-    id: 'mov-1',
-    product_id: 'prod-4',
-    product_name: 'بطارية هانكوك 70 أمبير جافة',
-    type: 'IN',
-    quantity: 15,
-    remaining_stock: 28,
-    reference_type: 'PURCHASE_INVOICE',
-    reference_id: 'PUR-2026-0012',
-    date: '2026-10-18T10:30:00Z',
-    notes: 'توريد دفعة بطاريات جديدة من الوكيل',
-  },
-  {
-    id: 'mov-2',
-    product_id: 'prod-1',
-    product_name: 'شاي سيلاني فاخر 100 كيس',
-    type: 'OUT',
-    quantity: 12,
-    remaining_stock: 240,
-    reference_type: 'SALES_INVOICE',
-    reference_id: 'INV-2026-0042',
-    date: '2026-10-18T14:15:00Z',
-    notes: 'صرف مبيعات بالكرتون لعميل جملة',
-  },
-  {
-    id: 'mov-3',
-    product_id: 'prod-5',
-    product_name: 'زيت محرك بترومين سوبر 20W-50 (4 لتر)',
-    type: 'OUT',
-    quantity: 4,
-    remaining_stock: 65,
-    reference_type: 'POS_RECEIPT',
-    reference_id: 'POS-REC-1092',
-    date: '2026-10-18T16:45:00Z',
-    notes: 'بيع كاشير سريع فوري',
-  },
-  {
-    id: 'mov-4',
-    product_id: 'prod-3',
-    product_name: 'أرز بسمتي هندي ممتاز 5 كجم',
-    type: 'ADJUSTMENT',
-    quantity: -2,
-    remaining_stock: 14,
-    reference_type: 'PHYSICAL_INVENTORY',
-    reference_id: 'AUDIT-2026-10',
-    date: '2026-10-17T09:00:00Z',
-    notes: 'تسوية فارق جرد دوري فعلي (تلف كيس أثناء النقل)',
-  },
-];
 
 app.get('/api/v1/products', (req: Request, res: Response) => {
   const { search, category, lowStock, activityType } = req.query as any;
@@ -932,7 +645,8 @@ app.put('/api/v1/products/:id', (req: Request, res: Response) => {
 
 app.delete('/api/v1/products/:id', (req: Request, res: Response) => {
   const { id } = req.params;
-  mockProducts = mockProducts.filter((p) => p.id !== id);
+  const idx = mockProducts.findIndex((p) => p.id === id);
+  if (idx !== -1) mockProducts.splice(idx, 1);
   res.json({ success: true, message: 'Product deleted' });
 });
 
@@ -990,107 +704,331 @@ app.get('/api/v1/inventory', (req: Request, res: Response) => {
 app.get('/api/v1/invoices', (_req: Request, res: Response) => {
   res.json({
     success: true,
-    data: [
-      { id: 'INV-2026-0042', invoice_number: 'INV-2026-0042', customer: 'مؤسسة الأفق للتجارة', customer_name: 'مؤسسة الأفق للتجارة', date: '2026-10-18', total: 1667.5, amount: 1667.5, paid_amount: 1667.5, status: 'مدفوعة' },
-      { id: 'INV-2026-0041', invoice_number: 'INV-2026-0041', customer: 'شركة الوفاق المحدودة', customer_name: 'شركة الوفاق المحدودة', date: '2026-10-18', total: 943.0, amount: 943.0, paid_amount: 943.0, status: 'مدفوعة' },
-      { id: 'INV-2026-0040', invoice_number: 'INV-2026-0040', customer: 'عميل كاشير نقدي', customer_name: 'عميل كاشير نقدي', date: '2026-10-18', total: 207.0, amount: 207.0, paid_amount: 207.0, status: 'مدفوعة' },
-    ],
+    data: mockInvoicesList,
+    invoices: mockInvoicesList,
+    total: mockInvoicesList.length,
   });
 });
 
 app.post('/api/v1/invoices', (req: Request, res: Response) => {
   const inv = req.body || {};
+  const totalVal = Number(inv.total || inv.amount || 0);
+  const paidVal = Number(inv.paid_amount || (inv.status === 'مدفوعة' ? totalVal : 0));
+  const rawDate = String(inv.date || inv.invoice_date || inv.created_at || '').trim();
+  const invoiceDate = (rawDate ? rawDate.split('T')[0] : new Date().toISOString().split('T')[0]);
+  const invoiceCreatedAt = rawDate ? `${invoiceDate}T12:00:00.000Z` : new Date().toISOString();
+
+  const newInv = {
+    ...inv,
+    id: inv.id || `INV-${Date.now()}`,
+    invoice_number: inv.invoice_number || `INV-${Date.now()}`,
+    customer: inv.customer || inv.customer_name || 'عميل نقدي',
+    customer_name: inv.customer_name || inv.customer || 'عميل نقدي',
+    date: invoiceDate,
+    total: totalVal,
+    amount: totalVal,
+    paid_amount: paidVal,
+    remaining_amount: Math.max(0, totalVal - paidVal),
+    status: inv.status || (paidVal >= totalVal ? 'مدفوعة' : 'آجلة'),
+    created_at: invoiceCreatedAt,
+  };
+  mockInvoicesList.unshift(newInv);
+
+  // Update customer balance & record in ledger if customer account matched
+  const cust = mockCustomersList.find(
+    (c) => (newInv.customer_id && c.id === newInv.customer_id) || c.name === newInv.customer || c.name === newInv.customer_name
+  );
+  if (cust) {
+    const remaining = Math.max(0, totalVal - paidVal);
+    if (remaining > 0) {
+      cust.current_balance = (cust.current_balance || 0) + remaining;
+      cust.balance = cust.current_balance;
+      cust.updated_at = invoiceCreatedAt;
+    }
+    mockAccountTransactions.unshift({
+      id: `ctx-inv-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      party_id: cust.id,
+      party_type: 'CUSTOMER',
+      type: 'INVOICE',
+      amount: totalVal,
+      currency: newInv.currency || cust.currency || 'YER',
+      exchange_rate: 1.0,
+      balance_after: cust.current_balance,
+      running_balance: cust.current_balance,
+      date: invoiceDate,
+      description: `فاتورة مبيعات ضريبية ${newInv.invoice_number}`,
+      reference_no: newInv.invoice_number,
+      created_at: invoiceCreatedAt,
+    });
+  }
+
   res.status(201).json({
     success: true,
-    data: {
-      ...inv,
-      id: inv.id || `INV-${Date.now()}`,
-      created_at: new Date().toISOString(),
-    },
+    data: newInv,
   });
+});
+
+app.delete('/api/v1/invoices/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const idx = mockInvoicesList.findIndex((inv) => inv.id === id);
+  if (idx !== -1) mockInvoicesList.splice(idx, 1);
+  res.json({ success: true, message: 'Invoice deleted' });
 });
 
 app.get('/api/v1/purchase-invoices', (_req: Request, res: Response) => {
   res.json({
     success: true,
-    data: [
-      { id: 'PUR-2026-0012', invoice_number: 'PUR-2026-0012', supplier_name: 'شركة التوريدات الوطنية الكبرى', invoice_date: '2026-10-17', total: 14200, paid_amount: 10000, remaining_amount: 4200, status: 'PARTIAL' },
-      { id: 'PUR-2026-0011', invoice_number: 'PUR-2026-0011', supplier_name: 'مؤسسة الاستيراد المباشر', invoice_date: '2026-10-15', total: 5800, paid_amount: 5800, remaining_amount: 0, status: 'PAID' },
-    ],
+    data: mockPurchaseInvoicesList,
+    invoices: mockPurchaseInvoicesList,
+    total: mockPurchaseInvoicesList.length,
   });
 });
 
 app.post('/api/v1/purchase-invoices', (req: Request, res: Response) => {
   const pur = req.body || {};
+  const totalVal = Number(pur.total || 0);
+  const paidVal = Number(pur.paid_amount || 0);
+  const remainingVal = Number(pur.remaining_amount !== undefined ? pur.remaining_amount : Math.max(0, totalVal - paidVal));
+  const rawDate = String(pur.invoice_date || pur.date || pur.created_at || '').trim();
+  const invoiceDate = (rawDate ? rawDate.split('T')[0] : new Date().toISOString().split('T')[0]);
+  const invoiceCreatedAt = rawDate ? `${invoiceDate}T12:00:00.000Z` : new Date().toISOString();
+
+  const newPur = {
+    ...pur,
+    id: pur.id || `PUR-${Date.now()}`,
+    invoice_number: pur.invoice_number || `PUR-${Date.now()}`,
+    supplier_name: pur.supplier_name || 'مورد تجاري',
+    invoice_date: invoiceDate,
+    date: invoiceDate,
+    total: totalVal,
+    paid_amount: paidVal,
+    remaining_amount: remainingVal,
+    status: pur.status || (remainingVal === 0 ? 'PAID' : 'PARTIAL'),
+    created_at: invoiceCreatedAt,
+  };
+  mockPurchaseInvoicesList.unshift(newPur);
+
+  // Update supplier balance & record in ledger if supplier account matched
+  const supp = mockSuppliersList.find(
+    (s) => (newPur.supplier_id && s.id === newPur.supplier_id) || s.name === newPur.supplier_name
+  );
+  if (supp) {
+    if (remainingVal > 0) {
+      supp.current_balance = (supp.current_balance || 0) + remainingVal;
+      supp.balance = supp.current_balance;
+      supp.updated_at = invoiceCreatedAt;
+    }
+    mockAccountTransactions.unshift({
+      id: `stx-pur-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      party_id: supp.id,
+      party_type: 'SUPPLIER',
+      type: 'PURCHASE_INVOICE',
+      amount: totalVal,
+      currency: newPur.currency || supp.currency || 'YER',
+      exchange_rate: 1.0,
+      balance_after: supp.current_balance,
+      running_balance: supp.current_balance,
+      date: invoiceDate,
+      description: `فاتورة مشتريات وتوريد ${newPur.invoice_number}`,
+      reference_no: newPur.invoice_number,
+      created_at: invoiceCreatedAt,
+    });
+  }
+
   res.status(201).json({
     success: true,
-    data: {
-      ...pur,
-      id: pur.id || `PUR-${Date.now()}`,
-      created_at: new Date().toISOString(),
-    },
+    data: newPur,
   });
+});
+
+app.delete('/api/v1/purchase-invoices/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const idx = mockPurchaseInvoicesList.findIndex((p) => p.id === id);
+  if (idx !== -1) mockPurchaseInvoicesList.splice(idx, 1);
+  res.json({ success: true, message: 'Purchase invoice deleted' });
 });
 
 app.get('/api/v1/payments', (_req: Request, res: Response) => {
   res.json({
     success: true,
-    data: [
-      { id: 'PMT-001', type: 'CUSTOMER_PAYMENT', voucher_number: 'VOUCH-1001', customer_name: 'مؤسسة الأفق للتجارة', amount: 5000, currency: 'SAR', payment_method: 'CASH', payment_date: '2026-10-18', status: 'CONFIRMED' },
-      { id: 'PMT-002', type: 'SUPPLIER_PAYMENT', voucher_number: 'VOUCH-1002', supplier_name: 'شركة التوريدات الوطنية الكبرى', amount: 10000, currency: 'SAR', payment_method: 'BANK_TRANSFER', payment_date: '2026-10-18', status: 'CONFIRMED' },
-    ],
+    data: mockPaymentsList,
+    payments: mockPaymentsList,
+    total: mockPaymentsList.length,
   });
 });
 
 app.post('/api/v1/payments', (req: Request, res: Response) => {
   const pmt = req.body || {};
+  const amountVal = Number(pmt.amount || 0);
+  const rawDate = String(pmt.payment_date || pmt.date || pmt.created_at || '').trim();
+  const paymentDate = (rawDate ? rawDate.split('T')[0] : new Date().toISOString().split('T')[0]);
+  const paymentCreatedAt = rawDate ? `${paymentDate}T12:00:00.000Z` : new Date().toISOString();
+
+  const newPmt = {
+    ...pmt,
+    id: pmt.id || `PMT-${Date.now()}`,
+    voucher_number: pmt.voucher_number || `VOUCH-${Math.floor(1000 + Math.random() * 9000)}`,
+    amount: amountVal,
+    currency: pmt.currency || 'SAR',
+    payment_method: pmt.payment_method || 'CASH',
+    payment_date: paymentDate,
+    date: paymentDate,
+    status: pmt.status || 'CONFIRMED',
+    created_at: paymentCreatedAt,
+  };
+  mockPaymentsList.unshift(newPmt);
+
+  if (newPmt.type === 'CUSTOMER_PAYMENT') {
+    const cust = mockCustomersList.find(
+      (c) => (newPmt.customer_id && c.id === newPmt.customer_id) || c.name === newPmt.customer_name
+    );
+    if (cust) {
+      cust.current_balance = Math.max(0, (cust.current_balance || 0) - amountVal);
+      cust.balance = cust.current_balance;
+      cust.updated_at = paymentCreatedAt;
+      mockAccountTransactions.unshift({
+        id: `ctx-pmt-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        party_id: cust.id,
+        party_type: 'CUSTOMER',
+        type: 'PAYMENT',
+        amount: amountVal,
+        currency: newPmt.currency || cust.currency || 'YER',
+        exchange_rate: 1.0,
+        balance_after: cust.current_balance,
+        running_balance: cust.current_balance,
+        date: paymentDate,
+        description: `سند تحصيل / قبض ${newPmt.voucher_number}`,
+        reference_no: newPmt.voucher_number,
+        created_at: paymentCreatedAt,
+      });
+    }
+  } else if (newPmt.type === 'SUPPLIER_PAYMENT') {
+    const supp = mockSuppliersList.find(
+      (s) => (newPmt.supplier_id && s.id === newPmt.supplier_id) || s.name === newPmt.supplier_name
+    );
+    if (supp) {
+      supp.current_balance = Math.max(0, (supp.current_balance || 0) - amountVal);
+      supp.balance = supp.current_balance;
+      supp.updated_at = paymentCreatedAt;
+      mockAccountTransactions.unshift({
+        id: `stx-pmt-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        party_id: supp.id,
+        party_type: 'SUPPLIER',
+        type: 'PAYMENT',
+        amount: amountVal,
+        currency: newPmt.currency || supp.currency || 'YER',
+        exchange_rate: 1.0,
+        balance_after: supp.current_balance,
+        running_balance: supp.current_balance,
+        date: paymentDate,
+        description: `سند صرف للمورد ${newPmt.voucher_number}`,
+        reference_no: newPmt.voucher_number,
+        created_at: paymentCreatedAt,
+      });
+    }
+  }
+
   res.status(201).json({
     success: true,
-    data: {
-      ...pmt,
-      id: pmt.id || `PMT-${Date.now()}`,
-      voucher_number: pmt.voucher_number || `VOUCH-${Math.floor(1000 + Math.random() * 9000)}`,
-      created_at: new Date().toISOString(),
-    },
+    data: newPmt,
   });
 });
 
+app.delete('/api/v1/payments/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const idx = mockPaymentsList.findIndex((p) => p.id === id);
+  if (idx !== -1) mockPaymentsList.splice(idx, 1);
+  res.json({ success: true, message: 'Payment voucher deleted' });
+});
+
 app.get('/api/v1/financial-health', (_req: Request, res: Response) => {
+  const totalSales = mockInvoicesList.reduce((s, i) => s + Number(i.total || i.amount || 0), 0);
+  const totalPurchases = mockPurchaseInvoicesList.reduce((s, p) => s + Number(p.total || 0), 0);
+  const totalReceivables = mockCustomersList.reduce((s, c) => s + Number(c.balance || 0), 0);
+  const totalPayables = mockSuppliersList.reduce((s, sup) => s + Number(sup.balance || 0), 0);
+  const inventoryValue = mockProducts.reduce(
+    (s, prod) => s + Number((prod.cost_price || prod.purchase_price || 0) * (prod.current_stock || 0)),
+    0
+  );
+  const netProfit = Math.max(0, totalSales - totalPurchases);
+  const cashAndBankBalance = mockPaymentsList.reduce((s, pmt) => s + (pmt.type === 'CUSTOMER_PAYMENT' ? pmt.amount : -pmt.amount), 0);
+
   res.json({
     success: true,
     data: {
-      totalSales: 142500,
-      totalPurchases: 84200,
-      totalReceivables: 24500,
-      totalPayables: 18200,
-      cashAndBankBalance: 62400,
-      inventoryValue: 78500,
-      netProfit: 40300,
+      totalSales,
+      totalPurchases,
+      totalReceivables,
+      totalPayables,
+      cashAndBankBalance: Math.max(0, cashAndBankBalance),
+      inventoryValue,
+      netProfit,
     },
   });
 });
 
 app.get('/api/v1/payment-stats', (_req: Request, res: Response) => {
+  const customerPayments = mockPaymentsList.filter((p) => p.type === 'CUSTOMER_PAYMENT');
+  const supplierPayments = mockPaymentsList.filter((p) => p.type === 'SUPPLIER_PAYMENT');
+  const todayReceipts = customerPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
+  const todayDisbursements = supplierPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
+
   res.json({
     success: true,
     data: {
-      todayReceipts: 14500,
-      todayDisbursements: 8200,
-      todayExpenses: 1200,
-      cashOnHand: 28400,
-      bankBalance: 34000,
+      todayReceipts,
+      todayDisbursements,
+      todayExpenses: 0,
+      cashOnHand: Math.round(todayReceipts * 0.4),
+      bankBalance: Math.round(todayReceipts * 0.6),
     },
   });
 });
 
 app.get('/api/v1/reports', (_req: Request, res: Response) => {
+  const salesTotal = mockInvoicesList.reduce((s, i) => s + Number(i.total || i.amount || 0), 0);
+  const purchasesTotal = mockPurchaseInvoicesList.reduce((s, p) => s + Number(p.total || 0), 0);
+  const netProfit = Math.max(0, salesTotal - purchasesTotal);
+  const vatPayable = Math.max(0, salesTotal * 0.15 - purchasesTotal * 0.15);
+
   res.json({
     success: true,
     data: {
-      salesTotal: 142500,
-      purchasesTotal: 84200,
-      netProfit: 58300,
-      vatPayable: 8745,
+      salesTotal,
+      purchasesTotal,
+      netProfit,
+      vatPayable,
+    },
+  });
+});
+
+app.post(['/api/v1/saas/sample-data/cleanup', '/api/v1/production-onboarding/purge-sample-data'], async (req: Request, res: Response) => {
+  const authHeader = req.headers['authorization'] || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  const session = token ? activeSessions.get(token) : undefined;
+  const companyId = session?.company?.id || (req.headers['x-company-id'] as string) || 'comp_001';
+
+  const result = await cleanupAllSampleData(companyId, dbPool);
+  res.json({
+    success: true,
+    isSeeded: false,
+    message: result.message,
+    clearedCounts: result.clearedCounts,
+  });
+});
+
+app.post('/api/v1/saas/sample-data/seed', (_req: Request, res: Response) => {
+  const result = seedAllSampleData();
+  res.json({
+    success: true,
+    isSeeded: true,
+    message: result.message,
+    counts: {
+      products: mockProducts.length,
+      customers: mockCustomersList.length,
+      suppliers: mockSuppliersList.length,
+      invoices: mockInvoicesList.length,
+      movements: mockInventoryMovements.length,
     },
   });
 });

@@ -24,6 +24,7 @@ import {
   RotateCcw,
   Zap,
   Info,
+  Trash2,
 } from 'lucide-react';
 
 interface ReadinessData {
@@ -328,6 +329,51 @@ export const ProductionDataInitializationTab: React.FC<{ companyId?: string }> =
     }
   };
 
+  // Handle Clean Sandbox / Sample Data
+  const handleCleanupSampleData = async () => {
+    if (!window.confirm('هل أنت متأكد من رغبتك في حذف وتصفير كافة البيانات التجريبية (المنتجات، الحركات، الفواتير، الدفعات النموذجية) لبدء إدخال بياناتك الواقعية؟')) return;
+    setActionLoading('cleanup');
+    try {
+      const res = await safeFetchJson('/api/v1/saas/sample-data/cleanup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.ok && res.data?.success) {
+        const sampleStorageKeys = [
+          'erp_pos_held_sales',
+          'erp_custom_ledger_entries',
+          'erp_fuel_tanks_state',
+          'erp_fuel_daily_records',
+          'erp_sales_reps_v1',
+          'erp_battery_warranty_records',
+          'erp_tire_dot_records',
+          'erp_pos_shift_history',
+        ];
+        sampleStorageKeys.forEach((key) => {
+          try { localStorage.removeItem(key); } catch {}
+        });
+        localStorage.setItem('erp_sample_data_cleaned', 'true');
+        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new CustomEvent('erp:data-cleared'));
+
+        setFeedback({
+          type: 'success',
+          message: 'تم تصفير وحذف جميع البيانات التجريبية بنجاح! السجلات نظيفة تماماً وجاهزة لبياناتك الحقيقية.',
+        });
+        await fetchReadiness();
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        setFeedback({ type: 'error', message: res.error || res.data?.error || 'فشل تنظيف البيانات التجريبية' });
+      }
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: 'حدث خطأ أثناء تنظيف البيانات التجريبية' });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   // Handle Final Activation
   const handleActivateProduction = async () => {
     const targetComp = readiness?.summary.companyId || companyId;
@@ -391,7 +437,15 @@ export const ProductionDataInitializationTab: React.FC<{ companyId?: string }> =
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center flex-wrap gap-3">
+            <button
+              onClick={handleCleanupSampleData}
+              disabled={actionLoading === 'cleanup'}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-rose-950/80 hover:bg-rose-900 text-rose-200 border border-rose-800 text-xs sm:text-sm font-semibold rounded-xl transition cursor-pointer"
+            >
+              <Trash2 className="w-4 h-4 text-rose-400" />
+              حذف وتصفير البيانات التجريبية
+            </button>
             <button
               onClick={fetchReadiness}
               disabled={loading}

@@ -522,11 +522,16 @@ export const EnterpriseControlCenterTab: React.FC = () => {
     'OVERVIEW' | 'REQUESTS' | 'DRIFT' | 'VERSIONS' | 'SNAPSHOTS' | 'DIAGNOSTICS' | 'PRESETS' | 'AI_ASSISTANT'
   >('OVERVIEW');
 
-  // Load from local storage or defaults
+  // Load from local storage or defaults with safe structural validation
   const [settings, setSettings] = useState<SettingItem[]>(() => {
     try {
       const saved = localStorage.getItem('erp_control_center_settings');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed.every((item: any) => item && item.definition && item.definition.key)) {
+          return parsed;
+        }
+      }
     } catch {}
     return DEFAULT_ENTERPRISE_SETTINGS;
   });
@@ -534,7 +539,12 @@ export const EnterpriseControlCenterTab: React.FC = () => {
   const [governance, setGovernance] = useState<GovernanceState>(() => {
     try {
       const saved = localStorage.getItem('erp_control_center_governance');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          return { ...DEFAULT_GOVERNANCE, ...parsed };
+        }
+      }
     } catch {}
     return DEFAULT_GOVERNANCE;
   });
@@ -542,7 +552,10 @@ export const EnterpriseControlCenterTab: React.FC = () => {
   const [changeRequests, setChangeRequests] = useState<ChangeRequest[]>(() => {
     try {
       const saved = localStorage.getItem('erp_control_center_change_requests');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
     } catch {}
     return DEFAULT_CHANGE_REQUESTS;
   });
@@ -609,19 +622,25 @@ export const EnterpriseControlCenterTab: React.FC = () => {
   // Sync to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem('erp_control_center_settings', JSON.stringify(settings));
+      if (Array.isArray(settings) && settings.length > 0) {
+        localStorage.setItem('erp_control_center_settings', JSON.stringify(settings));
+      }
     } catch {}
   }, [settings]);
 
   useEffect(() => {
     try {
-      localStorage.setItem('erp_control_center_governance', JSON.stringify(governance));
+      if (governance) {
+        localStorage.setItem('erp_control_center_governance', JSON.stringify(governance));
+      }
     } catch {}
   }, [governance]);
 
   useEffect(() => {
     try {
-      localStorage.setItem('erp_control_center_change_requests', JSON.stringify(changeRequests));
+      if (Array.isArray(changeRequests)) {
+        localStorage.setItem('erp_control_center_change_requests', JSON.stringify(changeRequests));
+      }
     } catch {}
   }, [changeRequests]);
 
@@ -650,14 +669,22 @@ export const EnterpriseControlCenterTab: React.FC = () => {
       const lowStockCount = products.filter((p: any) => (Number(p.qty) || 0) <= 15 || p.status === 'منخفض').length;
       const inventoryValuation = products.reduce((sum: number, p: any) => sum + (Number(p.qty) || 0) * (Number(p.price) || 0), 0);
 
+      let formattedLastBackup = 'اليوم';
+      if (backupRes?.lastBackup) {
+        const parsedDate = new Date(backupRes.lastBackup);
+        if (!isNaN(parsedDate.getTime())) {
+          formattedLastBackup = parsedDate.toLocaleDateString('ar-SA');
+        }
+      }
+
       setRealCounters({
         customersCount: customers.length,
-        totalReceivables,
+        totalReceivables: Number(totalReceivables) || 0,
         suppliersCount: suppliers.length,
-        totalPayables,
+        totalPayables: Number(totalPayables) || 0,
         productsCount: products.length,
-        lowStockCount,
-        inventoryValuation,
+        lowStockCount: Number(lowStockCount) || 0,
+        inventoryValuation: Number(inventoryValuation) || 0,
         invoicesCount: invoices.length,
         salesTotal: Number(reports.salesTotal) || 0,
         purchasesTotal: Number(reports.purchasesTotal) || 0,
@@ -666,7 +693,7 @@ export const EnterpriseControlCenterTab: React.FC = () => {
         dbConnected: healthRes?.database?.connected ?? true,
         dbProvider: 'Neon PostgreSQL (Serverless Cloud)',
         backupConfigured: backupRes?.configured ?? true,
-        lastBackup: backupRes?.lastBackup ? new Date(backupRes.lastBackup).toLocaleDateString('ar-SA') : 'اليوم',
+        lastBackup: formattedLastBackup,
         loading: false,
       });
 
@@ -679,11 +706,17 @@ export const EnterpriseControlCenterTab: React.FC = () => {
         api.getControlCenterSnapshots ? api.getControlCenterSnapshots().catch(() => null) : null,
       ]);
 
-      if (settingsRes && settingsRes.success && Array.isArray(settingsRes.data) && settingsRes.data.length > 0) {
+      if (
+        settingsRes &&
+        settingsRes.success &&
+        Array.isArray(settingsRes.data) &&
+        settingsRes.data.length > 0 &&
+        settingsRes.data.every((s: any) => s && s.definition && s.definition.key)
+      ) {
         setSettings(settingsRes.data);
       }
-      if (govRes && govRes.success && govRes.data) {
-        setGovernance(govRes.data);
+      if (govRes && govRes.success && govRes.data && typeof govRes.data === 'object') {
+        setGovernance((prev) => ({ ...prev, ...govRes.data }));
       }
       if (crRes && crRes.success && Array.isArray(crRes.data)) {
         setChangeRequests(crRes.data);
@@ -706,12 +739,14 @@ export const EnterpriseControlCenterTab: React.FC = () => {
   // Compute real dynamic health score
   const computedHealthScore = React.useMemo(() => {
     let score = 100;
-    if (!governance.safeModeEnabled) score -= 10;
-    if (governance.emergencyLockActive) score -= 15;
-    const pendingCount = changeRequests.filter(cr => cr.status === 'PENDING_REVIEW').length;
+    if (!governance?.safeModeEnabled) score -= 10;
+    if (governance?.emergencyLockActive) score -= 15;
+    const pendingCount = Array.isArray(changeRequests)
+      ? changeRequests.filter((cr) => cr && cr.status === 'PENDING_REVIEW').length
+      : 0;
     score -= Math.min(pendingCount * 2, 10);
     return Math.max(score, 65);
-  }, [governance.safeModeEnabled, governance.emergencyLockActive, changeRequests]);
+  }, [governance?.safeModeEnabled, governance?.emergencyLockActive, changeRequests]);
 
   const handleApplySetting = async () => {
     if (!editingSetting) return;
@@ -970,18 +1005,32 @@ export const EnterpriseControlCenterTab: React.FC = () => {
     }
   };
 
-  // Filter settings
-  const filteredSettings = settings.filter((s) => {
-    const matchCat = selectedCategory === 'ALL' || s.definition.category === selectedCategory;
-    const matchQuery =
-      !searchQuery ||
-      s.definition.displayNameAr.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.definition.key.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (s.definition.descriptionAr && s.definition.descriptionAr.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchCat && matchQuery;
-  });
+  // Safe sanitized settings: guarantees every element has a valid definition
+  const safeSettings = React.useMemo(() => {
+    if (!Array.isArray(settings)) return DEFAULT_ENTERPRISE_SETTINGS;
+    const valid = settings.filter((s) => s && s.definition && typeof s.definition === 'object' && s.definition.key);
+    return valid.length > 0 ? valid : DEFAULT_ENTERPRISE_SETTINGS;
+  }, [settings]);
 
-  const categories: string[] = ['ALL', ...Array.from(new Set<string>(settings.map((s) => String(s.definition.category))))];
+  // Filter settings
+  const filteredSettings = React.useMemo(() => {
+    return safeSettings.filter((s) => {
+      const cat = s.definition?.category || 'SYSTEM';
+      const matchCat = selectedCategory === 'ALL' || cat === selectedCategory;
+      const q = (searchQuery || '').trim().toLowerCase();
+      if (!q) return matchCat;
+      const name = (s.definition?.displayNameAr || '').toLowerCase();
+      const key = (s.definition?.key || '').toLowerCase();
+      const desc = (s.definition?.descriptionAr || '').toLowerCase();
+      const matchQuery = name.includes(q) || key.includes(q) || desc.includes(q);
+      return matchCat && matchQuery;
+    });
+  }, [safeSettings, selectedCategory, searchQuery]);
+
+  const categories: string[] = React.useMemo(() => {
+    const rawCategories = safeSettings.map((s) => s.definition?.category).filter(Boolean) as string[];
+    return ['ALL', ...Array.from(new Set<string>(rawCategories))];
+  }, [safeSettings]);
 
   const getRiskBadge = (risk: string) => {
     switch (risk) {
@@ -1442,11 +1491,11 @@ export const EnterpriseControlCenterTab: React.FC = () => {
               </div>
             </div>
             <div className="text-2xl font-black text-white font-mono tabular-nums">
-              {realCounters.customersCount} <span className="text-xs text-slate-400 font-normal">عميل مسجل</span>
+              {realCounters?.customersCount ?? 0} <span className="text-xs text-slate-400 font-normal">عميل مسجل</span>
             </div>
             <div className="text-[11px] text-sky-400 font-mono tabular-nums flex items-center justify-between border-t border-slate-800/80 pt-1.5">
               <span>مديونيات قائمة:</span>
-              <span className="font-bold">{realCounters.totalReceivables.toLocaleString()} ر.س</span>
+              <span className="font-bold">{(realCounters?.totalReceivables || 0).toLocaleString()} ر.س</span>
             </div>
           </div>
 
@@ -1459,11 +1508,11 @@ export const EnterpriseControlCenterTab: React.FC = () => {
               </div>
             </div>
             <div className="text-2xl font-black text-white font-mono tabular-nums">
-              {realCounters.suppliersCount} <span className="text-xs text-slate-400 font-normal">مورد معتمد</span>
+              {realCounters?.suppliersCount ?? 0} <span className="text-xs text-slate-400 font-normal">مورد معتمد</span>
             </div>
             <div className="text-[11px] text-purple-400 font-mono tabular-nums flex items-center justify-between border-t border-slate-800/80 pt-1.5">
               <span>مستحقات للموردين:</span>
-              <span className="font-bold">{realCounters.totalPayables.toLocaleString()} ر.س</span>
+              <span className="font-bold">{(realCounters?.totalPayables || 0).toLocaleString()} ر.س</span>
             </div>
           </div>
 
@@ -1476,11 +1525,11 @@ export const EnterpriseControlCenterTab: React.FC = () => {
               </div>
             </div>
             <div className="text-2xl font-black text-white font-mono tabular-nums">
-              {realCounters.productsCount} <span className="text-xs text-slate-400 font-normal">صنف مسجل</span>
+              {realCounters?.productsCount ?? 0} <span className="text-xs text-slate-400 font-normal">صنف مسجل</span>
             </div>
             <div className="text-[11px] text-amber-400 font-mono tabular-nums flex items-center justify-between border-t border-slate-800/80 pt-1.5">
-              <span>أصناف منخفضة: {realCounters.lowStockCount}</span>
-              <span className="font-bold">تقييم: {realCounters.inventoryValuation.toLocaleString()} ر.س</span>
+              <span>أصناف منخفضة: {realCounters?.lowStockCount ?? 0}</span>
+              <span className="font-bold">تقييم: {(realCounters?.inventoryValuation || 0).toLocaleString()} ر.س</span>
             </div>
           </div>
 
@@ -1493,7 +1542,7 @@ export const EnterpriseControlCenterTab: React.FC = () => {
               </div>
             </div>
             <div className="text-2xl font-black text-white font-mono tabular-nums">
-              {realCounters.invoicesCount} <span className="text-xs text-slate-400 font-normal">فاتورة معتمدة</span>
+              {realCounters?.invoicesCount ?? 0} <span className="text-xs text-slate-400 font-normal">فاتورة معتمدة</span>
             </div>
             <div className="text-[11px] text-emerald-400 font-mono flex items-center justify-between border-t border-slate-800/80 pt-1.5">
               <span>الامتثال الضريبي:</span>
@@ -1510,7 +1559,7 @@ export const EnterpriseControlCenterTab: React.FC = () => {
               </div>
             </div>
             <div className="text-2xl font-black text-emerald-400 font-mono tabular-nums">
-              {realCounters.salesTotal.toLocaleString()} <span className="text-xs text-slate-400 font-normal">ر.س</span>
+              {(realCounters?.salesTotal || 0).toLocaleString()} <span className="text-xs text-slate-400 font-normal">ر.س</span>
             </div>
             <div className="text-[11px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-1.5">
               <span>حالة المبيعات:</span>
@@ -1527,7 +1576,7 @@ export const EnterpriseControlCenterTab: React.FC = () => {
               </div>
             </div>
             <div className="text-2xl font-black text-amber-400 font-mono tabular-nums">
-              {realCounters.purchasesTotal.toLocaleString()} <span className="text-xs text-slate-400 font-normal">ر.س</span>
+              {(realCounters?.purchasesTotal || 0).toLocaleString()} <span className="text-xs text-slate-400 font-normal">ر.س</span>
             </div>
             <div className="text-[11px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-1.5">
               <span>التكاليف المعتمدة:</span>
@@ -1544,12 +1593,12 @@ export const EnterpriseControlCenterTab: React.FC = () => {
               </div>
             </div>
             <div className="text-2xl font-black text-emerald-300 font-mono tabular-nums">
-              {realCounters.netProfit.toLocaleString()} <span className="text-xs text-slate-400 font-normal">ر.س</span>
+              {(realCounters?.netProfit || 0).toLocaleString()} <span className="text-xs text-slate-400 font-normal">ر.س</span>
             </div>
             <div className="text-[11px] text-emerald-400 flex items-center justify-between border-t border-slate-800/80 pt-1.5">
               <span>هامش الربح:</span>
               <span className="font-bold font-mono">
-                {realCounters.salesTotal > 0 ? ((realCounters.netProfit / realCounters.salesTotal) * 100).toFixed(1) : '40.9'}%
+                {(realCounters?.salesTotal || 0) > 0 ? (((realCounters?.netProfit || 0) / realCounters.salesTotal) * 100).toFixed(1) : '40.9'}%
               </span>
             </div>
           </div>
@@ -1563,7 +1612,7 @@ export const EnterpriseControlCenterTab: React.FC = () => {
               </div>
             </div>
             <div className="text-2xl font-black text-indigo-300 font-mono tabular-nums">
-              {realCounters.vatPayable.toLocaleString()} <span className="text-xs text-slate-400 font-normal">ر.س</span>
+              {(realCounters?.vatPayable || 0).toLocaleString()} <span className="text-xs text-slate-400 font-normal">ر.س</span>
             </div>
             <div className="text-[11px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-1.5">
               <span>حالة الإقرار:</span>
@@ -1705,7 +1754,7 @@ export const EnterpriseControlCenterTab: React.FC = () => {
                     </div>
 
                     {/* Affected Modules */}
-                    {item.definition.affectedModules.length > 0 && (
+                    {Array.isArray(item.definition?.affectedModules) && item.definition.affectedModules.length > 0 && (
                       <div className="flex items-center gap-1 mt-2 flex-wrap">
                         <span className="text-[10px] text-slate-500">الوحدات المتأثرة:</span>
                         {item.definition.affectedModules.map((m) => (
@@ -2236,7 +2285,7 @@ export const EnterpriseControlCenterTab: React.FC = () => {
       )}
 
       {/* Setting Edit Modal Dialog */}
-      {editingSetting && (
+      {editingSetting && editingSetting.definition && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" dir="rtl">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">

@@ -20,7 +20,7 @@ import {
   SupportedCurrency,
   convertCurrency,
 } from '../../lib/exchangeRates';
-import { formatNumber, parseEnglishNumber } from '../../lib/formatters';
+import { formatNumber, parseEnglishNumber, toEnglishDigits } from '../../lib/formatters';
 import { renderAndPrintDocument } from '../../lib/exportUtils';
 
 interface DailyExchangeRateModalProps {
@@ -32,25 +32,55 @@ export const DailyExchangeRateModal: React.FC<DailyExchangeRateModalProps> = ({ 
   const [ratesConfig, setRatesConfig] = useState<ExchangeRateConfig>(getStoredExchangeRates);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  // Quick Calculator State
+  // Quick Calculator State (string for smooth typing)
   const [calcAmount, setCalcAmount] = useState<string>('100');
   const [calcFromCurrency, setCalcFromCurrency] = useState<SupportedCurrency>('SAR');
 
+  // String input states for English numerals & clean decimal typing
+  const [rateInputs, setRateInputs] = useState<{
+    sarAccounting: string;
+    sarBuy: string;
+    sarSell: string;
+    usdAccounting: string;
+    usdBuy: string;
+    usdSell: string;
+  }>({
+    sarAccounting: '535',
+    sarBuy: '535',
+    sarSell: '537',
+    usdAccounting: '2050',
+    usdBuy: '2045',
+    usdSell: '2055',
+  });
+
   useEffect(() => {
     if (isOpen) {
-      setRatesConfig(getStoredExchangeRates());
+      const stored = getStoredExchangeRates();
+      setRatesConfig(stored);
+      setRateInputs({
+        sarAccounting: String(stored.rates?.SAR?.accountingRate ?? 535),
+        sarBuy: String(stored.rates?.SAR?.buyRate ?? 535),
+        sarSell: String(stored.rates?.SAR?.sellRate ?? 537),
+        usdAccounting: String(stored.rates?.USD?.accountingRate ?? 2050),
+        usdBuy: String(stored.rates?.USD?.buyRate ?? 2045),
+        usdSell: String(stored.rates?.USD?.sellRate ?? 2055),
+      });
       setSavedSuccess(false);
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleRateChange = (
+  const handleRateInputChange = (
     curr: 'SAR' | 'USD',
     field: 'buyRate' | 'sellRate' | 'accountingRate',
-    value: string
+    rawVal: string,
+    stateKey: keyof typeof rateInputs
   ) => {
-    const num = parseEnglishNumber(value, 0);
+    // Convert any Arabic-Indic digits ٠-٩ to English 0-9 and keep only valid decimal characters
+    const englishVal = toEnglishDigits(rawVal).replace(/[^0-9.]/g, '');
+    setRateInputs((prev) => ({ ...prev, [stateKey]: englishVal }));
+    const num = parseEnglishNumber(englishVal, 0);
     setRatesConfig((prev) => ({
       ...prev,
       lastUpdated: new Date().toISOString().split('T')[0],
@@ -73,6 +103,14 @@ export const DailyExchangeRateModal: React.FC<DailyExchangeRateModalProps> = ({ 
   const handleResetDefaults = () => {
     setRatesConfig(DEFAULT_EXCHANGE_RATES);
     saveStoredExchangeRates(DEFAULT_EXCHANGE_RATES);
+    setRateInputs({
+      sarAccounting: String(DEFAULT_EXCHANGE_RATES.rates.SAR.accountingRate),
+      sarBuy: String(DEFAULT_EXCHANGE_RATES.rates.SAR.buyRate),
+      sarSell: String(DEFAULT_EXCHANGE_RATES.rates.SAR.sellRate),
+      usdAccounting: String(DEFAULT_EXCHANGE_RATES.rates.USD.accountingRate),
+      usdBuy: String(DEFAULT_EXCHANGE_RATES.rates.USD.buyRate),
+      usdSell: String(DEFAULT_EXCHANGE_RATES.rates.USD.sellRate),
+    });
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
   };
@@ -211,36 +249,54 @@ export const DailyExchangeRateModal: React.FC<DailyExchangeRateModalProps> = ({ 
 
               <div className="space-y-2 text-xs">
                 <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">
-                    سعر التحويل المحاسبي والفواتير <span className="text-rose-400">*</span>
+                  <label className="block text-[11px] text-slate-400 mb-1 flex items-center justify-between">
+                    <span>
+                      سعر التحويل المحاسبي والفواتير <span className="text-rose-400">*</span>
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-mono font-bold">أرقام إنجليزية (0-9 EN)</span>
                   </label>
                   <input
-                    type="number"
-                    step="0.1"
-                    value={ratesConfig.rates.SAR.accountingRate}
-                    onChange={(e) => handleRateChange('SAR', 'accountingRate', e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono font-bold text-sm focus:outline-none focus:border-amber-400"
+                    type="text"
+                    inputMode="decimal"
+                    dir="ltr"
+                    lang="en"
+                    value={rateInputs.sarAccounting}
+                    onChange={(e) => handleRateInputChange('SAR', 'accountingRate', e.target.value, 'sarAccounting')}
+                    placeholder="535.0"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono font-bold text-sm focus:outline-none focus:border-amber-400 text-left"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-[10px] text-slate-400 mb-1">سعر الشراء (شراء من العميل)</label>
+                    <label className="block text-[10px] text-slate-400 mb-1 flex items-center justify-between">
+                      <span>سعر الشراء</span>
+                      <span className="text-[9px] text-slate-500 font-mono">0-9 EN</span>
+                    </label>
                     <input
-                      type="number"
-                      step="0.1"
-                      value={ratesConfig.rates.SAR.buyRate}
-                      onChange={(e) => handleRateChange('SAR', 'buyRate', e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-slate-600"
+                      type="text"
+                      inputMode="decimal"
+                      dir="ltr"
+                      lang="en"
+                      value={rateInputs.sarBuy}
+                      onChange={(e) => handleRateInputChange('SAR', 'buyRate', e.target.value, 'sarBuy')}
+                      placeholder="535.0"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono text-left focus:outline-none focus:border-slate-600"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-slate-400 mb-1">سعر البيع (صرف للمورد)</label>
+                    <label className="block text-[10px] text-slate-400 mb-1 flex items-center justify-between">
+                      <span>سعر البيع</span>
+                      <span className="text-[9px] text-slate-500 font-mono">0-9 EN</span>
+                    </label>
                     <input
-                      type="number"
-                      step="0.1"
-                      value={ratesConfig.rates.SAR.sellRate}
-                      onChange={(e) => handleRateChange('SAR', 'sellRate', e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-slate-600"
+                      type="text"
+                      inputMode="decimal"
+                      dir="ltr"
+                      lang="en"
+                      value={rateInputs.sarSell}
+                      onChange={(e) => handleRateInputChange('SAR', 'sellRate', e.target.value, 'sarSell')}
+                      placeholder="537.0"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono text-left focus:outline-none focus:border-slate-600"
                     />
                   </div>
                 </div>
@@ -264,36 +320,54 @@ export const DailyExchangeRateModal: React.FC<DailyExchangeRateModalProps> = ({ 
 
               <div className="space-y-2 text-xs">
                 <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">
-                    سعر التحويل المحاسبي والفواتير <span className="text-rose-400">*</span>
+                  <label className="block text-[11px] text-slate-400 mb-1 flex items-center justify-between">
+                    <span>
+                      سعر التحويل المحاسبي والفواتير <span className="text-rose-400">*</span>
+                    </span>
+                    <span className="text-[10px] text-blue-400 font-mono font-bold">أرقام إنجليزية (0-9 EN)</span>
                   </label>
                   <input
-                    type="number"
-                    step="0.5"
-                    value={ratesConfig.rates.USD.accountingRate}
-                    onChange={(e) => handleRateChange('USD', 'accountingRate', e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono font-bold text-sm focus:outline-none focus:border-blue-400"
+                    type="text"
+                    inputMode="decimal"
+                    dir="ltr"
+                    lang="en"
+                    value={rateInputs.usdAccounting}
+                    onChange={(e) => handleRateInputChange('USD', 'accountingRate', e.target.value, 'usdAccounting')}
+                    placeholder="2050.0"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono font-bold text-sm focus:outline-none focus:border-blue-400 text-left"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-[10px] text-slate-400 mb-1">سعر الشراء (شراء من العميل)</label>
+                    <label className="block text-[10px] text-slate-400 mb-1 flex items-center justify-between">
+                      <span>سعر الشراء</span>
+                      <span className="text-[9px] text-slate-500 font-mono">0-9 EN</span>
+                    </label>
                     <input
-                      type="number"
-                      step="0.5"
-                      value={ratesConfig.rates.USD.buyRate}
-                      onChange={(e) => handleRateChange('USD', 'buyRate', e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-slate-600"
+                      type="text"
+                      inputMode="decimal"
+                      dir="ltr"
+                      lang="en"
+                      value={rateInputs.usdBuy}
+                      onChange={(e) => handleRateInputChange('USD', 'buyRate', e.target.value, 'usdBuy')}
+                      placeholder="2045.0"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono text-left focus:outline-none focus:border-slate-600"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-slate-400 mb-1">سعر البيع (صرف للمورد)</label>
+                    <label className="block text-[10px] text-slate-400 mb-1 flex items-center justify-between">
+                      <span>سعر البيع</span>
+                      <span className="text-[9px] text-slate-500 font-mono">0-9 EN</span>
+                    </label>
                     <input
-                      type="number"
-                      step="0.5"
-                      value={ratesConfig.rates.USD.sellRate}
-                      onChange={(e) => handleRateChange('USD', 'sellRate', e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-slate-600"
+                      type="text"
+                      inputMode="decimal"
+                      dir="ltr"
+                      lang="en"
+                      value={rateInputs.usdSell}
+                      onChange={(e) => handleRateInputChange('USD', 'sellRate', e.target.value, 'usdSell')}
+                      placeholder="2055.0"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono text-left focus:outline-none focus:border-slate-600"
                     />
                   </div>
                 </div>
@@ -313,13 +387,23 @@ export const DailyExchangeRateModal: React.FC<DailyExchangeRateModalProps> = ({ 
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="sm:col-span-1">
-                <label className="block text-[10px] text-slate-400 mb-1">المبلغ المراد تحويله</label>
+                <label className="block text-[10px] text-slate-400 mb-1 flex items-center justify-between">
+                  <span>المبلغ المراد تحويله</span>
+                  <span className="text-[9px] text-cyan-400 font-mono">0-9 EN</span>
+                </label>
                 <div className="flex items-center gap-1">
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
+                    dir="ltr"
+                    lang="en"
                     value={calcAmount}
-                    onChange={(e) => setCalcAmount(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white font-mono font-bold focus:outline-none focus:border-cyan-400"
+                    onChange={(e) => {
+                      const english = toEnglishDigits(e.target.value).replace(/[^0-9.]/g, '');
+                      setCalcAmount(english);
+                    }}
+                    placeholder="100"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white font-mono font-bold focus:outline-none focus:border-cyan-400 text-left"
                   />
                   <select
                     value={calcFromCurrency}

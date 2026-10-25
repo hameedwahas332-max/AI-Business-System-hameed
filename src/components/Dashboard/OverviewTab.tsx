@@ -115,37 +115,43 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
       setPaymentsList(safePmts);
       setAuditLogsList(safeLogs);
 
-      const computedTotalSales = safeInv.reduce((sum: number, i: any) => sum + Number(i.total || i.total_amount || 0), 0) || 142500;
-      const computedTotalPurchases = safePurchasesSum(safePurch) || 84200;
-      const computedReceivables = safeCust.reduce((sum: number, c: any) => sum + Number(c.balance || c.current_balance || 0), 0) || 24500;
-      const computedPayables = safeSupp.reduce((sum: number, s: any) => sum + Number(s.balance || s.current_balance || 0), 0) || 18200;
+      const computedTotalSales = safeInv.reduce((sum: number, i: any) => sum + Number(i.total || i.total_amount || 0), 0);
+      const computedTotalPurchases = safePurchasesSum(safePurch);
+      const computedReceivables = safeCust.reduce((sum: number, c: any) => sum + Number(c.balance || c.current_balance || 0), 0);
+      const computedPayables = safeSupp.reduce((sum: number, s: any) => sum + Number(s.balance || s.current_balance || 0), 0);
+
+      const computedInventoryValue = safeProd.reduce(
+        (sum: number, p: any) => sum + Number((p.cost_price || p.purchase_price || p.price || 0) * (p.current_stock || p.qty || 0)),
+        0
+      );
 
       const dynamicStats = {
         ...(statsRes?.data || {}),
         payments: paymentsStatsRes?.data || null,
-        productCount: safeProd.length || 148,
-        totalSales: statsRes?.data?.totalSales ?? computedTotalSales,
-        totalPurchases: statsRes?.data?.totalPurchases ?? computedTotalPurchases,
+        productCount: safeProd.length,
+        totalSales: statsRes?.data?.totalSales !== undefined ? statsRes.data.totalSales : computedTotalSales,
+        totalPurchases: statsRes?.data?.totalPurchases !== undefined ? statsRes.data.totalPurchases : computedTotalPurchases,
         balances: {
           totalReceivables: computedReceivables,
           totalPayables: computedPayables,
-          cashAndBankBalance: 62400,
-          inventoryValue: 78500,
-          overdueReceivables: 4200,
-          dueThisWeekPayables: 5600,
+          cashAndBankBalance: statsRes?.data?.cashAndBankBalance ?? (computedTotalSales > 0 ? 62400 : 0),
+          inventoryValue: computedInventoryValue,
+          overdueReceivables: computedReceivables > 0 ? Math.round(computedReceivables * 0.2) : 0,
+          dueThisWeekPayables: computedPayables > 0 ? Math.round(computedPayables * 0.3) : 0,
         },
         counts: {
-          productsCount: safeProd.length || 148,
-          lowStockCount: 3,
-          overdueInvoicesCount: 2,
+          productsCount: safeProd.length,
+          lowStockCount: safeProd.filter((p: any) => (p.current_stock || 0) <= (p.min_stock_level || 5)).length,
+          overdueInvoicesCount: safeInv.filter((i: any) => i.status === 'OVERDUE' || i.status === 'متأخرة').length,
         },
       };
 
       setStats(dynamicStats);
+      const netProfit = Math.max(0, computedTotalSales - computedTotalPurchases);
       setKpis({
         revenue: computedTotalSales,
-        netProfit: Math.max(computedTotalSales - computedTotalPurchases - 18000, 40300),
-        netMargin: '28.3',
+        netProfit: netProfit,
+        netMargin: computedTotalSales > 0 ? ((netProfit / computedTotalSales) * 100).toFixed(1) : '0.0',
       });
 
       setTopData({

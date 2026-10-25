@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../../api';
-import { formatNumber, formatAmount, formatCustomerAmount, formatSupplierAmount } from '../../lib/formatters';
+import { formatNumber, formatAmount, formatCustomerAmount, formatSupplierAmount, toEnglishDigits, formatDateOnly } from '../../lib/formatters';
 import { ExportActions } from '../Common/ExportActions';
 import { TableExportConfig, printAccountStatement, printReport, AccountStatementPrintConfig } from '../../lib/exportUtils';
 import { useAuth } from '../../context/AuthContext';
@@ -175,49 +175,61 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
 
   // Combined List with Normalized Types
   const unifiedAccounts = useMemo(() => {
-    const customerItems = customers.map((c) => ({
-      ...c,
-      _accountType: 'CUSTOMER' as const,
-      _uniqueKey: `cust_${c.id}`,
-      _displayCode: `CUST-${String(c.id).slice(-4).toUpperCase()}`,
-      _name: c.name || '',
-      _phone: c.phone || '',
-      _email: c.email || '',
-      _address: c.address || '',
-      _currency: c.currency || 'YER',
-      _openingBalance: Number(c.opening_balance || 0),
-      _currentBalance: Number(c.current_balance || 0),
-      _notes: c.notes || '',
-      _createdAt: c.created_at || new Date().toISOString(),
-      _segment:
-        Math.abs(Number(c.current_balance || 0)) > 500000
-          ? 'VIP'
-          : Math.abs(Number(c.current_balance || 0)) > 100000
-          ? 'عميل دائم'
-          : 'عميل نشط',
-    }));
+    const customerItems = customers.map((c) => {
+      const opBal = Number(c.opening_balance !== undefined ? c.opening_balance : (c.openingBalance !== undefined ? c.openingBalance : (c.balance || 0)));
+      const curBal = Number(c.current_balance !== undefined ? c.current_balance : (c.balance || 0));
+      const cur = c.currency || 'YER';
 
-    const supplierItems = suppliers.map((s) => ({
-      ...s,
-      _accountType: 'SUPPLIER' as const,
-      _uniqueKey: `supp_${s.id}`,
-      _displayCode: `SUPP-${String(s.id).slice(-4).toUpperCase()}`,
-      _name: s.name || '',
-      _phone: s.phone || '',
-      _email: s.email || '',
-      _address: s.address || '',
-      _currency: s.currency || 'YER',
-      _openingBalance: Number(s.opening_balance || 0),
-      _currentBalance: Number(s.current_balance || 0),
-      _notes: s.notes || '',
-      _createdAt: s.created_at || new Date().toISOString(),
-      _segment:
-        Math.abs(Number(s.current_balance || 0)) > 500000
-          ? 'مورد استراتيجي'
-          : Math.abs(Number(s.current_balance || 0)) > 100000
-          ? 'مورد رئيسي'
-          : 'مورد معتمد',
-    }));
+      return {
+        ...c,
+        _accountType: 'CUSTOMER' as const,
+        _uniqueKey: `cust_${c.id}`,
+        _displayCode: `CUST-${String(c.id).slice(-4).toUpperCase()}`,
+        _name: c.name || '',
+        _phone: c.phone || '',
+        _email: c.email || '',
+        _address: c.address || '',
+        _currency: cur,
+        _openingBalance: opBal,
+        _currentBalance: curBal,
+        _notes: c.notes || '',
+        _createdAt: c.created_at || new Date().toISOString(),
+        _segment:
+          Math.abs(curBal) > 500000
+            ? 'VIP'
+            : Math.abs(curBal) > 100000
+            ? 'عميل دائم'
+            : 'عميل نشط',
+      };
+    });
+
+    const supplierItems = suppliers.map((s) => {
+      const opBal = Number(s.opening_balance !== undefined ? s.opening_balance : (s.openingBalance !== undefined ? s.openingBalance : (s.balance || 0)));
+      const curBal = Number(s.current_balance !== undefined ? s.current_balance : (s.balance || 0));
+      const cur = s.currency || 'YER';
+
+      return {
+        ...s,
+        _accountType: 'SUPPLIER' as const,
+        _uniqueKey: `supp_${s.id}`,
+        _displayCode: `SUPP-${String(s.id).slice(-4).toUpperCase()}`,
+        _name: s.name || '',
+        _phone: s.phone || '',
+        _email: s.email || '',
+        _address: s.address || '',
+        _currency: cur,
+        _openingBalance: opBal,
+        _currentBalance: curBal,
+        _notes: s.notes || '',
+        _createdAt: s.created_at || new Date().toISOString(),
+        _segment:
+          Math.abs(curBal) > 500000
+            ? 'مورد استراتيجي'
+            : Math.abs(curBal) > 100000
+            ? 'مورد رئيسي'
+            : 'مورد معتمد',
+      };
+    });
 
     return [...customerItems, ...supplierItems];
   }, [customers, suppliers]);
@@ -328,7 +340,7 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
       email: '',
       address: '',
       openingBalance: '0',
-      currency: 'YER',
+      currency: (company?.currency as any) || 'YER',
       notes: '',
     });
     setIsCustomerModalOpen(true);
@@ -337,12 +349,13 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
   // Handler: Open Edit Customer
   const handleOpenEditCustomer = (cust: any) => {
     setEditingCustomer(cust);
+    const opBal = cust.opening_balance !== undefined ? cust.opening_balance : (cust.openingBalance !== undefined ? cust.openingBalance : (cust.balance || 0));
     setCustomerFormData({
       name: cust.name || '',
       phone: cust.phone || '',
       email: cust.email || '',
       address: cust.address || '',
-      openingBalance: String(cust.opening_balance || 0),
+      openingBalance: String(opBal || 0),
       currency: cust.currency || 'YER',
       notes: cust.notes || '',
     });
@@ -354,6 +367,7 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
     e.preventDefault();
     try {
       setError(null);
+      const opNum = parseFloat(customerFormData.openingBalance || '0');
       if (editingCustomer) {
         await api.updateCustomer(editingCustomer.id, {
           name: customerFormData.name,
@@ -361,20 +375,24 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
           email: customerFormData.email,
           address: customerFormData.address,
           currency: customerFormData.currency,
+          opening_balance: opNum,
+          openingBalance: opNum,
           notes: customerFormData.notes,
         });
-        setSuccess('تم تحديث بيانات حساب العميل بنجاح');
+        setSuccess('تم تحديث بيانات حساب العميل والعملة بنجاح');
       } else {
         await api.createCustomer({
           name: customerFormData.name,
           phone: customerFormData.phone,
           email: customerFormData.email,
           address: customerFormData.address,
-          openingBalance: parseFloat(customerFormData.openingBalance || '0'),
+          openingBalance: opNum,
+          opening_balance: opNum,
+          balance: opNum,
           currency: customerFormData.currency,
           notes: customerFormData.notes,
         });
-        setSuccess('تم تسجيل العميل الجديد بنجاح في المنظومة');
+        setSuccess('تم تسجيل العميل الجديد وتثبيت الرصيد الافتتاحي والعملة بنجاح');
       }
       setIsCustomerModalOpen(false);
       fetchAllData(searchQuery);
@@ -408,7 +426,7 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
       email: '',
       address: '',
       openingBalance: '0',
-      currency: 'YER',
+      currency: (company?.currency as any) || 'YER',
       notes: '',
     });
     setIsSupplierModalOpen(true);
@@ -417,12 +435,13 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
   // Handler: Open Edit Supplier
   const handleOpenEditSupplier = (supp: any) => {
     setEditingSupplier(supp);
+    const opBal = supp.opening_balance !== undefined ? supp.opening_balance : (supp.openingBalance !== undefined ? supp.openingBalance : (supp.balance || 0));
     setSupplierFormData({
       name: supp.name || '',
       phone: supp.phone || '',
       email: supp.email || '',
       address: supp.address || '',
-      openingBalance: String(supp.opening_balance || 0),
+      openingBalance: String(opBal || 0),
       currency: supp.currency || 'YER',
       notes: supp.notes || '',
     });
@@ -434,6 +453,7 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
     e.preventDefault();
     try {
       setError(null);
+      const opNum = parseFloat(supplierFormData.openingBalance || '0');
       if (editingSupplier) {
         await api.updateSupplier(editingSupplier.id, {
           name: supplierFormData.name,
@@ -441,20 +461,24 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
           email: supplierFormData.email,
           address: supplierFormData.address,
           currency: supplierFormData.currency,
+          opening_balance: opNum,
+          openingBalance: opNum,
           notes: supplierFormData.notes,
         });
-        setSuccess('تم تحديث بيانات المورد بنجاح');
+        setSuccess('تم تحديث بيانات المورد والعملة بنجاح');
       } else {
         await api.createSupplier({
           name: supplierFormData.name,
           phone: supplierFormData.phone,
           email: supplierFormData.email,
           address: supplierFormData.address,
-          openingBalance: parseFloat(supplierFormData.openingBalance || '0'),
+          openingBalance: opNum,
+          opening_balance: opNum,
+          balance: opNum,
           currency: supplierFormData.currency,
           notes: supplierFormData.notes,
         });
-        setSuccess('تم تسجيل المورد الجديد بنجاح في المنظومة');
+        setSuccess('تم تسجيل المورد الجديد وتثبيت الرصيد الافتتاحي والعملة بنجاح');
       }
       setIsSupplierModalOpen(false);
       fetchAllData(searchQuery);
@@ -492,7 +516,12 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
         });
         setStatementData(res?.data || null);
       } else {
-        const res = await api.getSupplierStatement(party.id);
+        const res = await api.getSupplierStatement(party.id, {
+          from_date: from || undefined,
+          to_date: to || undefined,
+          page: page ?? stmtPage,
+          limit: limit ?? stmtLimit,
+        });
         setStatementData(res?.data || null);
       }
     } catch (err: any) {
@@ -568,6 +597,7 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
           amount: numAmount,
           currency: txFormData.currency || 'YER',
           exchange_rate: parseFloat(txFormData.exchangeRate || '1.0'),
+          date: txFormData.date || new Date().toISOString().split('T')[0],
           description: txFormData.description?.trim() || undefined,
           referenceNo: txFormData.referenceNo?.trim() || undefined,
         });
@@ -670,47 +700,107 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
     const filterBadges = [
       { label: 'الحساب', value: party.name || party._name },
       { label: 'النوع', value: type === 'CUSTOMER' ? 'عميل (ذمم مدينة)' : 'مورد (ذمم دائنة)' },
-      { label: 'تاريخ الطباعة', value: new Date().toLocaleDateString('ar-YE') },
+      { label: 'تاريخ الاستخراج', value: formatDateOnly(new Date()) },
     ];
-    if (stmtFromDate) filterBadges.push({ label: 'من تاريخ', value: stmtFromDate });
-    if (stmtToDate) filterBadges.push({ label: 'إلى تاريخ', value: stmtToDate });
+    if (stmtFromDate) filterBadges.push({ label: 'من تاريخ', value: formatDateOnly(stmtFromDate) });
+    if (stmtToDate) filterBadges.push({ label: 'إلى تاريخ', value: formatDateOnly(stmtToDate) });
 
     // Build rows starting with dedicated Opening Balance baseline row (Row 0)
+    // Structured 8 Columns matching the system layout:
+    // 1. م (Sequence #)
+    // 2. التاريخ (Date Only YYYY-MM-DD)
+    // 3. نوع ورقم السند/الفاتورة (Reference / Voucher #)
+    // 4. البيان والتفاصيل (Description)
+    // 5. مدين (عليه) (Debit in English digits)
+    // 6. دائن (له) (Credit in English digits)
+    // 7. الرصيد التراكمي (Running Balance in English digits)
+    // 8. العملة (Currency)
     const exportRows: (string | number | null | undefined)[][] = [
       [
-        stmtFromDate || 'رصيد بداية',
-        'الرصيد الافتتاحي (أساس البداية)',
+        '0',
+        stmtFromDate ? formatDateOnly(stmtFromDate) : 'رصيد بداية',
+        'BASELINE',
+        'الرصيد الافتتاحي (أساس البداية المحاسبية)',
+        '—',
         '—',
         formatNumber(opBalance),
-        'الرصيد الافتتاحي المعتمد لبداية الفترة (أساس القياس المحاسبي)',
-        'BASELINE',
+        cur,
       ],
-      ...(statementData.transactions || []).map((tx: any) => [
-        new Date(tx.created_at || tx.date).toLocaleString('ar-YE'),
-        tx.type === 'DEBIT' ? 'مدين (+ مبيعات/تسوية)' : tx.type === 'CREDIT' ? 'دائن (+ توريد/استحقاق)' : tx.type === 'PAYMENT' ? 'سداد / تحصيل' : 'تعديل رصيد',
-        formatNumber(tx.amount || 0),
-        formatNumber(tx.balance_after || tx.running_balance || 0),
-        tx.description || '-',
-        tx.reference_no || '-',
-      ]),
+      ...(statementData.transactions || []).map((tx: any, idx: number) => {
+        let d = 0;
+        let c = 0;
+        if (tx.debit !== undefined) d = Number(tx.debit);
+        else if (tx.debitAmount !== undefined) d = Number(tx.debitAmount);
+        else if (tx.debit_amount !== undefined) d = Number(tx.debit_amount);
+        else if (tx.type === 'DEBIT' || tx.type === 'INVOICE' || tx.type === 'SALES_INVOICE') d = Number(tx.amount || 0);
+
+        if (tx.credit !== undefined) c = Number(tx.credit);
+        else if (tx.creditAmount !== undefined) c = Number(tx.creditAmount);
+        else if (tx.credit_amount !== undefined) c = Number(tx.credit_amount);
+        else if (tx.type === 'CREDIT' || tx.type === 'PURCHASE_INVOICE' || tx.type === 'PAYMENT') c = Number(tx.amount || 0);
+
+        const rBal = Number(
+          tx.balance_after !== undefined
+            ? tx.balance_after
+            : (tx.running_balance !== undefined
+              ? tx.running_balance
+              : (tx.runningBalance !== undefined ? tx.runningBalance : 0))
+        );
+
+        const txCur = tx.currency || cur;
+        const ref = tx.reference_no || tx.referenceNo || tx.reference || tx.id || '-';
+        const cleanDate = formatDateOnly(tx.date || tx.created_at) || '-';
+
+        return [
+          idx + 1,
+          cleanDate,
+          ref,
+          tx.description || (d > 0 ? 'قيد مدين / مبيعات' : 'سند صرف / قبض / دائن'),
+          d > 0 ? formatNumber(d) : '—',
+          c > 0 ? formatNumber(c) : '—',
+          formatNumber(rBal),
+          txCur,
+        ];
+      }),
+      // Footer Totals Row
+      [
+        '—',
+        '—',
+        'الإجمالي الكلي',
+        'إجمالي الفترة والرصيد الختامي المستحق',
+        formatNumber(totalDebit),
+        formatNumber(totalCredit),
+        formatNumber(clBalance),
+        cur,
+      ],
     ];
 
     return {
-      filename: `statement_${(party.name || party._name).replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}`,
-      title: `كشف حساب رسمي: ${party.name || party._name}`,
-      subtitle: `${type === 'CUSTOMER' ? 'عميل' : 'مورد'} | الهاتف: ${party.phone || party._phone || '-'} | العملة: ${cur}`,
+      filename: `statement_${(party.name || party._name).replace(/\s+/g, '_')}_${formatDateOnly(new Date())}`,
+      title: `كشف حساب تفصيلي - ${type === 'CUSTOMER' ? 'عميل' : 'مورد'}: ${party.name || party._name}`,
+      subtitle: `الطرف التجاري: ${party.name || party._name} | الهاتف: ${party.phone || party._phone || '-'} | العملة: ${cur} | الفترة: ${stmtFromDate ? formatDateOnly(stmtFromDate) : 'من البداية'} إلى ${stmtToDate ? formatDateOnly(stmtToDate) : 'الآن'}`,
+      companyName: company?.name || 'مؤسسة الأعمال الذكية التجارية',
       filterBadges,
       summaryCards: [
-        { label: 'الرصيد الافتتاحي', value: `${formatNumber(opBalance)} ${cur}`, color: 'blue' },
-        { label: 'إجمالي مدين الفترة', value: `${formatNumber(totalDebit)} ${cur}`, color: 'amber' },
-        { label: 'إجمالي دائن / مسددات', value: `${formatNumber(totalCredit)} ${cur}`, color: 'emerald' },
-        { label: 'الرصيد الختامي النهائي', value: `${formatNumber(clBalance)} ${cur}`, color: 'purple' },
-        { label: 'عدد الحركات الفعلية', value: `${actualTxCount} حركة`, color: 'slate' },
+        { label: 'الرصيد الافتتاحي', value: `${formatNumber(opBalance)} ${cur}` },
+        { label: 'إجمالي مدين الفترة (+)', value: `${formatNumber(totalDebit)} ${cur}` },
+        { label: 'إجمالي دائن / مسددات (-)', value: `${formatNumber(totalCredit)} ${cur}` },
+        { label: 'الرصيد الختامي المستحق', value: `${formatNumber(clBalance)} ${cur}` },
+        { label: 'عدد الحركات المسجلة', value: `${actualTxCount} حركة` },
       ],
-      headers: ['التاريخ والوقت', 'نوع الحركة', `المبلغ (${cur})`, `الرصيد بعد الحركة (${cur})`, 'البيان', 'رقم المرجع'],
+      headers: [
+        'م',
+        'التاريخ',
+        'نوع ورقم السند/الفاتورة',
+        'البيان والتفاصيل',
+        'مدين (عليه)',
+        'دائن (له)',
+        'الرصيد التراكمي',
+        'العملة',
+      ],
       rows: exportRows,
-      alignments: ['right', 'center', 'right', 'right', 'right', 'center'],
-      footerNotes: `يعد هذا الكشف وثيقة محاسبية معتمدة مستخرجة من نظام AI Business System ERP. الرصيد الافتتاحي يمثل خط الأساس ولا يعتبر حركة مسجلة خلال الفترة.`,
+      alignments: ['center', 'center', 'center', 'right', 'right', 'right', 'right', 'center'],
+      footerNotes: `يعد هذا الكشف وثيقة محاسبية معتمدة مستخرجة من نظام ERP السحابي. الرصيد الافتتاحي يمثل خط الأساس ولا يعتبر حركة مسجلة خلال الفترة.`,
     };
   };
 
@@ -745,25 +835,51 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
       partyPhone: party.phone || party._phone || '',
       partyAddress: party.address || party._address || '',
       currency: cur,
-      periodFrom: stmtFromDate || undefined,
-      periodTo: stmtToDate || undefined,
+      periodFrom: stmtFromDate ? formatDateOnly(stmtFromDate) : undefined,
+      periodTo: stmtToDate ? formatDateOnly(stmtToDate) : undefined,
       openingBalance: opBalance,
       totalDebit,
       totalCredit,
       closingBalance: clBalance,
       transactionCount: actualTxCount,
-      transactions: (statementData.transactions || []).map((tx: any) => ({
-        id: tx.id,
-        date: tx.created_at || tx.date,
-        type: tx.type,
-        referenceNo: tx.reference_no,
-        description: tx.description,
-        debitAmount: tx.debit_amount !== undefined ? Number(tx.debit_amount) : undefined,
-        creditAmount: tx.credit_amount !== undefined ? Number(tx.credit_amount) : undefined,
-        amount: parseFloat(tx.amount || 0),
-        runningBalance: parseFloat(tx.balance_after || tx.running_balance || 0),
-      })),
-      notes: 'يعد هذا الكشف وثيقة محاسبية رسمية معتمدة صادرة من نظام AI Business System ERP.',
+      transactions: (statementData.transactions || []).map((tx: any) => {
+        let d = 0;
+        let c = 0;
+        if (tx.debit !== undefined) d = Number(tx.debit);
+        else if (tx.debitAmount !== undefined) d = Number(tx.debitAmount);
+        else if (tx.debit_amount !== undefined) d = Number(tx.debit_amount);
+        else if (tx.type === 'DEBIT' || tx.type === 'INVOICE' || tx.type === 'SALES_INVOICE') d = Number(tx.amount || 0);
+
+        if (tx.credit !== undefined) c = Number(tx.credit);
+        else if (tx.creditAmount !== undefined) c = Number(tx.creditAmount);
+        else if (tx.credit_amount !== undefined) c = Number(tx.credit_amount);
+        else if (tx.type === 'CREDIT' || tx.type === 'PURCHASE_INVOICE' || tx.type === 'PAYMENT') c = Number(tx.amount || 0);
+
+        const rBal = Number(
+          tx.balance_after !== undefined
+            ? tx.balance_after
+            : (tx.running_balance !== undefined
+              ? tx.running_balance
+              : (tx.runningBalance !== undefined ? tx.runningBalance : 0))
+        );
+
+        return {
+          id: tx.id,
+          date: formatDateOnly(tx.date || tx.created_at),
+          type: tx.type,
+          referenceNo: tx.reference_no || tx.referenceNo || tx.reference || tx.id,
+          reference: tx.reference_no || tx.referenceNo || tx.reference || tx.id,
+          description: tx.description,
+          debit: d,
+          credit: c,
+          debitAmount: d,
+          creditAmount: c,
+          amount: parseFloat(tx.amount || 0),
+          runningBalance: rBal,
+          currency: tx.currency || cur,
+        };
+      }),
+      notes: 'يعد هذا الكشف وثيقة محاسبية رسمية معتمدة صادرة من نظام ERP السحابي.',
     });
   };
 
@@ -1897,7 +2013,7 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
                     <table className="w-full text-right text-xs border border-emerald-900/40 rounded-lg overflow-hidden">
                       <thead className="bg-[#0f2820] text-slate-200 font-bold border-b border-emerald-500/30">
                         <tr>
-                          <th className="p-2.5">التاريخ والوقت</th>
+                          <th className="p-2.5">التاريخ</th>
                           <th className="p-2.5">نوع الحركة</th>
                           <th className="p-2.5">مبلغ الحركة</th>
                           <th className="p-2.5">الرصيد التراكمي</th>
@@ -1909,7 +2025,7 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
                         {/* 1. DEDICATED OPENING BALANCE BASELINE ROW (ROW 0) */}
                         <tr className="bg-[#0c261e] border-b-2 border-emerald-500/40 text-emerald-200">
                           <td className="p-2.5 text-slate-300 font-mono text-[11px]">
-                            {stmtFromDate || 'رصيد بداية'}
+                            {stmtFromDate ? formatDateOnly(stmtFromDate) : 'رصيد بداية'}
                           </td>
                           <td className="p-2.5">
                             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/30 text-emerald-200 border border-emerald-400/40">
@@ -1951,7 +2067,7 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
                             return (
                               <tr key={tx.id} className="hover:bg-[#0f241d] transition-colors">
                                 <td className="p-2.5 text-slate-400 font-mono text-[11px]">
-                                  {new Date(tx.created_at || tx.date).toLocaleString('ar-YE')}
+                                  {formatDateOnly(tx.date || tx.created_at)}
                                 </td>
                                 <td className="p-2.5 font-bold">
                                   <span
@@ -2148,14 +2264,24 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
 
                 {!editingCustomer ? (
                   <div>
-                    <label className="block text-slate-300 font-semibold mb-1">الرصيد الافتتاحي</label>
+                    <label className="block text-slate-300 font-semibold mb-1 flex items-center justify-between">
+                      <span>الرصيد الافتتاحي</span>
+                      <span className="text-[10px] text-emerald-400 font-mono">0-9 EN</span>
+                    </label>
                     <input
-                      type="number"
-                      step="0.01"
+                      type="text"
+                      inputMode="decimal"
+                      dir="ltr"
+                      lang="en"
                       placeholder="0.00"
                       value={customerFormData.openingBalance}
-                      onChange={(e) => setCustomerFormData({ ...customerFormData, openingBalance: e.target.value })}
-                      className="w-full p-2.5 bg-[#06100c] border border-emerald-500/20 rounded-xl text-white focus:ring-1 focus:ring-emerald-400 focus:outline-none font-mono"
+                      onChange={(e) =>
+                        setCustomerFormData({
+                          ...customerFormData,
+                          openingBalance: toEnglishDigits(e.target.value).replace(/[^0-9.-]/g, ''),
+                        })
+                      }
+                      className="w-full p-2.5 bg-[#06100c] border border-emerald-500/20 rounded-xl text-white focus:ring-1 focus:ring-emerald-400 focus:outline-none font-mono text-left"
                     />
                   </div>
                 ) : (
@@ -2286,14 +2412,24 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
 
                 {!editingSupplier ? (
                   <div>
-                    <label className="block text-slate-300 font-semibold mb-1">الرصيد الافتتاحي</label>
+                    <label className="block text-slate-300 font-semibold mb-1 flex items-center justify-between">
+                      <span>الرصيد الافتتاحي</span>
+                      <span className="text-[10px] text-amber-400 font-mono">0-9 EN</span>
+                    </label>
                     <input
-                      type="number"
-                      step="0.01"
+                      type="text"
+                      inputMode="decimal"
+                      dir="ltr"
+                      lang="en"
                       placeholder="0.00"
                       value={supplierFormData.openingBalance}
-                      onChange={(e) => setSupplierFormData({ ...supplierFormData, openingBalance: e.target.value })}
-                      className="w-full p-2.5 bg-[#06100c] border border-amber-500/20 rounded-xl text-white focus:ring-1 focus:ring-amber-400 focus:outline-none font-mono"
+                      onChange={(e) =>
+                        setSupplierFormData({
+                          ...supplierFormData,
+                          openingBalance: toEnglishDigits(e.target.value).replace(/[^0-9.-]/g, ''),
+                        })
+                      }
+                      className="w-full p-2.5 bg-[#06100c] border border-amber-500/20 rounded-xl text-white focus:ring-1 focus:ring-amber-400 focus:outline-none font-mono text-left"
                     />
                   </div>
                 ) : (
@@ -2468,18 +2604,27 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
               {/* Amount, Currency, Rate */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">
-                    المبلغ <span className="text-emerald-400">*</span>
+                  <label className="block text-slate-300 font-semibold mb-1 flex items-center justify-between">
+                    <span>
+                      المبلغ <span className="text-emerald-400">*</span>
+                    </span>
+                    <span className="text-[10px] text-emerald-400 font-mono">0-9 EN</span>
                   </label>
                   <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
+                    type="text"
+                    inputMode="decimal"
+                    dir="ltr"
+                    lang="en"
                     required
                     placeholder="0.00"
                     value={txFormData.amount}
-                    onChange={(e) => setTxFormData({ ...txFormData, amount: e.target.value })}
-                    className="w-full p-2.5 bg-[#06100c] border border-emerald-500/20 rounded-xl text-white font-mono focus:ring-1 focus:ring-emerald-400 focus:outline-none"
+                    onChange={(e) =>
+                      setTxFormData({
+                        ...txFormData,
+                        amount: toEnglishDigits(e.target.value).replace(/[^0-9.]/g, ''),
+                      })
+                    }
+                    className="w-full p-2.5 bg-[#06100c] border border-emerald-500/20 rounded-xl text-white font-mono text-left focus:ring-1 focus:ring-emerald-400 focus:outline-none"
                   />
                 </div>
 
@@ -2504,17 +2649,27 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">
-                    سعر الصرف {txFormData.currency !== 'YER' && <span className="text-[10px] text-amber-400">(مقابل YER)</span>}
+                  <label className="block text-slate-300 font-semibold mb-1 flex items-center justify-between">
+                    <span>
+                      سعر الصرف {txFormData.currency !== 'YER' && <span className="text-[10px] text-amber-400">(مقابل YER)</span>}
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-mono">0-9 EN</span>
                   </label>
                   <input
-                    type="number"
-                    step="0.0001"
-                    min="0.0001"
+                    type="text"
+                    inputMode="decimal"
+                    dir="ltr"
+                    lang="en"
                     disabled={txFormData.currency === 'YER'}
                     value={txFormData.currency === 'YER' ? '1.0' : txFormData.exchangeRate}
-                    onChange={(e) => setTxFormData({ ...txFormData, exchangeRate: e.target.value })}
-                    className={`w-full p-2.5 border rounded-xl font-mono ${
+                    onChange={(e) =>
+                      setTxFormData({
+                        ...txFormData,
+                        exchangeRate: toEnglishDigits(e.target.value).replace(/[^0-9.]/g, ''),
+                      })
+                    }
+                    placeholder="1.0"
+                    className={`w-full p-2.5 border rounded-xl font-mono text-left ${
                       txFormData.currency === 'YER'
                         ? 'bg-[#040a08] text-slate-600 border-slate-800'
                         : 'bg-[#06100c] border-emerald-500/20 text-white focus:ring-1 focus:ring-emerald-400'

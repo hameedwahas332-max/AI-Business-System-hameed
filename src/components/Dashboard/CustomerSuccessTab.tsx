@@ -276,8 +276,13 @@ export const CustomerSuccessTab: React.FC = () => {
     try {
       const res = await safeFetchJson('/api/v1/saas/sample-data/seed', { method: 'POST', headers: authHeaders });
       if (res.ok && res.data?.success) {
-        showNotification('success', 'تم غرس بيانات Sandbox التجريبية بنجاح (عملاء، منتجات، فواتير تجريبية)');
+        localStorage.removeItem('erp_sample_data_cleaned');
+        window.dispatchEvent(new Event('storage'));
+        showNotification('success', 'تم غرس بيانات Sandbox التجريبية بنجاح (عملاء، منتجات، فواتير نموذجية)');
         setSampleDataStatus({ isSeeded: true, message: 'البيانات التجريبية نشطة' });
+        setTimeout(() => {
+          window.location.reload();
+        }, 800);
       } else {
         showNotification('error', res.error || res.data?.error || 'فشل غرس البيانات التجريبية');
       }
@@ -289,13 +294,40 @@ export const CustomerSuccessTab: React.FC = () => {
   };
 
   const handleCleanupSampleData = async () => {
-    if (!window.confirm('هل أنت متأكد من رغبتك في حذف البيانات التجريبية المعلمة بـ Sandbox؟ لن يتم مسح بياناتك الحقيقية.')) return;
+    if (!window.confirm('هل أنت متأكد من رغبتك في حذف وتصفير البيانات التجريبية (Sandbox) لبدء تشغيل النظام ببياناتك الحقيقية الفعلية؟ لن يتم حذف إعدادات الشركة أو بياناتك الحقيقية.')) return;
     setLoading(true);
     try {
       const res = await safeFetchJson('/api/v1/saas/sample-data/cleanup', { method: 'POST', headers: authHeaders });
       if (res.ok && res.data?.success) {
-        showNotification('success', 'تم تنظيف وحذف جميع البيانات التجريبية بأمان');
-        setSampleDataStatus({ isSeeded: false, message: 'تم تنظيف البيانات' });
+        // Clear cached demo localStorage items
+        const sampleStorageKeys = [
+          'erp_pos_held_sales',
+          'erp_custom_ledger_entries',
+          'erp_fuel_tanks_state',
+          'erp_fuel_daily_records',
+          'erp_sales_reps_v1',
+          'erp_battery_warranty_records',
+          'erp_tire_dot_records',
+          'erp_pos_shift_history',
+        ];
+        sampleStorageKeys.forEach((key) => {
+          try {
+            localStorage.removeItem(key);
+          } catch {
+            // ignore
+          }
+        });
+        localStorage.setItem('erp_sample_data_cleaned', 'true');
+        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new CustomEvent('erp:data-cleared'));
+
+        showNotification('success', 'تم حذف وتصفير جميع البيانات التجريبية بنجاح! أصبح النظام الآن جاهزاً ونظيفاً تماماً لبدء إدخال بياناتك الواقعية.');
+        setSampleDataStatus({ isSeeded: false, message: 'تم تنظيف وتصفير البيانات التجريبية' });
+
+        // Reload to let all open tabs and state refresh immediately
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       } else {
         showNotification('error', res.error || res.data?.error || 'فشل تنظيف البيانات');
       }

@@ -911,14 +911,22 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">سعر التحويل</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1 flex items-center justify-between">
+                <span>سعر التحويل / الصرف</span>
+                <span className="text-[10px] text-blue-400 font-mono">0-9 EN</span>
+              </label>
               <input
-                type="number"
-                step="any"
+                type="text"
+                inputMode="decimal"
+                dir="ltr"
+                lang="en"
                 value={exchangeRate}
-                onChange={(e) => setExchangeRate(parseEnglishNumber(e.target.value, 1.0))}
+                onChange={(e) => {
+                  const sanitized = toEnglishDigits(e.target.value).replace(/[^0-9.]/g, '');
+                  setExchangeRate(parseEnglishNumber(sanitized, 1.0));
+                }}
                 disabled={currency === 'YER'}
-                className="w-full bg-slate-800 disabled:opacity-50 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 font-mono"
+                className="w-full bg-slate-800 disabled:opacity-50 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 font-mono text-left"
               />
             </div>
           </div>

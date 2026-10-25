@@ -496,17 +496,21 @@ export const PurchaseInvoicesTab: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">
-                    سعر الصرف {currency !== 'YER' && <span className="text-[10px] text-amber-400 font-normal">(مقابل YER)</span>}
+                  <label className="block text-slate-300 font-semibold mb-1 flex items-center justify-between">
+                    <span>
+                      سعر الصرف {currency !== 'YER' && <span className="text-[10px] text-amber-400 font-normal">(مقابل YER)</span>}
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-mono">0-9 EN</span>
                   </label>
                   <input
-                    type="number"
-                    step="0.0001"
-                    min="0.0001"
+                    type="text"
+                    inputMode="decimal"
+                    dir="ltr"
+                    lang="en"
                     disabled={currency === 'YER'}
                     value={currency === 'YER' ? '1.0' : exchangeRate}
-                    onChange={(e) => setExchangeRate(e.target.value)}
-                    className={`w-full p-2 border rounded-xl font-mono ${
+                    onChange={(e) => setExchangeRate(toEnglishDigits(e.target.value).replace(/[^0-9.]/g, ''))}
+                    className={`w-full p-2 border rounded-xl font-mono text-left ${
                       currency === 'YER' ? 'bg-slate-800 text-slate-500 border-slate-700' : 'bg-slate-900 border-slate-700 text-slate-100 focus:border-emerald-500'
                     }`}
                   />

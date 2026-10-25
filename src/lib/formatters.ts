@@ -72,11 +72,33 @@ export function formatCurrencyAmount(val: number | string | null | undefined, cu
   return `${formatNumber(val)} ${currency}`;
 }
 
-export function formatDateTime(val: string | Date | null | undefined): string {
+/**
+ * Format Date strictly as Date-Only YYYY-MM-DD in Western English digits with ZERO timestamps
+ */
+export function formatDateOnly(val: string | number | Date | null | undefined): string {
   if (!val) return '';
-  const date = typeof val === 'string' ? new Date(val) : val;
-  if (isNaN(date.getTime())) return '';
-  return date.toLocaleString('en-GB');
+  if (typeof val === 'string') {
+    const cleaned = toEnglishDigits(val).trim();
+    // Check if starts with YYYY-MM-DD or YYYY/MM/DD
+    const match = cleaned.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
+    if (match) {
+      const y = match[1];
+      const m = match[2].padStart(2, '0');
+      const d = match[3].padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+  }
+  const d = typeof val === 'object' && val instanceof Date ? val : new Date(val);
+  if (isNaN(d.getTime())) return '';
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return toEnglishDigits(`${year}-${month}-${day}`);
+}
+
+export function formatDateTime(val: string | Date | null | undefined): string {
+  // Enforce Date-Only YYYY-MM-DD with zero timestamps across the system
+  return formatDateOnly(val);
 }
 
 /**

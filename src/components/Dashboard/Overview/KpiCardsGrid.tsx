@@ -31,32 +31,32 @@ export const KpiCardsGrid: React.FC<KpiCardsGridProps> = ({
   onNavigate,
 }) => {
   // Real calculations with safe fallbacks
-  const totalSales = Number(stats?.totalSales ?? stats?.sales?.total ?? kpis?.revenue ?? 142500);
-  const paidSales = Number(stats?.sales?.paid ?? totalSales * 0.82);
-  const collectionRate = totalSales > 0 ? Math.min(100, Math.round((paidSales / totalSales) * 100)) : 85;
+  const totalSales = Number(stats?.totalSales ?? stats?.sales?.total ?? kpis?.revenue ?? 0);
+  const paidSales = Number(stats?.sales?.paid ?? (totalSales > 0 ? totalSales * 0.82 : 0));
+  const collectionRate = totalSales > 0 ? Math.min(100, Math.round((paidSales / totalSales) * 100)) : 0;
 
-  const totalPurchases = Number(stats?.totalPurchases ?? stats?.purchases?.total ?? 84200);
-  const operatingExpenses = Number(stats?.profit?.expenses ?? stats?.expenses ?? 18000);
+  const totalPurchases = Number(stats?.totalPurchases ?? stats?.purchases?.total ?? 0);
+  const operatingExpenses = Number(stats?.profit?.expenses ?? stats?.expenses ?? 0);
   const netProfit = Number(
     stats?.profit?.netProfit ??
       stats?.netProfit ??
-      (totalSales - totalPurchases - operatingExpenses > 0 ? totalSales - totalPurchases - operatingExpenses : 40300)
+      Math.max(0, totalSales - totalPurchases - operatingExpenses)
   );
-  const profitMargin = totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : '28.3';
+  const profitMargin = totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : '0.0';
 
-  const cashBankBalance = Number(stats?.balances?.cashAndBankBalance ?? stats?.cashBankBalance ?? 62400);
+  const cashBankBalance = Number(stats?.balances?.cashAndBankBalance ?? stats?.cashBankBalance ?? 0);
   const cashAmount = Math.round(cashBankBalance * 0.45);
   const banksAmount = Math.round(cashBankBalance * 0.40);
   const walletsAmount = Math.max(0, cashBankBalance - cashAmount - banksAmount);
 
-  const totalReceivables = Number(stats?.balances?.totalReceivables ?? stats?.totalReceivables ?? 24500);
-  const overdueReceivables = Number(stats?.balances?.overdueReceivables ?? stats?.overdueReceivables ?? 4200);
+  const totalReceivables = Number(stats?.balances?.totalReceivables ?? stats?.totalReceivables ?? 0);
+  const overdueReceivables = Number(stats?.balances?.overdueReceivables ?? stats?.overdueReceivables ?? 0);
 
-  const totalPayables = Number(stats?.balances?.totalPayables ?? stats?.totalPayables ?? 18200);
-  const disbursementsThisWeek = Number(stats?.balances?.dueThisWeekPayables ?? stats?.dueThisWeekPayables ?? 5600);
+  const totalPayables = Number(stats?.balances?.totalPayables ?? stats?.totalPayables ?? 0);
+  const disbursementsThisWeek = Number(stats?.balances?.dueThisWeekPayables ?? stats?.dueThisWeekPayables ?? 0);
 
-  const inventoryValue = Number(stats?.balances?.inventoryValue ?? stats?.inventoryValue ?? 78500);
-  const lowStockCount = Number(stats?.counts?.lowStockCount ?? stats?.lowStockCount ?? 3);
+  const inventoryValue = Number(stats?.balances?.inventoryValue ?? stats?.inventoryValue ?? 0);
+  const lowStockCount = Number(stats?.counts?.lowStockCount ?? stats?.lowStockCount ?? 0);
 
   const cards = [
     {

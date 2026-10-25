@@ -9,6 +9,7 @@ import {
   AlertCircle,
   Calendar,
 } from 'lucide-react';
+import { formatNumber } from '../../../../lib/formatters';
 
 interface SendStatementModalProps {
   isOpen: boolean;
@@ -129,7 +130,7 @@ export const SendStatementModal: React.FC<SendStatementModalProps> = ({
               <option value="">-- اختر من القائمة --</option>
               {currentList.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.name} ({item.phone || 'بدون هاتف'}) - رصيد: {parseFloat(item.current_balance || 0).toLocaleString('ar-YE')} ر.ي.
+                  {item.name} ({item.phone || 'بدون هاتف'}) - رصيد: {formatNumber(parseFloat(item.current_balance || 0))} {item.currency || 'YER'}
                 </option>
               ))}
             </select>
@@ -146,7 +147,7 @@ export const SendStatementModal: React.FC<SendStatementModalProps> = ({
               <p className="text-slate-600 flex items-center justify-between">
                 <span>الرصيد المالي الحالي المسجل بالـ ERP:</span>
                 <span className="font-mono font-bold text-slate-900 text-sm">
-                  {parseFloat(selectedEntity.current_balance || 0).toLocaleString('ar-YE')} ر.ي.
+                  {formatNumber(parseFloat(selectedEntity.current_balance || 0))} {selectedEntity.currency || 'YER'}
                 </span>
               </p>
             </div>

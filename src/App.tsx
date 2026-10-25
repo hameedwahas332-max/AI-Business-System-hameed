@@ -3,6 +3,8 @@ import { Header, ThemeMode, AccentColor } from './components/Header';
 import { Sidebar, TabType } from './components/Sidebar';
 import { AuthModal } from './components/Auth/AuthModal';
 import { GlobalSearchModal } from './components/Common/GlobalSearchModal';
+import { ErrorBoundary } from './components/Common/ErrorBoundary';
+import { toEnglishDigits } from './lib/formatters';
 
 // 29 Real Enterprise ERP Dashboard Tabs
 import { OverviewTab } from './components/Dashboard/OverviewTab';
@@ -63,21 +65,91 @@ export function App() {
     localStorage.setItem('erp_accent_color', accentColor);
   }, [accentColor]);
 
-  // Global Input Event Listener: Convert typed Arabic-Indic digits (٠-٩) to English digits (0-9)
+  // Global Input & Keydown Listeners: Convert typed/pasted Arabic-Indic digits (٠-٩) and Persian digits (۰-۹) to English digits (0-9)
   useEffect(() => {
+    // 1. Intercept beforeinput to cleanly insert English digits even before browser number validation
+    const handleBeforeInput = (e: any) => {
+      if (e.data && /[٠-٩۰-۹٫،]/.test(e.data)) {
+        const target = e.target as HTMLInputElement | HTMLTextAreaElement;
+        if (!target || !target.value !== undefined) return;
+        // If it's a number/decimal/text input, replace Arabic digits with English
+        const isNumericTarget =
+          target.type === 'number' ||
+          target.inputMode === 'decimal' ||
+          target.inputMode === 'numeric' ||
+          target.getAttribute('dir') === 'ltr' ||
+          target.classList.contains('font-mono');
+
+        if (isNumericTarget) {
+          e.preventDefault();
+          const converted = toEnglishDigits(e.data);
+          const start = target.selectionStart ?? target.value.length;
+          const end = target.selectionEnd ?? target.value.length;
+          const currentVal = target.value;
+          const newVal = currentVal.substring(0, start) + converted + currentVal.substring(end);
+          target.value = newVal;
+          if (target.setSelectionRange) {
+            target.setSelectionRange(start + converted.length, start + converted.length);
+          }
+          target.dispatchEvent(new Event('input', { bubbles: true }));
+          target.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+    };
+
+    // 2. Intercept paste to normalize Arabic numerals to English 0-9
+    const handlePaste = (e: ClipboardEvent) => {
+      const pasteText = e.clipboardData?.getData('text');
+      if (pasteText && /[٠-٩۰-۹٫،]/.test(pasteText)) {
+        const target = e.target as HTMLInputElement | HTMLTextAreaElement;
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+          const isNumericTarget =
+            target.type === 'number' ||
+            target.inputMode === 'decimal' ||
+            target.inputMode === 'numeric' ||
+            target.getAttribute('dir') === 'ltr' ||
+            target.classList.contains('font-mono');
+
+          if (isNumericTarget) {
+            e.preventDefault();
+            const converted = toEnglishDigits(pasteText);
+            const start = target.selectionStart ?? target.value.length;
+            const end = target.selectionEnd ?? target.value.length;
+            const currentVal = target.value;
+            const newVal = currentVal.substring(0, start) + converted + currentVal.substring(end);
+            target.value = newVal;
+            if (target.setSelectionRange) {
+              target.setSelectionRange(start + converted.length, start + converted.length);
+            }
+            target.dispatchEvent(new Event('input', { bubbles: true }));
+            target.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        }
+      }
+    };
+
+    // 3. Fallback on input event
     const handleInput = (e: Event) => {
       const target = e.target as HTMLInputElement | HTMLTextAreaElement;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
         const val = target.value;
-        if (/[٠-٩]/.test(val)) {
-          const converted = val.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 1632));
+        if (/[٠-٩۰-۹]/.test(val)) {
+          const converted = toEnglishDigits(val);
           target.value = converted;
           target.dispatchEvent(new Event('change', { bubbles: true }));
         }
       }
     };
+
+    window.addEventListener('beforeinput', handleBeforeInput as EventListener, true);
+    window.addEventListener('paste', handlePaste as EventListener, true);
     window.addEventListener('input', handleInput, true);
-    return () => window.removeEventListener('input', handleInput, true);
+
+    return () => {
+      window.removeEventListener('beforeinput', handleBeforeInput as EventListener, true);
+      window.removeEventListener('paste', handlePaste as EventListener, true);
+      window.removeEventListener('input', handleInput, true);
+    };
   }, []);
 
   // Global keyboard shortcut: Ctrl+K or Cmd+K
@@ -179,7 +251,9 @@ export function App() {
           onChangeAccent={(color) => setAccentColor(color)}
         />
         <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-900/50 custom-scrollbar">
-          {renderContent()}
+          <ErrorBoundary key={activeTab}>
+            {renderContent()}
+          </ErrorBoundary>
         </main>
       </div>
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../../api';
-import { formatAmount, formatNumber } from '../../lib/formatters';
+import { formatAmount, formatNumber, toEnglishDigits, formatDateOnly } from '../../lib/formatters';
 import { getAccountingRate } from '../../lib/exchangeRates';
 import { ExportActions } from '../Common/ExportActions';
 import { TableExportConfig, printPaymentReceipt } from '../../lib/exportUtils';
@@ -861,7 +861,7 @@ export const PaymentsTab: React.FC = () => {
 
                       {/* Date */}
                       <td className="py-3 px-4 font-mono text-slate-300">
-                        {p.payment_date ? new Date(p.payment_date).toLocaleDateString('ar-YE') : '-'}
+                        {p.payment_date ? formatDateOnly(p.payment_date) : '-'}
                       </td>
 
                       {/* Status */}
@@ -991,16 +991,20 @@ export const PaymentsTab: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {/* Amount */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">مبلغ السند *</label>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center justify-between">
+                    <span>مبلغ السند *</span>
+                    <span className="text-[10px] text-emerald-400 font-mono">0-9 EN</span>
+                  </label>
                   <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
+                    type="text"
+                    inputMode="decimal"
+                    dir="ltr"
+                    lang="en"
                     required
                     value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    onChange={(e) => setAmount(toEnglishDigits(e.target.value).replace(/[^0-9.]/g, ''))}
                     placeholder="0.00"
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl font-mono text-sm font-bold text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl font-mono text-sm font-bold text-white text-left focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
                   />
                 </div>
 
@@ -1047,14 +1051,18 @@ export const PaymentsTab: React.FC = () => {
                       </span>
                     )}
                   </div>
-                  <input
-                    type="number"
-                    step="0.0001"
-                    min="0.0001"
-                    value={exchangeRate}
-                    onChange={(e) => setExchangeRate(e.target.value)}
-                    className="w-32 px-3 py-1.5 bg-slate-900 border border-amber-700 rounded-lg font-mono font-bold text-xs text-white focus:outline-none"
-                  />
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-amber-400 font-mono">0-9 EN</span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      dir="ltr"
+                      lang="en"
+                      value={exchangeRate}
+                      onChange={(e) => setExchangeRate(toEnglishDigits(e.target.value).replace(/[^0-9.]/g, ''))}
+                      className="w-32 px-3 py-1.5 bg-slate-900 border border-amber-700 rounded-lg font-mono font-bold text-xs text-white text-left focus:outline-none"
+                    />
+                  </div>
                 </div>
               )}
 
