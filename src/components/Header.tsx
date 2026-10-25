@@ -13,12 +13,16 @@ import {
   Coins,
   ChevronDown,
   Sparkles,
+  Lock,
+  LogOut,
+  LogIn,
 } from 'lucide-react';
 import { TabType } from './Sidebar';
 import { DailyExchangeRateModal } from './Common/DailyExchangeRateModal';
 import { getStoredExchangeRates, EVENT_EXCHANGE_RATES_CHANGED, ExchangeRateConfig } from '../lib/exchangeRates';
 import { formatNumber } from '../lib/formatters';
 import { useModuleSettings, PRESET_DEFINITIONS, BusinessPresetKey } from '../context/ModuleSettingsContext';
+import { useAuth } from '../context/AuthContext';
 
 export type ThemeMode = 'dark' | 'light';
 export type AccentColor = 'indigo' | 'sapphire' | 'emerald' | 'amber';
@@ -48,6 +52,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [exchangeConfig, setExchangeConfig] = useState<ExchangeRateConfig>(getStoredExchangeRates);
 
   const { settings, applyPreset } = useModuleSettings();
+  const { user, company, isAuthenticated, lockSystem, logout } = useAuth();
 
   const PRIMARY_PRESETS: { key: BusinessPresetKey; label: string; icon: string; short: string }[] = [
     { key: 'multi_activity', label: 'الوضع الشامل (متعدد الأنشطة)', icon: '🌐', short: 'شامل' },
@@ -223,19 +228,64 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div className="h-6 w-px bg-slate-800 mx-1 hidden sm:block" />
 
-        {/* User Account / Profile */}
-        <button
-          onClick={onOpenAuth}
-          className="flex items-center gap-2.5 px-3 py-1.5 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 rounded-xl transition-all text-xs"
-        >
-          <div className="w-7 h-7 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-xs font-bold text-indigo-400">
-            م.ع
-          </div>
-          <div className="text-right hidden sm:block">
-            <div className="font-semibold text-slate-200 leading-tight">المدير العام</div>
-            <div className="text-[10px] text-emerald-400 font-mono">سحابي • متصل</div>
-          </div>
-        </button>
+        {/* CONTROL GROUP: Store & Account Badge, Lock System, Logout */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* 1. Store Name & Account Badge / Login Button */}
+          {isAuthenticated && user ? (
+            <button
+              onClick={onOpenAuth}
+              type="button"
+              className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-800/80 hover:bg-slate-800 border border-indigo-500/30 rounded-xl transition-all text-xs cursor-pointer max-w-[210px] truncate"
+              title="إدارة بيانات المحل والحساب الدائم"
+            >
+              <div className="w-6 h-6 rounded-lg bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-[10px] font-bold text-indigo-300 shrink-0">
+                <Building2 className="w-3.5 h-3.5" />
+              </div>
+              <div className="text-right truncate hidden sm:block">
+                <div className="font-bold text-white text-[11px] truncate leading-tight">
+                  {company?.name || 'المؤسسة التجارية'}
+                </div>
+                <div className="text-[10px] text-slate-400 truncate">
+                  {user.full_name || 'المدير العام'}
+                </div>
+              </div>
+            </button>
+          ) : (
+            <button
+              onClick={onOpenAuth}
+              type="button"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 rounded-xl transition-all text-xs font-bold cursor-pointer"
+              title="تسجيل الدخول أو إنشاء حساب محل تجاري جديد"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>تسجيل الدخول / إنشاء حساب</span>
+            </button>
+          )}
+
+          {/* 2. System Lock Button (🔒 قفل النظام) */}
+          <button
+            onClick={lockSystem}
+            type="button"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-xl transition-all text-xs font-bold cursor-pointer shadow-sm"
+            title="🔒 قفل النظام لحماية البيانات والخصوصية"
+          >
+            <Lock className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden md:inline">قفل النظام</span>
+          </button>
+
+          {/* 3. Logout Button (🚪 تسجيل الخروج) */}
+          {isAuthenticated && (
+            <button
+              onClick={logout}
+              type="button"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-xl transition-all text-xs font-bold cursor-pointer shadow-sm"
+              title="🚪 تسجيل الخروج من النظام"
+            >
+              <LogOut className="w-3.5 h-3.5 text-rose-400" />
+              <span className="hidden lg:inline">خروج</span>
+            </button>
+          )}
+        </div>
       </div>
     </header>
 

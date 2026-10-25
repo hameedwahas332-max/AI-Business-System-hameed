@@ -17,6 +17,14 @@ import {
   cleanupAllSampleData,
   seedAllSampleData,
   isSampleDataSeeded,
+  permanentUsersMap,
+  permanentCompaniesMap,
+  initPermanentPostgresTables,
+  saveUserToPermanentStore,
+  saveCompanyToPermanentStore,
+  rehydrateTenantData,
+  deletePermanentAccount,
+  PermanentUserRecord,
 } from './server/dataStore';
 
 const { Pool } = pg;
@@ -52,6 +60,7 @@ if (rawDbUrl.startsWith('postgres://') || rawDbUrl.startsWith('postgresql://')) 
       console.warn('[DB_POOL_WARN]', err?.message || err);
     });
     setEnterpriseDbPool(dbPool);
+    initPermanentPostgresTables(dbPool).catch((e) => console.warn('[PG_PERMANENT_INIT_ERR]', e?.message));
   } catch (err: any) {
     console.warn('[DB_INIT_WARN] Database pool initialization failed:', err?.message || err);
   }
@@ -248,8 +257,23 @@ function generatePermanentToken(userId: string, companyId: string): string {
 }
 
 app.post('/api/v1/auth/register', async (req: Request, res: Response) => {
-  const { companyName, fullName, email, password, phone, currency, companyCode } = req.body || {};
+  const { companyName, fullName, email, password, phone, currency, companyCode, business_mode } = req.body || {};
   const normalizedEmail = (email || '').trim().toLowerCase();
+
+  if (!normalizedEmail) {
+    return res.status(400).json({ success: false, message: 'البريد الإلكتروني مطلوب' });
+  }
+
+  // STRICT DUPLICATE EMAIL CHECK
+  // If email already exists, NEVER overwrite or duplicate! Return 409 Conflict.
+  if (permanentUsersMap.has(normalizedEmail) || tenantUsersByEmail.has(normalizedEmail)) {
+    return res.status(409).json({
+      success: false,
+      conflict: true,
+      email: normalizedEmail,
+      message: 'هذا الحساب موجود مسبقاً، يرجى عمل تسجيل دخول',
+    });
+  }
 
   // Deterministic company ID resolution
   const resolvedCompanySlug = (companyCode || companyName || normalizedEmail.split('@')[0] || 'merchant')
@@ -257,13 +281,14 @@ app.post('/api/v1/auth/register', async (req: Request, res: Response) => {
     .replace(/[^a-z0-9]/g, '_')
     .slice(0, 24);
 
-  const existingUser = tenantUsersByEmail.get(normalizedEmail);
-  const companyId = existingUser ? existingUser.company_id : `comp_${resolvedCompanySlug}_${Date.now() % 10000}`;
-  const userId = existingUser ? existingUser.id : `usr_${Date.now()}`;
+  const companyId = `comp_${resolvedCompanySlug}_${Date.now() % 10000}`;
+  const userId = `usr_${Date.now()}`;
 
-  const company: PersistentTenantCompany = tenantCompaniesById.get(companyId) || {
+  const resolvedCompanyName = (companyName || '').trim() || 'المؤسسة التجارية';
+
+  const company: PersistentTenantCompany = {
     id: companyId,
-    name: companyName || (existingUser ? 'المؤسسة التجارية' : 'مؤسسة تجارية جديدة'),
+    name: resolvedCompanyName,
     currency: currency || 'SAR',
     phone: phone || '',
     email: normalizedEmail,
@@ -271,12 +296,13 @@ app.post('/api/v1/auth/register', async (req: Request, res: Response) => {
     created_at: new Date().toISOString(),
   };
   tenantCompaniesById.set(companyId, company);
+  await saveCompanyToPermanentStore(company, dbPool);
 
-  const user: PersistentTenantUser = existingUser || {
+  const user: PersistentTenantUser = {
     id: userId,
-    username: normalizedEmail ? normalizedEmail.split('@')[0] : 'admin',
-    full_name: fullName || 'المدير العام',
-    email: normalizedEmail || 'admin@alsahabi.com',
+    username: normalizedEmail.split('@')[0] || 'admin',
+    full_name: (fullName || '').trim() || 'المدير العام',
+    email: normalizedEmail,
     role: 'ADMIN',
     company_id: companyId,
     is_active: true,
@@ -284,17 +310,20 @@ app.post('/api/v1/auth/register', async (req: Request, res: Response) => {
   };
   tenantUsersByEmail.set(normalizedEmail, user);
 
-  // If Postgres is connected, persist asynchronously
-  if (dbPool) {
-    dbPool
-      .query(
-        `INSERT INTO companies (id, name, currency, status) 
-         VALUES ($1, $2, $3, $4) 
-         ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name`,
-        [company.id, company.name, company.currency, company.status]
-      )
-      .catch((err) => console.warn('[PG_TENANT_SYNC_WARN]', err?.message));
-  }
+  // Save permanent account record with password
+  const permUser: PermanentUserRecord = {
+    id: userId,
+    email: normalizedEmail,
+    password_hash: password || 'admin123',
+    name: user.full_name,
+    role: 'ADMIN',
+    company_id: companyId,
+    company_name: resolvedCompanyName,
+    phone: phone || undefined,
+    business_mode: business_mode || undefined,
+    created_at: user.created_at,
+  };
+  await saveUserToPermanentStore(permUser, dbPool);
 
   const token = generatePermanentToken(user.id, company.id);
   const oneYearMs = 365 * 24 * 60 * 60 * 1000;
@@ -311,55 +340,74 @@ app.post('/api/v1/auth/register', async (req: Request, res: Response) => {
 });
 
 app.post('/api/v1/auth/login', async (req: Request, res: Response) => {
-  const { email } = req.body || {};
+  const { email, password } = req.body || {};
   const normalizedEmail = (email || '').trim().toLowerCase();
 
-  let user = tenantUsersByEmail.get(normalizedEmail);
-  let company: PersistentTenantCompany | undefined;
-
-  if (user) {
-    company = tenantCompaniesById.get(user.company_id);
+  if (!normalizedEmail) {
+    return res.status(400).json({ success: false, message: 'البريد الإلكتروني مطلوب' });
   }
 
-  if (!user) {
-    // Generate deterministic default user and company for newly seen emails
-    const slug = (normalizedEmail.split('@')[0] || 'admin').replace(/[^a-z0-9]/g, '_');
-    const compId = `comp_${slug}`;
+  // Check permanent storage or memory
+  let permUser = permanentUsersMap.get(normalizedEmail);
+  let tenantUser = tenantUsersByEmail.get(normalizedEmail);
+
+  // Verify password if user exists and password is provided
+  if (permUser && permUser.password_hash && password) {
+    if (permUser.password_hash !== password) {
+      return res.status(401).json({
+        success: false,
+        message: 'كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى',
+      });
+    }
+  }
+
+  let user: PersistentTenantUser;
+  let company: PersistentTenantCompany;
+
+  if (permUser) {
+    const compId = permUser.company_id || 'comp_001';
+    const existingComp = permanentCompaniesMap.get(compId) || tenantCompaniesById.get(compId);
+    const storeName = permUser.company_name || existingComp?.name || 'المؤسسة التجارية';
+
     company = {
       id: compId,
-      name: normalizedEmail.includes('alamal')
-        ? 'شركة الأمل الوطنية للتجارة'
-        : normalizedEmail.includes('albaraka')
-        ? 'مؤسسة البركة للمستلزمات'
-        : 'مؤسسة السحابي للتجارة والتقنية',
-      currency: normalizedEmail.includes('alamal') || normalizedEmail.includes('albaraka') ? 'YER' : 'SAR',
+      name: storeName,
+      currency: existingComp?.currency || 'SAR',
+      phone: existingComp?.phone || permUser.phone || '',
+      email: normalizedEmail,
       status: 'ACTIVE',
-      created_at: new Date().toISOString(),
+      created_at: existingComp?.created_at || permUser.created_at || new Date().toISOString(),
     };
     tenantCompaniesById.set(compId, company);
+    permanentCompaniesMap.set(compId, company);
 
     user = {
-      id: `usr_${Date.now()}`,
+      id: permUser.id,
       username: normalizedEmail.split('@')[0] || 'admin',
-      full_name: 'المدير العام للمنشأة',
-      email: normalizedEmail || 'admin@alsahabi.com',
-      role: 'ADMIN',
+      full_name: permUser.name || 'المدير العام',
+      email: normalizedEmail,
+      role: permUser.role || 'ADMIN',
       company_id: compId,
       is_active: true,
-      created_at: new Date().toISOString(),
+      created_at: permUser.created_at,
     };
     tenantUsersByEmail.set(normalizedEmail, user);
-  }
-
-  if (!company) {
-    company = {
-      id: user.company_id || 'comp_001',
+  } else if (tenantUser) {
+    user = tenantUser;
+    company = tenantCompaniesById.get(user.company_id) || {
+      id: user.company_id,
       name: 'مؤسسة السحابي للتجارة والتقنية',
       currency: 'SAR',
       status: 'ACTIVE',
       created_at: new Date().toISOString(),
     };
-    tenantCompaniesById.set(company.id, company);
+  } else {
+    // Return 404 if account not found
+    return res.status(404).json({
+      success: false,
+      not_found: true,
+      message: 'هذا الحساب غير مسجل في النظام، يرجى إنشاء حساب جديد أولاً',
+    });
   }
 
   const token = generatePermanentToken(user.id, company.id);
@@ -372,8 +420,126 @@ app.post('/api/v1/auth/login', async (req: Request, res: Response) => {
     user,
     company,
     expiresIn: '365d',
-    message: 'تم تسجيل الدخول بنجاح',
+    message: 'تم تسجيل الدخول واستعادة بيانات المتجر بنجاح',
   });
+});
+
+// Cloud Run Cold-Start Rehydration Endpoint
+app.post('/api/v1/auth/rehydrate-account', async (req: Request, res: Response) => {
+  try {
+    const payload = req.body || {};
+    const result = await rehydrateTenantData(payload, dbPool);
+
+    let email = payload.user?.email || payload.email;
+    if (email) {
+      email = email.trim().toLowerCase();
+      const permUser = permanentUsersMap.get(email);
+      if (permUser) {
+        const compId = permUser.company_id;
+        const comp = permanentCompaniesMap.get(compId) || {
+          id: compId,
+          name: permUser.company_name || 'المؤسسة التجارية',
+          currency: 'SAR',
+          status: 'ACTIVE',
+          created_at: new Date().toISOString(),
+        };
+        const tenantUser: PersistentTenantUser = {
+          id: permUser.id,
+          username: permUser.email.split('@')[0],
+          full_name: permUser.name,
+          email: permUser.email,
+          role: permUser.role,
+          company_id: compId,
+          is_active: true,
+          created_at: permUser.created_at,
+        };
+        tenantUsersByEmail.set(email, tenantUser);
+        tenantCompaniesById.set(compId, comp);
+
+        const token = generatePermanentToken(tenantUser.id, compId);
+        const oneYearMs = 365 * 24 * 60 * 60 * 1000;
+        activeSessions.set(token, { user: tenantUser, company: comp, expiresAt: Date.now() + oneYearMs });
+
+        return res.status(200).json({
+          success: true,
+          token,
+          user: tenantUser,
+          company: comp,
+          message: result.message,
+        });
+      }
+    }
+
+    res.status(200).json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err?.message || 'خطأ أثناء استعادة الحساب' });
+  }
+});
+
+// Verify Password for System Lock Screen & Sensitive Operations
+app.post('/api/v1/auth/verify-password', (req: Request, res: Response) => {
+  const { email, password } = req.body || {};
+  const authHeader = req.headers['authorization'] || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+
+  let targetEmail = (email || '').trim().toLowerCase();
+  if (!targetEmail && token) {
+    const session = activeSessions.get(token);
+    if (session) {
+      targetEmail = session.user.email.trim().toLowerCase();
+    }
+  }
+
+  if (!targetEmail) {
+    return res.status(400).json({ success: false, valid: false, message: 'البريد الإلكتروني مطلوب للتحقق' });
+  }
+
+  const user = permanentUsersMap.get(targetEmail);
+  if (!user) {
+    // If not found in permanent users, check default passwords
+    if (password === 'admin123' || password === 'AdminPass123!') {
+      return res.status(200).json({ success: true, valid: true });
+    }
+    return res.status(404).json({ success: false, valid: false, message: 'الحساب غير موجود' });
+  }
+
+  if (user.password_hash && user.password_hash !== password) {
+    return res.status(401).json({
+      success: false,
+      valid: false,
+      message: 'كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى',
+    });
+  }
+
+  res.status(200).json({ success: true, valid: true, message: 'تم التحقق من كلمة المرور بنجاح' });
+});
+
+// Protected Permanent Account Deletion (Requires Password)
+app.post('/api/v1/auth/delete-account', async (req: Request, res: Response) => {
+  const { email, password } = req.body || {};
+  const authHeader = req.headers['authorization'] || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+
+  let targetEmail = (email || '').trim().toLowerCase();
+  if (!targetEmail && token) {
+    const session = activeSessions.get(token);
+    if (session) {
+      targetEmail = session.user.email.trim().toLowerCase();
+    }
+  }
+
+  if (!targetEmail || !password) {
+    return res.status(400).json({ success: false, message: 'البريد وكلمة المرور مطلوبان لتأكيد حذف الحساب' });
+  }
+
+  const result = await deletePermanentAccount(targetEmail, password, dbPool);
+  if (result.success) {
+    tenantUsersByEmail.delete(targetEmail);
+    if (token) activeSessions.delete(token);
+    return res.status(200).json(result);
+  } else {
+    return res.status(400).json(result);
+  }
 });
 
 // Sliding session renewal - Merchant stays logged in indefinitely

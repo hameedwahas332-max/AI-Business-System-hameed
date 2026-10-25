@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { Lock, ShieldAlert, LogOut, KeyRound, Building2 } from 'lucide-react';
 import { Header, ThemeMode, AccentColor } from './components/Header';
 import { Sidebar, TabType } from './components/Sidebar';
 import { AuthModal } from './components/Auth/AuthModal';
 import { GlobalSearchModal } from './components/Common/GlobalSearchModal';
 import { ErrorBoundary } from './components/Common/ErrorBoundary';
 import { toEnglishDigits } from './lib/formatters';
+import { useAuth } from './context/AuthContext';
 
 // 29 Real Enterprise ERP Dashboard Tabs
 import { OverviewTab } from './components/Dashboard/OverviewTab';
@@ -45,6 +47,35 @@ export function App() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Authentication & System Lock State
+  const { isSystemLocked, unlockSystem, user, company, logout } = useAuth();
+  const [unlockPassword, setUnlockPassword] = useState('');
+  const [unlockError, setUnlockError] = useState<string | null>(null);
+  const [isUnlocking, setIsUnlocking] = useState(false);
+
+  const handleUnlock = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUnlockError(null);
+    if (!unlockPassword.trim()) {
+      setUnlockError('يرجى إدخال كلمة المرور لفتح قفل النظام');
+      return;
+    }
+    setIsUnlocking(true);
+    try {
+      const success = await unlockSystem(unlockPassword.trim());
+      if (success) {
+        setUnlockPassword('');
+        setUnlockError(null);
+      } else {
+        setUnlockError('كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى');
+      }
+    } catch (err: any) {
+      setUnlockError(err?.message || 'حدث خطأ أثناء محاولة فتح القفل');
+    } finally {
+      setIsUnlocking(false);
+    }
+  };
 
   // Theme & Accent State
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
@@ -263,6 +294,86 @@ export function App() {
         onClose={() => setIsSearchOpen(false)}
         onNavigate={handleNavigate}
       />
+
+      {/* 🔒 FULL-SCREEN SYSTEM LOCK OVERLAY */}
+      {isSystemLocked && (
+        <div className="fixed inset-0 z-[9999] bg-slate-950/95 backdrop-blur-2xl flex items-center justify-center p-4 select-none">
+          <div className="w-full max-w-md bg-slate-900 border border-amber-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl text-center space-y-5">
+            {/* Lock Icon */}
+            <div className="w-20 h-20 rounded-3xl bg-amber-500/10 border-2 border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto shadow-xl">
+              <Lock className="w-10 h-10 animate-pulse" />
+            </div>
+
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-full text-amber-400 text-xs font-bold mb-2">
+                <Lock className="w-3.5 h-3.5" />
+                <span>النظام مقفل حالياً لحماية البيانات والخصوصية</span>
+              </div>
+              <h2 className="text-xl font-bold text-white mt-1">
+                {company?.name || 'المؤسسة التجارية'}
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                المستخدم النشط: <span className="text-slate-200 font-semibold">{user?.full_name || 'المدير العام'}</span> ({user?.email})
+              </p>
+            </div>
+
+            {unlockError && (
+              <div className="p-3 bg-rose-950/90 border border-rose-800 text-rose-300 text-xs rounded-xl flex items-center gap-2 text-right">
+                <ShieldAlert className="w-4 h-4 shrink-0 text-rose-400" />
+                <span>{unlockError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleUnlock} className="space-y-4 text-right">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  أدخل كلمة مرور الحساب لفتح القفل:
+                </label>
+                <div className="relative">
+                  <KeyRound className="w-4 h-4 text-slate-500 absolute top-3.5 right-3" />
+                  <input
+                    type="password"
+                    required
+                    autoFocus
+                    value={unlockPassword}
+                    onChange={(e) => {
+                      setUnlockPassword(e.target.value);
+                      if (unlockError) setUnlockError(null);
+                    }}
+                    placeholder="••••••••"
+                    dir="ltr"
+                    className="w-full pr-10 pl-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors font-mono"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isUnlocking}
+                className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-sm transition-all shadow-lg shadow-amber-950/50 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <Lock className="w-4 h-4" />
+                <span>{isUnlocking ? 'جاري التحقق...' : 'فتح قفل النظام 🔓'}</span>
+              </button>
+            </form>
+
+            <div className="pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  logout();
+                  setUnlockPassword('');
+                  setUnlockError(null);
+                }}
+                className="text-xs text-rose-400 hover:text-rose-300 hover:underline inline-flex items-center gap-1.5 cursor-pointer font-medium"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>تسجيل الخروج والانتقال لحساب آخر</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

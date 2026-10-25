@@ -1,7 +1,24 @@
+import fs from 'fs';
+import path from 'path';
+
 /**
  * Centralized Enterprise In-Memory & Persistent Data Store
- * Provides live transactional state and clean sandbox data purging/seeding
+ * Provides live transactional state, disk/database persistence, and account rehydration
  */
+
+export interface PermanentUserRecord {
+  id: string;
+  email: string;
+  password_hash: string;
+  name: string;
+  role: string;
+  company_id: string;
+  company_name: string;
+  phone?: string;
+  business_mode?: string;
+  created_at: string;
+  metadata?: any;
+}
 
 export interface ProductItem {
   id: string;
@@ -648,9 +665,421 @@ export function seedAllSampleData(): { success: boolean; message: string } {
   mockAuditLogsList.push(...INITIAL_SAMPLE_AUDIT_LOGS);
 
   isSampleDataSeeded = true;
+  persistAllToDisk();
 
   return {
     success: true,
     message: 'تم غرس البيانات التجريبية النموذجية بنجاح لاستعراض النظام.',
   };
 }
+
+// =============================================================
+// ETERNAL ACCOUNT & STORE DATA PERSISTENCE LAYER (Disk + PostgreSQL)
+// =============================================================
+
+const STORE_DIR = path.join(process.cwd(), 'data');
+const STORE_FILE = path.join(STORE_DIR, 'permanent_erp_store.json');
+
+export const permanentUsersMap = new Map<string, PermanentUserRecord>([
+  [
+    'admin@alsahabi.com',
+    {
+      id: 'usr_001',
+      email: 'admin@alsahabi.com',
+      password_hash: 'admin123',
+      name: 'المدير العام',
+      role: 'ADMIN',
+      company_id: 'comp_001',
+      company_name: 'مؤسسة السحابي للتجارة والتقنية',
+      phone: '0501234567',
+      business_mode: 'multi_activity',
+      created_at: '2026-01-01T00:00:00Z',
+    },
+  ],
+  [
+    'admin@enterprise.sa',
+    {
+      id: 'usr_enterprise_01',
+      email: 'admin@enterprise.sa',
+      password_hash: 'admin123',
+      name: 'عبدالرحمن العتيبي (المدير العام)',
+      role: 'ADMIN',
+      company_id: 'comp_001',
+      company_name: 'مؤسسة السحابي للتجارة والتقنية',
+      phone: '0501234567',
+      business_mode: 'multi_activity',
+      created_at: '2026-01-01T00:00:00Z',
+    },
+  ],
+  [
+    'admin@alamal-trade.com',
+    {
+      id: 'usr_alamal_01',
+      email: 'admin@alamal-trade.com',
+      password_hash: 'AdminPass123!',
+      name: 'محمد أحمد العبسي',
+      role: 'ADMIN',
+      company_id: 'comp_alamal',
+      company_name: 'شركة الأمل الوطنية للتجارة',
+      phone: '777123456',
+      business_mode: 'wholesale_retail_general',
+      created_at: '2026-01-01T00:00:00Z',
+    },
+  ],
+  [
+    'admin@albaraka-store.com',
+    {
+      id: 'usr_albaraka_01',
+      email: 'admin@albaraka-store.com',
+      password_hash: 'AdminPass123!',
+      name: 'عبدالله صالح البركة',
+      role: 'ADMIN',
+      company_id: 'comp_albaraka',
+      company_name: 'مؤسسة البركة للمستلزمات',
+      phone: '733987654',
+      business_mode: 'wholesale_retail_general',
+      created_at: '2026-01-01T00:00:00Z',
+    },
+  ],
+]);
+
+export const permanentCompaniesMap = new Map<string, any>([
+  [
+    'comp_001',
+    {
+      id: 'comp_001',
+      name: 'مؤسسة السحابي للتجارة والتقنية',
+      currency: 'SAR',
+      phone: '0501234567',
+      email: 'admin@alsahabi.com',
+      status: 'ACTIVE',
+      created_at: '2026-01-01T00:00:00Z',
+    },
+  ],
+  [
+    'comp_alamal',
+    {
+      id: 'comp_alamal',
+      name: 'شركة الأمل الوطنية للتجارة',
+      currency: 'YER',
+      phone: '777123456',
+      email: 'admin@alamal-trade.com',
+      status: 'ACTIVE',
+      created_at: '2026-01-01T00:00:00Z',
+    },
+  ],
+  [
+    'comp_albaraka',
+    {
+      id: 'comp_albaraka',
+      name: 'مؤسسة البركة للمستلزمات',
+      currency: 'YER',
+      phone: '733987654',
+      email: 'admin@albaraka-store.com',
+      status: 'ACTIVE',
+      created_at: '2026-01-01T00:00:00Z',
+    },
+  ],
+]);
+
+export function persistAllToDisk(): void {
+  try {
+    if (!fs.existsSync(STORE_DIR)) {
+      fs.mkdirSync(STORE_DIR, { recursive: true });
+    }
+    const payload = {
+      version: 2,
+      saved_at: new Date().toISOString(),
+      isSampleDataSeeded,
+      users: Array.from(permanentUsersMap.values()),
+      companies: Array.from(permanentCompaniesMap.values()),
+      products: mockProducts,
+      inventoryMovements: mockInventoryMovements,
+      customers: mockCustomersList,
+      suppliers: mockSuppliersList,
+      accountTransactions: mockAccountTransactions,
+      invoices: mockInvoicesList,
+      purchaseInvoices: mockPurchaseInvoicesList,
+      payments: mockPaymentsList,
+      auditLogs: mockAuditLogsList,
+    };
+    fs.writeFileSync(STORE_FILE, JSON.stringify(payload, null, 2), 'utf-8');
+  } catch (err: any) {
+    console.warn('[DISK_PERSIST_WARN]', err?.message);
+  }
+}
+
+export function initPermanentDiskStore(): void {
+  try {
+    if (!fs.existsSync(STORE_DIR)) {
+      fs.mkdirSync(STORE_DIR, { recursive: true });
+    }
+    if (fs.existsSync(STORE_FILE)) {
+      const raw = fs.readFileSync(STORE_FILE, 'utf-8');
+      if (raw && raw.trim()) {
+        const data = JSON.parse(raw);
+        if (Array.isArray(data.users)) {
+          data.users.forEach((u: PermanentUserRecord) => {
+            if (u && u.email) {
+              permanentUsersMap.set(u.email.trim().toLowerCase(), u);
+            }
+          });
+        }
+        if (Array.isArray(data.companies)) {
+          data.companies.forEach((c: any) => {
+            if (c && c.id) {
+              permanentCompaniesMap.set(c.id, c);
+            }
+          });
+        }
+        if (Array.isArray(data.customers) && data.customers.length > 0) {
+          mockCustomersList.length = 0;
+          mockCustomersList.push(...data.customers);
+        }
+        if (Array.isArray(data.suppliers) && data.suppliers.length > 0) {
+          mockSuppliersList.length = 0;
+          mockSuppliersList.push(...data.suppliers);
+        }
+        if (Array.isArray(data.products) && data.products.length > 0) {
+          mockProducts.length = 0;
+          mockProducts.push(...data.products);
+        }
+        if (Array.isArray(data.inventoryMovements)) {
+          mockInventoryMovements.length = 0;
+          mockInventoryMovements.push(...data.inventoryMovements);
+        }
+        if (Array.isArray(data.accountTransactions)) {
+          mockAccountTransactions.length = 0;
+          mockAccountTransactions.push(...data.accountTransactions);
+        }
+        if (Array.isArray(data.invoices)) {
+          mockInvoicesList.length = 0;
+          mockInvoicesList.push(...data.invoices);
+        }
+        if (Array.isArray(data.purchaseInvoices)) {
+          mockPurchaseInvoicesList.length = 0;
+          mockPurchaseInvoicesList.push(...data.purchaseInvoices);
+        }
+        if (Array.isArray(data.payments)) {
+          mockPaymentsList.length = 0;
+          mockPaymentsList.push(...data.payments);
+        }
+        if (Array.isArray(data.auditLogs)) {
+          mockAuditLogsList.length = 0;
+          mockAuditLogsList.push(...data.auditLogs);
+        }
+        if (typeof data.isSampleDataSeeded === 'boolean') {
+          isSampleDataSeeded = data.isSampleDataSeeded;
+        }
+        console.log('[PERMANENT_STORE_RESTORED] Loaded from disk successfully.');
+      }
+    }
+  } catch (err: any) {
+    console.warn('[DISK_STORE_INIT_WARN]', err?.message);
+  }
+}
+
+// PostgreSQL Persistent Schema Initializer
+export async function initPermanentPostgresTables(pool: any): Promise<void> {
+  if (!pool) return;
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS erp_permanent_users (
+        id VARCHAR(64) PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        role VARCHAR(64) DEFAULT 'ADMIN',
+        company_id VARCHAR(64) NOT NULL,
+        company_name VARCHAR(255) NOT NULL,
+        phone VARCHAR(64),
+        business_mode VARCHAR(64),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        metadata JSONB DEFAULT '{}'::jsonb
+      );
+
+      CREATE TABLE IF NOT EXISTS erp_permanent_tenant_data (
+        company_id VARCHAR(64) NOT NULL,
+        data_type VARCHAR(64) NOT NULL,
+        payload JSONB NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (company_id, data_type)
+      );
+    `);
+
+    // Load registered users from database if present
+    const res = await pool.query('SELECT * FROM erp_permanent_users');
+    if (res && res.rows && res.rows.length > 0) {
+      for (const row of res.rows) {
+        const normalized = (row.email || '').trim().toLowerCase();
+        if (normalized) {
+          permanentUsersMap.set(normalized, {
+            id: row.id,
+            email: normalized,
+            password_hash: row.password_hash,
+            name: row.name,
+            role: row.role || 'ADMIN',
+            company_id: row.company_id,
+            company_name: row.company_name,
+            phone: row.phone || undefined,
+            business_mode: row.business_mode || undefined,
+            created_at: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+            metadata: row.metadata,
+          });
+        }
+      }
+      console.log(`[PG_USERS_LOADED] Loaded ${res.rows.length} permanent accounts from PostgreSQL.`);
+    }
+  } catch (err: any) {
+    console.warn('[PG_PERMANENT_TABLES_INIT_WARN]', err?.message);
+  }
+}
+
+export async function saveUserToPermanentStore(user: PermanentUserRecord, pool?: any): Promise<void> {
+  const normalized = user.email.trim().toLowerCase();
+  permanentUsersMap.set(normalized, user);
+  persistAllToDisk();
+
+  if (pool) {
+    try {
+      await pool.query(
+        `INSERT INTO erp_permanent_users (id, email, password_hash, name, role, company_id, company_name, phone, business_mode, created_at, metadata)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         ON CONFLICT (email)
+         DO UPDATE SET 
+           password_hash = EXCLUDED.password_hash,
+           name = EXCLUDED.name,
+           company_name = EXCLUDED.company_name,
+           phone = EXCLUDED.phone,
+           business_mode = EXCLUDED.business_mode,
+           metadata = EXCLUDED.metadata`,
+        [
+          user.id,
+          normalized,
+          user.password_hash,
+          user.name,
+          user.role,
+          user.company_id,
+          user.company_name,
+          user.phone || null,
+          user.business_mode || null,
+          user.created_at || new Date().toISOString(),
+          JSON.stringify(user.metadata || {}),
+        ]
+      );
+    } catch (err: any) {
+      console.warn('[PG_USER_PERSIST_WARN]', err?.message);
+    }
+  }
+}
+
+export async function saveCompanyToPermanentStore(company: any, pool?: any): Promise<void> {
+  if (!company || !company.id) return;
+  permanentCompaniesMap.set(company.id, company);
+  persistAllToDisk();
+
+  if (pool) {
+    try {
+      await pool.query(
+        `INSERT INTO companies (id, name, currency, status)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, currency = EXCLUDED.currency`,
+        [company.id, company.name, company.currency || 'SAR', company.status || 'ACTIVE']
+      );
+    } catch (err: any) {
+      console.warn('[PG_COMPANY_PERSIST_WARN]', err?.message);
+    }
+  }
+}
+
+export async function rehydrateTenantData(payload: any, pool?: any): Promise<{ success: boolean; message: string }> {
+  if (!payload || typeof payload !== 'object') {
+    return { success: false, message: 'بيانات غير صالحة' };
+  }
+
+  // 1. Rehydrate user
+  if (payload.user && payload.user.email) {
+    const userRec: PermanentUserRecord = {
+      id: payload.user.id || `usr_${Date.now()}`,
+      email: payload.user.email.trim().toLowerCase(),
+      password_hash: payload.password || payload.user.password_hash || payload.password_hash || 'admin123',
+      name: payload.user.full_name || payload.user.name || 'المدير العام',
+      role: payload.user.role || 'ADMIN',
+      company_id: payload.company?.id || payload.user.company_id || 'comp_001',
+      company_name: payload.company?.name || payload.companyName || payload.user.company_name || 'المؤسسة التجارية',
+      phone: payload.user.phone || payload.phone,
+      business_mode: payload.business_mode || payload.user.business_mode,
+      created_at: payload.user.created_at || new Date().toISOString(),
+    };
+    await saveUserToPermanentStore(userRec, pool);
+  }
+
+  // 2. Rehydrate company
+  if (payload.company && payload.company.id) {
+    await saveCompanyToPermanentStore(payload.company, pool);
+  }
+
+  // 3. Rehydrate collections if provided
+  if (Array.isArray(payload.customers) && payload.customers.length > 0) {
+    mockCustomersList.length = 0;
+    mockCustomersList.push(...payload.customers);
+  }
+  if (Array.isArray(payload.suppliers) && payload.suppliers.length > 0) {
+    mockSuppliersList.length = 0;
+    mockSuppliersList.push(...payload.suppliers);
+  }
+  if (Array.isArray(payload.products) && payload.products.length > 0) {
+    mockProducts.length = 0;
+    mockProducts.push(...payload.products);
+  }
+  if (Array.isArray(payload.invoices) && payload.invoices.length > 0) {
+    mockInvoicesList.length = 0;
+    mockInvoicesList.push(...payload.invoices);
+  }
+  if (Array.isArray(payload.purchaseInvoices) && payload.purchaseInvoices.length > 0) {
+    mockPurchaseInvoicesList.length = 0;
+    mockPurchaseInvoicesList.push(...payload.purchaseInvoices);
+  }
+  if (Array.isArray(payload.payments) && payload.payments.length > 0) {
+    mockPaymentsList.length = 0;
+    mockPaymentsList.push(...payload.payments);
+  }
+  if (Array.isArray(payload.accountTransactions) && payload.accountTransactions.length > 0) {
+    mockAccountTransactions.length = 0;
+    mockAccountTransactions.push(...payload.accountTransactions);
+  }
+
+  persistAllToDisk();
+
+  return {
+    success: true,
+    message: 'تمت استعادة ومزامنة بيانات الحساب والمتجر الدائمة بنجاح.',
+  };
+}
+
+export async function deletePermanentAccount(email: string, password: string, pool?: any): Promise<{ success: boolean; message: string }> {
+  const normalized = (email || '').trim().toLowerCase();
+  const user = permanentUsersMap.get(normalized);
+  if (!user) {
+    return { success: false, message: 'الحساب غير موجود' };
+  }
+  if (user.password_hash && user.password_hash !== password) {
+    return { success: false, message: 'كلمة المرور غير صحيحة، تعذر حذف الحساب' };
+  }
+
+  permanentUsersMap.delete(normalized);
+  persistAllToDisk();
+
+  if (pool) {
+    try {
+      await pool.query('DELETE FROM erp_permanent_users WHERE email = $1', [normalized]);
+    } catch (err: any) {
+      console.warn('[PG_DELETE_USER_WARN]', err?.message);
+    }
+  }
+
+  return { success: true, message: 'تم حذف الحساب نهائياً بنجاح.' };
+}
+
+// Automatically initialize from disk on module import
+initPermanentDiskStore();

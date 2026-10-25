@@ -14,6 +14,7 @@ import {
   cleanupAllSampleData,
   seedAllSampleData,
   isSampleDataSeeded,
+  persistAllToDisk,
 } from '../dataStore';
 
 export { mockCustomersList, mockSuppliersList, mockAccountTransactions };
