@@ -12,6 +12,7 @@ import {
   setEnterpriseDbPool,
   mockBackupsDatabase,
   resolveCompanyId,
+  inMemoryEnterpriseStates,
 } from './server/routes/enterpriseApi';
 import {
   mockProducts,
@@ -21,9 +22,12 @@ import {
   mockPaymentsList,
   mockAccountTransactions,
   mockAuditLogsList,
+  mockExpensesList,
   cleanupAllSampleData,
   seedAllSampleData,
   isSampleDataSeeded,
+  isTenantCleanProductionMode,
+  setTenantCleanProductionMode,
   permanentUsersMap,
   permanentCompaniesMap,
   initPermanentPostgresTables,
@@ -1301,24 +1305,94 @@ app.get('/api/v1/reports/payables', (_req: Request, res: Response) => {
   });
 });
 
-app.get('/api/v1/reports/cash-flow', (_req: Request, res: Response) => {
+// ==========================================
+// Clean Production Mode & Sandbox Purge Engine
+// ==========================================
+app.get('/api/v1/system/clean-mode-status', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const clean = isTenantCleanProductionMode(companyId);
   res.json({
     success: true,
-    data: {
-      inflows: 142500,
-      outflows: 90700,
-      netCashFlow: 51800,
+    cleanProductionMode: clean,
+    isSampleDataSeeded: !clean,
+  });
+});
+
+app.post(['/api/v1/system/wipe-demo-data', '/api/v1/production/initialize-clean', '/api/v1/sandbox/purge'], async (req: Request, res: Response) => {
+  try {
+    const companyId = resolveCompanyId(req);
+    // Delete in-memory enterprise module states
+    for (const key of ['fuel_station', 'fuel_tanks', 'fuel_meter_records', 'inventory_warehouses', 'sales_reps', 'custom_ledger', 'battery_warranties', 'tire_records']) {
+      inMemoryEnterpriseStates.delete(`${companyId}::${key}`);
+    }
+    setTenantCleanProductionMode(companyId, true, dbPool);
+    const result = await cleanupAllSampleData(companyId, dbPool);
+
+    res.json({
+      success: true,
+      cleanProductionMode: true,
+      message: 'تم تصفير وحذف كافة البيانات التجريبية بنجاح، والنظام الآن مهيأ ومصفر بالكامل لبدء إدخال بياناتك الحقيقية.',
+      clearedCounts: result.clearedCounts,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'فشل حذف البيانات التجريبية' });
+  }
+});
+
+app.post(['/api/v1/sandbox/seed-demo-data', '/api/v1/saas/sample-data/seed'], (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  setTenantCleanProductionMode(companyId, false, dbPool);
+  const result = seedAllSampleData();
+  res.json({
+    success: true,
+    isSeeded: true,
+    cleanProductionMode: false,
+    message: result.message,
+    counts: {
+      products: mockProducts.length,
+      customers: mockCustomersList.length,
+      suppliers: mockSuppliersList.length,
+      invoices: mockInvoicesList.length,
+      movements: mockInventoryMovements.length,
     },
   });
 });
 
-app.get('/api/v1/reports/inventory', (_req: Request, res: Response) => {
+app.get('/api/v1/reports/cash-flow', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const isClean = isTenantCleanProductionMode(companyId);
+  const totalInflows = mockInvoicesList.reduce((sum, inv) => sum + Number(inv.paid_amount || (inv.status === 'مدفوعة' ? inv.total : 0)), 0);
+  const totalOutflows = mockPurchaseInvoicesList.reduce((sum, pur) => sum + Number(pur.paid_amount || 0), 0) + mockExpensesList.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
+
+  if (isClean && mockInvoicesList.length === 0 && mockPurchaseInvoicesList.length === 0) {
+    return res.json({
+      success: true,
+      data: { inflows: 0, outflows: 0, netCashFlow: 0 },
+    });
+  }
+
   res.json({
     success: true,
     data: {
-      totalProductsCount: 148,
-      totalValuation: 78500,
-      lowStockCount: 3,
+      inflows: totalInflows || (isClean ? 0 : 142500),
+      outflows: totalOutflows || (isClean ? 0 : 90700),
+      netCashFlow: (totalInflows - totalOutflows) || (isClean ? 0 : 51800),
+    },
+  });
+});
+
+app.get('/api/v1/reports/inventory', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const isClean = isTenantCleanProductionMode(companyId);
+  const valuation = mockProducts.reduce((sum, p) => sum + Number((p.cost_price || p.purchase_price || p.price || 0) * (p.current_stock || 0)), 0);
+  const lowStock = mockProducts.filter((p) => (p.current_stock || 0) <= (p.min_stock_level || 5)).length;
+
+  res.json({
+    success: true,
+    data: {
+      totalProductsCount: mockProducts.length,
+      totalValuation: valuation || (isClean ? 0 : (mockProducts.length > 0 ? valuation : 0)),
+      lowStockCount: lowStock,
     },
   });
 });
@@ -1395,48 +1469,104 @@ app.get('/api/v1/reports/tax', (_req: Request, res: Response) => {
   });
 });
 
-app.get('/api/v1/reports/executive-summary', (_req: Request, res: Response) => {
+app.get('/api/v1/reports/executive-summary', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const isClean = isTenantCleanProductionMode(companyId);
+  const salesTotal = mockInvoicesList.reduce((sum, inv) => sum + Number(inv.total || inv.amount || 0), 0);
+  const purchasesTotal = mockPurchaseInvoicesList.reduce((sum, pur) => sum + Number(pur.total || 0), 0);
+  const netProfit = Math.max(0, salesTotal - purchasesTotal);
+  const margin = salesTotal > 0 ? ((netProfit / salesTotal) * 100).toFixed(1) + '%' : '0.0%';
+
+  if (isClean && mockInvoicesList.length === 0) {
+    return res.json({
+      success: true,
+      data: {
+        revenue: 0,
+        netProfit: 0,
+        grossMargin: '0.0%',
+        activeCustomers: 0,
+        inventoryTurnover: 0,
+        liquidityRatio: 0,
+      },
+    });
+  }
+
   res.json({
     success: true,
     data: {
-      revenue: 142500,
-      netProfit: 51800,
-      grossMargin: '49.3%',
-      activeCustomers: 48,
+      revenue: salesTotal || (isClean ? 0 : 142500),
+      netProfit: netProfit || (isClean ? 0 : 51800),
+      grossMargin: margin || (isClean ? '0.0%' : '49.3%'),
+      activeCustomers: mockCustomersList.length || (isClean ? 0 : 48),
       inventoryTurnover: 4.2,
       liquidityRatio: 3.4,
     },
   });
 });
 
-app.get('/api/v1/reports/dashboard', (_req: Request, res: Response) => {
+app.get('/api/v1/reports/dashboard', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const isClean = isTenantCleanProductionMode(companyId);
+  const salesTotal = mockInvoicesList.reduce((sum, inv) => sum + Number(inv.total || inv.amount || 0), 0);
+  const purchasesTotal = mockPurchaseInvoicesList.reduce((sum, pur) => sum + Number(pur.total || 0), 0);
+  const receivables = mockCustomersList.reduce((sum, c) => sum + Number(c.balance || c.current_balance || 0), 0);
+  const payables = mockSuppliersList.reduce((sum, s) => sum + Number(s.balance || s.current_balance || 0), 0);
+  const netProfit = Math.max(0, salesTotal - purchasesTotal);
+
+  if (isClean && mockInvoicesList.length === 0 && mockProducts.length === 0) {
+    return res.json({
+      success: true,
+      data: {
+        salesTotal: 0,
+        purchasesTotal: 0,
+        netProfit: 0,
+        vatPayable: 0,
+        receivables: 0,
+        payables: 0,
+      },
+    });
+  }
+
   res.json({
     success: true,
     data: {
-      salesTotal: 142500,
-      purchasesTotal: 84200,
-      netProfit: 58300,
-      vatPayable: 8745,
-      receivables: 18200,
-      payables: 18200,
+      salesTotal: salesTotal || (isClean ? 0 : 142500),
+      purchasesTotal: purchasesTotal || (isClean ? 0 : 84200),
+      netProfit: netProfit || (isClean ? 0 : 58300),
+      vatPayable: Math.round((salesTotal * 0.15) - (purchasesTotal * 0.15)) || (isClean ? 0 : 8745),
+      receivables: receivables || (isClean ? 0 : 18200),
+      payables: payables || (isClean ? 0 : 18200),
     },
   });
 });
 
 app.get('/api/v1/reports/top-performance', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const isClean = isTenantCleanProductionMode(companyId);
   const limit = parseInt((req.query.limit as string) || '5', 10);
+
+  if (isClean && mockInvoicesList.length === 0 && mockProducts.length === 0) {
+    return res.json({
+      success: true,
+      data: {
+        topSellingProducts: [],
+        topCustomers: [],
+      },
+    });
+  }
+
   res.json({
     success: true,
     data: {
-      topSellingProducts: [
-        { name: 'شاي سيلاني فاخر 100 كيس', salesAmount: 45000, units: 2432 },
-        { name: 'بطارية هانكوك 70 أمبير', salesAmount: 38000, units: 131 },
-        { name: 'زيت محرك بترومين 20W-50', salesAmount: 29000, units: 386 },
-      ].slice(0, limit),
-      topCustomers: [
-        { name: 'مؤسسة الأفق للتجارة', totalPurchases: 58000 },
-        { name: 'شركة الوفاق المحدودة', totalPurchases: 42000 },
-      ].slice(0, limit),
+      topSellingProducts: mockProducts.slice(0, limit).map((p) => ({
+        name: p.name,
+        salesAmount: Number(p.price || 0) * 10,
+        units: 10,
+      })),
+      topCustomers: mockCustomersList.slice(0, limit).map((c) => ({
+        name: c.name,
+        totalPurchases: Number(c.balance || 0),
+      })),
     },
   });
 });

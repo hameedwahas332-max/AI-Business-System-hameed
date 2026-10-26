@@ -31,7 +31,12 @@ export const CashFlowTreasuryCenter: React.FC<CashFlowTreasuryCenterProps> = ({
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'balances' | 'daily_movement'>('balances');
 
-  const totalLiquidity = Number(stats?.balances?.cashAndBankBalance ?? stats?.cashBankBalance ?? 62400);
+  const isClean = typeof window !== 'undefined' && (
+    localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
+    localStorage.getItem('erp_sample_data_cleaned') === 'true'
+  );
+
+  const totalLiquidity = Number(stats?.balances?.cashAndBankBalance ?? stats?.cashBankBalance ?? 0);
 
   // Split balances
   const cashOnHand = Math.round(totalLiquidity * 0.42);
@@ -39,9 +44,9 @@ export const CashFlowTreasuryCenter: React.FC<CashFlowTreasuryCenterProps> = ({
   const eWallets = Math.max(0, totalLiquidity - cashOnHand - bankAccounts);
 
   // Daily Receipts vs Disbursements vs Expenses
-  const todayReceipts = Number(stats?.payments?.todayReceipts ?? 14500);
-  const todayDisbursements = Number(stats?.payments?.todayDisbursements ?? 8200);
-  const todayExpenses = Number(stats?.payments?.todayExpenses ?? 1200);
+  const todayReceipts = Number(stats?.payments?.todayReceipts ?? 0);
+  const todayDisbursements = Number(stats?.payments?.todayDisbursements ?? 0);
+  const todayExpenses = Number(stats?.payments?.todayExpenses ?? 0);
   const todayNetCashFlow = todayReceipts - todayDisbursements - todayExpenses;
 
   const treasuryItems = [
@@ -51,7 +56,7 @@ export const CashFlowTreasuryCenter: React.FC<CashFlowTreasuryCenterProps> = ({
       subtitle: 'خزينة الكاشير والمكتب المركزي',
       balance: cashOnHand,
       type: 'CASH',
-      pct: 42,
+      pct: totalLiquidity > 0 ? 42 : 0,
       color: 'bg-emerald-500',
       textClass: 'text-emerald-400',
       icon: Coins,
@@ -63,7 +68,7 @@ export const CashFlowTreasuryCenter: React.FC<CashFlowTreasuryCenterProps> = ({
       subtitle: 'حسابات جارية وودائع بنكية',
       balance: bankAccounts,
       type: 'BANK',
-      pct: 38,
+      pct: totalLiquidity > 0 ? 38 : 0,
       color: 'bg-blue-500',
       textClass: 'text-blue-400',
       icon: Landmark,
@@ -75,7 +80,7 @@ export const CashFlowTreasuryCenter: React.FC<CashFlowTreasuryCenterProps> = ({
       subtitle: 'الكريمي • جوالي • ون كاش • فلوسك • جوبي',
       balance: eWallets,
       type: 'WALLET',
-      pct: 20,
+      pct: totalLiquidity > 0 ? 20 : 0,
       color: 'bg-amber-400',
       textClass: 'text-amber-400',
       icon: Smartphone,

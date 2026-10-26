@@ -237,9 +237,19 @@ export const RealBusinessOperationsTab: React.FC = () => {
   // 10. Sales Representatives & Commissions State
   const [salesReps, setSalesReps] = useState<SalesRep[]>(() => {
     try {
+      const isClean =
+        typeof window !== 'undefined' &&
+        (localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
+          localStorage.getItem('erp_sample_data_cleaned') === 'true');
       const saved = localStorage.getItem('erp_sales_reps_v1');
       if (saved) return JSON.parse(saved);
+      if (isClean) return [];
     } catch {}
+    const isClean =
+      typeof window !== 'undefined' &&
+      (localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
+        localStorage.getItem('erp_sample_data_cleaned') === 'true');
+    if (isClean) return [];
     return INITIAL_SALES_REPS;
   });
 
@@ -453,6 +463,18 @@ export const RealBusinessOperationsTab: React.FC = () => {
     fetchMasterData();
     fetchDashboard();
     fetchPeriods();
+
+    const handleWiped = () => {
+      setSalesReps([]);
+      setOpeningBalances([]);
+      setExpenses([]);
+      setSalesReturns([]);
+      setPurchaseReturns([]);
+      fetchMasterData();
+      fetchDashboard();
+    };
+    window.addEventListener('erp-demo-data-wiped', handleWiped);
+    return () => window.removeEventListener('erp-demo-data-wiped', handleWiped);
   }, [token]);
 
   const fetchMasterData = async () => {

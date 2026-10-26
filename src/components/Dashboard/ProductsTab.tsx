@@ -128,7 +128,13 @@ export const ProductsTab: React.FC = () => {
       if (lowStockOnly) params.lowStock = 'true';
 
       const res = await api.getProducts(params);
-      setProducts(res?.data || []);
+      const isClean =
+        typeof window !== 'undefined' &&
+        (localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
+          localStorage.getItem('erp_sample_data_cleaned') === 'true');
+
+      const items = res?.data || [];
+      setProducts(isClean && items.length === 0 ? [] : items);
     } catch (err: any) {
       setError(err.message || 'فشل جلب دليل المنتجات');
     } finally {
@@ -138,6 +144,12 @@ export const ProductsTab: React.FC = () => {
 
   useEffect(() => {
     fetchProducts();
+    const handleWiped = () => {
+      setProducts([]);
+      fetchProducts();
+    };
+    window.addEventListener('erp-demo-data-wiped', handleWiped);
+    return () => window.removeEventListener('erp-demo-data-wiped', handleWiped);
   }, [searchQuery, selectedCategory, selectedActivity, lowStockOnly]);
 
   const handleOpenCreate = () => {

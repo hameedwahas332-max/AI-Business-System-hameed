@@ -14,6 +14,8 @@ import {
   cleanupAllSampleData,
   seedAllSampleData,
   isSampleDataSeeded,
+  isTenantCleanProductionMode,
+  setTenantCleanProductionMode,
   persistAllToDisk,
   mockEmployeesList,
   mockEmployeeMovementsList,
@@ -2552,11 +2554,14 @@ enterpriseRouter.post('/saas/pilot/feedback', (req: Request, res: Response) => {
   res.status(201).json({ success: true, message: 'شكراً لمشاركتنا ملاحظاتك القيمة' });
 });
 
-enterpriseRouter.post('/saas/sample-data/seed', (_req: Request, res: Response) => {
+enterpriseRouter.post('/saas/sample-data/seed', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  setTenantCleanProductionMode(companyId, false, enterpriseDbPool);
   const result = seedAllSampleData();
   res.json({
     success: true,
     isSeeded: true,
+    cleanProductionMode: false,
     message: result.message,
     counts: {
       products: mockProducts.length,
@@ -2571,13 +2576,15 @@ enterpriseRouter.post('/saas/sample-data/seed', (_req: Request, res: Response) =
 enterpriseRouter.post(['/saas/sample-data/cleanup', '/production-onboarding/purge-sample-data'], async (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   // Clear in-memory enterprise module states for sample keys
-  for (const key of ['fuel_tanks', 'sales_reps', 'custom_ledger', 'battery_warranties', 'tire_records']) {
+  for (const key of ['fuel_station', 'fuel_tanks', 'fuel_meter_records', 'sales_reps', 'custom_ledger', 'battery_warranties', 'tire_records', 'inventory_warehouses']) {
     inMemoryEnterpriseStates.delete(`${companyId}::${key}`);
   }
+  setTenantCleanProductionMode(companyId, true, enterpriseDbPool);
   const result = await cleanupAllSampleData(companyId, enterpriseDbPool);
   res.json({
     success: true,
     isSeeded: false,
+    cleanProductionMode: true,
     message: result.message,
     clearedCounts: result.clearedCounts,
   });

@@ -274,10 +274,12 @@ export const CustomerSuccessTab: React.FC = () => {
   const handleSeedSampleData = async () => {
     setLoading(true);
     try {
-      const res = await safeFetchJson('/api/v1/saas/sample-data/seed', { method: 'POST', headers: authHeaders });
+      const res = await safeFetchJson('/api/v1/sandbox/seed-demo-data', { method: 'POST', headers: authHeaders });
       if (res.ok && res.data?.success) {
+        localStorage.setItem('erp_clean_production_mode_v1', 'false');
         localStorage.removeItem('erp_sample_data_cleaned');
         window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new Event('erp-demo-data-wiped'));
         showNotification('success', 'تم غرس بيانات Sandbox التجريبية بنجاح (عملاء، منتجات، فواتير نموذجية)');
         setSampleDataStatus({ isSeeded: true, message: 'البيانات التجريبية نشطة' });
         setTimeout(() => {
@@ -294,21 +296,25 @@ export const CustomerSuccessTab: React.FC = () => {
   };
 
   const handleCleanupSampleData = async () => {
-    if (!window.confirm('هل أنت متأكد من رغبتك في حذف وتصفير البيانات التجريبية (Sandbox) لبدء تشغيل النظام ببياناتك الحقيقية الفعلية؟ لن يتم حذف إعدادات الشركة أو بياناتك الحقيقية.')) return;
+    if (!window.confirm('هل أنت متأكد من رغبتك في حذف وتصفير البيانات التجريبية (Sandbox) لبدء تشغيل النظام ببياناتك الحقيقية الفعلية؟ لن يتم حذف حسابك أو اسم المنشأة أو إعدادات الربط أو أسعار الصرف.')) return;
     setLoading(true);
     try {
-      const res = await safeFetchJson('/api/v1/saas/sample-data/cleanup', { method: 'POST', headers: authHeaders });
+      const res = await safeFetchJson('/api/v1/system/wipe-demo-data', { method: 'POST', headers: authHeaders });
       if (res.ok && res.data?.success) {
         // Clear cached demo localStorage items
         const sampleStorageKeys = [
-          'erp_pos_held_sales',
-          'erp_custom_ledger_entries',
+          'erp_fuel_tanks_v1',
+          'erp_fuel_meter_records_v1',
           'erp_fuel_tanks_state',
           'erp_fuel_daily_records',
+          'erp_pos_held_sales',
+          'erp_pos_held_v1',
+          'erp_pos_shift_history',
+          'erp_pos_shift_history_v1',
+          'erp_custom_ledger_entries',
           'erp_sales_reps_v1',
           'erp_battery_warranty_records',
           'erp_tire_dot_records',
-          'erp_pos_shift_history',
         ];
         sampleStorageKeys.forEach((key) => {
           try {
@@ -317,9 +323,35 @@ export const CustomerSuccessTab: React.FC = () => {
             // ignore
           }
         });
+        localStorage.setItem('erp_clean_production_mode_v1', 'true');
         localStorage.setItem('erp_sample_data_cleaned', 'true');
+
+        // Update eternal accounts vault snapshot with clean arrays while strictly preserving user and company
+        try {
+          const vaultRaw = localStorage.getItem('erp_eternal_accounts_vault_v1');
+          if (vaultRaw) {
+            const vault = JSON.parse(vaultRaw);
+            if (vault && vault.dataSnapshot) {
+              vault.dataSnapshot.products = [];
+              vault.dataSnapshot.customers = [];
+              vault.dataSnapshot.suppliers = [];
+              vault.dataSnapshot.invoices = [];
+              vault.dataSnapshot.purchaseInvoices = [];
+              vault.dataSnapshot.payments = [];
+              vault.dataSnapshot.accountTransactions = [];
+              vault.dataSnapshot.employees = [];
+              vault.dataSnapshot.expenses = [];
+              vault.cleanProductionMode = true;
+              localStorage.setItem('erp_eternal_accounts_vault_v1', JSON.stringify(vault));
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
+
         window.dispatchEvent(new Event('storage'));
         window.dispatchEvent(new CustomEvent('erp:data-cleared'));
+        window.dispatchEvent(new Event('erp-demo-data-wiped'));
 
         showNotification('success', 'تم حذف وتصفير جميع البيانات التجريبية بنجاح! أصبح النظام الآن جاهزاً ونظيفاً تماماً لبدء إدخال بياناتك الواقعية.');
         setSampleDataStatus({ isSeeded: false, message: 'تم تنظيف وتصفير البيانات التجريبية' });
@@ -830,32 +862,78 @@ export const CustomerSuccessTab: React.FC = () => {
       {/* TAB 4: SAMPLE DATA SANDBOX */}
       {activeSubTab === 'sample_data' && (
         <div className="space-y-6">
-          <div className="bg-slate-900 rounded-2xl p-6 border border-emerald-900/50 shadow-xl">
-            <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
-              <Database className="w-5 h-5 text-emerald-400" />
-              بيئة البيانات التجريبية المعزولة (Sandbox Demo Seeder)
-            </h3>
-            <p className="text-sm text-slate-400 mb-6">
-              يمكنك زرع بيانات تجريبية (عملاء، موردين، أصناف مخزون، وفواتير نموذجية) لاختبار لوحات التقارير واستعراض إمكانيات النظام بدون التأثير على بياناتك الفعلية.
-            </p>
+          <div className="bg-slate-900 rounded-2xl p-6 border border-emerald-900/50 shadow-xl space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+              <div>
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Database className="w-5 h-5 text-emerald-400" />
+                  مركز التحكم بالبيانات التجريبية (Sandbox) وتصفير النظام للعمل الحقيقي
+                </h3>
+                <p className="text-sm text-slate-400 mt-1">
+                  التحكم الكامل بين وضع العمل الفعلي ببيانات نظيفة ومصفرة 100%، وبين وضع الاستعراض وتجربة ميزات النظام.
+                </p>
+              </div>
 
-            <div className="flex flex-wrap gap-4">
-              <button
-                onClick={handleSeedSampleData}
-                disabled={loading}
-                className="px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-emerald-950/50 transition flex items-center gap-2 cursor-pointer"
-              >
-                <Sparkles className="w-4 h-4 text-emerald-200" />
-                زرع بيانات تجريبية نموذجية (Seed Sample Data)
-              </button>
+              <div>
+                {typeof window !== 'undefined' && localStorage.getItem('erp_clean_production_mode_v1') === 'true' ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    وضع العمل الفعلي النظيف مفعل (0 بيانات تجريبية)
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                    <span className="w-2 h-2 rounded-full bg-amber-400" />
+                    البيانات التجريبية (Sandbox) مفعلة حالياً للعرض
+                  </span>
+                )}
+              </div>
+            </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                <div className="flex items-center gap-2 text-rose-400 font-bold text-xs mb-2">
+                  <Trash2 className="w-4 h-4" />
+                  ما يتم حذفه وتصفيره عند تفعيل العمل الفعلي:
+                </div>
+                <ul className="text-xs text-slate-300 space-y-1.5 list-disc list-inside">
+                  <li>كافة فواتير المبيعات ونقاط البيع التجريبية ومحطات الوقود</li>
+                  <li>جميع فواتير المشتريات وسندات القبض والصرف النموذجية</li>
+                  <li>قوائم العملاء والموردين والأصناف الافتراضية التجريبية</li>
+                  <li>سجلات المخازن والجرد ودفتر الأستاذ العام وسجل المحادثات</li>
+                </ul>
+              </div>
+
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs mb-2">
+                  <ShieldCheck className="w-4 h-4" />
+                  ما يتم الحفاظ عليه وثباته دائماً وبأمان تام:
+                </div>
+                <ul className="text-xs text-slate-300 space-y-1.5 list-disc list-inside">
+                  <li>حسابك المسجل وكلمة المرور وصلاحيات المسؤول الدائمة</li>
+                  <li>اسم المنشأة والشعار والبيانات الضريبية المعتمدة</li>
+                  <li>إعدادات ربط واتساب وبوابات الإرسال ومفاتيح API الدائمة</li>
+                  <li>إعدادات وحدات النظام وموديلات النشاط وأسعار الصرف</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4 pt-2">
               <button
                 onClick={handleCleanupSampleData}
                 disabled={loading}
-                className="px-5 py-3 bg-rose-950/60 hover:bg-rose-950 text-rose-300 border border-rose-800 font-semibold text-sm rounded-xl transition flex items-center gap-2 cursor-pointer"
+                className="px-6 py-3.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-rose-950/50 transition flex items-center gap-2 cursor-pointer"
               >
-                <Trash2 className="w-4 h-4 text-rose-400" />
-                تنظيف وحذف البيانات التجريبية (Clean Sandbox)
+                <Trash2 className="w-4 h-4" />
+                حذف كافة البيانات التجريبية من جميع القوائم والواجهات (بدء العمل الفعلي)
+              </button>
+
+              <button
+                onClick={handleSeedSampleData}
+                disabled={loading}
+                className="px-5 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-sm rounded-xl transition flex items-center gap-2 cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 text-amber-300" />
+                تفعيل بيانات Sandbox التجريبية للعرض
               </button>
             </div>
           </div>

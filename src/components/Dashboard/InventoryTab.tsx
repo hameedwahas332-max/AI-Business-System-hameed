@@ -133,9 +133,22 @@ export const InventoryTab: React.FC = () => {
   // Stock Transfers State
   const [transfers, setTransfers] = useState<StockTransferVoucher[]>(() => {
     try {
+      const isClean =
+        typeof window !== 'undefined' &&
+        (localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
+          localStorage.getItem('erp_sample_data_cleaned') === 'true');
+      if (isClean) {
+        const saved = localStorage.getItem('erp_stock_transfers_v1');
+        return saved ? JSON.parse(saved) : [];
+      }
       const saved = localStorage.getItem('erp_stock_transfers_v1');
       if (saved) return JSON.parse(saved);
     } catch {}
+    const isClean =
+      typeof window !== 'undefined' &&
+      (localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
+        localStorage.getItem('erp_sample_data_cleaned') === 'true');
+    if (isClean) return [];
     return [
       {
         id: 'tr-001',
@@ -280,6 +293,14 @@ export const InventoryTab: React.FC = () => {
 
   useEffect(() => {
     fetchData();
+    const handleWiped = () => {
+      setTransfers([]);
+      setPhysicalCounts({});
+      setAuditNotes({});
+      fetchData();
+    };
+    window.addEventListener('erp-demo-data-wiped', handleWiped);
+    return () => window.removeEventListener('erp-demo-data-wiped', handleWiped);
   }, [typeFilter]);
 
   // Stock breakdown helper (Cartons + Pieces)
@@ -390,8 +411,15 @@ export const InventoryTab: React.FC = () => {
       return;
     }
 
-    // Mock Battery Serial lookup database
-    const sampleWarrantyDb = [
+    const isClean =
+      typeof window !== 'undefined' &&
+      (localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
+        localStorage.getItem('erp_sample_data_cleaned') === 'true');
+
+    // Battery Serial lookup database (empty in clean production mode)
+    const sampleWarrantyDb = isClean
+      ? []
+      : [
       {
         serialNumber: 'SN-BAT-70-2026',
         productName: 'بطارية هانكوك 70 أمبير جافة',

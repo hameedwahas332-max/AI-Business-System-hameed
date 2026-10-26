@@ -171,8 +171,22 @@ export const FuelStationTab: React.FC = () => {
   // Tanks State
   const [tanks, setTanks] = useState<FuelTankItem[]>(() => {
     try {
+      const isClean =
+        typeof window !== 'undefined' &&
+        (localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
+          localStorage.getItem('erp_sample_data_cleaned') === 'true');
       const saved = localStorage.getItem('erp_fuel_tanks_v1');
-      return saved ? JSON.parse(saved) : INITIAL_TANKS;
+      if (saved) return JSON.parse(saved);
+      if (isClean) {
+        return INITIAL_TANKS.map((t) => ({
+          ...t,
+          currentStockLiters: 0,
+          previousBalanceLiters: 0,
+          todayRefillLiters: 0,
+          actualDipReadingLiters: 0,
+        }));
+      }
+      return INITIAL_TANKS;
     } catch {
       return INITIAL_TANKS;
     }
@@ -181,10 +195,16 @@ export const FuelStationTab: React.FC = () => {
   // Shift & Meter Records State
   const [records, setRecords] = useState<PumpMeterRecord[]>(() => {
     try {
+      const isClean =
+        typeof window !== 'undefined' &&
+        (localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
+          localStorage.getItem('erp_sample_data_cleaned') === 'true');
       const saved = localStorage.getItem('erp_fuel_meter_records_v1');
-      return saved ? JSON.parse(saved) : INITIAL_METER_RECORDS;
-    } catch {
+      if (saved) return JSON.parse(saved);
+      if (isClean) return [];
       return INITIAL_METER_RECORDS;
+    } catch {
+      return [];
     }
   });
 
@@ -196,8 +216,8 @@ export const FuelStationTab: React.FC = () => {
   const [isNewEntryOpen, setIsNewEntryOpen] = useState(false);
   const [entryTankId, setEntryTankId] = useState<string>('tank-1');
   const [entryPump, setEntryPump] = useState<string>('طرمبة 1 - مسدس A');
-  const [entryOperator, setEntryOperator] = useState<string>('صالح العولقي');
-  const [entryPrevMeter, setEntryPrevMeter] = useState<string>('125920.0');
+  const [entryOperator, setEntryOperator] = useState<string>('');
+  const [entryPrevMeter, setEntryPrevMeter] = useState<string>('0');
   const [entryCurrMeter, setEntryCurrMeter] = useState<string>('');
   const [entryCalibration, setEntryCalibration] = useState<string>('0');
   const [entryCashReceived, setEntryCashReceived] = useState<string>('');
@@ -209,7 +229,29 @@ export const FuelStationTab: React.FC = () => {
   const [isRefillModalOpen, setIsRefillModalOpen] = useState(false);
   const [refillTankId, setRefillTankId] = useState<string>('tank-1');
   const [refillLiters, setRefillLiters] = useState<string>('');
-  const [refillSupplier, setRefillSupplier] = useState<string>('شركة النفط الوطنية - ناقلة 441');
+  const [refillSupplier, setRefillSupplier] = useState<string>('');
+
+  // Listen for erp-demo-data-wiped
+  useEffect(() => {
+    const handleWiped = () => {
+      setRecords([]);
+      setTanks((prev) =>
+        prev.map((t) => ({
+          ...t,
+          currentStockLiters: 0,
+          previousBalanceLiters: 0,
+          todayRefillLiters: 0,
+          actualDipReadingLiters: 0,
+        }))
+      );
+      setEntryPrevMeter('0');
+      setEntryOperator('');
+      setRefillSupplier('');
+      localStorage.removeItem('erp_fuel_meter_records_v1');
+    };
+    window.addEventListener('erp-demo-data-wiped', handleWiped);
+    return () => window.removeEventListener('erp-demo-data-wiped', handleWiped);
+  }, []);
 
   // Save to LocalStorage & Backend PostgreSQL Sync
   useEffect(() => {

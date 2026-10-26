@@ -53,6 +53,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
   const [auditLogsList, setAuditLogsList] = useState<any[]>([]);
   const [currency, setCurrency] = useState<string>(company?.currency || 'SAR');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('month');
+  const [fuelTanks, setFuelTanks] = useState<any[]>([]);
+  const [dispensedTodayLiters, setDispensedTodayLiters] = useState<number>(0);
 
   const extractArray = (res: any): any[] => {
     if (!res) return [];
@@ -76,6 +78,11 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
     try {
       setLoading(true);
       setError(null);
+
+      const isClean = typeof window !== 'undefined' && (
+        localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
+        localStorage.getItem('erp_sample_data_cleaned') === 'true'
+      );
 
       const [
         statsRes,
@@ -125,16 +132,18 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
         0
       );
 
+      const realCash = safePmts.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+
       const dynamicStats = {
         ...(statsRes?.data || {}),
         payments: paymentsStatsRes?.data || null,
         productCount: safeProd.length,
-        totalSales: statsRes?.data?.totalSales !== undefined ? statsRes.data.totalSales : computedTotalSales,
-        totalPurchases: statsRes?.data?.totalPurchases !== undefined ? statsRes.data.totalPurchases : computedTotalPurchases,
+        totalSales: isClean && safeInv.length === 0 ? 0 : (statsRes?.data?.totalSales !== undefined ? statsRes.data.totalSales : computedTotalSales),
+        totalPurchases: isClean && safePurch.length === 0 ? 0 : (statsRes?.data?.totalPurchases !== undefined ? statsRes.data.totalPurchases : computedTotalPurchases),
         balances: {
           totalReceivables: computedReceivables,
           totalPayables: computedPayables,
-          cashAndBankBalance: statsRes?.data?.cashAndBankBalance ?? (computedTotalSales > 0 ? 62400 : 0),
+          cashAndBankBalance: isClean ? realCash : (statsRes?.data?.cashAndBankBalance ?? (computedTotalSales > 0 ? computedTotalSales : realCash)),
           inventoryValue: computedInventoryValue,
           overdueReceivables: computedReceivables > 0 ? Math.round(computedReceivables * 0.2) : 0,
           dueThisWeekPayables: computedPayables > 0 ? Math.round(computedPayables * 0.3) : 0,
@@ -149,9 +158,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
       setStats(dynamicStats);
       const netProfit = Math.max(0, computedTotalSales - computedTotalPurchases);
       setKpis({
-        revenue: computedTotalSales,
+        revenue: dynamicStats.totalSales,
         netProfit: netProfit,
-        netMargin: computedTotalSales > 0 ? ((netProfit / computedTotalSales) * 100).toFixed(1) : '0.0',
+        netMargin: dynamicStats.totalSales > 0 ? ((netProfit / dynamicStats.totalSales) * 100).toFixed(1) : '0.0',
       });
 
       setTopData({
@@ -163,6 +172,47 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
       if (company?.currency) {
         setCurrency(company.currency);
       }
+
+      // Dynamic Fuel Tanks
+      let loadedTanks: any[] = [];
+      try {
+        const savedTanks = localStorage.getItem('erp_fuel_tanks_v1');
+        if (savedTanks) {
+          loadedTanks = JSON.parse(savedTanks);
+        }
+      } catch (e) {}
+
+      let dailyLiters = 0;
+      try {
+        const savedMeters = localStorage.getItem('erp_fuel_meter_records_v1');
+        if (savedMeters) {
+          const records = JSON.parse(savedMeters);
+          if (Array.isArray(records)) {
+            dailyLiters = records.reduce((sum: number, r: any) => sum + Number(r.litersSold || r.salesLiters || r.volumeSold || 0), 0);
+          }
+        }
+      } catch (e) {}
+
+      if (isClean && loadedTanks.length === 0) {
+        setFuelTanks([
+          { id: 't-1', name: 'بنزين 91 ممتاز', color: 'bg-emerald-400', barColor: 'bg-emerald-500', currentVolume: 0, capacity: 35000 },
+          { id: 't-2', name: 'بنزين 95 سوبر', color: 'bg-rose-400', barColor: 'bg-rose-500', currentVolume: 0, capacity: 25000 },
+          { id: 't-3', name: 'ديزل عالي الكفاءة', color: 'bg-amber-400', barColor: 'bg-amber-500', currentVolume: 0, capacity: 45000 },
+          { id: 't-4', name: 'غاز مركزي (LPG)', color: 'bg-blue-400', barColor: 'bg-blue-500', currentVolume: 0, capacity: 12000 },
+        ]);
+        setDispensedTodayLiters(0);
+      } else if (loadedTanks.length > 0) {
+        setFuelTanks(loadedTanks);
+        setDispensedTodayLiters(dailyLiters);
+      } else {
+        setFuelTanks([
+          { id: 't-1', name: 'بنزين 91 ممتاز', color: 'bg-emerald-400', barColor: 'bg-emerald-500', currentVolume: 24200, capacity: 35000 },
+          { id: 't-2', name: 'بنزين 95 سوبر', color: 'bg-rose-400', barColor: 'bg-rose-500', currentVolume: 16800, capacity: 25000 },
+          { id: 't-3', name: 'ديزل عالي الكفاءة', color: 'bg-amber-400', barColor: 'bg-amber-500', currentVolume: 32500, capacity: 45000 },
+          { id: 't-4', name: 'غاز مركزي (LPG)', color: 'bg-blue-400', barColor: 'bg-blue-500', currentVolume: 7200, capacity: 12000 },
+        ]);
+        setDispensedTodayLiters(dailyLiters || 8450);
+      }
     } catch (err: any) {
       setError(err?.message || 'فشل تحميل بيانات لوحة التحكم');
     } finally {
@@ -172,6 +222,16 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
 
   useEffect(() => {
     fetchOverviewData();
+
+    const handleDataWiped = () => {
+      fetchOverviewData();
+    };
+    window.addEventListener('erp-demo-data-wiped', handleDataWiped);
+    window.addEventListener('storage', handleDataWiped);
+    return () => {
+      window.removeEventListener('erp-demo-data-wiped', handleDataWiped);
+      window.removeEventListener('storage', handleDataWiped);
+    };
   }, [company?.id]);
 
   return (
@@ -237,7 +297,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
               <div className="bg-slate-950/70 border border-slate-800 px-3 py-1.5 rounded-xl text-right">
                 <div className="text-[10px] text-slate-400">إجمالي المنصرف اليوم:</div>
                 <div className="text-sm font-black text-amber-300 font-mono" dir="ltr">
-                  8,450.00 L
+                  {dispensedTodayLiters.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} L
                 </div>
               </div>
 
@@ -255,79 +315,34 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
             </div>
           </div>
 
-          {/* 4 Underground Tanks Quick Gauges */}
+          {/* Dynamic Underground Tanks Quick Gauges */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {/* Tank 1: Petrol 91 */}
-            <div className="bg-slate-950/80 border border-slate-800/80 hover:border-amber-500/30 rounded-xl p-3 space-y-1.5 transition-all">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-slate-200 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                  بنزين 91 ممتاز
-                </span>
-                <span className="font-mono text-emerald-400 font-bold">69.1%</span>
-              </div>
-              <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
-                <div className="bg-emerald-500 h-2 rounded-full transition-all duration-500" style={{ width: '69.1%' }} />
-              </div>
-              <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono" dir="ltr">
-                <span className="text-white font-bold">24,200 L</span>
-                <span>/ 35,000 L</span>
-              </div>
-            </div>
+            {fuelTanks.map((tank, idx) => {
+              const current = Number(tank.currentVolume ?? tank.current_volume ?? 0);
+              const capacity = Math.max(1, Number(tank.capacity ?? tank.max_capacity ?? 10000));
+              const pct = Math.min(100, Math.max(0, (current / capacity) * 100)).toFixed(1);
+              const dotColor = tank.color || (idx === 0 ? 'bg-emerald-400' : idx === 1 ? 'bg-rose-400' : idx === 2 ? 'bg-amber-400' : 'bg-blue-400');
+              const barColor = tank.barColor || (idx === 0 ? 'bg-emerald-500' : idx === 1 ? 'bg-rose-500' : idx === 2 ? 'bg-amber-500' : 'bg-blue-500');
 
-            {/* Tank 2: Petrol 95 */}
-            <div className="bg-slate-950/80 border border-slate-800/80 hover:border-amber-500/30 rounded-xl p-3 space-y-1.5 transition-all">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-slate-200 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-rose-400"></span>
-                  بنزين 95 سوبر
-                </span>
-                <span className="font-mono text-rose-400 font-bold">67.2%</span>
-              </div>
-              <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
-                <div className="bg-rose-500 h-2 rounded-full transition-all duration-500" style={{ width: '67.2%' }} />
-              </div>
-              <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono" dir="ltr">
-                <span className="text-white font-bold">16,800 L</span>
-                <span>/ 25,000 L</span>
-              </div>
-            </div>
-
-            {/* Tank 3: Diesel */}
-            <div className="bg-slate-950/80 border border-slate-800/80 hover:border-amber-500/30 rounded-xl p-3 space-y-1.5 transition-all">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-slate-200 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                  ديزل عالي الكفاءة
-                </span>
-                <span className="font-mono text-amber-400 font-bold">72.2%</span>
-              </div>
-              <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
-                <div className="bg-amber-500 h-2 rounded-full transition-all duration-500" style={{ width: '72.2%' }} />
-              </div>
-              <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono" dir="ltr">
-                <span className="text-white font-bold">32,500 L</span>
-                <span>/ 45,000 L</span>
-              </div>
-            </div>
-
-            {/* Tank 4: Gas */}
-            <div className="bg-slate-950/80 border border-slate-800/80 hover:border-amber-500/30 rounded-xl p-3 space-y-1.5 transition-all">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-slate-200 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-blue-400"></span>
-                  غاز مركزي (LPG)
-                </span>
-                <span className="font-mono text-blue-400 font-bold">60.0%</span>
-              </div>
-              <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
-                <div className="bg-blue-500 h-2 rounded-full transition-all duration-500" style={{ width: '60.0%' }} />
-              </div>
-              <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono" dir="ltr">
-                <span className="text-white font-bold">7,200 L</span>
-                <span>/ 12,000 L</span>
-              </div>
-            </div>
+              return (
+                <div key={tank.id || idx} className="bg-slate-950/80 border border-slate-800/80 hover:border-amber-500/30 rounded-xl p-3 space-y-1.5 transition-all">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-200 flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full ${dotColor}`} />
+                      {tank.name || `خزان ${idx + 1}`}
+                    </span>
+                    <span className="font-mono text-emerald-400 font-bold">{pct}%</span>
+                  </div>
+                  <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                    <div className={`${barColor} h-2 rounded-full transition-all duration-500`} style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono" dir="ltr">
+                    <span className="text-white font-bold">{current.toLocaleString('en-US')} L</span>
+                    <span>/ {capacity.toLocaleString('en-US')} L</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

@@ -331,30 +331,58 @@ export const ProductionDataInitializationTab: React.FC<{ companyId?: string }> =
 
   // Handle Clean Sandbox / Sample Data
   const handleCleanupSampleData = async () => {
-    if (!window.confirm('هل أنت متأكد من رغبتك في حذف وتصفير كافة البيانات التجريبية (المنتجات، الحركات، الفواتير، الدفعات النموذجية) لبدء إدخال بياناتك الواقعية؟')) return;
+    if (!window.confirm('هل أنت متأكد من رغبتك في حذف وتصفير كافة البيانات التجريبية لبدء العمل الفعلي النظيف؟ ستبقى بيانات حسابك واسم المنشأة وإعدادات الربط آمنة ومحفوظة.')) return;
     setActionLoading('cleanup');
     try {
-      const res = await safeFetchJson('/api/v1/saas/sample-data/cleanup', {
+      const res = await safeFetchJson('/api/v1/system/wipe-demo-data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
       if (res.ok && res.data?.success) {
         const sampleStorageKeys = [
-          'erp_pos_held_sales',
-          'erp_custom_ledger_entries',
+          'erp_fuel_tanks_v1',
+          'erp_fuel_meter_records_v1',
           'erp_fuel_tanks_state',
           'erp_fuel_daily_records',
+          'erp_pos_held_sales',
+          'erp_pos_held_v1',
+          'erp_pos_shift_history',
+          'erp_pos_shift_history_v1',
+          'erp_custom_ledger_entries',
           'erp_sales_reps_v1',
           'erp_battery_warranty_records',
           'erp_tire_dot_records',
-          'erp_pos_shift_history',
         ];
         sampleStorageKeys.forEach((key) => {
           try { localStorage.removeItem(key); } catch {}
         });
+        localStorage.setItem('erp_clean_production_mode_v1', 'true');
         localStorage.setItem('erp_sample_data_cleaned', 'true');
+
+        // Update vault snapshot with clean arrays
+        try {
+          const vaultRaw = localStorage.getItem('erp_eternal_accounts_vault_v1');
+          if (vaultRaw) {
+            const vault = JSON.parse(vaultRaw);
+            if (vault && vault.dataSnapshot) {
+              vault.dataSnapshot.products = [];
+              vault.dataSnapshot.customers = [];
+              vault.dataSnapshot.suppliers = [];
+              vault.dataSnapshot.invoices = [];
+              vault.dataSnapshot.purchaseInvoices = [];
+              vault.dataSnapshot.payments = [];
+              vault.dataSnapshot.accountTransactions = [];
+              vault.dataSnapshot.employees = [];
+              vault.dataSnapshot.expenses = [];
+              vault.cleanProductionMode = true;
+              localStorage.setItem('erp_eternal_accounts_vault_v1', JSON.stringify(vault));
+            }
+          }
+        } catch (e) {}
+
         window.dispatchEvent(new Event('storage'));
         window.dispatchEvent(new CustomEvent('erp:data-cleared'));
+        window.dispatchEvent(new Event('erp-demo-data-wiped'));
 
         setFeedback({
           type: 'success',

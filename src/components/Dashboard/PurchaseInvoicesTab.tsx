@@ -75,6 +75,14 @@ export const PurchaseInvoicesTab: React.FC = () => {
 
   useEffect(() => {
     fetchData();
+    const handleWiped = () => {
+      setInvoices([]);
+      setSuppliers([]);
+      setProducts([]);
+      fetchData();
+    };
+    window.addEventListener('erp-demo-data-wiped', handleWiped);
+    return () => window.removeEventListener('erp-demo-data-wiped', handleWiped);
   }, [searchQuery, statusFilter]);
 
   const handleOpenBuilder = () => {

@@ -34,10 +34,15 @@ export const InventoryIntelligenceHub: React.FC<InventoryIntelligenceHubProps> =
 }) => {
   const [activeView, setActiveView] = useState<'warehouses' | 'low_stock' | 'radar_warranties'>('warehouses');
 
+  const isClean = typeof window !== 'undefined' && (
+    localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
+    localStorage.getItem('erp_sample_data_cleaned') === 'true'
+  );
+
   const safeProducts = Array.isArray(productsList) ? productsList : [];
-  const totalProducts = Number(stats?.counts?.productsCount ?? stats?.productCount ?? 148);
-  const lowStockCount = Number(stats?.counts?.lowStockCount ?? stats?.lowStockCount ?? 3);
-  const inventoryValue = Number(stats?.balances?.inventoryValue ?? stats?.inventoryValue ?? 78500);
+  const totalProducts = Number(stats?.counts?.productsCount ?? stats?.productCount ?? safeProducts.length);
+  const lowStockCount = Number(stats?.counts?.lowStockCount ?? stats?.lowStockCount ?? 0);
+  const inventoryValue = Number(stats?.balances?.inventoryValue ?? stats?.inventoryValue ?? 0);
 
   // 4 Warehouses stock distribution
   const warehouses = [
@@ -45,9 +50,9 @@ export const InventoryIntelligenceHub: React.FC<InventoryIntelligenceHubProps> =
       id: 'wh-main',
       name: 'المستودع الرئيسي - الجملة',
       code: 'WH-01',
-      itemsCount: 142,
+      itemsCount: Math.round(totalProducts * 0.58),
       valuation: Math.round(inventoryValue * 0.58),
-      capacityPct: 75,
+      capacityPct: totalProducts > 0 ? 75 : 0,
       icon: Building2,
       color: 'text-indigo-400 bg-indigo-500/15 border-indigo-500/30',
       barColor: 'bg-indigo-500',
@@ -56,9 +61,9 @@ export const InventoryIntelligenceHub: React.FC<InventoryIntelligenceHubProps> =
       id: 'wh-retail',
       name: 'معرض التجزئة المركزي',
       code: 'WH-02',
-      itemsCount: 96,
+      itemsCount: Math.round(totalProducts * 0.22),
       valuation: Math.round(inventoryValue * 0.22),
-      capacityPct: 60,
+      capacityPct: totalProducts > 0 ? 60 : 0,
       icon: Store,
       color: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30',
       barColor: 'bg-emerald-500',
@@ -67,9 +72,9 @@ export const InventoryIntelligenceHub: React.FC<InventoryIntelligenceHubProps> =
       id: 'wh-branch',
       name: 'فرع البطاريات والزيوت',
       code: 'WH-03',
-      itemsCount: 54,
+      itemsCount: Math.round(totalProducts * 0.14),
       valuation: Math.round(inventoryValue * 0.14),
-      capacityPct: 45,
+      capacityPct: totalProducts > 0 ? 45 : 0,
       icon: Boxes,
       color: 'text-amber-400 bg-amber-500/15 border-amber-500/30',
       barColor: 'bg-amber-400',
@@ -78,9 +83,9 @@ export const InventoryIntelligenceHub: React.FC<InventoryIntelligenceHubProps> =
       id: 'wh-van',
       name: 'سيارة التوزيع الميداني',
       code: 'VAN-04',
-      itemsCount: 28,
+      itemsCount: Math.round(totalProducts * 0.06),
       valuation: Math.round(inventoryValue * 0.06),
-      capacityPct: 85,
+      capacityPct: totalProducts > 0 ? 85 : 0,
       icon: Truck,
       color: 'text-cyan-400 bg-cyan-500/15 border-cyan-500/30',
       barColor: 'bg-cyan-400',
@@ -142,7 +147,7 @@ export const InventoryIntelligenceHub: React.FC<InventoryIntelligenceHubProps> =
               urgency: total < 12 ? 'HIGH' : 'MEDIUM',
             };
           })
-      : fallbackLowStock;
+      : (isClean ? [] : fallbackLowStock);
 
   // Multi-Activity Radar & Warranties
   const foodExpiryBatches = [

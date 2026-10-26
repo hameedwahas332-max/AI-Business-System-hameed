@@ -149,6 +149,17 @@ export const PaymentsTab: React.FC = () => {
 
   useEffect(() => {
     fetchPaymentsAndStats();
+    const handleWiped = () => {
+      setPayments([]);
+      setStats(null);
+      setCustomers([]);
+      setSuppliers([]);
+      setInvoices([]);
+      setPurchaseInvoices([]);
+      fetchPaymentsAndStats();
+    };
+    window.addEventListener('erp-demo-data-wiped', handleWiped);
+    return () => window.removeEventListener('erp-demo-data-wiped', handleWiped);
   }, [activeTab, statusFilter, methodFilter, currencyFilter, startDate, endDate]);
 
   // Selected party object

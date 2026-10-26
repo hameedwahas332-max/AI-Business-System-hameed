@@ -141,8 +141,13 @@ export const RecentOperationsFeed: React.FC<RecentOperationsFeedProps> = ({
     targetTab: 'payments' as TabType,
   }));
 
+  const isClean =
+    typeof window !== 'undefined' &&
+    (localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
+      localStorage.getItem('erp_sample_data_cleaned') === 'true');
+
   const combined = [...salesItems, ...purchaseItems, ...paymentItems];
-  const allOperations = combined.length > 0 ? combined : fallbackOperations;
+  const allOperations = combined.length > 0 ? combined : (isClean ? [] : fallbackOperations);
 
   const filteredOps = allOperations.filter((item) => {
     if (filterType === 'ALL') return true;
@@ -204,64 +209,80 @@ export const RecentOperationsFeed: React.FC<RecentOperationsFeedProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/60">
-            {filteredOps.slice(0, 6).map((op, idx) => (
-              <tr key={op.id || idx} className="hover:bg-slate-800/40 transition-colors group">
-                {/* Ref */}
-                <td className="py-2.5 pr-2 font-mono font-bold text-slate-200 whitespace-nowrap">
-                  {op.id}
-                </td>
-
-                {/* Entity */}
-                <td className="py-2.5 px-3 font-semibold text-slate-200 whitespace-nowrap">
-                  {op.entity}
-                </td>
-
-                {/* Type */}
-                <td className="py-2.5 px-3 whitespace-nowrap">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                    op.type === 'SALES'
-                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                      : op.type === 'PURCHASE'
-                      ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                      : 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
-                  }`}>
-                    {op.type === 'SALES' ? 'مبيعات' : op.type === 'PURCHASE' ? 'مشتريات' : 'سند'}
-                  </span>
-                </td>
-
-                {/* Amount */}
-                <td className="py-2.5 px-3 font-mono font-black tabular-nums text-white whitespace-nowrap">
-                  {formatAmount(op.amount)} {currency}
-                </td>
-
-                {/* Date */}
-                <td className="py-2.5 px-3 font-mono text-slate-400 whitespace-nowrap">
-                  {op.date}
-                </td>
-
-                {/* Status */}
-                <td className="py-2.5 px-3 whitespace-nowrap">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                    op.status === 'مدفوعة' || op.status === 'مسدد'
-                      ? 'bg-emerald-500/10 text-emerald-400'
-                      : 'bg-amber-500/10 text-amber-400'
-                  }`}>
-                    {op.status}
-                  </span>
-                </td>
-
-                {/* Action */}
-                <td className="py-2.5 pl-2 text-center whitespace-nowrap">
-                  <button
-                    onClick={() => onNavigate && onNavigate(op.targetTab)}
-                    className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer inline-flex items-center gap-1"
-                    title="معاينة السجل"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                  </button>
+            {filteredOps.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="py-8 text-center text-slate-400">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <Clock className="w-7 h-7 text-slate-600" />
+                    <p className="text-xs font-semibold text-slate-300">
+                      {isClean ? 'لا توجد حركات أو فواتير مسجلة حتى الآن' : 'لا توجد حركات مطابقة للفلتر المحدد'}
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      ابدأ بإصدار أول فاتورة مبيعات، مشتريات أو سند مالي لتظهر هنا لحظياً
+                    </p>
+                  </div>
                 </td>
               </tr>
-            ))}
+            ) : (
+              filteredOps.slice(0, 6).map((op, idx) => (
+                <tr key={op.id || idx} className="hover:bg-slate-800/40 transition-colors group">
+                  {/* Ref */}
+                  <td className="py-2.5 pr-2 font-mono font-bold text-slate-200 whitespace-nowrap">
+                    {op.id}
+                  </td>
+
+                  {/* Entity */}
+                  <td className="py-2.5 px-3 font-semibold text-slate-200 whitespace-nowrap">
+                    {op.entity}
+                  </td>
+
+                  {/* Type */}
+                  <td className="py-2.5 px-3 whitespace-nowrap">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      op.type === 'SALES'
+                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                        : op.type === 'PURCHASE'
+                        ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                        : 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
+                    }`}>
+                      {op.type === 'SALES' ? 'مبيعات' : op.type === 'PURCHASE' ? 'مشتريات' : 'سند'}
+                    </span>
+                  </td>
+
+                  {/* Amount */}
+                  <td className="py-2.5 px-3 font-mono font-black tabular-nums text-white whitespace-nowrap">
+                    {formatAmount(op.amount)} {currency}
+                  </td>
+
+                  {/* Date */}
+                  <td className="py-2.5 px-3 font-mono text-slate-400 whitespace-nowrap">
+                    {op.date}
+                  </td>
+
+                  {/* Status */}
+                  <td className="py-2.5 px-3 whitespace-nowrap">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                      op.status === 'مدفوعة' || op.status === 'مسدد'
+                        ? 'bg-emerald-500/10 text-emerald-400'
+                        : 'bg-amber-500/10 text-amber-400'
+                    }`}>
+                      {op.status}
+                    </span>
+                  </td>
+
+                  {/* Action */}
+                  <td className="py-2.5 pl-2 text-center whitespace-nowrap">
+                    <button
+                      onClick={() => onNavigate && onNavigate(op.targetTab)}
+                      className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer inline-flex items-center gap-1"
+                      title="معاينة السجل"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

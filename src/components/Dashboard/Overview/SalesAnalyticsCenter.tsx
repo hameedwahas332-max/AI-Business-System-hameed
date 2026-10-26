@@ -26,34 +26,59 @@ export const SalesAnalyticsCenter: React.FC<SalesAnalyticsCenterProps> = ({
 }) => {
   const [viewMode, setViewMode] = useState<'weekly' | 'monthly'>('weekly');
 
-  const totalSales = Number(stats?.totalSales ?? stats?.sales?.total ?? 142500);
-  const totalPurchases = Number(stats?.totalPurchases ?? stats?.purchases?.total ?? 84200);
+  const isClean =
+    typeof window !== 'undefined' &&
+    (localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
+      localStorage.getItem('erp_sample_data_cleaned') === 'true');
+
+  const rawSales = stats?.totalSales ?? stats?.sales?.total;
+  const rawPurchases = stats?.totalPurchases ?? stats?.purchases?.total;
+
+  const totalSales = Number(rawSales !== undefined && rawSales !== null ? rawSales : (isClean ? 0 : 142500));
+  const totalPurchases = Number(rawPurchases !== undefined && rawPurchases !== null ? rawPurchases : (isClean ? 0 : 84200));
   const netFlow = totalSales - totalPurchases;
 
   // Chart data points
-  const weeklyData = [
-    { label: 'السبت', sales: 18400, purchases: 9200 },
-    { label: 'الأحد', sales: 24500, purchases: 14000 },
-    { label: 'الاثنين', sales: 21200, purchases: 11500 },
-    { label: 'الثلاثاء', sales: 27800, purchases: 16800 },
-    { label: 'الأربعاء', sales: 23100, purchases: 13200 },
-    { label: 'الخميس', sales: 19800, purchases: 12500 },
-    { label: 'الجمعة', sales: 7700, purchases: 7000 },
-  ];
+  const weeklyData = isClean && totalSales === 0 && totalPurchases === 0
+    ? [
+        { label: 'السبت', sales: 0, purchases: 0 },
+        { label: 'الأحد', sales: 0, purchases: 0 },
+        { label: 'الاثنين', sales: 0, purchases: 0 },
+        { label: 'الثلاثاء', sales: 0, purchases: 0 },
+        { label: 'الأربعاء', sales: 0, purchases: 0 },
+        { label: 'الخميس', sales: 0, purchases: 0 },
+        { label: 'الجمعة', sales: 0, purchases: 0 },
+      ]
+    : [
+        { label: 'السبت', sales: totalSales > 0 ? Math.round(totalSales * 0.13) : 18400, purchases: totalPurchases > 0 ? Math.round(totalPurchases * 0.11) : 9200 },
+        { label: 'الأحد', sales: totalSales > 0 ? Math.round(totalSales * 0.17) : 24500, purchases: totalPurchases > 0 ? Math.round(totalPurchases * 0.16) : 14000 },
+        { label: 'الاثنين', sales: totalSales > 0 ? Math.round(totalSales * 0.15) : 21200, purchases: totalPurchases > 0 ? Math.round(totalPurchases * 0.14) : 11500 },
+        { label: 'الثلاثاء', sales: totalSales > 0 ? Math.round(totalSales * 0.19) : 27800, purchases: totalPurchases > 0 ? Math.round(totalPurchases * 0.20) : 16800 },
+        { label: 'الأربعاء', sales: totalSales > 0 ? Math.round(totalSales * 0.16) : 23100, purchases: totalPurchases > 0 ? Math.round(totalPurchases * 0.16) : 13200 },
+        { label: 'الخميس', sales: totalSales > 0 ? Math.round(totalSales * 0.14) : 19800, purchases: totalPurchases > 0 ? Math.round(totalPurchases * 0.15) : 12500 },
+        { label: 'الجمعة', sales: totalSales > 0 ? Math.round(totalSales * 0.06) : 7700, purchases: totalPurchases > 0 ? Math.round(totalPurchases * 0.08) : 7000 },
+      ];
 
-  const monthlyData = [
-    { label: 'يناير', sales: 110000, purchases: 72000 },
-    { label: 'فبراير', sales: 125000, purchases: 79000 },
-    { label: 'مارس', sales: 138000, purchases: 83000 },
-    { label: 'أبريل', sales: 142500, purchases: 84200 },
-  ];
+  const monthlyData = isClean && totalSales === 0 && totalPurchases === 0
+    ? [
+        { label: 'يناير', sales: 0, purchases: 0 },
+        { label: 'فبراير', sales: 0, purchases: 0 },
+        { label: 'مارس', sales: 0, purchases: 0 },
+        { label: 'أبريل', sales: 0, purchases: 0 },
+      ]
+    : [
+        { label: 'يناير', sales: totalSales > 0 ? Math.round(totalSales * 0.77) : 110000, purchases: totalPurchases > 0 ? Math.round(totalPurchases * 0.85) : 72000 },
+        { label: 'فبراير', sales: totalSales > 0 ? Math.round(totalSales * 0.88) : 125000, purchases: totalPurchases > 0 ? Math.round(totalPurchases * 0.94) : 79000 },
+        { label: 'مارس', sales: totalSales > 0 ? Math.round(totalSales * 0.97) : 138000, purchases: totalPurchases > 0 ? Math.round(totalPurchases * 0.98) : 83000 },
+        { label: 'أبريل', sales: totalSales > 0 ? totalSales : 142500, purchases: totalPurchases > 0 ? totalPurchases : 84200 },
+      ];
 
   const activePoints = viewMode === 'weekly' ? weeklyData : monthlyData;
   const maxVal = Math.max(...activePoints.map(p => Math.max(p.sales, p.purchases)), 1);
 
   // Payment Breakdown
-  const cashSales = Math.round(totalSales * 0.65);
-  const creditSales = Math.round(totalSales * 0.25);
+  const cashSales = totalSales > 0 ? Math.round(totalSales * 0.65) : 0;
+  const creditSales = totalSales > 0 ? Math.round(totalSales * 0.25) : 0;
   const electronicSales = Math.max(0, totalSales - cashSales - creditSales);
 
   return (
@@ -163,13 +188,18 @@ export const SalesAnalyticsCenter: React.FC<SalesAnalyticsCenterProps> = ({
               <span>المشتريات (Purchases)</span>
             </span>
           </div>
-          <span className="font-mono text-[10px]">معدل التدفق الإيجابي: +41%</span>
+          <span className="font-mono text-[10px]">
+            {totalSales > 0 || totalPurchases > 0
+              ? `معدل التدفق الإيجابي: ${totalPurchases > 0 ? (netFlow >= 0 ? '+' : '') + Math.round((netFlow / totalPurchases) * 100) + '%' : '+100%'}`
+              : 'معدل التدفق: بانتظار أول عملية'}
+          </span>
         </div>
 
         <div className="h-44 flex items-end gap-3 pt-4 border-b border-slate-800 pb-2 px-2">
           {activePoints.map((item, idx) => {
-            const salesHeight = Math.max(8, Math.round((item.sales / maxVal) * 100));
-            const purchasesHeight = Math.max(8, Math.round((item.purchases / maxVal) * 100));
+            const hasData = item.sales > 0 || item.purchases > 0;
+            const salesHeight = hasData ? Math.max(8, Math.round((item.sales / maxVal) * 100)) : 4;
+            const purchasesHeight = hasData ? Math.max(8, Math.round((item.purchases / maxVal) * 100)) : 4;
 
             return (
               <div key={idx} className="flex-1 flex flex-col items-center gap-2 group h-full justify-end">
@@ -177,7 +207,7 @@ export const SalesAnalyticsCenter: React.FC<SalesAnalyticsCenterProps> = ({
                   {/* Sales Bar */}
                   <div className="relative w-full max-w-[18px] h-full flex items-end">
                     <div
-                      className="w-full bg-emerald-500 hover:bg-emerald-400 rounded-t-md transition-all duration-300 shadow-md shadow-emerald-950/40"
+                      className={`w-full ${hasData ? 'bg-emerald-500 hover:bg-emerald-400' : 'bg-slate-800'} rounded-t-md transition-all duration-300 shadow-md shadow-emerald-950/40`}
                       style={{ height: `${salesHeight}%` }}
                       title={`مبيعات ${item.label}: ${formatAmount(item.sales)} ${currency}`}
                     />
@@ -186,7 +216,7 @@ export const SalesAnalyticsCenter: React.FC<SalesAnalyticsCenterProps> = ({
                   {/* Purchases Bar */}
                   <div className="relative w-full max-w-[18px] h-full flex items-end">
                     <div
-                      className="w-full bg-amber-400 hover:bg-amber-300 rounded-t-md transition-all duration-300 shadow-md shadow-amber-950/40"
+                      className={`w-full ${hasData ? 'bg-amber-400 hover:bg-amber-300' : 'bg-slate-800'} rounded-t-md transition-all duration-300 shadow-md shadow-amber-950/40`}
                       style={{ height: `${purchasesHeight}%` }}
                       title={`مشتريات ${item.label}: ${formatAmount(item.purchases)} ${currency}`}
                     />
@@ -211,35 +241,41 @@ export const SalesAnalyticsCenter: React.FC<SalesAnalyticsCenterProps> = ({
         </div>
 
         <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden flex">
-          <div
-            className="bg-emerald-500 h-full"
-            style={{ width: '65%' }}
-            title={`نقدي (Cash): ${formatAmount(cashSales)} ${currency} (65%)`}
-          />
-          <div
-            className="bg-blue-500 h-full"
-            style={{ width: '25%' }}
-            title={`آجل (Credit): ${formatAmount(creditSales)} ${currency} (25%)`}
-          />
-          <div
-            className="bg-amber-400 h-full"
-            style={{ width: '10%' }}
-            title={`إلكتروني ومحافظ: ${formatAmount(electronicSales)} ${currency} (10%)`}
-          />
+          {totalSales > 0 ? (
+            <>
+              <div
+                className="bg-emerald-500 h-full"
+                style={{ width: '65%' }}
+                title={`نقدي (Cash): ${formatAmount(cashSales)} ${currency} (65%)`}
+              />
+              <div
+                className="bg-blue-500 h-full"
+                style={{ width: '25%' }}
+                title={`آجل (Credit): ${formatAmount(creditSales)} ${currency} (25%)`}
+              />
+              <div
+                className="bg-amber-400 h-full"
+                style={{ width: '10%' }}
+                title={`إلكتروني ومحافظ: ${formatAmount(electronicSales)} ${currency} (10%)`}
+              />
+            </>
+          ) : (
+            <div className="w-full h-full bg-slate-800" title="بانتظار تسجيل أول مبيعات" />
+          )}
         </div>
 
         <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-400 pt-1">
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>نقدي: <strong className="font-mono text-slate-200 tabular-nums">65%</strong> ({formatAmount(cashSales)})</span>
+            <span>نقدي: <strong className="font-mono text-slate-200 tabular-nums">{totalSales > 0 ? '65%' : '0%'}</strong> ({formatAmount(cashSales)})</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-blue-500" />
-            <span>آجل / ذمم: <strong className="font-mono text-slate-200 tabular-nums">25%</strong> ({formatAmount(creditSales)})</span>
+            <span>آجل / ذمم: <strong className="font-mono text-slate-200 tabular-nums">{totalSales > 0 ? '25%' : '0%'}</strong> ({formatAmount(creditSales)})</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-amber-400" />
-            <span>بنوك ومحافظ: <strong className="font-mono text-slate-200 tabular-nums">10%</strong> ({formatAmount(electronicSales)})</span>
+            <span>بنوك ومحافظ: <strong className="font-mono text-slate-200 tabular-nums">{totalSales > 0 ? '10%' : '0%'}</strong> ({formatAmount(electronicSales)})</span>
           </span>
         </div>
       </div>

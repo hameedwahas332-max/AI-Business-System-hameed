@@ -165,6 +165,15 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
 
   useEffect(() => {
     loadData();
+    const handleWiped = () => {
+      setEmployees([]);
+      setMovements([]);
+      setPayrollRecords([]);
+      setExpenses([]);
+      loadData();
+    };
+    window.addEventListener('erp-demo-data-wiped', handleWiped);
+    return () => window.removeEventListener('erp-demo-data-wiped', handleWiped);
   }, []);
 
   const triggerAlert = (text: string, type: 'success' | 'error' = 'success') => {

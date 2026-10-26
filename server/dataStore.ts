@@ -867,6 +867,34 @@ export let mockPayrollRecordsList: PayrollRecordItem[] = [...INITIAL_SAMPLE_PAYR
 export let mockExpensesList: ExpenseItem[] = [...INITIAL_SAMPLE_EXPENSES];
 
 export let isSampleDataSeeded: boolean = true;
+export const tenantCleanProductionModeMap: Map<string, boolean> = new Map();
+
+export function isTenantCleanProductionMode(companyId?: string): boolean {
+  if (companyId && tenantCleanProductionModeMap.has(companyId)) {
+    return Boolean(tenantCleanProductionModeMap.get(companyId));
+  }
+  return !isSampleDataSeeded;
+}
+
+export function setTenantCleanProductionMode(companyId: string, clean: boolean, pool?: any): void {
+  if (companyId) {
+    tenantCleanProductionModeMap.set(companyId, clean);
+  }
+  if (clean) {
+    isSampleDataSeeded = false;
+  }
+  persistAllToDisk();
+
+  if (pool && companyId) {
+    pool.query(
+      `INSERT INTO erp_permanent_tenant_data (company_id, data_type, payload, updated_at)
+       VALUES ($1, 'clean_production_mode', $2, NOW())
+       ON CONFLICT (company_id, data_type)
+       DO UPDATE SET payload = EXCLUDED.payload, updated_at = NOW()`,
+      [companyId, JSON.stringify({ cleanProductionMode: clean })]
+    ).catch((err: any) => console.warn('[PG_CLEAN_MODE_SAVE_WARN]', err?.message));
+  }
+}
 
 /**
  * Clean all sample data to prepare the system for 100% clean, real production operations.
@@ -908,6 +936,30 @@ export async function cleanupAllSampleData(companyId?: string, pool?: any): Prom
   mockExpensesList.length = 0;
 
   isSampleDataSeeded = false;
+  if (companyId) {
+    tenantCleanProductionModeMap.set(companyId, true);
+    // Reset tenant WhatsApp conversations/messages/logs (preserving gateway/API config)
+    const existingWsState = mockWhatsAppStateMap.get(companyId);
+    if (existingWsState) {
+      existingWsState.conversations = [];
+      existingWsState.messages = [];
+      existingWsState.logs = [];
+      existingWsState.scheduled = [];
+      existingWsState.campaigns = [];
+      existingWsState.reminders = [];
+      existingWsState.kpi = {
+        totalConversations: 0,
+        unreadCount: 0,
+        sentToday: 0,
+        deliveredCount: 0,
+        readCount: 0,
+        failedCount: 0,
+        scheduledCount: 0,
+        deliveryRate: 100,
+      };
+      mockWhatsAppStateMap.set(companyId, existingWsState);
+    }
+  }
 
   // If a PostgreSQL database pool is active, clean tenant records safely
   if (pool && companyId) {
@@ -915,13 +967,22 @@ export async function cleanupAllSampleData(companyId?: string, pool?: any): Prom
       await pool.query(
         `DELETE FROM enterprise_module_states 
          WHERE company_id = $1 
-         AND state_key IN ('fuel_tanks', 'sales_reps', 'custom_ledger', 'battery_warranties', 'employees', 'expenses')`,
+         AND state_key IN ('fuel_tanks', 'fuel_meter_records', 'sales_reps', 'custom_ledger', 'battery_warranties', 'tire_records', 'employees', 'expenses', 'inventory_warehouses')`,
         [companyId]
+      );
+      await pool.query(
+        `INSERT INTO erp_permanent_tenant_data (company_id, data_type, payload, updated_at)
+         VALUES ($1, 'clean_production_mode', $2, NOW())
+         ON CONFLICT (company_id, data_type)
+         DO UPDATE SET payload = EXCLUDED.payload, updated_at = NOW()`,
+        [companyId, JSON.stringify({ cleanProductionMode: true })]
       );
     } catch (err: any) {
       console.warn('[DATASTORE_PG_CLEANUP_WARN]', err?.message);
     }
   }
+
+  persistAllToDisk();
 
   return {
     success: true,
@@ -1324,6 +1385,7 @@ export function persistAllToDisk(): void {
       version: 2,
       saved_at: new Date().toISOString(),
       isSampleDataSeeded,
+      cleanProductionModes: Object.fromEntries(tenantCleanProductionModeMap),
       users: Array.from(permanentUsersMap.values()),
       companies: Array.from(permanentCompaniesMap.values()),
       products: mockProducts,
@@ -1357,6 +1419,14 @@ export function initPermanentDiskStore(): void {
       const raw = fs.readFileSync(STORE_FILE, 'utf-8');
       if (raw && raw.trim()) {
         const data = JSON.parse(raw);
+        if (data.cleanProductionModes && typeof data.cleanProductionModes === 'object') {
+          Object.entries(data.cleanProductionModes).forEach(([k, v]) => {
+            tenantCleanProductionModeMap.set(k, Boolean(v));
+          });
+        }
+        if (typeof data.isSampleDataSeeded === 'boolean') {
+          isSampleDataSeeded = data.isSampleDataSeeded;
+        }
         if (Array.isArray(data.users)) {
           data.users.forEach((u: PermanentUserRecord) => {
             if (u && u.email) {
@@ -1371,15 +1441,15 @@ export function initPermanentDiskStore(): void {
             }
           });
         }
-        if (Array.isArray(data.customers) && data.customers.length > 0) {
+        if (Array.isArray(data.customers)) {
           mockCustomersList.length = 0;
           mockCustomersList.push(...data.customers);
         }
-        if (Array.isArray(data.suppliers) && data.suppliers.length > 0) {
+        if (Array.isArray(data.suppliers)) {
           mockSuppliersList.length = 0;
           mockSuppliersList.push(...data.suppliers);
         }
-        if (Array.isArray(data.products) && data.products.length > 0) {
+        if (Array.isArray(data.products)) {
           mockProducts.length = 0;
           mockProducts.push(...data.products);
         }
@@ -1407,7 +1477,7 @@ export function initPermanentDiskStore(): void {
           mockAuditLogsList.length = 0;
           mockAuditLogsList.push(...data.auditLogs);
         }
-        if (Array.isArray(data.employees) && data.employees.length > 0) {
+        if (Array.isArray(data.employees)) {
           mockEmployeesList.length = 0;
           mockEmployeesList.push(...data.employees);
         }
@@ -1419,7 +1489,7 @@ export function initPermanentDiskStore(): void {
           mockPayrollRecordsList.length = 0;
           mockPayrollRecordsList.push(...data.payrollRecords);
         }
-        if (Array.isArray(data.expenses) && data.expenses.length > 0) {
+        if (Array.isArray(data.expenses)) {
           mockExpensesList.length = 0;
           mockExpensesList.push(...data.expenses);
         }
@@ -1432,9 +1502,6 @@ export function initPermanentDiskStore(): void {
           Object.entries(data.whatsappStates).forEach(([k, v]) => {
             mockWhatsAppStateMap.set(k, v);
           });
-        }
-        if (typeof data.isSampleDataSeeded === 'boolean') {
-          isSampleDataSeeded = data.isSampleDataSeeded;
         }
         console.log('[PERMANENT_STORE_RESTORED] Loaded from disk successfully.');
       }
@@ -1497,16 +1564,21 @@ export async function initPermanentPostgresTables(pool: any): Promise<void> {
     }
 
     // Load WhatsApp configurations and states from database if present
-    const tenantDataRes = await pool.query("SELECT * FROM erp_permanent_tenant_data WHERE data_type IN ('whatsapp_config', 'whatsapp_state')");
+    const tenantDataRes = await pool.query("SELECT * FROM erp_permanent_tenant_data WHERE data_type IN ('whatsapp_config', 'whatsapp_state', 'clean_production_mode')");
     if (tenantDataRes && tenantDataRes.rows && tenantDataRes.rows.length > 0) {
       for (const row of tenantDataRes.rows) {
         if (row.data_type === 'whatsapp_config' && row.company_id && row.payload) {
           mockWhatsAppConfigsMap.set(row.company_id, row.payload);
         } else if (row.data_type === 'whatsapp_state' && row.company_id && row.payload) {
           mockWhatsAppStateMap.set(row.company_id, row.payload);
+        } else if (row.data_type === 'clean_production_mode' && row.company_id && row.payload) {
+          tenantCleanProductionModeMap.set(row.company_id, Boolean(row.payload.cleanProductionMode));
+          if (row.payload.cleanProductionMode) {
+            isSampleDataSeeded = false;
+          }
         }
       }
-      console.log(`[PG_WHATSAPP_DATA_LOADED] Loaded ${tenantDataRes.rows.length} WhatsApp tenant records.`);
+      console.log(`[PG_TENANT_DATA_LOADED] Loaded ${tenantDataRes.rows.length} permanent tenant records.`);
     }
   } catch (err: any) {
     console.warn('[PG_PERMANENT_TABLES_INIT_WARN]', err?.message);
@@ -1575,6 +1647,13 @@ export async function rehydrateTenantData(payload: any, pool?: any): Promise<{ s
     return { success: false, message: 'بيانات غير صالحة' };
   }
 
+  const companyId = payload.company?.id || payload.user?.company_id || 'comp_001';
+
+  // 0. Clean production mode flag if provided
+  if (payload.cleanProductionMode !== undefined) {
+    setTenantCleanProductionMode(companyId, Boolean(payload.cleanProductionMode), pool);
+  }
+
   // 1. Rehydrate user
   if (payload.user && payload.user.email) {
     const userRec: PermanentUserRecord = {
@@ -1597,53 +1676,52 @@ export async function rehydrateTenantData(payload: any, pool?: any): Promise<{ s
     await saveCompanyToPermanentStore(payload.company, pool);
   }
 
-  // 3. Rehydrate collections if provided
-  if (Array.isArray(payload.customers) && payload.customers.length > 0) {
+  // 3. Rehydrate collections if provided (allow clean empty arrays [])
+  if (Array.isArray(payload.customers)) {
     mockCustomersList.length = 0;
     mockCustomersList.push(...payload.customers);
   }
-  if (Array.isArray(payload.suppliers) && payload.suppliers.length > 0) {
+  if (Array.isArray(payload.suppliers)) {
     mockSuppliersList.length = 0;
     mockSuppliersList.push(...payload.suppliers);
   }
-  if (Array.isArray(payload.products) && payload.products.length > 0) {
+  if (Array.isArray(payload.products)) {
     mockProducts.length = 0;
     mockProducts.push(...payload.products);
   }
-  if (Array.isArray(payload.invoices) && payload.invoices.length > 0) {
+  if (Array.isArray(payload.invoices)) {
     mockInvoicesList.length = 0;
     mockInvoicesList.push(...payload.invoices);
   }
-  if (Array.isArray(payload.purchaseInvoices) && payload.purchaseInvoices.length > 0) {
+  if (Array.isArray(payload.purchaseInvoices)) {
     mockPurchaseInvoicesList.length = 0;
     mockPurchaseInvoicesList.push(...payload.purchaseInvoices);
   }
-  if (Array.isArray(payload.payments) && payload.payments.length > 0) {
+  if (Array.isArray(payload.payments)) {
     mockPaymentsList.length = 0;
     mockPaymentsList.push(...payload.payments);
   }
-  if (Array.isArray(payload.accountTransactions) && payload.accountTransactions.length > 0) {
+  if (Array.isArray(payload.accountTransactions)) {
     mockAccountTransactions.length = 0;
     mockAccountTransactions.push(...payload.accountTransactions);
   }
-  if (Array.isArray(payload.employees) && payload.employees.length > 0) {
+  if (Array.isArray(payload.employees)) {
     mockEmployeesList.length = 0;
     mockEmployeesList.push(...payload.employees);
   }
-  if (Array.isArray(payload.employeeMovements) && payload.employeeMovements.length > 0) {
+  if (Array.isArray(payload.employeeMovements)) {
     mockEmployeeMovementsList.length = 0;
     mockEmployeeMovementsList.push(...payload.employeeMovements);
   }
-  if (Array.isArray(payload.payrollRecords) && payload.payrollRecords.length > 0) {
+  if (Array.isArray(payload.payrollRecords)) {
     mockPayrollRecordsList.length = 0;
     mockPayrollRecordsList.push(...payload.payrollRecords);
   }
-  if (Array.isArray(payload.expenses) && payload.expenses.length > 0) {
+  if (Array.isArray(payload.expenses)) {
     mockExpensesList.length = 0;
     mockExpensesList.push(...payload.expenses);
   }
 
-  const companyId = payload.company?.id || payload.user?.company_id || 'comp_001';
   if (payload.whatsappConfig || payload.whatsapp_config) {
     await saveTenantWhatsAppConfig(companyId, payload.whatsappConfig || payload.whatsapp_config, pool);
   }
