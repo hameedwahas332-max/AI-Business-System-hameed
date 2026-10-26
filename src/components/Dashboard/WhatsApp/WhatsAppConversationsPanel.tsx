@@ -32,6 +32,7 @@ import {
   ShieldCheck,
   FileCheck,
   X,
+  Trash2,
 } from 'lucide-react';
 import { WhatsAppConversation, WhatsAppMessage, WhatsAppERPContext, WhatsAppTemplate } from './types';
 
@@ -52,6 +53,9 @@ interface WhatsAppConversationsPanelProps {
   templates?: WhatsAppTemplate[];
   companyName?: string;
   onScheduleMessagePrompt?: (phone: string, text: string) => void;
+  onSimulateReply?: (phone: string, text: string) => Promise<boolean>;
+  onMarkAsRead?: (phone: string) => Promise<boolean>;
+  onDeleteConversation?: (phone: string) => Promise<boolean>;
 }
 
 export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProps> = ({
@@ -71,6 +75,9 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
   templates = [],
   companyName = 'نظام المحاسبي الذكي ERP',
   onScheduleMessagePrompt = (_phone: string, _text: string) => {},
+  onSimulateReply = async (_phone: string, _text: string) => true,
+  onMarkAsRead = async (_phone: string) => true,
+  onDeleteConversation = async (_phone: string) => true,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'CUSTOMERS' | 'SUPPLIERS' | 'UNREAD' | 'OVERDUE'>('ALL');
@@ -167,6 +174,26 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
       setMessageInput(
         `الأخ ${custName} المحترم،\nمرفق لكم ملخص كشف الحساب المالي حتى تاريخ اليوم، رصيدكم الحالي هو ${balance} ر.ي. يرجى مراجعة الكشف وإفادتنا بالمطابقة.`
       );
+    }
+    setValidationWarning(null);
+  };
+
+  const handleQuickTemplate = (type: 'REMINDER' | 'STATEMENT' | 'PAYMENT' | 'INVOICE') => {
+    const custName = erpContext?.customer?.name || activeConversation?.customer_name || (activeConversation as any)?.display_name || 'العميل الكريم';
+    const balance = erpContext?.customer?.current_balance
+      ? parseFloat(erpContext.customer.current_balance).toLocaleString('en-US')
+      : (activeConversation?.customer_balance ? parseFloat(String(activeConversation.customer_balance)).toLocaleString('en-US') : '0');
+
+    if (type === 'REMINDER') {
+      setMessageInput(`مرحباً ${custName} المحترم،\nنود تذكيركم بمستحقاتكم المالية البالغة ${balance} ر.ي. نرجو التكرم بالاطلاع والمبادرة بالسداد شاكرين حسن تعاونكم الدائم معنا.\n— ${companyName}`);
+    } else if (type === 'STATEMENT') {
+      setMessageInput(`الأخ ${custName} المحترم،\nمرفق لكم كشف الحساب المالي حتى تاريخ ${new Date().toLocaleDateString('en-US')}.\nالرصيد المعتمد المستحق: ${balance} ر.ي.\nنأمل مراجعة العمليات واعتمادها.\n— ${companyName}`);
+    } else if (type === 'PAYMENT') {
+      setMessageInput(`أهلاً بك ${custName}،\nنشكركم على سداد الدفعة المالية الموثقة بحسابكم. تم قيد المبلغ بنجاح وتحديث الرصيد المتبقي ليصبح: ${balance} ر.ي.\nشكراً لتعاملكم الراقي.\n— ${companyName}`);
+    } else if (type === 'INVOICE') {
+      const invNum = erpContext?.recentInvoices?.[0]?.invoice_number || 'INV-2026-001';
+      const invAmount = erpContext?.recentInvoices?.[0]?.total ? parseFloat(erpContext.recentInvoices[0].total).toLocaleString('en-US') : balance;
+      setMessageInput(`الأخ ${custName} المحترم،\nنرفق لكم تفاصيل الفاتورة رقم #${invNum} بإجمالي ${invAmount} ر.ي. يرجى الاطلاع والتحويل على حسابنا المعتمد.\n— ${companyName}`);
     }
     setValidationWarning(null);
   };
@@ -429,13 +456,55 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                 </div>
               </div>
 
-              {/* Header Context View Toggle (Mobile) */}
-              <div className="flex items-center gap-1.5">
+              {/* Header Actions */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!selectedPhone) return;
+                    const defaultReply = 'وعليكم السلام، تم الاطلاع وجاري التحويل اليوم إن شاء الله.';
+                    const replyText = window.prompt('أدخل نص الرد الوارد لاختبار استلام رسائل العملاء:', defaultReply);
+                    if (replyText) {
+                      onSimulateReply(selectedPhone, replyText);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-teal-500/10 hover:bg-teal-600 text-teal-300 hover:text-white border border-teal-500/20 text-[11px] font-bold transition-all"
+                  title="محاكاة وصول رد وارد من العميل داخل النظام"
+                >
+                  <Sparkles className="w-3 h-3 text-teal-400" />
+                  <span className="hidden sm:inline">محاكاة رد وارد</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => selectedPhone && onMarkAsRead(selectedPhone)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[11px] font-bold transition-all"
+                  title="تعيين المحادثة كمقروءة"
+                >
+                  <CheckCheck className="w-3 h-3 text-cyan-400" />
+                  <span className="hidden sm:inline">كمقروء</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!selectedPhone) return;
+                    if (window.confirm('هل أنت متأكد من حذف هذه المحادثة من قائمة المحادثات النشطة؟')) {
+                      onDeleteConversation(selectedPhone);
+                    }
+                  }}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-slate-800 transition-colors"
+                  title="حذف المحادثة"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+
+                {/* Header Context View Toggle (Mobile) */}
                 <button
                   onClick={() => setActiveTabMobile('CONTEXT')}
                   className="lg:hidden px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-200 text-xs font-bold"
                 >
-                  البيانات المحاسبية
+                  البيانات
                 </button>
               </div>
             </div>
@@ -603,6 +672,39 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
 
             {/* Interactive Composer */}
             <div className="p-3 bg-slate-900 border-t border-slate-800 space-y-2">
+              {/* Quick Template Shortcuts */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] font-bold scrollbar-none">
+                <span className="text-slate-400 text-[10px] shrink-0 font-bold">قوالب سريعة:</span>
+                <button
+                  type="button"
+                  onClick={() => handleQuickTemplate('REMINDER')}
+                  className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 transition-all whitespace-nowrap active:scale-95"
+                >
+                  🔔 تذكير برصيد
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickTemplate('STATEMENT')}
+                  className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 transition-all whitespace-nowrap active:scale-95"
+                >
+                  📄 إرسال كشف حساب
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickTemplate('PAYMENT')}
+                  className="px-2.5 py-1 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/20 transition-all whitespace-nowrap active:scale-95"
+                >
+                  💳 تأكيد استلام دفعة
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickTemplate('INVOICE')}
+                  className="px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/20 transition-all whitespace-nowrap active:scale-95"
+                >
+                  🧾 إرسال فاتورة
+                </button>
+              </div>
+
               {/* Dynamic Variables Bar */}
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[10px] font-bold scrollbar-none text-slate-400">
                 <span className="text-slate-500 shrink-0 flex items-center gap-1">
