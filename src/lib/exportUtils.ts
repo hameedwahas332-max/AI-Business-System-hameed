@@ -435,7 +435,7 @@ export function printInvoiceDocument(inv?: any): void {
     : 'فاتورة ضريبية وشهادة ضمان معتمدة';
   const invoiceNo = invoice.invoiceNumber || invoice.invoice_number || invoice.id || `INV-${Date.now().toString().slice(-6)}`;
   const dateStr = invoice.date || invoice.invoice_date || new Date().toLocaleDateString('ar-YE');
-  const companyName = invoice.companyName || invoice.company_name || 'مؤسسة السحابي للتجارة والتقنية';
+  const companyName = invoice.companyName || invoice.company_name || 'المؤسسة التجارية';
   const partyName = invoice.partyName || invoice.customer_name || invoice.supplier_name || invoice.customer || 'العميل النقدي';
   const partyPhone = invoice.partyPhone || invoice.customer_phone || invoice.supplier_phone || '';
   const partyAddress = invoice.partyAddress || invoice.customer_address || '';
@@ -743,7 +743,7 @@ export function printPaymentReceipt(p?: any): void {
   const docTitle = isSupplierPayment ? 'سند صرف مالي رسمي (Payment Voucher)' : 'سند قبض مالي رسمي (Receipt Voucher)';
   const receiptNo = payment.receiptNumber || payment.voucher_number || payment.reference || `REC-${Date.now().toString().slice(-6)}`;
   const dateStr = payment.date || payment.payment_date || new Date().toLocaleDateString('ar-SA');
-  const companyName = payment.companyName || 'مؤسسة السحابي للتجارة والتقنية';
+  const companyName = payment.companyName || 'المؤسسة التجارية';
   const partyName = payment.partyName || payment.customer_name || payment.supplier_name || 'العميل المالي';
   const amount = Number(payment.amount || 0);
   const currency = payment.currency || 'SAR';
@@ -1217,4 +1217,444 @@ export function exportToExcel(config: TableExportConfig): void {
 export function exportTableToCsv(config: TableExportConfig): void {
   exportToCSV(config);
 }
+
+/**
+ * Print Expense Voucher (A4 & 80mm Thermal)
+ */
+export function printExpenseVoucher(voucher: any, options?: { companyName?: string; format?: 'a4' | 'thermal' }): void {
+  const isThermal = options?.format === 'thermal';
+  const company = options?.companyName || 'المؤسسة التجارية';
+  const voucherNo = voucher.voucherNumber || voucher.id || 'EXP-000';
+  const dateStr = formatDateOnly(voucher.date || new Date());
+  const amount = Number(voucher.amount || 0);
+  const currency = voucher.currency || 'SAR';
+  const category = voucher.category || 'مصروفات عامة';
+  const costCenter = voucher.costCenter || 'عام';
+  const beneficiary = voucher.beneficiary || 'غير محدد';
+  const treasury = voucher.treasury || 'الصندوق النقدي';
+  const paymentMethod = voucher.paymentMethod || 'نقداً';
+  const description = voucher.description || '';
+  const notes = voucher.notes || '';
+
+  if (isThermal) {
+    const html = `
+      <div style="text-align: center; font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif; direction: rtl;">
+        <div style="font-weight: 900; font-size: 14px; margin-bottom: 2px;">${escapeHtml(company)}</div>
+        <div style="font-size: 11px; font-weight: bold; color: #1e293b; border-bottom: 2px dashed #000; padding-bottom: 4px; margin-bottom: 6px;">
+          سند صرف مصروفات تشغيلية
+        </div>
+        <div style="font-size: 10px; display: flex; justify-content: space-between; margin-bottom: 3px;">
+          <span>رقم السند:</span>
+          <span style="font-family: monospace; font-weight: bold;">${escapeHtml(voucherNo)}</span>
+        </div>
+        <div style="font-size: 10px; display: flex; justify-content: space-between; margin-bottom: 3px;">
+          <span>التاريخ:</span>
+          <span>${escapeHtml(dateStr)}</span>
+        </div>
+        <div style="border-top: 1px dashed #cbd5e1; margin: 4px 0;"></div>
+        <div style="font-size: 10px; text-align: right; margin-bottom: 3px;">
+          <strong>يصرف للمستفيد:</strong> ${escapeHtml(beneficiary)}
+        </div>
+        <div style="font-size: 10px; text-align: right; margin-bottom: 3px;">
+          <strong>التصنيف:</strong> ${escapeHtml(category)}
+        </div>
+        <div style="font-size: 10px; text-align: right; margin-bottom: 3px;">
+          <strong>مركز التكلفة:</strong> ${escapeHtml(costCenter)}
+        </div>
+        <div style="font-size: 10px; text-align: right; margin-bottom: 3px;">
+          <strong>طريقة الدفع:</strong> ${escapeHtml(paymentMethod)} (${escapeHtml(treasury)})
+        </div>
+        ${description ? `
+          <div style="font-size: 10px; text-align: right; margin-bottom: 3px;">
+            <strong>البيان:</strong> ${escapeHtml(description)}
+          </div>
+        ` : ''}
+        <div style="background: #f1f5f9; padding: 6px; border-radius: 4px; margin: 8px 0; text-align: center;">
+          <div style="font-size: 10px; color: #475569;">المبلغ المصروف</div>
+          <div style="font-size: 16px; font-weight: 900; color: #0f172a; font-family: monospace;">
+            ${formatNumber(amount)} ${currency}
+          </div>
+        </div>
+        <div style="margin-top: 12px; font-size: 9px; display: flex; justify-content: space-between; border-top: 1px dotted #94a3b8; padding-top: 6px;">
+          <div>توقيع المستلم: ...........</div>
+          <div>توقيع المحاسب: ...........</div>
+        </div>
+      </div>
+    `;
+    renderAndPrintDocument(html, `سند_صرف_${voucherNo}`, { pageSize: '80mm' });
+    return;
+  }
+
+  // A4 Layout
+  const html = `
+    <div style="max-width: 800px; margin: 0 auto; font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif; direction: rtl; color: #0f172a;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0284c7; padding-bottom: 12px; margin-bottom: 16px;">
+        <div>
+          <h2 style="margin: 0; font-size: 20px; font-weight: 800; color: #0369a1;">${escapeHtml(company)}</h2>
+          <div style="font-size: 12px; color: #64748b; margin-top: 4px;">نظام الحوكمة وإدارة المصروفات والتكاليف التشغيلية</div>
+        </div>
+        <div style="text-align: left;">
+          <div style="background: #e0f2fe; color: #0369a1; padding: 4px 12px; border-radius: 6px; font-weight: bold; font-size: 14px; display: inline-block;">
+            سند صرف نقد / بنك
+          </div>
+          <div style="font-size: 11px; color: #475569; margin-top: 4px;">رقم السند: <strong style="font-family: monospace;">${escapeHtml(voucherNo)}</strong></div>
+          <div style="font-size: 11px; color: #475569;">التاريخ: <strong>${escapeHtml(dateStr)}</strong></div>
+        </div>
+      </div>
+
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <tr>
+            <td style="padding: 6px; width: 20%; color: #64748b;">المستفيد:</td>
+            <td style="padding: 6px; width: 30%; font-weight: bold;">${escapeHtml(beneficiary)}</td>
+            <td style="padding: 6px; width: 20%; color: #64748b;">التصنيف المحاسبي:</td>
+            <td style="padding: 6px; width: 30%; font-weight: bold;">${escapeHtml(category)}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px; color: #64748b;">مركز التكلفة:</td>
+            <td style="padding: 6px; font-weight: bold;">${escapeHtml(costCenter)}</td>
+            <td style="padding: 6px; color: #64748b;">الخزينة / المصدر:</td>
+            <td style="padding: 6px; font-weight: bold;">${escapeHtml(treasury)} (${escapeHtml(paymentMethod)})</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px; color: #64748b;">البيان التفصيلي:</td>
+            <td colspan="3" style="padding: 6px; font-weight: 500;">${escapeHtml(description || 'صرف مصروفات تشغيلية')}</td>
+          </tr>
+          ${notes ? `
+            <tr>
+              <td style="padding: 6px; color: #64748b;">ملاحظات:</td>
+              <td colspan="3" style="padding: 6px; color: #475569;">${escapeHtml(notes)}</td>
+            </tr>
+          ` : ''}
+        </table>
+      </div>
+
+      <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <div>
+          <span style="font-size: 13px; color: #166534; font-weight: bold;">المبلغ المصروف رقماً وكتابة:</span>
+        </div>
+        <div style="font-size: 22px; font-weight: 900; color: #15803d; font-family: monospace;">
+          ${formatNumber(amount)} ${currency}
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; margin-top: 40px; padding-top: 20px; border-top: 1px solid #cbd5e1; text-align: center; font-size: 12px;">
+        <div style="width: 25%;">
+          <div style="margin-bottom: 30px; font-weight: bold;">المستلم</div>
+          <div>التوقيع: .....................</div>
+        </div>
+        <div style="width: 25%;">
+          <div style="margin-bottom: 30px; font-weight: bold;">المحاسب المسؤول</div>
+          <div>التوقيع: .....................</div>
+        </div>
+        <div style="width: 25%;">
+          <div style="margin-bottom: 30px; font-weight: bold;">المدير المالي</div>
+          <div>التوقيع: .....................</div>
+        </div>
+        <div style="width: 25%;">
+          <div style="margin-bottom: 30px; font-weight: bold;">اعتماد الإدارة العامة</div>
+          <div>الختم: .....................</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  renderAndPrintDocument(html, `سند_صرف_${voucherNo}`, { pageSize: 'A4' });
+}
+
+/**
+ * Print Employee Statement & Payslip
+ */
+export function printEmployeeStatement(employee: any, movements: any[] = [], summary?: any, companyName?: string): void {
+  const company = companyName || 'المؤسسة التجارية';
+  const name = employee.name || 'موظف';
+  const code = employee.code || employee.id || '';
+  const role = employee.roleTitle || 'عامل';
+  const branch = employee.branch || 'المحل الرئيسي';
+  const baseSalary = Number(employee.baseSalary || 0);
+  const currency = employee.currency || 'SAR';
+  const hireDate = formatDateOnly(employee.hireDate || new Date());
+
+  const totalAdvances = summary?.totalAdvances || movements.filter((m: any) => m.type === 'advance').reduce((s: number, m: any) => s + Number(m.amount || 0), 0);
+  const totalBonuses = summary?.totalBonuses || movements.filter((m: any) => m.type === 'bonus').reduce((s: number, m: any) => s + Number(m.amount || 0), 0);
+  const totalDeductions = summary?.totalDeductions || movements.filter((m: any) => m.type === 'deduction').reduce((s: number, m: any) => s + Number(m.amount || 0), 0);
+  const netDue = baseSalary + totalBonuses - totalAdvances - totalDeductions;
+
+  const rowsHtml = movements.map((m: any, idx: number) => {
+    const isAdv = m.type === 'advance';
+    const isBonus = m.type === 'bonus';
+    const isDed = m.type === 'deduction';
+    const isPay = m.type === 'salary_payment';
+    const typeLabel = isAdv ? 'سلفة نقدية' : isBonus ? 'مكافأة / حافز' : isDed ? 'خصم / جزاء' : isPay ? 'صرف راتب' : 'حركة مالية';
+
+    return `
+      <tr style="border-bottom: 1px solid #e2e8f0; text-align: center; font-size: 11px;">
+        <td style="padding: 6px;">${idx + 1}</td>
+        <td style="padding: 6px; font-family: monospace;">${formatDateOnly(m.date)}</td>
+        <td style="padding: 6px; font-weight: bold;">${escapeHtml(typeLabel)}</td>
+        <td style="padding: 6px; text-align: right;">${escapeHtml(m.description || m.notes || '-')}</td>
+        <td style="padding: 6px; color: ${isAdv || isDed ? '#dc2626' : '#64748b'}; font-family: monospace; font-weight: bold;">
+          ${(isAdv || isDed) ? formatNumber(m.amount) : '-'}
+        </td>
+        <td style="padding: 6px; color: ${isBonus || isPay ? '#16a34a' : '#64748b'}; font-family: monospace; font-weight: bold;">
+          ${(isBonus || isPay) ? formatNumber(m.amount) : '-'}
+        </td>
+        <td style="padding: 6px; font-size: 10px; color: #64748b;">${escapeHtml(m.treasury || '-')}</td>
+      </tr>
+    `;
+  }).join('');
+
+  const html = `
+    <div style="max-width: 850px; margin: 0 auto; font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif; direction: rtl; color: #0f172a;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0d9488; padding-bottom: 12px; margin-bottom: 16px;">
+        <div>
+          <h2 style="margin: 0; font-size: 20px; font-weight: 800; color: #0f766e;">${escapeHtml(company)}</h2>
+          <div style="font-size: 12px; color: #64748b; margin-top: 4px;">كشف حساب وسجل حركات وسلف الموظف</div>
+        </div>
+        <div style="text-align: left;">
+          <div style="font-size: 12px; color: #475569;">تاريخ الطباعة: <strong>${formatDateOnly(new Date())}</strong></div>
+          <div style="font-size: 12px; color: #475569;">كود الموظف: <strong style="font-family: monospace;">${escapeHtml(code)}</strong></div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 16px; font-size: 12px;">
+        <div><span style="color: #64748b;">اسم الموظف:</span> <strong>${escapeHtml(name)}</strong></div>
+        <div><span style="color: #64748b;">المسمى الوظيفي:</span> <strong>${escapeHtml(role)}</strong></div>
+        <div><span style="color: #64748b;">الفرع:</span> <strong>${escapeHtml(branch)}</strong></div>
+        <div><span style="color: #64748b;">تاريخ التعيين:</span> <strong>${escapeHtml(hireDate)}</strong></div>
+        <div><span style="color: #64748b;">الراتب الأساسي:</span> <strong style="font-family: monospace;">${formatNumber(baseSalary)} ${currency}</strong></div>
+        <div><span style="color: #64748b;">إجمالي السلف:</span> <strong style="color: #dc2626; font-family: monospace;">${formatNumber(totalAdvances)} ${currency}</strong></div>
+        <div><span style="color: #64748b;">إجمالي المكافآت:</span> <strong style="color: #16a34a; font-family: monospace;">${formatNumber(totalBonuses)} ${currency}</strong></div>
+        <div><span style="color: #64748b;">صافي المستحق التقديري:</span> <strong style="color: #0369a1; font-family: monospace;">${formatNumber(netDue)} ${currency}</strong></div>
+      </div>
+
+      <h4 style="margin: 0 0 8px 0; font-size: 13px; color: #334155;">سجل الحركات المالية والسلف:</h4>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+        <thead>
+          <tr style="background: #f1f5f9; border-bottom: 2px solid #cbd5e1; font-size: 11px; text-align: center;">
+            <th style="padding: 6px;">#</th>
+            <th style="padding: 6px;">التاريخ</th>
+            <th style="padding: 6px;">نوع الحركة</th>
+            <th style="padding: 6px; text-align: right;">البيان</th>
+            <th style="padding: 6px; color: #dc2626;">سلف / خصم</th>
+            <th style="padding: 6px; color: #16a34a;">مكافأة / صرف</th>
+            <th style="padding: 6px;">الخزينة</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml || `<tr><td colspan="7" style="text-align: center; padding: 12px; color: #94a3b8;">لا توجد حركات مسجلة</td></tr>`}
+        </tbody>
+      </table>
+
+      <div style="display: flex; justify-content: space-between; margin-top: 30px; padding-top: 15px; border-top: 1px solid #cbd5e1; text-align: center; font-size: 11px;">
+        <div style="width: 30%;">
+          <div style="margin-bottom: 25px; font-weight: bold;">توقيع الموظف بالاستلام والاطلاع</div>
+          <div>التوقيع: ..........................</div>
+        </div>
+        <div style="width: 30%;">
+          <div style="margin-bottom: 25px; font-weight: bold;">مسؤول الموارد البشرية</div>
+          <div>التوقيع: ..........................</div>
+        </div>
+        <div style="width: 30%;">
+          <div style="margin-bottom: 25px; font-weight: bold;">اعتماد الإدارة المالية</div>
+          <div>التوقيع والختم: ..........................</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  renderAndPrintDocument(html, `كشف_حساب_${code}_${name}`, { pageSize: 'A4' });
+}
+
+/**
+ * Print Monthly Payroll Sheet
+ */
+export function printMonthlyPayrollSheet(payrollRecords: any[] = [], month: string, summary?: any, companyName?: string): void {
+  const company = companyName || 'المؤسسة التجارية';
+  const totalBase = summary?.totalBase || payrollRecords.reduce((s, r) => s + Number(r.baseSalary || 0), 0);
+  const totalBonuses = summary?.totalBonuses || payrollRecords.reduce((s, r) => s + Number(r.bonuses || 0), 0);
+  const totalAdvances = summary?.totalAdvances || payrollRecords.reduce((s, r) => s + Number(r.advancesDeducted || 0), 0);
+  const totalDeductions = summary?.totalDeductions || payrollRecords.reduce((s, r) => s + Number(r.otherDeductions || 0), 0);
+  const totalNet = summary?.totalNet || payrollRecords.reduce((s, r) => s + Number(r.netSalary || 0), 0);
+
+  const rowsHtml = payrollRecords.map((r: any, idx: number) => {
+    return `
+      <tr style="border-bottom: 1px solid #e2e8f0; text-align: center; font-size: 11px;">
+        <td style="padding: 6px;">${idx + 1}</td>
+        <td style="padding: 6px; font-weight: bold; text-align: right;">${escapeHtml(r.employeeName || 'موظف')}</td>
+        <td style="padding: 6px; font-family: monospace;">${formatNumber(r.baseSalary)}</td>
+        <td style="padding: 6px; font-family: monospace; color: #16a34a;">${formatNumber(r.bonuses)}</td>
+        <td style="padding: 6px; font-family: monospace; color: #dc2626;">${formatNumber(r.advancesDeducted)}</td>
+        <td style="padding: 6px; font-family: monospace; color: #dc2626;">${formatNumber(r.otherDeductions)}</td>
+        <td style="padding: 6px; font-family: monospace; font-weight: bold; color: #0284c7; background: #f0fdf4;">
+          ${formatNumber(r.netSalary)} ${escapeHtml(r.currency || 'SAR')}
+        </td>
+        <td style="padding: 6px; font-size: 10px;">${escapeHtml(r.treasury || 'الصندوق')}</td>
+        <td style="padding: 6px; font-size: 10px;">...................</td>
+      </tr>
+    `;
+  }).join('');
+
+  const html = `
+    <div style="max-width: 950px; margin: 0 auto; font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif; direction: rtl; color: #0f172a;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2563eb; padding-bottom: 12px; margin-bottom: 16px;">
+        <div>
+          <h2 style="margin: 0; font-size: 20px; font-weight: 800; color: #1d4ed8;">${escapeHtml(company)}</h2>
+          <div style="font-size: 13px; color: #64748b; margin-top: 4px;">مسير الرواتب والأجور المعتمد لشهر: <strong>${escapeHtml(month)}</strong></div>
+        </div>
+        <div style="text-align: left;">
+          <div style="font-size: 12px; color: #475569;">تاريخ الاعتماد: <strong>${formatDateOnly(new Date())}</strong></div>
+          <div style="font-size: 12px; color: #475569;">عدد الموظفين: <strong>${payrollRecords.length}</strong></div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-bottom: 16px; font-size: 11px; text-align: center;">
+        <div><div style="color: #64748b;">إجمالي الأساسي</div><div style="font-weight: bold; font-family: monospace;">${formatNumber(totalBase)}</div></div>
+        <div><div style="color: #16a34a;">إجمالي البدلات</div><div style="font-weight: bold; font-family: monospace; color: #16a34a;">${formatNumber(totalBonuses)}</div></div>
+        <div><div style="color: #dc2626;">سلف مستقطعة</div><div style="font-weight: bold; font-family: monospace; color: #dc2626;">${formatNumber(totalAdvances)}</div></div>
+        <div><div style="color: #dc2626;">خصومات وجزاءات</div><div style="font-weight: bold; font-family: monospace; color: #dc2626;">${formatNumber(totalDeductions)}</div></div>
+        <div style="background: #e0f2fe; border-radius: 6px; padding: 4px;"><div style="color: #0369a1; font-weight: bold;">صافي الصرف الفعلي</div><div style="font-size: 14px; font-weight: 900; font-family: monospace; color: #0284c7;">${formatNumber(totalNet)}</div></div>
+      </div>
+
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+        <thead>
+          <tr style="background: #f1f5f9; border-bottom: 2px solid #cbd5e1; font-size: 11px; text-align: center;">
+            <th style="padding: 6px;">#</th>
+            <th style="padding: 6px; text-align: right;">اسم الموظف</th>
+            <th style="padding: 6px;">الراتب الأساسي</th>
+            <th style="padding: 6px; color: #16a34a;">المكافآت</th>
+            <th style="padding: 6px; color: #dc2626;">السلف</th>
+            <th style="padding: 6px; color: #dc2626;">خصومات</th>
+            <th style="padding: 6px; color: #0284c7;">صافي الراتب</th>
+            <th style="padding: 6px;">الخزينة</th>
+            <th style="padding: 6px;">التوقيع</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml || `<tr><td colspan="9" style="text-align: center; padding: 12px; color: #94a3b8;">لا توجد سجلات مسير لهذا الشهر</td></tr>`}
+        </tbody>
+      </table>
+
+      <div style="display: flex; justify-content: space-between; margin-top: 30px; padding-top: 15px; border-top: 1px solid #cbd5e1; text-align: center; font-size: 11px;">
+        <div style="width: 25%;">
+          <div style="margin-bottom: 25px; font-weight: bold;">إعداد المحاسب</div>
+          <div>التوقيع: .....................</div>
+        </div>
+        <div style="width: 25%;">
+          <div style="margin-bottom: 25px; font-weight: bold;">مراجعة الموارد البشرية</div>
+          <div>التوقيع: .....................</div>
+        </div>
+        <div style="width: 25%;">
+          <div style="margin-bottom: 25px; font-weight: bold;">المدير المالي</div>
+          <div>التوقيع: .....................</div>
+        </div>
+        <div style="width: 25%;">
+          <div style="margin-bottom: 25px; font-weight: bold;">اعتماد المدير العام</div>
+          <div>الختم: .....................</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  renderAndPrintDocument(html, `مسير_رواتب_${month}`, { pageSize: 'A4' });
+}
+
+/**
+ * Structured Excel Export for Operating Expenses
+ */
+export function exportExpensesToExcel(expenses: any[] = [], companyName?: string): void {
+  const headers = [
+    'م',
+    'رقم السند',
+    'التاريخ',
+    'تصنيف المصروف',
+    'مركز التكلفة',
+    'المستفيد',
+    'الخزينة / المصدر',
+    'المبلغ',
+    'العملة',
+    'البيان والتفاصيل',
+  ];
+
+  const rows = expenses.map((e: any, idx: number) => [
+    idx + 1,
+    e.voucherNumber || e.id || '',
+    formatDateOnly(e.date),
+    e.category || '',
+    e.costCenter || 'عام',
+    e.beneficiary || '',
+    e.treasury || 'الصندوق الرئيسي',
+    Number(e.amount || 0),
+    e.currency || 'SAR',
+    e.description || e.notes || '',
+  ]);
+
+  const totalAmount = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+
+  exportToExcel({
+    filename: `تقرير_المصروفات_${formatDateOnly(new Date())}`,
+    sheetName: 'المصروفات التشغيلية',
+    title: 'سجل المصروفات والتكاليف التشغيلية ومراكز التكلفة',
+    subtitle: `إجمالي المصروفات المسجلة: ${formatNumber(totalAmount)}`,
+    companyName: companyName || 'المؤسسة التجارية',
+    headers,
+    rows,
+    summaryCards: [
+      { label: 'عدد السندات', value: expenses.length },
+      { label: 'إجمالي المبالغ', value: formatNumber(totalAmount) },
+    ],
+  });
+}
+
+/**
+ * Structured Excel Export for Monthly Payroll
+ */
+export function exportPayrollToExcel(payroll: any[] = [], month: string, companyName?: string): void {
+  const headers = [
+    'م',
+    'كود الموظف',
+    'اسم الموظف',
+    'الشهر',
+    'الراتب الأساسي',
+    'المكافآت والبدلات',
+    'السلف المستقطعة',
+    'الخصومات والغياب',
+    'صافي الراتب المستحق',
+    'العملة',
+    'خزينة الصرف',
+    'حالة الصرف',
+  ];
+
+  const rows = payroll.map((p: any, idx: number) => [
+    idx + 1,
+    p.employeeCode || p.employeeId || '',
+    p.employeeName || '',
+    p.month || month,
+    Number(p.baseSalary || 0),
+    Number(p.bonuses || 0),
+    Number(p.advancesDeducted || 0),
+    Number(p.otherDeductions || 0),
+    Number(p.netSalary || 0),
+    p.currency || 'SAR',
+    p.treasury || 'الصندوق',
+    p.status === 'paid' ? 'تم الصرف' : 'مسودة',
+  ]);
+
+  const totalNet = payroll.reduce((sum, p) => sum + Number(p.netSalary || 0), 0);
+
+  exportToExcel({
+    filename: `مسير_الرواتب_${month}`,
+    sheetName: 'مسير الرواتب',
+    title: `مسير الرواتب والأجور المعتمد لشهر ${month}`,
+    subtitle: `إجمالي صافي الرواتب: ${formatNumber(totalNet)}`,
+    companyName: companyName || 'المؤسسة التجارية',
+    headers,
+    rows,
+    summaryCards: [
+      { label: 'عدد الموظفين', value: payroll.length },
+      { label: 'إجمالي صافي الصرف', value: formatNumber(totalNet) },
+    ],
+  });
+}
+
 

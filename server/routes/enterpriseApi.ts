@@ -15,9 +15,25 @@ import {
   seedAllSampleData,
   isSampleDataSeeded,
   persistAllToDisk,
+  mockEmployeesList,
+  mockEmployeeMovementsList,
+  mockPayrollRecordsList,
+  mockExpensesList,
+  EmployeeItem,
+  EmployeeMovementItem,
+  PayrollRecordItem,
+  ExpenseItem,
 } from '../dataStore';
 
-export { mockCustomersList, mockSuppliersList, mockAccountTransactions };
+export {
+  mockCustomersList,
+  mockSuppliersList,
+  mockAccountTransactions,
+  mockEmployeesList,
+  mockEmployeeMovementsList,
+  mockPayrollRecordsList,
+  mockExpensesList,
+};
 
 export const enterpriseRouter = Router();
 
@@ -3234,4 +3250,383 @@ enterpriseRouter.post('/control-center/ai-assistant', (req: Request, res: Respon
     },
   });
 });
+
+// ==========================================
+// 15. Employees & Payroll Management API
+// ==========================================
+enterpriseRouter.get('/employees', (_req: Request, res: Response) => {
+  res.json({
+    success: true,
+    data: mockEmployeesList,
+    total: mockEmployeesList.length,
+  });
+});
+
+enterpriseRouter.post('/employees', (req: Request, res: Response) => {
+  const body = req.body || {};
+  if (!body.name || !body.name.trim()) {
+    return res.status(400).json({ success: false, message: 'اسم الموظف مطلوب' });
+  }
+
+  const newEmp: EmployeeItem = {
+    id: body.id || `emp-${Date.now()}`,
+    code: body.code || `EMP-${100 + mockEmployeesList.length + 1}`,
+    name: body.name.trim(),
+    roleTitle: body.roleTitle || 'عامل',
+    phone: body.phone || '',
+    branch: body.branch || 'المحل الرئيسي',
+    hireDate: body.hireDate || new Date().toISOString().split('T')[0],
+    baseSalary: Number(body.baseSalary) || 0,
+    currency: body.currency || 'SAR',
+    status: body.status || 'نشط',
+    advancesBalance: Number(body.advancesBalance) || 0,
+    notes: body.notes || '',
+    created_at: new Date().toISOString(),
+  };
+
+  mockEmployeesList.unshift(newEmp);
+  persistAllToDisk();
+
+  res.status(201).json({
+    success: true,
+    data: newEmp,
+    message: 'تم إضافة الموظف بنجاح',
+  });
+});
+
+enterpriseRouter.put('/employees/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const index = mockEmployeesList.findIndex((e) => e.id === id);
+  if (index === -1) {
+    return res.status(404).json({ success: false, message: 'الموظف غير موجود' });
+  }
+
+  const existing = mockEmployeesList[index];
+  const updated: EmployeeItem = {
+    ...existing,
+    ...req.body,
+    id: existing.id,
+    baseSalary: req.body.baseSalary !== undefined ? Number(req.body.baseSalary) : existing.baseSalary,
+  };
+
+  mockEmployeesList[index] = updated;
+  persistAllToDisk();
+
+  res.json({
+    success: true,
+    data: updated,
+    message: 'تم تحديث بيانات الموظف بنجاح',
+  });
+});
+
+enterpriseRouter.delete('/employees/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const index = mockEmployeesList.findIndex((e) => e.id === id);
+  if (index === -1) {
+    return res.status(404).json({ success: false, message: 'الموظف غير موجود' });
+  }
+
+  mockEmployeesList.splice(index, 1);
+  persistAllToDisk();
+
+  res.json({
+    success: true,
+    message: 'تم حذف الموظف بنجاح',
+  });
+});
+
+// Employee Movements (Advances, Bonuses, Deductions, Attendance)
+enterpriseRouter.get('/employees/movements', (req: Request, res: Response) => {
+  const { employeeId } = req.query;
+  let list = mockEmployeeMovementsList;
+  if (employeeId && typeof employeeId === 'string') {
+    list = list.filter((m) => m.employeeId === employeeId);
+  }
+  res.json({
+    success: true,
+    data: list,
+    total: list.length,
+  });
+});
+
+enterpriseRouter.post('/employees/movements', (req: Request, res: Response) => {
+  const body = req.body || {};
+  if (!body.employeeId) {
+    return res.status(400).json({ success: false, message: 'معرف الموظف مطلوب' });
+  }
+
+  const emp = mockEmployeesList.find((e) => e.id === body.employeeId);
+  const newMovement: EmployeeMovementItem = {
+    id: body.id || `mov-${Date.now()}`,
+    employeeId: body.employeeId,
+    employeeName: emp ? emp.name : (body.employeeName || 'موظف'),
+    type: body.type || 'advance',
+    amount: Number(body.amount) || 0,
+    currency: body.currency || 'SAR',
+    date: body.date || new Date().toISOString().split('T')[0],
+    treasury: body.treasury || 'الصندوق النقدي الرئيسي',
+    description: body.description || '',
+    attendanceStatus: body.attendanceStatus,
+    notes: body.notes,
+    created_at: new Date().toISOString(),
+  };
+
+  mockEmployeeMovementsList.unshift(newMovement);
+
+  // If advance, record an accounting transaction
+  if (newMovement.type === 'advance' && newMovement.amount > 0) {
+    mockAccountTransactions.unshift({
+      id: `trx_adv_${Date.now()}`,
+      party_id: newMovement.employeeId,
+      party_type: 'CUSTOMER',
+      type: 'سلفة موظف',
+      amount: newMovement.amount,
+      currency: newMovement.currency,
+      date: newMovement.date,
+      description: `سلفة نقدية للموظف: ${newMovement.employeeName} - ${newMovement.treasury}`,
+      reference_no: newMovement.id,
+      notes: newMovement.notes,
+      created_at: new Date().toISOString(),
+    });
+  }
+
+  persistAllToDisk();
+
+  res.status(201).json({
+    success: true,
+    data: newMovement,
+    message: 'تم تسجيل الحركة المالية للموظف بنجاح',
+  });
+});
+
+// Payroll Records & Disburse
+enterpriseRouter.get('/payroll', (req: Request, res: Response) => {
+  const { month } = req.query;
+  let list = mockPayrollRecordsList;
+  if (month && typeof month === 'string') {
+    list = list.filter((p) => p.month === month);
+  }
+  res.json({
+    success: true,
+    data: list,
+    total: list.length,
+  });
+});
+
+enterpriseRouter.post('/payroll/disburse', (req: Request, res: Response) => {
+  const body = req.body || {};
+  const {
+    employeeId,
+    month,
+    baseSalary,
+    bonuses = 0,
+    advancesDeducted = 0,
+    otherDeductions = 0,
+    netSalary,
+    currency = 'SAR',
+    paymentDate,
+    treasury = 'الصندوق النقدي الرئيسي',
+    notes = '',
+  } = body;
+
+  const emp = mockEmployeesList.find((e) => e.id === employeeId);
+  const employeeName = emp ? emp.name : (body.employeeName || 'موظف');
+  const safeDate = paymentDate || new Date().toISOString().split('T')[0];
+  const safeMonth = month || safeDate.substring(0, 7);
+
+  const calculatedNet = Number(netSalary) || (Number(baseSalary) + Number(bonuses) - Number(advancesDeducted) - Number(otherDeductions));
+
+  const payrollRec: PayrollRecordItem = {
+    id: `pay-${Date.now()}`,
+    employeeId: employeeId || 'emp-unknown',
+    employeeName,
+    month: safeMonth,
+    baseSalary: Number(baseSalary) || 0,
+    bonuses: Number(bonuses) || 0,
+    advancesDeducted: Number(advancesDeducted) || 0,
+    otherDeductions: Number(otherDeductions) || 0,
+    netSalary: calculatedNet,
+    currency,
+    paymentDate: safeDate,
+    treasury,
+    status: 'paid',
+    referenceVoucher: `VCH-PAY-${Date.now().toString().slice(-6)}`,
+    notes,
+    created_at: new Date().toISOString(),
+  };
+
+  mockPayrollRecordsList.unshift(payrollRec);
+
+  // Automatically record this in Expenses
+  const expenseRec: ExpenseItem = {
+    id: `exp-${Date.now()}`,
+    voucherNumber: `EXP-${2000 + mockExpensesList.length + 1}`,
+    date: safeDate,
+    category: 'رواتب وأجور وسلف موظفين',
+    costCenter: emp?.branch || 'المحل / المعرض الرئيسي',
+    beneficiary: employeeName,
+    amount: calculatedNet,
+    currency,
+    paymentMethod: treasury.includes('بنك') ? 'تحويل بنكي' : 'نقداً',
+    treasury,
+    referenceNumber: payrollRec.referenceVoucher,
+    description: `صرف راتب شهر ${safeMonth} للموظف: ${employeeName}`,
+    notes: `أساسي: ${baseSalary} | بدلات: ${bonuses} | سلف مستقطعة: ${advancesDeducted} | خصومات: ${otherDeductions}`,
+    created_at: new Date().toISOString(),
+  };
+
+  mockExpensesList.unshift(expenseRec);
+
+  // Balanced double-entry in General Ledger
+  mockAccountTransactions.unshift({
+    id: `trx_sal_${Date.now()}`,
+    party_id: employeeId || 'payroll',
+    party_type: 'CUSTOMER',
+    type: 'صرف راتب شهري',
+    amount: calculatedNet,
+    currency,
+    date: safeDate,
+    description: `صرف راتب شهر ${safeMonth} للموظف: ${employeeName} من ${treasury}`,
+    reference_no: payrollRec.referenceVoucher,
+    notes,
+    created_at: new Date().toISOString(),
+  });
+
+  persistAllToDisk();
+
+  res.status(201).json({
+    success: true,
+    data: {
+      payrollRecord: payrollRec,
+      expenseRecord: expenseRec,
+    },
+    message: `تم صرف راتب الموظف (${employeeName}) بمبلغ ${calculatedNet} ${currency} بنجاح وترحيله للمصروفات ودفتر الأستاذ`,
+  });
+});
+
+// ==========================================
+// 16. Operating Expenses & Cost Centers API
+// ==========================================
+enterpriseRouter.get('/expenses', (req: Request, res: Response) => {
+  const { category, costCenter, treasury, currency, startDate, endDate } = req.query;
+  let list = [...mockExpensesList];
+
+  if (category && typeof category === 'string' && category !== 'الكل') {
+    list = list.filter((e) => e.category === category);
+  }
+  if (costCenter && typeof costCenter === 'string' && costCenter !== 'الكل') {
+    list = list.filter((e) => e.costCenter === costCenter);
+  }
+  if (treasury && typeof treasury === 'string' && treasury !== 'الكل') {
+    list = list.filter((e) => e.treasury === treasury);
+  }
+  if (currency && typeof currency === 'string' && currency !== 'الكل') {
+    list = list.filter((e) => e.currency === currency);
+  }
+  if (startDate && typeof startDate === 'string') {
+    list = list.filter((e) => e.date >= startDate);
+  }
+  if (endDate && typeof endDate === 'string') {
+    list = list.filter((e) => e.date <= endDate);
+  }
+
+  res.json({
+    success: true,
+    data: list,
+    total: list.length,
+  });
+});
+
+enterpriseRouter.post('/expenses', (req: Request, res: Response) => {
+  const body = req.body || {};
+  if (!body.category || !body.amount) {
+    return res.status(400).json({ success: false, message: 'تصنيف المصروف والمبلغ مطلوبان' });
+  }
+
+  const newExpense: ExpenseItem = {
+    id: body.id || `exp-${Date.now()}`,
+    voucherNumber: body.voucherNumber || `EXP-${2000 + mockExpensesList.length + 1}`,
+    date: body.date || new Date().toISOString().split('T')[0],
+    category: body.category,
+    costCenter: body.costCenter || 'عام',
+    beneficiary: body.beneficiary || 'غير محدد',
+    amount: Number(body.amount) || 0,
+    currency: body.currency || 'SAR',
+    exchangeRate: Number(body.exchangeRate) || 1,
+    baseCurrencyAmount: Number(body.baseCurrencyAmount) || Number(body.amount) || 0,
+    paymentMethod: body.paymentMethod || 'نقداً',
+    treasury: body.treasury || 'الصندوق النقدي الرئيسي',
+    referenceNumber: body.referenceNumber || '',
+    description: body.description || '',
+    notes: body.notes || '',
+    created_at: new Date().toISOString(),
+  };
+
+  mockExpensesList.unshift(newExpense);
+
+  // Record balanced double-entry in General Ledger
+  mockAccountTransactions.unshift({
+    id: `trx_exp_${Date.now()}`,
+    party_id: 'operating_expenses',
+    party_type: 'CUSTOMER',
+    type: `مصروف - ${newExpense.category}`,
+    amount: newExpense.amount,
+    currency: newExpense.currency,
+    date: newExpense.date,
+    description: `سند صرف: ${newExpense.description || newExpense.category} - المستفيد: ${newExpense.beneficiary} [${newExpense.treasury}]`,
+    reference_no: newExpense.voucherNumber,
+    notes: newExpense.notes,
+    created_at: new Date().toISOString(),
+  });
+
+  persistAllToDisk();
+
+  res.status(201).json({
+    success: true,
+    data: newExpense,
+    message: 'تم تسجيل سند المصروف بنجاح وترحيله إلى الخزينة والقيود المحاسبية',
+  });
+});
+
+enterpriseRouter.put('/expenses/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const index = mockExpensesList.findIndex((e) => e.id === id);
+  if (index === -1) {
+    return res.status(404).json({ success: false, message: 'سند المصروف غير موجود' });
+  }
+
+  const existing = mockExpensesList[index];
+  const updated: ExpenseItem = {
+    ...existing,
+    ...req.body,
+    id: existing.id,
+    amount: req.body.amount !== undefined ? Number(req.body.amount) : existing.amount,
+  };
+
+  mockExpensesList[index] = updated;
+  persistAllToDisk();
+
+  res.json({
+    success: true,
+    data: updated,
+    message: 'تم تحديث سند المصروف بنجاح',
+  });
+});
+
+enterpriseRouter.delete('/expenses/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const index = mockExpensesList.findIndex((e) => e.id === id);
+  if (index === -1) {
+    return res.status(404).json({ success: false, message: 'سند المصروف غير موجود' });
+  }
+
+  mockExpensesList.splice(index, 1);
+  persistAllToDisk();
+
+  res.json({
+    success: true,
+    message: 'تم حذف سند المصروف بنجاح',
+  });
+});
+
 

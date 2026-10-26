@@ -210,7 +210,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
             <div className="flex items-center gap-3 pt-1">
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                {company?.name || 'مؤسسة السحابي للتجارة والتقنية'}
+                {company?.name || 'المؤسسة التجارية'}
               </h1>
               <span className="text-xs font-bold font-mono px-2 py-0.5 rounded bg-slate-800 text-emerald-400 border border-slate-700">
                 {currency}

@@ -193,8 +193,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <div>
               <h2 className="text-base font-bold text-white">
                 {mode === 'account' && 'بيانات المحل التجاري وحساب الإدارة'}
-                {mode === 'login' && 'تسجيل الدخول للنظام'}
-                {mode === 'register' && 'إنشاء وتأكيد حساب محل جديد (Permanent Multi-Tenant)'}
+                {mode === 'login' && 'تسجيل الدخول - نظام المحاسبي الذكي ERP'}
+                {mode === 'register' && 'إنشاء حساب جديد - نظام المحاسبي الذكي ERP'}
                 {mode === 'forgot' && 'استعادة كلمة المرور'}
                 {mode === 'reset' && 'تعيين كلمة مرور جديدة'}
               </h2>

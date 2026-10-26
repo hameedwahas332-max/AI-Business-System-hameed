@@ -39,7 +39,7 @@ export const POSReceiptModal: React.FC<POSReceiptModalProps> = ({
     printInvoiceDocument({
       layout: printLayout,
       currency: receiptData.currency || 'YER',
-      companyName: company?.name || 'مؤسسة السحابي للتجارة والتقنية',
+      companyName: company?.name || 'المؤسسة التجارية',
       invoiceType: 'SALES',
       invoiceNumber: receiptData.invoiceNumber,
       date: receiptData.invoiceDate,

@@ -68,11 +68,17 @@ export const ReportsTab: React.FC = () => {
         res = await api.getPurchaseReport({ start_date: startDate, end_date: endDate, group_by: groupBy });
       } else if (activeReport === 'profit_loss') {
         const plRes = await api.getProfitLossReport({ start_date: startDate, end_date: endDate });
-        // Retrieve payments expenses
+        // Retrieve operating expenses and payments
         let expensesTotal = 0;
         try {
+          const expRes = await api.getExpenses();
+          if (expRes?.success && Array.isArray(expRes.data)) {
+            expensesTotal = expRes.data.reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
+          }
           const pStats = await api.getPaymentStats();
-          if (pStats?.data?.totalDisbursed) expensesTotal = Number(pStats.data.totalDisbursed);
+          if (pStats?.data?.totalDisbursed) {
+            expensesTotal = Math.max(expensesTotal, Number(pStats.data.totalDisbursed));
+          }
         } catch {}
 
         const basePl = plRes?.data || { revenue: 0, cogs: 0, grossProfit: 0, operatingExpenses: 0, netProfit: 0 };

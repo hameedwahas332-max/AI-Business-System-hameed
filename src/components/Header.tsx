@@ -87,7 +87,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-2.5">
           <div className="hidden lg:flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-semibold text-slate-400">ERP سحابي</span>
+            <span className="text-xs font-bold text-slate-200">نظام المحاسبي الذكي ERP</span>
           </div>
 
           {/* Business Activity Profile Selector Dropdown */}

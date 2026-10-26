@@ -46,7 +46,7 @@ const SYSTEM_LOCK_KEY = 'erp_system_locked_v1';
 
 const defaultCompany: Company = {
   id: 'comp_001',
-  name: 'مؤسسة السحابي للتجارة والتقنية',
+  name: 'المؤسسة التجارية الذكية',
   commercialRegister: '1010998877',
   taxNumber: '300998877600003',
   address: 'الرياض - طريق الملك فهد',

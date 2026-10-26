@@ -5,6 +5,7 @@ import { Sidebar, TabType } from './components/Sidebar';
 import { AuthModal } from './components/Auth/AuthModal';
 import { GlobalSearchModal } from './components/Common/GlobalSearchModal';
 import { ErrorBoundary } from './components/Common/ErrorBoundary';
+import { AppIcon } from './components/Common/AppIcon';
 import { toEnglishDigits } from './lib/formatters';
 import { useAuth } from './context/AuthContext';
 
@@ -42,6 +43,7 @@ import { TestRunnerTab } from './components/Dashboard/TestRunnerTab';
 
 // Real Dedicated POS Module
 import { POSMain } from './components/Dashboard/POS/POSMain';
+import { EmployeesAndExpensesTab } from './components/Dashboard/EmployeesAndExpensesTab';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -237,6 +239,10 @@ export function App() {
         return <PurchaseInvoicesTab />;
       case 'payments':
         return <PaymentsTab />;
+      case 'expenses':
+        return <EmployeesAndExpensesTab initialSubTab="expenses" />;
+      case 'employees':
+        return <EmployeesAndExpensesTab initialSubTab="employees" />;
       case 'ledger':
         return <LedgerTab />;
       case 'inventory':
@@ -299,9 +305,13 @@ export function App() {
       {isSystemLocked && (
         <div className="fixed inset-0 z-[9999] bg-slate-950/95 backdrop-blur-2xl flex items-center justify-center p-4 select-none">
           <div className="w-full max-w-md bg-slate-900 border border-amber-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl text-center space-y-5">
-            {/* Lock Icon */}
-            <div className="w-20 h-20 rounded-3xl bg-amber-500/10 border-2 border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto shadow-xl">
-              <Lock className="w-10 h-10 animate-pulse" />
+            {/* Prominent Luxurious App Emblem */}
+            <div className="flex flex-col items-center justify-center gap-3">
+              <AppIcon className="w-20 h-20 drop-shadow-2xl" />
+              <div className="flex flex-col items-center">
+                <span className="text-sm font-black text-amber-400 tracking-wider">نظام المحاسبي الذكي ERP</span>
+                <span className="text-[10px] text-slate-400 font-medium">Smart Accounting & Enterprise ERP</span>
+              </div>
             </div>
 
             <div>

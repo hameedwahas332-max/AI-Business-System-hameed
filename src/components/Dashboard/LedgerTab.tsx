@@ -105,6 +105,41 @@ export const LedgerTab: React.FC = () => {
         },
       ];
 
+      // Add live balanced journal entries for recorded operating expenses and payroll
+      try {
+        const expRes = await api.getExpenses();
+        if (expRes?.success && Array.isArray(expRes.data)) {
+          expRes.data.forEach((exp: any) => {
+            const amt = Number(exp.amount || 0);
+            const dateStr = exp.date ? new Date(exp.date).toISOString() : new Date().toISOString();
+            // Debit: Operating Expense
+            operationalJournals.push({
+              id: `jrn_exp_dr_${exp.id}`,
+              transaction_date: dateStr,
+              account_type: 'OPERATING_EXPENSES',
+              reference_type: `سند صرف ${exp.voucherNumber || exp.id}`,
+              entry_number: `JRN-${exp.voucherNumber || 'EXP'}`,
+              debit: amt,
+              credit: 0,
+              description: `إثبات مصروف: ${exp.category} - ${exp.description || 'مصروفات تشغيلية'} (${exp.beneficiary})`,
+              created_by_name: 'المحاسب المالي',
+            });
+            // Credit: Cash / Bank Treasury
+            operationalJournals.push({
+              id: `jrn_exp_cr_${exp.id}`,
+              transaction_date: dateStr,
+              account_type: 'CASH_BANK',
+              reference_type: `سند صرف ${exp.voucherNumber || exp.id}`,
+              entry_number: `JRN-${exp.voucherNumber || 'EXP'}`,
+              debit: 0,
+              credit: amt,
+              description: `صرف من ${exp.treasury} لسداد: ${exp.category}`,
+              created_by_name: 'المحاسب المالي',
+            });
+          });
+        }
+      } catch {}
+
       // Read custom postings from local storage if available
       let localCustomPostings: any[] = [];
       try {

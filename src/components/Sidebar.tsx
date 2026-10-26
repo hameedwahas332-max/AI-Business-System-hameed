@@ -8,6 +8,7 @@ import {
   Truck,
   Package,
   CreditCard,
+  DollarSign,
   BookOpen,
   BarChart3,
   Sparkles,
@@ -53,6 +54,8 @@ export type TabType =
   | 'invoices'
   | 'purchase_invoices'
   | 'payments'
+  | 'expenses'
+  | 'employees'
   | 'ledger'
   | 'inventory'
   | 'fuel_station'
@@ -153,6 +156,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
       title: 'الخزينة والحسابات والضرائب',
       items: [
         { id: 'payments', label: 'الخزينة وسندات القبض والصرف', icon: CreditCard },
+        { id: 'expenses', label: 'المصروفات والتكاليف التشغيلية', icon: DollarSign, badge: 'تكاليف' },
+        { id: 'employees', label: 'الموظفين والرواتب والسلف', icon: UserCheck, badge: 'رواتب' },
         { id: 'ledger', label: 'دليل الحسابات ودفتر الأستاذ', icon: BookOpen },
         { id: 'reports', label: 'الضرائب والتقارير المالية', icon: BarChart3 },
         { id: 'financial_intelligence', label: 'القوائم المالية والذكاء المحاسبي', icon: TrendingUp },
@@ -216,8 +221,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           <AppIcon className="w-8 h-8 text-indigo-400 shrink-0" />
           {!isCollapsed && (
             <div className="flex flex-col min-w-0">
-              <span className="font-bold text-sm text-white tracking-wide truncate">نظام السحابي ERP</span>
-              <span className="text-[10px] text-indigo-400 font-medium tracking-tight truncate">Enterprise ERP SaaS</span>
+              <span className="font-bold text-sm text-white tracking-wide truncate">نظام المحاسبي الذكي ERP</span>
+              <span className="text-[10px] text-amber-400 font-semibold tracking-tight truncate">Smart Accounting & ERP Cloud</span>
             </div>
           )}
         </div>

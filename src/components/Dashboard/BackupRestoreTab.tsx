@@ -137,6 +137,10 @@ export const BackupRestoreTab: React.FC = () => {
       },
       custom_ledger_entries: customLedger,
       pos_shifts: posShifts,
+      employees: JSON.parse(localStorage.getItem('erp_employees_cache') || '[]'),
+      employee_movements: JSON.parse(localStorage.getItem('erp_employee_movements_cache') || '[]'),
+      payroll_records: JSON.parse(localStorage.getItem('erp_payroll_records_cache') || '[]'),
+      expenses: JSON.parse(localStorage.getItem('erp_expenses_cache') || '[]'),
     };
   };
 

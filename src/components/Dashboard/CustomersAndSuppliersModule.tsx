@@ -114,8 +114,22 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
   const [txSubmitting, setTxSubmitting] = useState(false);
 
   // WhatsApp Message Preview Modal
-  const [whatsAppModalData, setWhatsAppModalData] = useState<{ party: any; type: 'CUSTOMER' | 'SUPPLIER'; message: string } | null>(null);
+  const [whatsAppModalData, setWhatsAppModalData] = useState<{
+    party: any;
+    type: 'CUSTOMER' | 'SUPPLIER';
+    phone: string;
+    message: string;
+    statementSummary?: {
+      openingBalance: number;
+      totalDebit: number;
+      totalCredit: number;
+      closingBalance: number;
+      currency: string;
+      statementDate: string;
+    };
+  } | null>(null);
   const [copiedWhatsApp, setCopiedWhatsApp] = useState(false);
+  const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
 
   // Import Modal
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -621,16 +635,94 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
   // Handler: WhatsApp Share Trigger
   const handleOpenWhatsAppModal = (party: any, type: 'CUSTOMER' | 'SUPPLIER') => {
     const curBal = Number(party.current_balance || party._currentBalance || 0);
+    const opBal = Number(party.opening_balance || party._openingBalance || 0);
     const cur = party.currency || party._currency || 'YER';
     const cleanPhone = (party.phone || party._phone || '').replace(/[^0-9+]/g, '');
+    const accountCode = `ACC-${String(party.id).slice(-6)}`;
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const partyName = party.name || party._name || '';
 
-    const message =
-      type === 'CUSTOMER'
-        ? `السلام عليكم ورحمة الله، الأستاذ/الشركة: ${party.name || party._name} المحترمون.\nنود إحاطتكم بأن رصيد حسابكم الحالي لدى مؤسستنا هو (${formatNumber(curBal)} ${cur}).\nشاكرين ومقدرين حسن تعاملكم معنا.`
-        : `السلام عليكم ورحمة الله، الإخوة في: ${party.name || party._name} المحترمون.\nإشعار برصيد الحساب المسجل لدينا بمبلغ (${formatNumber(curBal)} ${cur}).\nشاكرين تعاونكم المستمر معنا.`;
+    // If opening from inside an open statement detail that already loaded statementData
+    const hasLoadedStatement = detailAccount && detailAccount.party.id === party.id && statementData;
+    const totalDeb = hasLoadedStatement && statementData.totalDebit !== undefined ? Number(statementData.totalDebit) : 0;
+    const totalCred = hasLoadedStatement && statementData.totalCredit !== undefined ? Number(statementData.totalCredit) : 0;
 
-    setWhatsAppModalData({ party, type, message });
+    const formattedMessage =
+`📄 كشف حساب معتمد — نظام المحاسبي الذكي ERP
+═════════════════════════════
+👤 ${type === 'CUSTOMER' ? 'العميل' : 'المورد'}: ${partyName}
+🔢 رقم الحساب: ${accountCode}
+📅 تاريخ الكشف: ${todayStr}
+═════════════════════════════
+• الرصيد الافتتاحي: ${toEnglishDigits(formatNumber(opBal))} ${cur}
+${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(totalDeb))} ${cur}\n` : ''}${totalCred > 0 ? `• إجمالي الدائن / المسدد: ${toEnglishDigits(formatNumber(totalCred))} ${cur}\n` : ''}• الرصيد الختامي المستحق: ${toEnglishDigits(formatNumber(curBal))} ${cur} (${curBal > 0 ? (type === 'CUSTOMER' ? 'مدين مستحق عليكم' : 'دائن مستحق لكم') : (curBal < 0 ? 'رصيد دائن' : 'حساب مسدد بالكامل')})
+═════════════════════════════
+شاكرين ومقدرين حسن تعاملكم معنا.
+المؤسسة: ${company?.name || 'مؤسستنا التجارية'}
+هاتف الإدارة: ${company?.phone || 'الرقم المعتمد'}`;
+
+    setWhatsAppModalData({
+      party,
+      type,
+      phone: cleanPhone,
+      message: formattedMessage,
+      statementSummary: {
+        openingBalance: opBal,
+        totalDebit: totalDeb,
+        totalCredit: totalCred,
+        closingBalance: curBal,
+        currency: cur,
+        statementDate: todayStr,
+      },
+    });
     setCopiedWhatsApp(false);
+  };
+
+  // Handler: In-System WhatsApp Dispatch via Backend Engine
+  const handleSendWhatsAppInSystem = async () => {
+    if (!whatsAppModalData) return;
+    if (!whatsAppModalData.phone.trim()) {
+      setError('يرجى تحديد أو إدخال رقم هاتف المستلم بصيغة صحيحة');
+      return;
+    }
+
+    setIsSendingWhatsApp(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem('erp_auth_token') || '';
+      const companyId = company?.id || 'comp_001';
+
+      const res = await fetch('/api/v1/whatsapp/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-company-id': companyId,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          recipientPhone: whatsAppModalData.phone,
+          recipientName: whatsAppModalData.party.name || whatsAppModalData.party._name,
+          customerId: whatsAppModalData.type === 'CUSTOMER' ? whatsAppModalData.party.id : undefined,
+          supplierId: whatsAppModalData.type === 'SUPPLIER' ? whatsAppModalData.party.id : undefined,
+          messageText: whatsAppModalData.message,
+          messageType: 'ACCOUNT_STATEMENT',
+          attachmentSummary: `كشف حساب بمبلغ ${toEnglishDigits(formatNumber(whatsAppModalData.statementSummary?.closingBalance || 0))} ${whatsAppModalData.statementSummary?.currency || ''}`,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSuccess('✅ تم إرسال كشف الحساب وتسجيله في محادثات واتساب النظام بنجاح');
+        setWhatsAppModalData(null);
+        setTimeout(() => setSuccess(null), 5000);
+      } else {
+        throw new Error(data.error || 'تعذر إرسال كشف الحساب عبر الواتساب');
+      }
+    } catch (err: any) {
+      setError(err?.message || 'فشل إرسال كشف الحساب عبر الواتساب');
+    } finally {
+      setIsSendingWhatsApp(false);
+    }
   };
 
   // Selection Checkbox Helpers
@@ -2751,30 +2843,133 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
       )}
 
       {/* ========================================================================= */}
-      {/* 10. WHATSAPP STATEMENT PREVIEW MODAL                                      */}
+      {/* 10. IN-SYSTEM WHATSAPP STATEMENT SENDER MODAL                            */}
       {/* ========================================================================= */}
       {whatsAppModalData && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-          <div className="bg-[#091511] rounded-2xl border border-emerald-500/30 shadow-2xl w-full max-w-md overflow-hidden text-right">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-3 sm:p-4 animate-fade-in">
+          <div className="bg-[#091511] rounded-2xl border border-emerald-500/30 shadow-2xl w-full max-w-xl overflow-hidden text-right flex flex-col max-h-[92vh]">
+            
+            {/* Modal Header */}
             <div className="p-4 bg-gradient-to-r from-[#061a14] to-[#0c2e1f] border-b border-emerald-500/20 flex items-center justify-between">
-              <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                <MessageCircle className="w-4 h-4 text-emerald-400" />
-                <span>إرسال إشعار الحساب عبر WhatsApp</span>
-              </h3>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-[#25D366] flex items-center justify-center">
+                  <MessageCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                    <span>إرسال كشف الحساب عبر WhatsApp</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      إرسال فوري داخل النظام
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    الحساب: <span className="text-white font-semibold">{whatsAppModalData.party.name || whatsAppModalData.party._name}</span>
+                    <span className="font-mono text-emerald-400 mx-1.5">• ACC-{String(whatsAppModalData.party.id).slice(-6)}</span>
+                  </p>
+                </div>
+              </div>
               <button
                 onClick={() => setWhatsAppModalData(null)}
-                className="text-slate-400 hover:text-white p-1"
+                disabled={isSendingWhatsApp}
+                className="text-slate-400 hover:text-white p-1.5 rounded-lg bg-[#06120d] border border-emerald-500/20 cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-5 space-y-3.5 text-xs">
-              <div className="p-3 bg-[#06120d] rounded-xl border border-emerald-500/20 font-mono whitespace-pre-line text-slate-200 leading-relaxed text-xs">
-                {whatsAppModalData.message}
+            {/* Modal Body */}
+            <div className="p-4 sm:p-5 space-y-4 overflow-y-auto text-xs flex-1">
+              
+              {/* Recipient Phone Configuration */}
+              <div className="p-3.5 bg-[#06120d] rounded-xl border border-emerald-500/20 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>رقم هاتف المستلم (WhatsApp)</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400">يجب أن يتضمن مفتاح الدولة (مثل: 967+ أو 966+)</span>
+                </div>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={whatsAppModalData.phone}
+                  onChange={(e) =>
+                    setWhatsAppModalData({
+                      ...whatsAppModalData,
+                      phone: e.target.value,
+                    })
+                  }
+                  placeholder="+967 770 000 000"
+                  className="w-full px-3.5 py-2 bg-[#091f17] border border-emerald-500/30 rounded-lg text-xs font-mono text-emerald-300 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                />
               </div>
 
-              <div className="flex items-center justify-between gap-2 pt-2">
+              {/* Statement Financial Metrics Pill Summary */}
+              {whatsAppModalData.statementSummary && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                  <div className="p-2 rounded-lg bg-[#06120d] border border-emerald-500/20">
+                    <div className="text-[10px] text-slate-400">الرصيد الافتتاحي</div>
+                    <div className="font-mono font-bold text-slate-200 text-xs mt-0.5">
+                      {toEnglishDigits(formatNumber(whatsAppModalData.statementSummary.openingBalance))}
+                    </div>
+                  </div>
+                  <div className="p-2 rounded-lg bg-[#06120d] border border-emerald-500/20">
+                    <div className="text-[10px] text-amber-400">إجمالي المدين</div>
+                    <div className="font-mono font-bold text-amber-300 text-xs mt-0.5">
+                      +{toEnglishDigits(formatNumber(whatsAppModalData.statementSummary.totalDebit))}
+                    </div>
+                  </div>
+                  <div className="p-2 rounded-lg bg-[#06120d] border border-emerald-500/20">
+                    <div className="text-[10px] text-emerald-400">إجمالي الدائن</div>
+                    <div className="font-mono font-bold text-emerald-300 text-xs mt-0.5">
+                      -{toEnglishDigits(formatNumber(whatsAppModalData.statementSummary.totalCredit))}
+                    </div>
+                  </div>
+                  <div className="p-2 rounded-lg bg-emerald-950/40 border border-emerald-500/40">
+                    <div className="text-[10px] text-emerald-300 font-bold">الرصيد النهائي</div>
+                    <div className="font-mono font-black text-emerald-400 text-xs mt-0.5">
+                      {toEnglishDigits(formatNumber(whatsAppModalData.statementSummary.closingBalance))} {whatsAppModalData.statementSummary.currency}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Editable Formatted Statement Text */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-slate-300">
+                  <span className="font-bold flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>نص كشف الحساب المعتمد للإرسال</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400">يمكنك التعديل أو إضافة ملاحظات خاصة قبل الإرسال</span>
+                </div>
+                <textarea
+                  rows={9}
+                  value={whatsAppModalData.message}
+                  onChange={(e) =>
+                    setWhatsAppModalData({
+                      ...whatsAppModalData,
+                      message: e.target.value,
+                    })
+                  }
+                  className="w-full p-3 bg-[#06120d] rounded-xl border border-emerald-500/20 font-mono text-[11px] text-slate-200 leading-relaxed focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                />
+              </div>
+
+              {/* Internal System Archival Note */}
+              <div className="p-2.5 rounded-lg bg-[#05110b] border border-emerald-500/20 flex items-center gap-2 text-[11px] text-slate-400">
+                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>
+                  يتم إرسال هذا الكشف وتسجيله فورياً في مركز محادثات واتساب النظام الداخلي وتحديث مؤشرات التوصيل وسجل التدقيق.
+                </span>
+              </div>
+            </div>
+
+            {/* Modal Actions Footer */}
+            <div className="p-4 bg-[#06120d] border-t border-emerald-500/20 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+              
+              {/* Copy & External WhatsApp Buttons */}
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -2782,22 +2977,55 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
                     setCopiedWhatsApp(true);
                     setTimeout(() => setCopiedWhatsApp(false), 3000);
                   }}
-                  className="px-3.5 py-2 bg-[#0c1f19] hover:bg-slate-700 text-slate-300 rounded-xl font-semibold flex items-center gap-1.5 border border-emerald-500/20 cursor-pointer"
+                  className="px-3 py-2 bg-[#0c1f19] hover:bg-slate-700 text-slate-300 rounded-xl font-semibold flex items-center gap-1.5 border border-emerald-500/20 cursor-pointer text-xs"
                 >
-                  {copiedWhatsApp ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                  <span>{copiedWhatsApp ? 'تم النسخ' : 'نسخ الرسالة'}</span>
+                  {copiedWhatsApp ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedWhatsApp ? 'تم النسخ' : 'نسخ النص'}</span>
                 </button>
 
                 <a
-                  href={`https://wa.me/${(whatsAppModalData.party.phone || whatsAppModalData.party._phone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(whatsAppModalData.message)}`}
+                  href={`https://wa.me/${whatsAppModalData.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(whatsAppModalData.message)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-4 py-2 bg-[#25D366] hover:bg-[#20ba5a] text-black font-bold rounded-xl flex items-center gap-1.5 shadow-lg shadow-emerald-950 cursor-pointer"
+                  className="px-3 py-2 bg-[#0c1f19] hover:bg-[#1a3f2e] text-slate-300 hover:text-emerald-300 rounded-xl font-medium flex items-center gap-1.5 border border-emerald-500/20 cursor-pointer text-xs transition-colors"
+                  title="فتح تطبيق واتساب الخارجي كنسخة إضافية عند الحاجة"
                 >
-                  <Send className="w-4 h-4" />
-                  <span>فتح محادثة WhatsApp</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">فتح خارجي (اختياري)</span>
                 </a>
               </div>
+
+              {/* Primary Dispatch In System */}
+              <div className="flex items-center gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setWhatsAppModalData(null)}
+                  disabled={isSendingWhatsApp}
+                  className="px-4 py-2 bg-[#0a1511] text-slate-300 rounded-xl border border-slate-700 hover:bg-slate-800 font-semibold cursor-pointer text-xs"
+                >
+                  إلغاء
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSendWhatsAppInSystem}
+                  disabled={isSendingWhatsApp || !whatsAppModalData.phone.trim()}
+                  className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-950 cursor-pointer text-xs transition-all disabled:opacity-50"
+                >
+                  {isSendingWhatsApp ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>جاري الإرسال داخل النظام...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 text-emerald-200" />
+                      <span>إرسال فوري داخل النظام 💬</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
             </div>
           </div>
         </div>

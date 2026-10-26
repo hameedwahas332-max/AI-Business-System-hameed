@@ -195,7 +195,7 @@ export const WhatsAppManagerTab: React.FC = () => {
             messages={messages}
             isLoadingMessages={false}
             onSendMessage={handleSendMessage}
-            companyName="مؤسسة السحابي ERP"
+            companyName="نظام المحاسبي الذكي ERP"
           />
         )}
         {activeSubTab === 'campaigns' && (

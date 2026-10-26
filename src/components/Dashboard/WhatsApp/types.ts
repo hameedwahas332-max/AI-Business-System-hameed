@@ -134,3 +134,39 @@ export interface WhatsAppKPIStats {
   responseRatePercent?: number;
   [key: string]: any;
 }
+
+export type WhatsAppConnectionMode = 'gateway' | 'cloud_api' | 'internal_engine';
+
+export interface WhatsAppConfig {
+  id?: string;
+  company_id?: string;
+  connectionMode: WhatsAppConnectionMode;
+  // Mode 1: WhatsApp Gateway / QR Bridge (UltraMsg, Evolution, GreenAPI, Custom Webhook)
+  senderPhoneNumber?: string;
+  gatewayUrl?: string;
+  instanceId?: string;
+  apiToken?: string;
+  // Mode 2: Meta WhatsApp Cloud API
+  phoneNumberId?: string;
+  businessAccountId?: string;
+  accessToken?: string;
+  // Mode 3: Internal System Messenger + Direct Bridge
+  openExternalWhatsAppApp?: boolean;
+  // Live Status & Verification
+  isConnected?: boolean;
+  status?: 'CONNECTED' | 'DISCONNECTED' | 'CONFIGURED';
+  lastTestedAt?: string;
+  updated_at?: string;
+}
+
+export interface SendWhatsAppPayload {
+  recipientPhone: string;
+  recipientName?: string;
+  customerId?: string;
+  supplierId?: string;
+  messageText: string;
+  messageType?: string;
+  attachmentSummary?: string;
+  referenceId?: string;
+}
+

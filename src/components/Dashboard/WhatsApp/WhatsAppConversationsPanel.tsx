@@ -69,7 +69,7 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
   erpContext = null,
   isLoadingERPContext = false,
   templates = [],
-  companyName = 'مؤسسة السحابي ERP',
+  companyName = 'نظام المحاسبي الذكي ERP',
   onScheduleMessagePrompt = (_phone: string, _text: string) => {},
 }) => {
   const [searchQuery, setSearchQuery] = useState('');

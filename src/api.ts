@@ -1263,7 +1263,172 @@ class ApiClient {
   async getControlCenterAuditLogs(limit?: number) {
     return this.request(`/control-center/audit-logs${this.toQueryString({ limit })}`);
   }
+
+  // ==========================================
+  // Employees & Payroll
+  // ==========================================
+  async getEmployees() {
+    return this.request<{ success: boolean; data: Employee[]; total?: number }>('/employees');
+  }
+
+  async createEmployee(data: Partial<Employee>) {
+    return this.request<{ success: boolean; data: Employee; message?: string }>('/employees', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateEmployee(id: string, data: Partial<Employee>) {
+    return this.request<{ success: boolean; data: Employee; message?: string }>(`/employees/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteEmployee(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/employees/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getEmployeeMovements(employeeId?: string) {
+    return this.request<{ success: boolean; data: EmployeeMovement[]; total?: number }>(`/employees/movements${this.toQueryString({ employeeId })}`);
+  }
+
+  async createEmployeeMovement(data: Partial<EmployeeMovement>) {
+    return this.request<{ success: boolean; data: EmployeeMovement; message?: string }>('/employees/movements', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getPayrollRecords(month?: string) {
+    return this.request<{ success: boolean; data: PayrollRecord[]; total?: number }>(`/payroll${this.toQueryString({ month })}`);
+  }
+
+  async disbursePayroll(data: {
+    employeeId: string;
+    employeeName?: string;
+    month: string;
+    baseSalary: number;
+    bonuses?: number;
+    advancesDeducted?: number;
+    otherDeductions?: number;
+    netSalary?: number;
+    currency?: string;
+    paymentDate?: string;
+    treasury?: string;
+    notes?: string;
+  }) {
+    return this.request<{ success: boolean; data: { payrollRecord: PayrollRecord; expenseRecord: Expense }; message?: string }>('/payroll/disburse', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ==========================================
+  // Operating Expenses
+  // ==========================================
+  async getExpenses(filters?: {
+    category?: string;
+    costCenter?: string;
+    treasury?: string;
+    currency?: string;
+    startDate?: string;
+    endDate?: string;
+  }) {
+    return this.request<{ success: boolean; data: Expense[]; total?: number }>(`/expenses${this.toQueryString(filters)}`);
+  }
+
+  async createExpense(data: Partial<Expense>) {
+    return this.request<{ success: boolean; data: Expense; message?: string }>('/expenses', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateExpense(id: string, data: Partial<Expense>) {
+    return this.request<{ success: boolean; data: Expense; message?: string }>(`/expenses/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteExpense(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/expenses/${id}`, {
+      method: 'DELETE',
+    });
+  }
+}
+
+export interface Employee {
+  id: string;
+  code: string;
+  name: string;
+  roleTitle: string;
+  phone: string;
+  branch: string;
+  hireDate: string;
+  baseSalary: number;
+  currency: 'YER' | 'SAR' | 'USD';
+  status: 'نشط' | 'في إجازة' | 'موقوف';
+  notes?: string;
+  created_at?: string;
+}
+
+export interface EmployeeMovement {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  type: 'advance' | 'bonus' | 'deduction' | 'salary_payment';
+  amount: number;
+  currency: 'YER' | 'SAR' | 'USD';
+  date: string;
+  treasury: string;
+  description: string;
+  attendanceStatus?: 'present' | 'absent' | 'leave' | 'overtime';
+  notes?: string;
+  created_at?: string;
+}
+
+export interface PayrollRecord {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  month: string;
+  baseSalary: number;
+  bonuses: number;
+  advancesDeducted: number;
+  otherDeductions: number;
+  netSalary: number;
+  currency: 'YER' | 'SAR' | 'USD';
+  paymentDate: string;
+  treasury: string;
+  status: 'draft' | 'paid';
+  referenceVoucher?: string;
+  notes?: string;
+  created_at?: string;
+}
+
+export interface Expense {
+  id: string;
+  voucherNumber: string;
+  date: string;
+  category: string;
+  costCenter: string;
+  beneficiary: string;
+  amount: number;
+  currency: 'YER' | 'SAR' | 'USD';
+  exchangeRate?: number;
+  baseCurrencyAmount?: number;
+  paymentMethod: string;
+  treasury: string;
+  referenceNumber?: string;
+  description: string;
+  notes?: string;
+  created_at?: string;
 }
 
 export { ApiClient };
 export const api = new ApiClient();
+
