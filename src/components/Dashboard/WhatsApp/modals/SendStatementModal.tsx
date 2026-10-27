@@ -18,9 +18,18 @@ import { formatNumber, toEnglishDigits } from '../../../../lib/formatters';
 interface SendStatementModalProps {
   isOpen: boolean;
   onClose: () => void;
-  customers: any[];
-  suppliers: any[];
-  onSendStatement: (entityId: string, type: 'CUSTOMER' | 'SUPPLIER', phone: string, customMessage?: string) => Promise<boolean>;
+  customers?: any[];
+  suppliers?: any[];
+  companyName?: string;
+  onSendStatement?: (entityId: string, type: 'CUSTOMER' | 'SUPPLIER', phone: string, customMessage?: string) => Promise<boolean | void> | boolean | void;
+  onSend?: (data: {
+    entityId: string;
+    entityType: 'CUSTOMER' | 'SUPPLIER';
+    recipientPhone: string;
+    recipientName: string;
+    messageText: string;
+    statementSummary?: any;
+  }) => Promise<boolean | void> | boolean | void;
 }
 
 export const SendStatementModal: React.FC<SendStatementModalProps> = ({
@@ -28,7 +37,9 @@ export const SendStatementModal: React.FC<SendStatementModalProps> = ({
   onClose,
   customers = [],
   suppliers = [],
+  companyName = 'نظام المحاسبي الذكي ERP',
   onSendStatement,
+  onSend,
 }) => {
   const [type, setType] = useState<'CUSTOMER' | 'SUPPLIER'>('CUSTOMER');
   const [searchQuery, setSearchQuery] = useState('');
@@ -66,7 +77,7 @@ export const SendStatementModal: React.FC<SendStatementModalProps> = ({
     const todayStr = new Date().toISOString().slice(0, 10);
 
     const msg =
-`📄 كشف حساب معتمد — نظام المحاسبي الذكي ERP
+`📄 كشف حساب معتمد — ${companyName}
 ═════════════════════════════
 👤 ${type === 'CUSTOMER' ? 'العميل' : 'المورد'}: ${item.name || item._name}
 🔢 رقم الحساب: ${accCode}
@@ -89,9 +100,48 @@ export const SendStatementModal: React.FC<SendStatementModalProps> = ({
     setIsSending(true);
     setError(null);
     try {
-      const ok = await onSendStatement(selectedId, type, phone.trim(), customMessage.trim());
-      if (ok) {
-        onClose();
+      let isSuccess = false;
+      const entityName = selectedEntity?.name || selectedEntity?._name || 'جهة اتصال';
+
+      if (typeof onSendStatement === 'function') {
+        const result = await onSendStatement(selectedId, type, phone.trim(), customMessage.trim());
+        isSuccess = result !== false;
+      } else if (typeof onSend === 'function') {
+        const result = await onSend({
+          entityId: selectedId,
+          entityType: type,
+          recipientPhone: phone.trim(),
+          recipientName: entityName,
+          messageText: customMessage.trim(),
+          statementSummary: {
+            entityId: selectedId,
+            entityName,
+            balance: selectedEntity?.current_balance || selectedEntity?.balance || 0,
+            currency: selectedEntity?.currency || 'YER',
+          },
+        });
+        isSuccess = result !== false;
+      } else {
+        // Direct API fallback
+        const res = await fetch('/api/v1/whatsapp/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            recipientPhone: phone.trim(),
+            recipientName: entityName,
+            messageText: customMessage.trim(),
+            messageType: 'STATEMENT',
+            customerId: type === 'CUSTOMER' ? selectedId : undefined,
+            supplierId: type === 'SUPPLIER' ? selectedId : undefined,
+          }),
+        });
+        isSuccess = res.ok;
+      }
+
+      if (isSuccess) {
+        if (typeof onClose === 'function') {
+          onClose();
+        }
       } else {
         setError('فشل في إرسال كشف الحساب. يرجى التحقق من الرقم والاتصال.');
       }

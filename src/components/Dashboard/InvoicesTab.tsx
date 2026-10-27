@@ -126,6 +126,16 @@ export const InvoicesTab: React.FC = () => {
     if (activeSubView === 'invoices') {
       fetchData();
     }
+    const handleWiped = () => {
+      setInvoices([]);
+      setTotalCount(0);
+      setCustomers([]);
+      setProducts([]);
+      setSelectedIds([]);
+      fetchData();
+    };
+    window.addEventListener('erp-demo-data-wiped', handleWiped);
+    return () => window.removeEventListener('erp-demo-data-wiped', handleWiped);
   }, [
     activeSubView,
     searchQuery,

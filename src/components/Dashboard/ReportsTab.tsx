@@ -147,6 +147,14 @@ export const ReportsTab: React.FC = () => {
     if (!authLoading) {
       fetchReport();
     }
+    const handleWiped = () => {
+      setReportData(null);
+      if (!authLoading) {
+        fetchReport();
+      }
+    };
+    window.addEventListener('erp-demo-data-wiped', handleWiped);
+    return () => window.removeEventListener('erp-demo-data-wiped', handleWiped);
   }, [authLoading, isAuthenticated, activeReport, startDate, endDate, groupBy]);
 
   const currency = company?.currency || 'SAR';

@@ -32,8 +32,13 @@ export const LedgerTab: React.FC = () => {
       });
       const backendEntries = res?.data || [];
 
-      // Balanced Operational Journal Entries for Fuel Station & Stocktaking Inventory
-      const operationalJournals = [
+      const isClean =
+        typeof window !== 'undefined' &&
+        (localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
+          localStorage.getItem('erp_sample_data_cleaned') === 'true');
+
+      // Balanced Operational Journal Entries for Fuel Station & Stocktaking Inventory (only in demo mode)
+      const operationalJournals = isClean ? [] : [
         // 1. Fuel Station Shift Sales Balanced Entry
         {
           id: 'fs-shift-debit-1',
@@ -176,6 +181,13 @@ export const LedgerTab: React.FC = () => {
 
   useEffect(() => {
     fetchData();
+    const handleWiped = () => {
+      setLedgerEntries([]);
+      setSummary({ totalDebit: 0, totalCredit: 0 });
+      fetchData();
+    };
+    window.addEventListener('erp-demo-data-wiped', handleWiped);
+    return () => window.removeEventListener('erp-demo-data-wiped', handleWiped);
   }, [searchQuery, accountTypeFilter]);
 
   const getLedgerExportConfig = (): TableExportConfig => ({

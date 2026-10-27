@@ -212,11 +212,14 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
     setIsSending(true);
     setValidationWarning(null);
     try {
-      const ok = await onSendMessage(selectedPhone, messageInput.trim(), {
-        customerId: activeConversation?.customer_id || erpContext?.customer?.id,
-        supplierId: activeConversation?.supplier_id || erpContext?.supplier?.id,
-        attachmentId: selectedAttachment?.id,
-      });
+      let ok = false;
+      if (typeof onSendMessage === 'function') {
+        ok = await onSendMessage(selectedPhone, messageInput.trim(), {
+          customerId: activeConversation?.customer_id || erpContext?.customer?.id,
+          supplierId: activeConversation?.supplier_id || erpContext?.supplier?.id,
+          attachmentId: selectedAttachment?.id,
+        });
+      }
       if (ok) {
         setMessageInput('');
         setSelectedAttachment(null);
@@ -227,7 +230,7 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
   };
 
   const handleRetry = async (msgId: string) => {
-    if (!onRetryMessage) return;
+    if (typeof onRetryMessage !== 'function') return;
     setRetryingMessageId(msgId);
     try {
       await onRetryMessage(msgId);
@@ -237,7 +240,7 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
   };
 
   const handleExecuteLink = async () => {
-    if (!linkingMessage || !linkEntityId.trim() || !onLinkMessage) return;
+    if (!linkingMessage || !linkEntityId.trim() || typeof onLinkMessage !== 'function') return;
     setIsLinking(true);
     try {
       const ok = await onLinkMessage(linkingMessage.id, linkEntityType, linkEntityId.trim());
@@ -464,7 +467,7 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                     if (!selectedPhone) return;
                     const defaultReply = 'وعليكم السلام، تم الاطلاع وجاري التحويل اليوم إن شاء الله.';
                     const replyText = window.prompt('أدخل نص الرد الوارد لاختبار استلام رسائل العملاء:', defaultReply);
-                    if (replyText) {
+                    if (replyText && typeof onSimulateReply === 'function') {
                       onSimulateReply(selectedPhone, replyText);
                     }
                   }}
@@ -477,7 +480,11 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
 
                 <button
                   type="button"
-                  onClick={() => selectedPhone && onMarkAsRead(selectedPhone)}
+                  onClick={() => {
+                    if (selectedPhone && typeof onMarkAsRead === 'function') {
+                      onMarkAsRead(selectedPhone);
+                    }
+                  }}
                   className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[11px] font-bold transition-all"
                   title="تعيين المحادثة كمقروءة"
                 >
@@ -490,7 +497,9 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                   onClick={() => {
                     if (!selectedPhone) return;
                     if (window.confirm('هل أنت متأكد من حذف هذه المحادثة من قائمة المحادثات النشطة؟')) {
-                      onDeleteConversation(selectedPhone);
+                      if (typeof onDeleteConversation === 'function') {
+                        onDeleteConversation(selectedPhone);
+                      }
                     }
                   }}
                   className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-slate-800 transition-colors"
@@ -827,7 +836,11 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
 
                     {/* Schedule Button */}
                     <button
-                      onClick={() => onScheduleMessagePrompt(selectedPhone, messageInput)}
+                      onClick={() => {
+                        if (typeof onScheduleMessagePrompt === 'function') {
+                          onScheduleMessagePrompt(selectedPhone || '', messageInput);
+                        }
+                      }}
                       className="p-1.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-slate-100 transition-colors text-xs font-medium flex items-center gap-1"
                       title="جدولة الرسالة لوقت لاحق"
                     >
@@ -956,7 +969,7 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                   onClick={() => {
                     const entityId = erpContext.customer?.id || erpContext.supplier?.id;
                     const type = erpContext.customer ? 'CUSTOMER' : 'SUPPLIER';
-                    if (entityId && selectedPhone) {
+                    if (entityId && selectedPhone && typeof onSendStatement === 'function') {
                       onSendStatement(entityId, type, selectedPhone);
                     }
                   }}
@@ -1005,7 +1018,11 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                         </div>
 
                         <button
-                          onClick={() => selectedPhone && onSendInvoiceReminder(inv.id, selectedPhone)}
+                          onClick={() => {
+                            if (selectedPhone && typeof onSendInvoiceReminder === 'function') {
+                              onSendInvoiceReminder(inv.id, selectedPhone);
+                            }
+                          }}
                           className="px-2 py-1 rounded bg-emerald-500/20 hover:bg-emerald-600 hover:text-white text-emerald-400 text-[10px] font-bold transition-colors"
                           title="إرسال تذكير بهذه الفاتورة"
                         >

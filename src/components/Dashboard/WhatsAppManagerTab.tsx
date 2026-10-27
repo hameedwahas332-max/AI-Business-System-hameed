@@ -316,8 +316,13 @@ export const WhatsAppManagerTab: React.FC = () => {
         }
       } catch {}
 
-      // If conversations is empty, seed initial realistic ERP conversations
-      if (loadedConvs.length === 0) {
+      const isClean =
+        typeof window !== 'undefined' &&
+        (localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
+          localStorage.getItem('erp_sample_data_cleaned') === 'true');
+
+      // If conversations is empty, seed initial realistic ERP conversations ONLY if NOT in clean mode
+      if (!isClean && loadedConvs.length === 0) {
         loadedConvs = [
           {
             phone_number: '+967 771 234 567',
@@ -355,7 +360,7 @@ export const WhatsAppManagerTab: React.FC = () => {
         ];
       }
 
-      if (loadedMsgs.length === 0) {
+      if (!isClean && loadedMsgs.length === 0) {
         loadedMsgs = [
           {
             id: 'msg-seed-1',
@@ -406,11 +411,35 @@ export const WhatsAppManagerTab: React.FC = () => {
     }
   }, [companyId, stateKey, automations, campaigns, selectedPhone, recalculateKPIs]);
 
-  // Initial load
+  // Initial load & wiped event listener
   useEffect(() => {
     fetchConfig();
     fetchERPEntities();
     fetchWhatsAppState();
+
+    const handleWiped = () => {
+      setConversations([]);
+      setSelectedPhone(null);
+      setMessages([]);
+      setScheduledMessages([]);
+      setCampaigns([]);
+      setStats({
+        totalConversations: 0,
+        unreadCount: 0,
+        sentToday: 0,
+        deliveredCount: 0,
+        readCount: 0,
+        failedCount: 0,
+        scheduledCount: 0,
+        deliveryRate: 100,
+        responseRatePercent: 100,
+        avgResponseMinutes: 0,
+      });
+      fetchERPEntities();
+      fetchWhatsAppState();
+    };
+    window.addEventListener('erp-demo-data-wiped', handleWiped);
+    return () => window.removeEventListener('erp-demo-data-wiped', handleWiped);
   }, [fetchConfig, fetchERPEntities, fetchWhatsAppState]);
 
   // Active conversation's messages
@@ -814,10 +843,17 @@ export const WhatsAppManagerTab: React.FC = () => {
         isRefreshing={isRefreshing}
         onRefresh={fetchWhatsAppState}
         onOpenNewMessage={() => setIsNewMessageModalOpen(true)}
+        onNewMessage={() => setIsNewMessageModalOpen(true)}
         onOpenSendStatement={() => setIsSendStatementModalOpen(true)}
+        onSendStatement={() => setIsSendStatementModalOpen(true)}
         onOpenSendInvoice={() => setIsSendInvoiceModalOpen(true)}
+        onSendInvoice={() => setIsSendInvoiceModalOpen(true)}
+        onOpenSendReminder={() => setActiveSubTab('reminders')}
+        onSendReminder={() => setActiveSubTab('reminders')}
         onOpenScheduleMessage={() => setIsScheduleModalOpen(true)}
+        onScheduleMessage={() => setIsScheduleModalOpen(true)}
         onOpenConfig={() => setActiveSubTab('config')}
+        onConfig={() => setActiveSubTab('config')}
       />
 
       {/* KPI Counters */}
@@ -969,6 +1005,13 @@ export const WhatsAppManagerTab: React.FC = () => {
         onClose={() => setIsNewMessageModalOpen(false)}
         customers={customers}
         suppliers={suppliers}
+        onSendMessage={async (phone, text, meta) => {
+          const ok = await handleSendMessage(phone, text, meta);
+          if (ok) {
+            setActiveSubTab('conversations');
+          }
+          return ok;
+        }}
         onSend={async (data) => {
           const ok = await handleSendMessage(data.recipientPhone, data.messageText, {
             recipientName: data.recipientName,
@@ -989,6 +1032,23 @@ export const WhatsAppManagerTab: React.FC = () => {
         customers={customers}
         suppliers={suppliers}
         companyName={companyName}
+        onSendStatement={async (entityId, type, phone, customMessage) => {
+          const entity =
+            type === 'CUSTOMER'
+              ? customers.find((c) => c.id === entityId)
+              : suppliers.find((s) => s.id === entityId);
+          const entityName = entity?.name || (type === 'CUSTOMER' ? 'عميل' : 'مورد');
+          const ok = await handleSendMessage(phone, customMessage || '', {
+            recipientName: entityName,
+            customerId: type === 'CUSTOMER' ? entityId : undefined,
+            supplierId: type === 'SUPPLIER' ? entityId : undefined,
+            messageType: 'STATEMENT',
+          });
+          if (ok) {
+            setActiveSubTab('conversations');
+          }
+          return ok;
+        }}
         onSend={async (data) => {
           const ok = await handleSendMessage(data.recipientPhone, data.messageText, {
             recipientName: data.recipientName,
@@ -1008,7 +1068,26 @@ export const WhatsAppManagerTab: React.FC = () => {
         isOpen={isSendInvoiceModalOpen}
         onClose={() => setIsSendInvoiceModalOpen(false)}
         invoices={invoices}
+        customers={customers}
         companyName={companyName}
+        onSendInvoiceReminder={async (invId, phone, customMessage) => {
+          const inv = invoices.find((i) => i.id === invId);
+          const cust = customers.find((c) => c.id === inv?.customer_id);
+          const custName = inv?.customer || inv?.customer_name || cust?.name || 'العميل الكريم';
+          const ok = await handleSendMessage(phone, customMessage || '', {
+            recipientName: custName,
+            messageType: 'INVOICE_REMINDER',
+            attachmentSummary: {
+              invoiceId: invId,
+              invoiceNumber: inv?.invoice_number || invId,
+              totalAmount: inv?.total || 0,
+            },
+          });
+          if (ok) {
+            setActiveSubTab('conversations');
+          }
+          return ok;
+        }}
         onSend={async (data) => {
           const ok = await handleSendMessage(data.recipientPhone, data.messageText, {
             recipientName: data.recipientName,
@@ -1031,6 +1110,13 @@ export const WhatsAppManagerTab: React.FC = () => {
         onClose={() => setIsScheduleModalOpen(false)}
         customers={customers}
         suppliers={suppliers}
+        onScheduleMessage={async (data) => {
+          const ok = await handleScheduleMessage(data);
+          if (ok) {
+            setActiveSubTab('scheduled');
+          }
+          return ok;
+        }}
         onSchedule={async (data) => {
           const ok = await handleScheduleMessage(data);
           if (ok) {

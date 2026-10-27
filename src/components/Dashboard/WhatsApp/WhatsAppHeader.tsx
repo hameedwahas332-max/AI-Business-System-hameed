@@ -21,12 +21,19 @@ interface WhatsAppHeaderProps {
   isRefreshing?: boolean;
   onRefresh?: () => void;
   onOpenNewMessage?: () => void;
+  onNewMessage?: () => void;
   onOpenSendStatement?: () => void;
+  onSendStatement?: () => void;
   onOpenSendInvoice?: () => void;
+  onSendInvoice?: () => void;
   onOpenSendReminder?: () => void;
+  onSendReminder?: () => void;
   onOpenCreateTemplate?: () => void;
+  onCreateTemplate?: () => void;
   onOpenScheduleMessage?: () => void;
+  onScheduleMessage?: () => void;
   onOpenConfig?: () => void;
+  onConfig?: () => void;
 }
 
 export const WhatsAppHeader: React.FC<WhatsAppHeaderProps> = ({
@@ -34,15 +41,50 @@ export const WhatsAppHeader: React.FC<WhatsAppHeaderProps> = ({
   providerText = 'UltraMsg Cloud Gateway',
   displayPhone = '+967 770 000 000',
   isRefreshing = false,
-  onRefresh = () => {},
-  onOpenNewMessage = () => {},
-  onOpenSendStatement = () => {},
-  onOpenSendInvoice = () => {},
-  onOpenSendReminder = () => {},
-  onOpenCreateTemplate = () => {},
-  onOpenScheduleMessage = () => {},
-  onOpenConfig = () => {},
+  onRefresh,
+  onOpenNewMessage,
+  onNewMessage,
+  onOpenSendStatement,
+  onSendStatement,
+  onOpenSendInvoice,
+  onSendInvoice,
+  onOpenSendReminder,
+  onSendReminder,
+  onOpenCreateTemplate,
+  onCreateTemplate,
+  onOpenScheduleMessage,
+  onScheduleMessage,
+  onOpenConfig,
+  onConfig,
 }) => {
+  const handleRefresh = () => {
+    if (typeof onRefresh === 'function') onRefresh();
+  };
+  const handleNewMessage = () => {
+    const fn = onOpenNewMessage || onNewMessage;
+    if (typeof fn === 'function') fn();
+  };
+  const handleSendStatement = () => {
+    const fn = onOpenSendStatement || onSendStatement;
+    if (typeof fn === 'function') fn();
+  };
+  const handleSendInvoice = () => {
+    const fn = onOpenSendInvoice || onSendInvoice;
+    if (typeof fn === 'function') fn();
+  };
+  const handleSendReminder = () => {
+    const fn = onOpenSendReminder || onSendReminder;
+    if (typeof fn === 'function') fn();
+  };
+  const handleSchedule = () => {
+    const fn = onOpenScheduleMessage || onScheduleMessage;
+    if (typeof fn === 'function') fn();
+  };
+  const handleConfig = () => {
+    const fn = onOpenConfig || onConfig;
+    if (typeof fn === 'function') fn();
+  };
+
   return (
     <header id="whatsapp-main-header" className="bg-[#091511] rounded-2xl border border-emerald-500/30 p-5 shadow-xl space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -70,7 +112,7 @@ export const WhatsAppHeader: React.FC<WhatsAppHeaderProps> = ({
         <div className="flex flex-wrap items-center gap-2.5">
           <button
             type="button"
-            onClick={onOpenConfig}
+            onClick={handleConfig}
             className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#06120d] border border-emerald-500/30 text-xs hover:border-emerald-400 transition-colors cursor-pointer"
             title="انقر لتعديل إعدادات الربط والرقم"
           >
@@ -95,7 +137,7 @@ export const WhatsAppHeader: React.FC<WhatsAppHeaderProps> = ({
 
           <button
             id="btn-whatsapp-refresh"
-            onClick={onRefresh}
+            onClick={handleRefresh}
             disabled={isRefreshing}
             className="p-2 rounded-xl border border-emerald-500/30 bg-[#06120d] text-slate-300 hover:bg-[#0c2419] hover:text-emerald-300 transition-colors disabled:opacity-50 cursor-pointer"
             title="تحديث ومزامنة البيانات"
@@ -109,7 +151,7 @@ export const WhatsAppHeader: React.FC<WhatsAppHeaderProps> = ({
       <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-emerald-500/20">
         <button
           id="btn-whatsapp-new-message"
-          onClick={onOpenNewMessage}
+          onClick={handleNewMessage}
           className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs transition-all shadow-md shadow-emerald-950 active:scale-95 cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5" />
@@ -118,7 +160,7 @@ export const WhatsAppHeader: React.FC<WhatsAppHeaderProps> = ({
 
         <button
           id="btn-whatsapp-send-statement"
-          onClick={onOpenSendStatement}
+          onClick={handleSendStatement}
           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#06120d] hover:bg-emerald-500/10 text-slate-300 hover:text-emerald-300 border border-emerald-500/30 hover:border-emerald-400 font-bold text-xs transition-all cursor-pointer"
         >
           <FileText className="w-3.5 h-3.5 text-emerald-400" />
@@ -127,7 +169,7 @@ export const WhatsAppHeader: React.FC<WhatsAppHeaderProps> = ({
 
         <button
           id="btn-whatsapp-send-invoice"
-          onClick={onOpenSendInvoice}
+          onClick={handleSendInvoice}
           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#06120d] hover:bg-teal-500/10 text-slate-300 hover:text-teal-300 border border-emerald-500/30 hover:border-teal-400 font-bold text-xs transition-all cursor-pointer"
         >
           <CreditCard className="w-3.5 h-3.5 text-teal-400" />
@@ -136,7 +178,7 @@ export const WhatsAppHeader: React.FC<WhatsAppHeaderProps> = ({
 
         <button
           id="btn-whatsapp-send-reminder"
-          onClick={onOpenSendReminder}
+          onClick={handleSendReminder}
           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#06120d] hover:bg-amber-500/10 text-slate-300 hover:text-amber-300 border border-emerald-500/30 hover:border-amber-400 font-bold text-xs transition-all cursor-pointer"
         >
           <Bell className="w-3.5 h-3.5 text-amber-400" />
@@ -145,7 +187,7 @@ export const WhatsAppHeader: React.FC<WhatsAppHeaderProps> = ({
 
         <button
           id="btn-whatsapp-schedule-message"
-          onClick={onOpenScheduleMessage}
+          onClick={handleSchedule}
           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#06120d] hover:bg-emerald-500/10 text-slate-300 hover:text-emerald-300 border border-emerald-500/30 hover:border-emerald-400 font-bold text-xs transition-all cursor-pointer"
         >
           <Clock className="w-3.5 h-3.5 text-emerald-400" />
@@ -154,7 +196,7 @@ export const WhatsAppHeader: React.FC<WhatsAppHeaderProps> = ({
 
         <button
           id="btn-whatsapp-config-tab"
-          onClick={onOpenConfig}
+          onClick={handleConfig}
           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#06120d] hover:bg-slate-800 text-slate-400 hover:text-white border border-emerald-500/20 font-bold text-xs transition-all cursor-pointer mr-auto"
         >
           <Settings className="w-3.5 h-3.5 text-emerald-400" />

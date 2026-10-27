@@ -15,7 +15,10 @@ interface ScheduleMessageModalProps {
   onClose: () => void;
   initialPhone?: string;
   initialText?: string;
-  onScheduleMessage: (data: any) => Promise<boolean>;
+  customers?: any[];
+  suppliers?: any[];
+  onScheduleMessage?: (data: any) => Promise<boolean | void> | boolean | void;
+  onSchedule?: (data: any) => Promise<boolean | void> | boolean | void;
 }
 
 export const ScheduleMessageModal: React.FC<ScheduleMessageModalProps> = ({
@@ -23,7 +26,10 @@ export const ScheduleMessageModal: React.FC<ScheduleMessageModalProps> = ({
   onClose,
   initialPhone = '',
   initialText = '',
+  customers = [],
+  suppliers = [],
   onScheduleMessage,
+  onSchedule,
 }) => {
   const [phone, setPhone] = useState(initialPhone);
   const [recipientName, setRecipientName] = useState('');
@@ -55,14 +61,34 @@ export const ScheduleMessageModal: React.FC<ScheduleMessageModalProps> = ({
     setIsSubmitting(true);
     setError(null);
     try {
-      const ok = await onScheduleMessage({
+      const payload = {
         recipient_phone: phone.trim(),
         recipient_name: recipientName.trim() || 'جهة اتصال',
         message_body: messageBody.trim(),
         scheduled_at: new Date(scheduledAt).toISOString(),
-      });
-      if (ok) {
-        onClose();
+      };
+
+      let isSuccess = false;
+      if (typeof onScheduleMessage === 'function') {
+        const result = await onScheduleMessage(payload);
+        isSuccess = result !== false;
+      } else if (typeof onSchedule === 'function') {
+        const result = await onSchedule(payload);
+        isSuccess = result !== false;
+      } else {
+        // Direct API fallback
+        const res = await fetch('/api/v1/whatsapp/schedule', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        isSuccess = res.ok;
+      }
+
+      if (isSuccess) {
+        if (typeof onClose === 'function') {
+          onClose();
+        }
       } else {
         setError('فشل في جدولة الرسالة. تأكد من إدخال تاريخ مستقبلي صحيح.');
       }

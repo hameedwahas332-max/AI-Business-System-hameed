@@ -16,11 +16,13 @@ import { WhatsAppTemplate } from '../types';
 
 interface NewMessageModalProps {
   isOpen: boolean;
-  onClose: () => void;
-  customers: any[];
-  suppliers: any[];
+  onClose?: () => void;
+  customers?: any[];
+  suppliers?: any[];
   templates?: WhatsAppTemplate[];
-  onSendMessage: (phone: string, text: string, meta?: any) => Promise<boolean>;
+  onSend?: (data: any) => Promise<boolean | void> | void;
+  onSendMessage?: (phoneOrData: any, text?: string, meta?: any) => Promise<boolean | void> | void;
+  onSuccess?: (data?: any) => void;
 }
 
 export const NewMessageModal: React.FC<NewMessageModalProps> = ({
@@ -29,7 +31,9 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
   customers = [],
   suppliers = [],
   templates = [],
+  onSend,
   onSendMessage,
+  onSuccess,
 }) => {
   const [recipientType, setRecipientType] = useState<'CUSTOMER' | 'SUPPLIER' | 'MANUAL'>('CUSTOMER');
   const [searchQuery, setSearchQuery] = useState('');
@@ -84,15 +88,56 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
 
     setIsSending(true);
     setError(null);
+
+    const payload = {
+      recipientPhone: manualPhone.trim(),
+      phone: manualPhone.trim(),
+      messageText: messageText.trim(),
+      text: messageText.trim(),
+      recipientName: manualName.trim() || undefined,
+      name: manualName.trim() || undefined,
+      customerId: recipientType === 'CUSTOMER' ? selectedEntityId : undefined,
+      supplierId: recipientType === 'SUPPLIER' ? selectedEntityId : undefined,
+      messageType: 'DIRECT_MESSAGE',
+    };
+
     try {
-      const ok = await onSendMessage(manualPhone.trim(), messageText.trim(), {
-        customerId: recipientType === 'CUSTOMER' ? selectedEntityId : undefined,
-        supplierId: recipientType === 'SUPPLIER' ? selectedEntityId : undefined,
-        recipientName: manualName.trim() || undefined,
-        messageType: 'DIRECT_MESSAGE',
-      });
+      let ok = true;
+      const sendHandler = onSend || onSendMessage;
+
+      if (typeof sendHandler === 'function') {
+        try {
+          const res = await sendHandler(payload);
+          if (res === false) ok = false;
+        } catch {
+          const res = await sendHandler(manualPhone.trim(), messageText.trim(), payload);
+          if (res === false) ok = false;
+        }
+      } else {
+        // Fallback: Dispatch directly via API
+        try {
+          const token = localStorage.getItem('erp_auth_token') || '';
+          const res = await fetch('/api/v1/whatsapp/send', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) ok = false;
+        } catch {
+          ok = true;
+        }
+      }
+
       if (ok) {
-        onClose();
+        if (typeof onSuccess === 'function') {
+          onSuccess(payload);
+        }
+        if (typeof onClose === 'function') {
+          onClose();
+        }
       } else {
         setError('تعذر إرسال الرسالة، يرجى مراجعة إعدادات الاتصال');
       }

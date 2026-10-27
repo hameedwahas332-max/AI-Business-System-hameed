@@ -174,8 +174,16 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
         api.getCustomers(q),
         api.getSuppliers(q),
       ]);
-      setCustomers(custRes?.data || []);
-      setSuppliers(suppRes?.data || []);
+      const isClean =
+        typeof window !== 'undefined' &&
+        (localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
+          localStorage.getItem('erp_sample_data_cleaned') === 'true');
+
+      const custData = custRes?.data || [];
+      const suppData = suppRes?.data || [];
+
+      setCustomers(isClean && custData.length === 0 ? [] : custData);
+      setSuppliers(isClean && suppData.length === 0 ? [] : suppData);
     } catch (err: any) {
       setError(err.message || 'فشل جلب بيانات الحسابات من الخادم');
     } finally {
@@ -185,6 +193,14 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
 
   useEffect(() => {
     fetchAllData(searchQuery);
+    const handleWiped = () => {
+      setCustomers([]);
+      setSuppliers([]);
+      setSelectedIds(new Set());
+      fetchAllData(searchQuery);
+    };
+    window.addEventListener('erp-demo-data-wiped', handleWiped);
+    return () => window.removeEventListener('erp-demo-data-wiped', handleWiped);
   }, [searchQuery]);
 
   // Combined List with Normalized Types

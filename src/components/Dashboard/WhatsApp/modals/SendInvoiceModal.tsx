@@ -15,9 +15,18 @@ import { formatNumber, toEnglishDigits } from '../../../../lib/formatters';
 interface SendInvoiceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  invoices: any[];
-  customers: any[];
-  onSendInvoiceReminder: (invoiceId: string, phone: string, customMessage?: string) => Promise<boolean>;
+  invoices?: any[];
+  customers?: any[];
+  companyName?: string;
+  onSendInvoiceReminder?: (invoiceId: string, phone: string, customMessage?: string) => Promise<boolean | void> | boolean | void;
+  onSend?: (data: {
+    invoiceId: string;
+    invoiceNumber?: string;
+    totalAmount?: number;
+    recipientPhone: string;
+    recipientName: string;
+    messageText: string;
+  }) => Promise<boolean | void> | boolean | void;
 }
 
 export const SendInvoiceModal: React.FC<SendInvoiceModalProps> = ({
@@ -25,7 +34,9 @@ export const SendInvoiceModal: React.FC<SendInvoiceModalProps> = ({
   onClose,
   invoices = [],
   customers = [],
+  companyName = 'نظام المحاسبي الذكي ERP',
   onSendInvoiceReminder,
+  onSend,
 }) => {
   const [selectedInvoiceId, setSelectedInvoiceId] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -64,7 +75,7 @@ export const SendInvoiceModal: React.FC<SendInvoiceModalProps> = ({
     const cur = inv.currency || 'YER';
 
     const msg =
-`📄 إشعار فاتورة مبيعات — نظام المحاسبي الذكي ERP
+`📄 إشعار فاتورة مبيعات — ${companyName}
 ═════════════════════════════
 👤 العميل: ${custName}
 🔢 رقم الفاتورة: #${invNum}
@@ -89,9 +100,44 @@ export const SendInvoiceModal: React.FC<SendInvoiceModalProps> = ({
     setIsSending(true);
     setError(null);
     try {
-      const ok = await onSendInvoiceReminder(selectedInvoiceId, phone.trim(), customMessage.trim());
-      if (ok) {
-        onClose();
+      let isSuccess = false;
+      const invNum = selectedInvoice?.invoice_number || selectedInvoiceId;
+      const custName = selectedInvoice?.customer || selectedInvoice?.customer_name || 'العميل الكريم';
+      const totalAmt = parseFloat(selectedInvoice?.total || selectedInvoice?.amount || 0);
+
+      if (typeof onSendInvoiceReminder === 'function') {
+        const result = await onSendInvoiceReminder(selectedInvoiceId, phone.trim(), customMessage.trim());
+        isSuccess = result !== false;
+      } else if (typeof onSend === 'function') {
+        const result = await onSend({
+          invoiceId: selectedInvoiceId,
+          invoiceNumber: invNum,
+          totalAmount: totalAmt,
+          recipientPhone: phone.trim(),
+          recipientName: custName,
+          messageText: customMessage.trim(),
+        });
+        isSuccess = result !== false;
+      } else {
+        // Direct API fallback
+        const res = await fetch('/api/v1/whatsapp/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            recipientPhone: phone.trim(),
+            recipientName: custName,
+            messageText: customMessage.trim(),
+            messageType: 'INVOICE_REMINDER',
+            attachmentSummary: `فاتورة #${invNum} بقيمة ${totalAmt}`,
+          }),
+        });
+        isSuccess = res.ok;
+      }
+
+      if (isSuccess) {
+        if (typeof onClose === 'function') {
+          onClose();
+        }
       } else {
         setError('فشل في إرسال الفاتورة عبر WhatsApp. يرجى التحقق من الرقم.');
       }
