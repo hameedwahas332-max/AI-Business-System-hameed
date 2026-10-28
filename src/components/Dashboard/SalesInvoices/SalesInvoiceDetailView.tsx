@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../../api';
-import { formatAmount } from '../../../lib/formatters';
+import { formatAmount, getActiveCurrencySymbol } from '../../../lib/formatters';
 import { printInvoiceDocument } from '../../../lib/exportUtils';
 import { SalesInvoiceReturnModal } from './SalesInvoiceReturnModal';
 import { SalesInvoicePaymentModal } from './SalesInvoicePaymentModal';
@@ -106,6 +106,7 @@ export const SalesInvoiceDetailView: React.FC<SalesInvoiceDetailViewProps> = ({
         companyName: invoice.company_name || 'المؤسسة التجارية',
         invoiceType: 'SALES',
         invoiceNumber: invoice.invoice_number,
+        currency: getActiveCurrencySymbol(invoice.currency),
         date: invoice.invoice_date || invoice.created_at?.split('T')[0],
         dueDate: invoice.due_date,
         status: invoice.status,

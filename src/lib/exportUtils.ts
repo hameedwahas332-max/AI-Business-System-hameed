@@ -423,16 +423,16 @@ export function renderAndPrintDocument(
 /**
  * 1. Print Formal Tax Invoice (Sales / Purchases / POS)
  */
-export function printInvoiceDocument(inv?: any): void {
+export function printInvoiceDocument(inv?: any, options?: { title?: string; currency?: string }): void {
   const invoice = inv || {};
   const isThermal = invoice.layout === '80mm';
-  const currency = invoice.currency || 'YER';
+  const currency = options?.currency || invoice.currency || 'YER';
   const isPurchase = invoice.invoiceType === 'PURCHASE';
-  const docTitle = isThermal
+  const docTitle = options?.title || (isThermal
     ? 'إيصال مبيعات كاشير'
     : isPurchase
     ? 'فاتورة مشتريات وتوريد'
-    : 'فاتورة ضريبية وشهادة ضمان معتمدة';
+    : 'فاتورة ضريبية وشهادة ضمان معتمدة');
   const invoiceNo = invoice.invoiceNumber || invoice.invoice_number || invoice.id || `INV-${Date.now().toString().slice(-6)}`;
   const dateStr = invoice.date || invoice.invoice_date || new Date().toLocaleDateString('ar-YE');
   const companyName = invoice.companyName || invoice.company_name || 'المؤسسة التجارية';
@@ -460,13 +460,22 @@ export function printInvoiceDocument(inv?: any): void {
   const paidAmount = Number(invoice.paidAmount !== undefined ? invoice.paidAmount : (invoice.paid_amount !== undefined ? invoice.paid_amount : total));
   const remaining = Number(invoice.remainingAmount !== undefined ? invoice.remainingAmount : (total - paidAmount));
 
+  const invoiceDiscount = Number(invoice.invoiceDiscount !== undefined ? invoice.invoiceDiscount : (invoice.invoice_discount || 0));
+  const itemsDiscount = Number(invoice.itemsDiscount !== undefined ? invoice.itemsDiscount : (invoice.items_discount || 0));
+  const totalDiscount = Number(invoice.discount !== undefined ? invoice.discount : (invoiceDiscount + itemsDiscount));
+  const totalReceivedQuantity = Number(invoice.totalReceivedQuantity !== undefined ? invoice.totalReceivedQuantity : (invoice.total_received_quantity || 0));
+
   // --- 80MM COMPACT THERMAL LAYOUT ---
   if (isThermal) {
     const thermalItemsHtml = items
       .map((it: any) => {
         const q = Number(it.quantity || it.qty || 1);
-        const p = Number(it.unitPrice || it.unit_price || it.price || 0);
-        const t = Number(it.total || q * p);
+        const freeQ = Number(it.freeQuantity || it.free_quantity || 0);
+        const totalQ = Number(it.totalReceivedQuantity || (q + freeQ));
+        const p = Number(it.unitPrice || it.unit_price || it.unit_cost || it.price || 0);
+        const t = Number(it.total || (q * p));
+        const disc = Number(it.discount || 0);
+        const effCost = Number(it.effectiveUnitCost || it.effective_unit_cost || (totalQ > 0 ? t / totalQ : p));
         const u = it.unit || it.unitName || 'حبة';
         return `
           <div style="border-bottom: 1px dotted #94a3b8; padding: 4px 0; font-size: 10px;">
@@ -478,6 +487,21 @@ export function printInvoiceDocument(inv?: any): void {
               <span>${q} ${escapeHtml(u)} × ${p.toLocaleString()} ${currency}</span>
               ${(it.itemCode || it.partNumber || it.sku) ? `<span class="font-mono">[${escapeHtml(it.itemCode || it.partNumber || it.sku)}]</span>` : ''}
             </div>
+            ${isPurchase && freeQ > 0 ? `
+              <div style="color: #059669; font-size: 8.5px; font-weight: bold; margin-top: 1px;">
+                🎁 بونص مجاني من المورد: +${freeQ} (الداخل للمخزن: ${totalQ})
+              </div>
+            ` : ''}
+            ${isPurchase && disc > 0 ? `
+              <div style="color: #d97706; font-size: 8.5px; font-weight: bold; margin-top: 1px;">
+                🏷️ خصم الصنف: -${disc.toLocaleString()} ${currency}
+              </div>
+            ` : ''}
+            ${isPurchase && (freeQ > 0 || disc > 0) && effCost > 0 ? `
+              <div style="color: #0f766e; font-size: 8.5px; font-family: monospace; margin-top: 1px;">
+                ⚡ التكلفة الفعلية للوحدة: ${Math.round(effCost * 100) / 100} ${currency}
+              </div>
+            ` : ''}
             ${it.serialNumber ? `
               <div style="color: #b45309; font-size: 8.5px; font-family: monospace; margin-top: 2px;">
                 ⚡ سيريال: ${escapeHtml(it.serialNumber)} ${it.warrantyEndDate ? `(ضمان حتى: ${escapeHtml(it.warrantyEndDate)})` : ''}
@@ -503,7 +527,7 @@ export function printInvoiceDocument(inv?: any): void {
         <!-- Header -->
         <div style="border-bottom: 2px dashed #000; padding-bottom: 8px; margin-bottom: 8px;">
           <h2 style="margin: 0; font-size: 15px; font-weight: 900;">${escapeHtml(companyName)}</h2>
-          <div style="font-size: 10px; margin-top: 2px;">فاتورة مبيعات نقدية مبسطة</div>
+          <div style="font-size: 10px; margin-top: 2px;">${isPurchase ? 'سند توريد مشتريات ومخازن' : 'فاتورة مبيعات نقدية مبسطة'}</div>
           <div style="font-size: 9px; margin-top: 2px;">هاتف: 0501234567 | المركز الرئيسي</div>
         </div>
 
@@ -518,7 +542,7 @@ export function printInvoiceDocument(inv?: any): void {
             <span class="font-mono">${escapeHtml(dateStr)}</span>
           </div>
           <div style="display: flex; justify-content: space-between;">
-            <span>العميل:</span>
+            <span>${isPurchase ? 'المورد:' : 'العميل:'}</span>
             <span class="font-bold">${escapeHtml(partyName)}</span>
           </div>
           <div style="display: flex; justify-content: space-between;">
@@ -544,6 +568,18 @@ export function printInvoiceDocument(inv?: any): void {
             <span>المجموع الفرعي:</span>
             <span class="font-mono">${subtotal.toLocaleString()} ${currency}</span>
           </div>
+          ${totalDiscount > 0 ? `
+            <div style="display: flex; justify-content: space-between; color: #b45309; font-weight: bold;">
+              <span>إجمالي الخصم التجاري:</span>
+              <span class="font-mono">-${totalDiscount.toLocaleString()} ${currency}</span>
+            </div>
+          ` : ''}
+          ${isPurchase && totalReceivedQuantity > 0 ? `
+            <div style="display: flex; justify-content: space-between; color: #047857; font-weight: bold;">
+              <span>إجمالي الكميات الداخلة للمخزن:</span>
+              <span class="font-mono">${totalReceivedQuantity} قطعة</span>
+            </div>
+          ` : ''}
           ${tax > 0 ? `
             <div style="display: flex; justify-content: space-between;">
               <span>ضريبة القيمة المضافة:</span>
@@ -551,7 +587,7 @@ export function printInvoiceDocument(inv?: any): void {
             </div>
           ` : ''}
           <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 900; border-top: 1px solid #000; padding-top: 4px; margin-top: 4px;">
-            <span>الإجمالي الصافي:</span>
+            <span>${isPurchase ? 'الصافي المستحق للمورد:' : 'الإجمالي الصافي:'}</span>
             <span class="font-mono">${total.toLocaleString()} ${currency}</span>
           </div>
           <div style="display: flex; justify-content: space-between; font-size: 9.5px; margin-top: 3px;">
@@ -560,7 +596,7 @@ export function printInvoiceDocument(inv?: any): void {
           </div>
           ${remaining > 0 ? `
             <div style="display: flex; justify-content: space-between; font-size: 9.5px; color: #b91c1c; font-weight: bold;">
-              <span>المتبقي ذمة:</span>
+              <span>${isPurchase ? 'المتبقي للمورد (دين):' : 'المتبقي ذمة:'}</span>
               <span class="font-mono">${remaining.toLocaleString()} ${currency}</span>
             </div>
           ` : ''}
@@ -571,13 +607,13 @@ export function printInvoiceDocument(inv?: any): void {
           <div style="border: 2px solid #000; width: 68px; height: 68px; margin: 0 auto; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: bold; background: #fff;">
             QR • ZATCA
           </div>
-          <div style="font-size: 8.5px; font-weight: bold; margin-top: 6px;">شكراً لزيارتكم ونسعد بخدمتكم دائماً!</div>
+          <div style="font-size: 8.5px; font-weight: bold; margin-top: 6px;">${isPurchase ? 'تم استلام وتوريد البضاعة للمستودع بنجاح' : 'شكراً لزيارتكم ونسعد بخدمتكم دائماً!'}</div>
           <div style="font-size: 7.5px; color: #475569; font-family: monospace; margin-top: 2px;">Powered by Enterprise Cloud ERP</div>
         </div>
       </div>
     `;
 
-    renderAndPrintDocument(thermalHtml, `إيصال_كاشير_${invoiceNo}`, { pageSize: '80mm' });
+    renderAndPrintDocument(thermalHtml, `إيصال_${isPurchase ? 'مشتريات' : 'كاشير'}_${invoiceNo}`, { pageSize: '80mm' });
     return;
   }
 
@@ -585,9 +621,14 @@ export function printInvoiceDocument(inv?: any): void {
   const itemsRows = items
     .map((it: any, idx: number) => {
       const q = Number(it.quantity || it.qty || 1);
-      const p = Number(it.unitPrice || it.unit_price || it.price || 0);
-      const t = Number(it.total || q * p);
-      let nameDesc = escapeHtml(it.name || it.product_name || 'صنف مبيعات');
+      const freeQ = Number(it.freeQuantity || it.free_quantity || 0);
+      const totalQ = Number(it.totalReceivedQuantity || (q + freeQ));
+      const p = Number(it.unitPrice || it.unit_price || it.unit_cost || it.price || 0);
+      const t = Number(it.total || (q * p));
+      const disc = Number(it.discount || 0);
+      const effCost = Number(it.effectiveUnitCost || it.effective_unit_cost || (totalQ > 0 ? t / totalQ : p));
+
+      let nameDesc = escapeHtml(it.name || it.product_name || (isPurchase ? 'صنف مشتريات' : 'صنف مبيعات'));
       if (it.unit && it.unit !== 'حبة') nameDesc += ` <span style="color: #64748b; font-size: 11px;">(${escapeHtml(it.unit)})</span>`;
       if (it.serialNumber) {
         nameDesc += `<br><span style="color: #b45309; font-size: 10px; font-family: monospace;">⚡ سيريال: ${escapeHtml(it.serialNumber)} (ضمان حتى: ${escapeHtml(it.warrantyEndDate || '-')})</span>`;
@@ -598,6 +639,22 @@ export function printInvoiceDocument(inv?: any): void {
       if (Number(it.scrapDiscount) > 0) {
         nameDesc += `<br><span style="color: #15803d; font-size: 10px; font-weight: bold;">♻️ خصم استبدال رجيع: -${Number(it.scrapDiscount).toLocaleString()} ${currency}</span>`;
       }
+
+      if (isPurchase) {
+        return `<tr>
+          <td class="text-center font-mono">${idx + 1}</td>
+          <td class="font-bold">${nameDesc}</td>
+          <td class="text-center font-mono font-bold" style="color: #1d4ed8;">${escapeHtml(it.itemCode || it.partNumber || it.sku || it.product_sku || '-')}</td>
+          <td class="text-center font-mono font-bold">${q}</td>
+          <td class="text-center font-mono font-bold" style="color: #059669;">${freeQ > 0 ? `+${freeQ}` : '-'}</td>
+          <td class="text-center font-mono font-bold" style="background: #f0fdf4; color: #166534;">${totalQ}</td>
+          <td class="text-left font-mono">${p.toLocaleString()} ${currency}</td>
+          <td class="text-left font-mono" style="color: #d97706;">${disc > 0 ? `-${disc.toLocaleString()}` : '-'}</td>
+          <td class="text-left font-mono font-bold" style="color: #0f766e;">${Math.round(effCost * 100) / 100} ${currency}</td>
+          <td class="text-left font-mono font-bold" style="color: #15803d;">${t.toLocaleString()} ${currency}</td>
+        </tr>`;
+      }
+
       return `<tr>
         <td class="text-center font-mono">${idx + 1}</td>
         <td class="font-bold">${nameDesc}</td>
@@ -633,14 +690,14 @@ export function printInvoiceDocument(inv?: any): void {
     <!-- Client / Bill To Card -->
     <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
       <div>
-        <span style="font-size: 11px; color: #64748b; display: block;">بيانات العميل / الطرف الآخر:</span>
+        <span style="font-size: 11px; color: #64748b; display: block;">${isPurchase ? 'بيانات المورد التجاري:' : 'بيانات العميل / الطرف الآخر:'}</span>
         <span style="font-size: 14px; font-weight: 800; color: #0f172a;">${escapeHtml(partyName)}</span>
         ${partyPhone ? `<div style="font-size: 11px; color: #475569;">الهاتف: <span class="font-mono">${escapeHtml(partyPhone)}</span></div>` : ''}
         ${partyAddress ? `<div style="font-size: 11px; color: #475569;">العنوان: ${escapeHtml(partyAddress)}</div>` : ''}
       </div>
       <div style="text-align: left;">
         <span style="font-size: 11px; color: #64748b; display: block;">شروط الدفع والعملة:</span>
-        <span class="badge ${status === 'مدفوعة' ? 'badge-success' : 'badge-amber'}">${escapeHtml(status)}</span>
+        <span class="badge ${status === 'مدفوعة' || status === 'PAID' ? 'badge-success' : 'badge-amber'}">${escapeHtml(status)}</span>
         <div style="font-size: 11px; color: #475569; margin-top: 4px;">طريقة الدفع: <strong>${escapeHtml(paymentMethod)}</strong></div>
         <div style="font-size: 11px; color: #475569;">عملة المعاملة: <strong class="font-mono">${escapeHtml(currency)}</strong></div>
       </div>
@@ -649,14 +706,29 @@ export function printInvoiceDocument(inv?: any): void {
     <!-- Items Table -->
     <table>
       <thead>
-        <tr>
-          <th style="width: 40px;" class="text-center">م</th>
-          <th>الصنف / البيان والمواصفات</th>
-          <th style="width: 100px;" class="text-center">الكود / SKU</th>
-          <th style="width: 70px;" class="text-center">الكمية</th>
-          <th style="width: 110px;" class="text-left">سعر الوحدة</th>
-          <th style="width: 120px;" class="text-left">الإجمالي</th>
-        </tr>
+        ${isPurchase ? `
+          <tr>
+            <th style="width: 32px;" class="text-center">م</th>
+            <th>الصنف / مواصفات التوريد</th>
+            <th style="width: 90px;" class="text-center">الكود / SKU</th>
+            <th style="width: 60px;" class="text-center">الكمية</th>
+            <th style="width: 60px;" class="text-center">بونص 🎁</th>
+            <th style="width: 65px;" class="text-center">المخزن</th>
+            <th style="width: 90px;" class="text-left">سعر الوحدة</th>
+            <th style="width: 75px;" class="text-left">الخصم</th>
+            <th style="width: 90px;" class="text-left">التكلفة الفعلية</th>
+            <th style="width: 95px;" class="text-left">الصافي</th>
+          </tr>
+        ` : `
+          <tr>
+            <th style="width: 40px;" class="text-center">م</th>
+            <th>الصنف / البيان والمواصفات</th>
+            <th style="width: 100px;" class="text-center">الكود / SKU</th>
+            <th style="width: 70px;" class="text-center">الكمية</th>
+            <th style="width: 110px;" class="text-left">سعر الوحدة</th>
+            <th style="width: 120px;" class="text-left">الإجمالي</th>
+          </tr>
+        `}
       </thead>
       <tbody>
         ${itemsRows}
@@ -666,10 +738,16 @@ export function printInvoiceDocument(inv?: any): void {
     <!-- Totals Summary & Warranty Terms Box -->
     <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; margin-top: 16px; align-items: start;">
       <div style="border: 1px dashed #cbd5e1; border-radius: 10px; padding: 12px; background: #fafafa; font-size: 11px; color: #475569;">
-        <div style="font-weight: 700; color: #0f172a; margin-bottom: 4px;">وثيقة الضمان والشروط القانونية:</div>
-        <div>• يسري الضمان للأصناف التي تحمل أرقاماً تسلسلية (سيريال) بموجب هذه الفاتورة.</div>
-        <div>• استبدال الرجيع والبطاريات التالفة يتم خصمه فورياً بناء على تقييم الفني المعتمد.</div>
-        <div>• البضاعة المباعة تخضع لسياسة الفحص والاستبدال خلال المدة النظامية.</div>
+        <div style="font-weight: 700; color: #0f172a; margin-bottom: 4px;">${isPurchase ? 'شروط التوريد والمطابقة المخزنية:' : 'وثيقة الضمان والشروط القانونية:'}</div>
+        ${isPurchase ? `
+          <div>• تم استلام الكميات المشترات والكميات المجانية (البونص) بحالة ممتازة ومطابقة للمواصفات.</div>
+          <div>• تم تحديث أرصدة المستودع واحتساب متوسط التكلفة المرجح للوحدة شاملاً الخصومات.</div>
+          <div>• الرصيد المستحق للمورد مقيد كدين تجاري واجب السداد وفق الاتفاق.</div>
+        ` : `
+          <div>• يسري الضمان للأصناف التي تحمل أرقاماً تسلسلية (سيريال) بموجب هذه الفاتورة.</div>
+          <div>• استبدال الرجيع والبطاريات التالفة يتم خصمه فورياً بناء على تقييم الفني المعتمد.</div>
+          <div>• البضاعة المباعة تخضع لسياسة الفحص والاستبدال خلال المدة النظامية.</div>
+        `}
         <div style="margin-top: 8px; font-family: ui-monospace, monospace; color: #64748b; font-size: 10px;">
           Hash: e4a899cf...88219 | Verified by Enterprise Cloud ERP
         </div>
@@ -677,9 +755,33 @@ export function printInvoiceDocument(inv?: any): void {
 
       <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px 16px; font-size: 12px;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-          <span style="color: #64748b;">المجموع الفرعي:</span>
+          <span style="color: #64748b;">المجموع الفرعي (قبل الخصم):</span>
           <span class="font-mono font-bold">${subtotal.toLocaleString()} ${currency}</span>
         </div>
+        ${itemsDiscount > 0 ? `
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #b45309;">
+            <span>خصومات الأصناف:</span>
+            <span class="font-mono font-bold">-${itemsDiscount.toLocaleString()} ${currency}</span>
+          </div>
+        ` : ''}
+        ${invoiceDiscount > 0 ? `
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #b45309;">
+            <span>خصم الفاتورة الإضافي:</span>
+            <span class="font-mono font-bold">-${invoiceDiscount.toLocaleString()} ${currency}</span>
+          </div>
+        ` : ''}
+        ${totalDiscount > 0 && !(itemsDiscount > 0 && invoiceDiscount > 0) ? `
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #b45309;">
+            <span>إجمالي الخصم التجاري:</span>
+            <span class="font-mono font-bold">-${totalDiscount.toLocaleString()} ${currency}</span>
+          </div>
+        ` : ''}
+        ${isPurchase && totalReceivedQuantity > 0 ? `
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #047857; font-weight: bold;">
+            <span>إجمالي الكميات الداخلة للمخزن:</span>
+            <span class="font-mono">${totalReceivedQuantity} قطعة</span>
+          </div>
+        ` : ''}
         ${tax > 0 ? `
           <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
             <span style="color: #64748b;">ضريبة القيمة المضافة:</span>
@@ -687,7 +789,7 @@ export function printInvoiceDocument(inv?: any): void {
           </div>
         ` : ''}
         <div style="display: flex; justify-content: space-between; border-top: 2px solid #0f172a; padding-top: 6px; margin-top: 6px; font-size: 15px; font-weight: 900; color: #0f172a;">
-          <span>الإجمالي النهائي المستحق:</span>
+          <span>${isPurchase ? 'الصافي النهائي المستحق للمورد:' : 'الإجمالي النهائي المستحق:'}</span>
           <span class="font-mono text-emerald-700">${total.toLocaleString()} ${currency}</span>
         </div>
         ${paidAmount > 0 ? `
@@ -698,7 +800,7 @@ export function printInvoiceDocument(inv?: any): void {
         ` : ''}
         ${remaining > 0 ? `
           <div style="display: flex; justify-content: space-between; margin-top: 4px; color: #b91c1c; font-size: 12px;">
-            <span>المتبقي ذمة قائمة:</span>
+            <span>${isPurchase ? 'المتبقي ذمة للمورد:' : 'المتبقي ذمة قائمة:'}</span>
             <span class="font-mono font-bold">${remaining.toLocaleString()} ${currency}</span>
           </div>
         ` : ''}

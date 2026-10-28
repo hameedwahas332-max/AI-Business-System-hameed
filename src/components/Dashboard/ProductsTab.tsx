@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../api';
-import { formatAmount, formatNumber } from '../../lib/formatters';
+import { formatAmount, formatNumber, getActiveCurrencySymbol } from '../../lib/formatters';
 import { ExportActions } from '../Common/ExportActions';
 import { ModuleSettingsModal } from '../Common/ModuleSettingsModal';
 import { TableExportConfig } from '../../lib/exportUtils';
@@ -148,8 +148,15 @@ export const ProductsTab: React.FC = () => {
       setProducts([]);
       fetchProducts();
     };
+    const handleInvUpdated = () => {
+      fetchProducts();
+    };
     window.addEventListener('erp-demo-data-wiped', handleWiped);
-    return () => window.removeEventListener('erp-demo-data-wiped', handleWiped);
+    window.addEventListener('erp-inventory-updated', handleInvUpdated);
+    return () => {
+      window.removeEventListener('erp-demo-data-wiped', handleWiped);
+      window.removeEventListener('erp-inventory-updated', handleInvUpdated);
+    };
   }, [searchQuery, selectedCategory, selectedActivity, lowStockOnly]);
 
   const handleOpenCreate = () => {
@@ -679,7 +686,7 @@ export const ProductsTab: React.FC = () => {
                 <th className="p-3.5">اسم المنتج / النشاط</th>
                 <th className="p-3.5">رقم الصنف / القطعة / SKU</th>
                 <th className="p-3.5">مستويات التسعير</th>
-                <th className="p-3.5">المخزون والكراتين</th>
+                <th className="p-3.5">حركة ورصيد المخزون (الوارد / المباع / المتبقي)</th>
                 <th className="p-3.5">مواصفات النشاط والصلاحية والضمان</th>
                 <th className="p-3.5">الحالة</th>
                 <th className="p-3.5 text-center">الإجراءات</th>
@@ -772,15 +779,38 @@ export const ProductsTab: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Stock with Cartons Breakdown */}
+                      {/* Stock with Cartons Breakdown & Movements */}
                       <td className="p-3.5">
-                        <div className="flex items-center gap-1.5">
-                          {renderStockBreakdown(prod)}
-                          {isLow && (
-                            <span title={`تنبيه مخزون: الحد الأدنى ${prod.min_stock_level ?? 5}`}>
-                              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-                            </span>
-                          )}
+                        <div className="space-y-1.5 min-w-[170px]">
+                          <div className="flex items-center gap-1.5">
+                            {renderStockBreakdown(prod)}
+                            {isLow && (
+                              <span title={`تنبيه مخزون: الحد الأدنى ${prod.min_stock_level ?? 5}`}>
+                                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                              </span>
+                            )}
+                          </div>
+                          {/* 4 Inventory Indicators: السابق/الوارد، المباع اليوم، إجمالي المباع، المتبقي */}
+                          <div className="grid grid-cols-2 gap-1 text-[10px] font-mono bg-slate-950/70 p-1.5 rounded-lg border border-slate-800">
+                            <div className="text-slate-400">
+                              <span>الوارد: </span>
+                              <span className="font-bold text-slate-200">
+                                {formatNumber(Number(prod.current_stock ?? prod.qty ?? prod.stock ?? 0) + Number(prod.totalSold || 0))}
+                              </span>
+                            </div>
+                            <div className="text-blue-400">
+                              <span>مباع اليوم: </span>
+                              <span className="font-bold">{formatNumber(Number(prod.soldToday || 0))}</span>
+                            </div>
+                            <div className="text-purple-400">
+                              <span>إجمالي المباع: </span>
+                              <span className="font-bold">{formatNumber(Number(prod.totalSold || 0))}</span>
+                            </div>
+                            <div className="text-emerald-400">
+                              <span>المتبقي: </span>
+                              <span className="font-bold">{formatNumber(stock)}</span>
+                            </div>
+                          </div>
                         </div>
                       </td>
 

@@ -26,6 +26,9 @@ import {
   Zap,
   Keyboard,
   Coins,
+  Printer,
+  X,
+  Calendar,
 } from 'lucide-react';
 import { api } from '../../../api';
 import { useAuth } from '../../../context/AuthContext';
@@ -38,7 +41,16 @@ import {
   getAccountingRate,
   ExchangeRateConfig,
 } from '../../../lib/exchangeRates';
-import { formatNumber, parseEnglishNumber, toEnglishDigits } from '../../../lib/formatters';
+import {
+  formatNumber,
+  parseEnglishNumber,
+  toEnglishDigits,
+  formatAmount,
+  getActiveCurrencyCode,
+  getActiveCurrencySymbol,
+  applyStockMovementSync,
+} from '../../../lib/formatters';
+import { printInvoiceDocument } from '../../../lib/exportUtils';
 import { ModuleSettingsModal } from '../../Common/ModuleSettingsModal';
 import { POSQuickItemModal } from './POSQuickItemModal';
 import { POSCustomerSelector } from './POSCustomerSelector';
@@ -67,7 +79,8 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
   const [success, setSuccess] = useState<string | null>(null);
 
   // Currency & Rates
-  const [currency, setCurrency] = useState<string>(company?.currency || 'YER');
+  const [currency, setCurrency] = useState<string>(() => company?.currency || getActiveCurrencyCode());
+  const currSym = getActiveCurrencySymbol(currency);
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({ YER: 1, SAR: 0.27, USD: 0.004 });
 
   // Shift & Cash Drawer State
@@ -76,6 +89,17 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
 
   // Daily Summary Stats
   const [dailySummary, setDailySummary] = useState<any | null>(null);
+
+  // POS Sales Log State
+  const [isPosDailySalesOpen, setIsPosDailySalesOpen] = useState(false);
+  const [posSalesLog, setPosSalesLog] = useState<any[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('erp_pos_sales_log_v1') || '[]');
+    } catch {
+      return [];
+    }
+  });
+  const [salesLogSearch, setSalesLogSearch] = useState('');
 
   // Held Sales State
   const [heldSales, setHeldSales] = useState<POSHeldSale[]>([]);
@@ -230,8 +254,40 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
   const taxAmount = (subtotal - cartDiscount) * (cartTaxRate / 100);
   const grandTotal = Math.max(0, subtotal - cartDiscount + taxAmount);
 
+  // Check for items in cart priced below purchase cost or zero/empty price
+  const belowCostCartItems = React.useMemo(() => {
+    return cart.filter((it) => {
+      const prod = products.find((p) => p.id === it.productId || p.id === it.product_id);
+      const baseCost = Number(prod?.costPrice || prod?.purchasePrice || prod?.cost_price || (prod as any)?.purchase_price || it.costPrice || it.cost || 0);
+      const unitCost = Number((baseCost * (it.unitFactor || 1)).toFixed(2));
+      const qty = it.quantity || 1;
+      const netUnit = qty > 0 ? (qty * it.unitPrice - (Number(it.discount) || 0) - (Number(it.scrapDiscount) || 0)) / qty : it.unitPrice;
+      if (unitCost > 0) {
+        return Number(it.unitPrice) <= 0 || Number(it.unitPrice) < unitCost || netUnit < unitCost;
+      }
+      return Number(it.unitPrice) <= 0;
+    });
+  }, [cart, products]);
+
+  const hasBelowCostInCart = belowCostCartItems.length > 0;
+
+  const handleOpenPaymentModal = () => {
+    if (cart.length === 0) return;
+    if (hasBelowCostInCart) {
+      const names = belowCostCartItems.map((it) => it.name).join('، ');
+      setError(`⛔ تنبيه محاسبي: لا يمكن إتمام البيع بأقل من سعر الشراء للأصناف التالية: (${names}). يرجى تعديل السعر أولاً.`);
+      return;
+    }
+    setIsPaymentModalOpen(true);
+  };
+
   const handleQuickCashCheckout = async () => {
     if (cart.length === 0 || checkoutLoading) return;
+    if (hasBelowCostInCart) {
+      const names = belowCostCartItems.map((it) => it.name).join('، ');
+      setError(`⛔ تنبيه محاسبي: لا يمكن إتمام البيع بأقل من سعر الشراء للأصناف التالية: (${names}). يرجى تعديل السعر أولاً.`);
+      return;
+    }
     try {
       setCheckoutLoading(true);
       const accountingRate = getAccountingRate(currency);
@@ -275,6 +331,55 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
         },
         customer: selectedCustomer || { name: 'عميل نقدي سريع' },
       };
+
+      // 1. Sync Central Stock Deduction and Movements
+      applyStockMovementSync(cart, {
+        type: 'pos_sale',
+        referenceNumber: invoiceNum,
+        customerName: payload.customerName,
+        paymentMethod: 'CASH',
+        total: grandTotal,
+        currency,
+      });
+
+      // 2. Record to Central POS Sales Log
+      const posLogRecord = {
+        id: res.data?.id || `pos-${Date.now()}`,
+        invoiceNumber: invoiceNum,
+        date: new Date().toISOString(),
+        dateFormatted: new Date().toLocaleDateString('ar-YE'),
+        timeFormatted: new Date().toLocaleTimeString('ar-YE', { hour: '2-digit', minute: '2-digit' }),
+        customerName: payload.customerName,
+        total: grandTotal,
+        paidAmount: grandTotal,
+        currency,
+        currencySymbol: getActiveCurrencySymbol(currency),
+        paymentMethod: 'CASH',
+        itemsCount: cart.reduce((acc, it) => acc + Number(it.quantity || 1), 0),
+        items: cart.map((it) => ({
+          name: it.name,
+          quantity: it.quantity,
+          unitPrice: it.unitPrice,
+          total: it.quantity * it.unitPrice - (it.discount || 0),
+        })),
+        rawPayload: receiptDataObj,
+      };
+
+      const existingLogs = (() => {
+        try {
+          return JSON.parse(localStorage.getItem('erp_pos_sales_log_v1') || '[]');
+        } catch {
+          return [];
+        }
+      })();
+      const updatedLogs = [posLogRecord, ...existingLogs];
+      try {
+        localStorage.setItem('erp_pos_sales_log_v1', JSON.stringify(updatedLogs));
+      } catch {}
+      setPosSalesLog(updatedLogs);
+
+      // 3. Immediately refresh local products to reflect deducted stock
+      api.getProducts().then((pRes) => setProducts(pRes.data || [])).catch(() => {});
 
       setCompletedReceiptData(receiptDataObj);
       setIsReceiptModalOpen(true);
@@ -337,7 +442,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
       else if (e.key === 'F10' || (e.ctrlKey && e.key === 'Enter')) {
         e.preventDefault();
         if (cart.length > 0) {
-          setIsPaymentModalOpen(true);
+          handleOpenPaymentModal();
         }
       }
       // '/' or F1 to focus search bar
@@ -349,7 +454,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cart, selectedCustomer, selectedPriceTier, currency, subtotal, grandTotal, cartDiscount, taxAmount, checkoutLoading]);
+  }, [cart, selectedCustomer, selectedPriceTier, currency, subtotal, grandTotal, cartDiscount, taxAmount, checkoutLoading, hasBelowCostInCart, belowCostCartItems]);
 
   // Add Product to Cart with Multi-UOM, Tiered Price, & Battery Spec
   const handleAddToCart = (product: any) => {
@@ -525,10 +630,15 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
   const handleUpdatePrice = (index: number, newPrice: number) => {
     setCart((prev) => {
       const updated = [...prev];
+      const p = Math.max(0, newPrice);
+      const scrap = Number(updated[index].scrapDiscount || 0);
+      const disc = Number(updated[index].discount || 0);
       updated[index] = {
         ...updated[index],
-        unitPrice: Math.max(0, newPrice),
-        total: updated[index].quantity * Math.max(0, newPrice) - (updated[index].discount || 0),
+        unitPrice: p,
+        price: p,
+        retailPrice: p,
+        total: Math.max(0, updated[index].quantity * p - disc - scrap),
       };
       return updated;
     });
@@ -634,18 +744,68 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
       const res = await api.posCheckout(payload);
 
       if (res.success && res.data) {
+        const invNum = res.data?.invoice_number || res.data?.invoiceNumber || `POS-${Date.now().toString().slice(-6)}`;
+
+        // 1. Sync Central Stock Deduction and Movements
+        applyStockMovementSync(cart, {
+          type: 'pos_sale',
+          referenceNumber: invNum,
+          customerName: payload.customerName || 'عميل نقدي',
+          paymentMethod: paymentData.paymentMethod || 'MULTI',
+          total: grandTotal,
+          currency,
+        });
+
+        // 2. Record to Central POS Sales Log
+        const posLogRecord = {
+          id: res.data?.id || `pos-${Date.now()}`,
+          invoiceNumber: invNum,
+          date: new Date().toISOString(),
+          dateFormatted: new Date().toLocaleDateString('ar-YE'),
+          timeFormatted: new Date().toLocaleTimeString('ar-YE', { hour: '2-digit', minute: '2-digit' }),
+          customerName: payload.customerName || 'عميل نقدي',
+          total: grandTotal,
+          paidAmount: paymentData.paidAmount,
+          currency,
+          currencySymbol: getActiveCurrencySymbol(currency),
+          paymentMethod: paymentData.paymentMethod || 'MULTI',
+          itemsCount: cart.reduce((acc, it) => acc + Number(it.quantity || 1), 0),
+          items: cart.map((it) => ({
+            name: it.name,
+            quantity: it.quantity,
+            unitPrice: it.unitPrice,
+            total: it.quantity * it.unitPrice - (it.discount || 0),
+          })),
+          rawPayload: res.data,
+        };
+
+        const existingLogs = (() => {
+          try {
+            return JSON.parse(localStorage.getItem('erp_pos_sales_log_v1') || '[]');
+          } catch {
+            return [];
+          }
+        })();
+        const updatedLogs = [posLogRecord, ...existingLogs];
+        try {
+          localStorage.setItem('erp_pos_sales_log_v1', JSON.stringify(updatedLogs));
+        } catch {}
+        setPosSalesLog(updatedLogs);
+
         setCompletedReceiptData(res.data);
         setIsPaymentModalOpen(false);
         setIsReceiptModalOpen(true);
         handleClearCart();
 
-        // Refresh Shift & Daily Summary
-        const [shiftRes, summaryRes] = await Promise.all([
+        // Refresh Shift, Daily Summary & Products Stock
+        const [shiftRes, summaryRes, prodRes] = await Promise.all([
           api.posGetCurrentShift().catch(() => ({ success: false, data: null })),
           api.posGetDailySummary().catch(() => ({ success: false, data: null })),
+          api.getProducts().catch(() => ({ success: false, data: [] })),
         ]);
         setCurrentShift(shiftRes.data || null);
         setDailySummary(summaryRes.data || null);
+        if (prodRes.data) setProducts(prodRes.data);
       } else {
         setError(res.error?.message || 'فشلت عملية إتمام البيع');
       }
@@ -665,6 +825,12 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
       (p.sku && p.sku.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (p.barcode && p.barcode.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCat && matchesSearch;
+  });
+
+  const todayDateStr = new Date().toISOString().split('T')[0];
+  const todayPosSales = posSalesLog.filter((log) => {
+    if (!log.date) return false;
+    return log.date.startsWith(todayDateStr);
   });
 
   return (
@@ -691,7 +857,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
             <div className="hidden lg:flex items-center gap-3 px-3 py-1 bg-slate-800/60 rounded-xl text-xs border border-slate-800">
               <span className="text-slate-400">مبيعات اليوم:</span>
               <span className="font-black text-emerald-400">
-                {Number(dailySummary.netSales || 0).toLocaleString()} {currency}
+                {Number(dailySummary.netSales || 0).toLocaleString()} {currSym}
               </span>
               <span className="text-slate-500">({dailySummary.totalInvoices || 0} فاتورة)</span>
             </div>
@@ -700,6 +866,17 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
 
         {/* Action Buttons: Hold, Return, AI, Quick Item, Invoices */}
         <div className="flex items-center gap-2">
+          {/* Daily Sales Log Button */}
+          <button
+            type="button"
+            onClick={() => setIsPosDailySalesOpen(true)}
+            className="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+            title="عرض سجل مبيعات الكاشير اليومية وإعادة الطباعة والمرتجع"
+          >
+            <FileText className="w-3.5 h-3.5 text-emerald-400" />
+            <span>📜 سجل مبيعات النقطة ({todayPosSales.length})</span>
+          </button>
+
           {/* Quick Item Manual Sale (F3) */}
           <button
             onClick={() => setIsQuickItemOpen(true)}
@@ -902,7 +1079,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
 
                       <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between">
                         <div className="text-base font-black text-emerald-400">
-                          {price.toLocaleString()} <span className="text-[11px] font-bold">{currency}</span>
+                          {price.toLocaleString()} <span className="text-[11px] font-bold">{currSym}</span>
                         </div>
                         <span
                           className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -967,9 +1144,55 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                         )}
                       </div>
                       <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 flex-wrap">
-                        <span className="font-mono text-emerald-400 font-bold">
-                          {item.unitPrice.toLocaleString()} {currency}
-                        </span>
+                        {(() => {
+                          const prod = products.find((p) => p.id === item.productId || p.id === item.product_id);
+                          const baseCost = Number(prod?.costPrice || prod?.purchasePrice || prod?.cost_price || (prod as any)?.purchase_price || item.costPrice || item.cost || 0);
+                          const unitCostPrice = Number((baseCost * (item.unitFactor || 1)).toFixed(2));
+                          const qty = item.quantity || 1;
+                          const netUnit = qty > 0 ? (qty * item.unitPrice - (Number(item.discount) || 0) - (Number(item.scrapDiscount) || 0)) / qty : item.unitPrice;
+                          const isBelowCost = (unitCostPrice > 0 && (Number(item.unitPrice) < unitCostPrice || netUnit < unitCostPrice)) || Number(item.unitPrice) <= 0;
+
+                          return (
+                            <div className="flex flex-col gap-0.5">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[10px] text-slate-500">السعر:</span>
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  dir="ltr"
+                                  lang="en"
+                                  value={item.unitPrice === 0 ? '' : item.unitPrice}
+                                  onChange={(e) => handleUpdatePrice(idx, parseEnglishNumber(e.target.value, 0))}
+                                  placeholder={unitCostPrice > 0 ? String(unitCostPrice) : '0'}
+                                  className={`w-20 bg-slate-900 border rounded-lg px-2 py-0.5 text-xs text-left font-mono font-bold focus:outline-none placeholder:text-slate-400/30 dark:placeholder:text-slate-500/30 placeholder:font-normal select-none ${
+                                    isBelowCost
+                                      ? 'border-rose-500 bg-rose-500/10 text-rose-400 ring-1 ring-rose-500/40'
+                                      : 'border-slate-700 text-emerald-400 focus:border-blue-500'
+                                  }`}
+                                />
+                                <span className="text-[10px] text-slate-400">{currency}</span>
+
+                                {/* Discrete Pro Cost Peek */}
+                                {unitCostPrice > 0 && (
+                                  <span
+                                    className="text-[10px] text-slate-400/25 hover:text-slate-400/75 transition-opacity cursor-help select-none group/cost inline-flex items-center"
+                                    title={`سعر الشراء الفعلي: ${unitCostPrice} ${currency}`}
+                                  >
+                                    <span className="group-hover/cost:hidden">ك: ••••</span>
+                                    <span className="hidden group-hover/cost:inline font-mono">ك: {unitCostPrice}</span>
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Real-Time Row Warning Badge */}
+                              {isBelowCost && (
+                                <div className="text-[10px] text-rose-400 font-bold flex items-center gap-1 bg-rose-500/10 border border-rose-500/30 rounded-md px-1.5 py-0.5 leading-tight">
+                                  <span>⚠️ تحذير: سعر البيع أقل من سعر الشراء!</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
 
                         {/* Unit Selector Dropdown */}
                         {item.productId && (
@@ -1102,7 +1325,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                         0,
                         item.quantity * item.unitPrice - (Number(item.discount) || 0) - (Number(item.scrapDiscount) || 0)
                       ).toLocaleString()}{' '}
-                      <span className="text-[10px] font-bold">{currency}</span>
+                      <span className="text-[10px] font-bold">{currSym}</span>
                     </div>
                   </div>
                 </div>
@@ -1141,22 +1364,30 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
               </div>
             </div>
 
+            {/* Warning Banner when item is below cost in POS */}
+            {hasBelowCostInCart && (
+              <div className="p-2.5 bg-rose-500/15 border border-rose-500/40 rounded-xl text-rose-300 text-xs font-bold flex items-center gap-2 animate-pulse shadow-md shadow-rose-950/20">
+                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>⛔ تنبيه محاسبي: يوجد صنف مسعّر بأقل من سعر الشراء! لا يمكن إتمام البيع بخسارة حتى يتم تعديل السعر.</span>
+              </div>
+            )}
+
             {/* Totals Breakdown */}
             <div className="space-y-1 text-xs text-slate-400 pt-1">
               <div className="flex justify-between">
                 <span>المجموع الفرعي:</span>
-                <span className="text-slate-200">{subtotal.toLocaleString()} {currency}</span>
+                <span className="text-slate-200">{subtotal.toLocaleString()} {currSym}</span>
               </div>
               {cartDiscount > 0 && (
                 <div className="flex justify-between text-rose-400">
                   <span>إجمالي الخصم:</span>
-                  <span>-{cartDiscount.toLocaleString()} {currency}</span>
+                  <span>-{cartDiscount.toLocaleString()} {currSym}</span>
                 </div>
               )}
               {taxAmount > 0 && (
                 <div className="flex justify-between text-slate-300">
                   <span>مبلغ الضريبة ({cartTaxRate}%):</span>
-                  <span>+{taxAmount.toLocaleString()} {currency}</span>
+                  <span>+{taxAmount.toLocaleString()} {currSym}</span>
                 </div>
               )}
             </div>
@@ -1166,7 +1397,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-300">المجموع الصافي:</span>
                 <div className="text-2xl font-black text-emerald-400 font-mono">
-                  {grandTotal.toLocaleString()} <span className="text-xs font-bold text-slate-300">{currency}</span>
+                  {grandTotal.toLocaleString()} <span className="text-xs font-bold text-slate-300">{currSym}</span>
                 </div>
               </div>
               {currency !== 'YER' && (
@@ -1212,7 +1443,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
               </button>
 
               <button
-                onClick={() => setIsPaymentModalOpen(true)}
+                onClick={handleOpenPaymentModal}
                 disabled={cart.length === 0}
                 className="py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-black shadow-lg shadow-blue-950/40 disabled:opacity-40 transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer"
                 title="سداد ودفع متعدد / آجل / محافظ (F10)"
@@ -1373,6 +1604,200 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
         onClose={() => setIsAIAssistantOpen(false)}
         currency={currency}
       />
+
+      {/* POS Daily Sales Log Modal */}
+      {isPosDailySalesOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" dir="rtl">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-4 border-b border-slate-800/80 bg-slate-950/60 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">سجل مبيعات النقطة اليومية (POS Sales Log)</h3>
+                  <p className="text-xs text-slate-400">
+                    استعراض فواتير وإيصالات الكاشير لليوم الحالي ({todayDateStr}) مع إمكانية إعادة الطباعة والمرتجع
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPosDailySalesOpen(false)}
+                className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Quick KPI Overview */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-slate-900/40 border-b border-slate-800/80">
+              <div className="bg-slate-950/60 border border-slate-800 p-3 rounded-2xl flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
+                  <Banknote className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-bold text-slate-400 block">إجمالي مبيعات اليوم</span>
+                  <span className="text-base font-black text-emerald-400">
+                    {todayPosSales.reduce((acc, it) => acc + Number(it.total || 0), 0).toLocaleString()} {currSym}
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-slate-950/60 border border-slate-800 p-3 rounded-2xl flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-bold text-slate-400 block">عدد فواتير الكاشير اليوم</span>
+                  <span className="text-base font-black text-blue-400">
+                    {todayPosSales.length} فاتورة
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-slate-950/60 border border-slate-800 p-3 rounded-2xl flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center shrink-0">
+                  <Package className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-bold text-slate-400 block">إجمالي القطع المباعة</span>
+                  <span className="text-base font-black text-purple-400">
+                    {todayPosSales.reduce((acc, it) => acc + Number(it.itemsCount || 0), 0)} قطعة
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Search Filter Bar */}
+            <div className="p-3 border-b border-slate-800 flex items-center gap-3">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
+                <input
+                  type="text"
+                  value={salesLogSearch}
+                  onChange={(e) => setSalesLogSearch(e.target.value)}
+                  placeholder="ابحث برقم الفاتورة أو اسم العميل..."
+                  className="w-full bg-slate-950 border border-slate-700/80 rounded-xl pr-9 pl-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+              <span className="text-xs text-slate-400 shrink-0">
+                المعروض: {todayPosSales.filter(s => !salesLogSearch.trim() || s.invoiceNumber?.toLowerCase().includes(salesLogSearch.toLowerCase()) || s.customerName?.toLowerCase().includes(salesLogSearch.toLowerCase())).length}
+              </span>
+            </div>
+
+            {/* Sales Table */}
+            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+              {todayPosSales.length === 0 ? (
+                <div className="text-center py-12 text-slate-400 space-y-2">
+                  <FileText className="w-10 h-10 mx-auto text-slate-600 opacity-50" />
+                  <p className="text-sm font-bold">لا توجد عمليات بيع مسجلة لنقطة البيع اليوم حتى الآن.</p>
+                  <p className="text-xs text-slate-500">أي فاتورة أو عملية بيع كاشير جديدة ستظهر هنا فوراً وتخصم من المخزون المركزي.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-right text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-800 text-slate-400">
+                        <th className="py-2.5 px-3">رقم الفاتورة</th>
+                        <th className="py-2.5 px-3">الوقت</th>
+                        <th className="py-2.5 px-3">العميل</th>
+                        <th className="py-2.5 px-3">طريقة الدفع</th>
+                        <th className="py-2.5 px-3">عدد الأصناف</th>
+                        <th className="py-2.5 px-3">الإجمالي الصافي</th>
+                        <th className="py-2.5 px-3 text-center">الإجراءات</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60 font-mono">
+                      {todayPosSales
+                        .filter(s =>
+                          !salesLogSearch.trim() ||
+                          s.invoiceNumber?.toLowerCase().includes(salesLogSearch.toLowerCase()) ||
+                          s.customerName?.toLowerCase().includes(salesLogSearch.toLowerCase())
+                        )
+                        .map((s, idx) => (
+                          <tr key={s.id || idx} className="hover:bg-slate-800/40 transition-colors">
+                            <td className="py-3 px-3 font-bold text-emerald-400">{s.invoiceNumber}</td>
+                            <td className="py-3 px-3 text-slate-300 font-sans">{s.timeFormatted || 'الآن'}</td>
+                            <td className="py-3 px-3 text-slate-200 font-sans font-medium">{s.customerName || 'عميل نقدي'}</td>
+                            <td className="py-3 px-3 font-sans">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                                {s.paymentMethod === 'CASH' ? 'نقداً' : s.paymentMethod}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-slate-300">{s.itemsCount || s.items?.length || 1} قطع</td>
+                            <td className="py-3 px-3 font-black text-emerald-400">
+                              {Number(s.total || 0).toLocaleString()} {s.currencySymbol || currSym}
+                            </td>
+                            <td className="py-3 px-3">
+                              <div className="flex items-center justify-center gap-1.5 font-sans">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (s.rawPayload) {
+                                      printInvoiceDocument(s.rawPayload, {
+                                        title: 'إيصال مبيعات نقطة البيع POS',
+                                        currency: s.currencySymbol || currSym,
+                                      });
+                                    } else {
+                                      printInvoiceDocument(
+                                        {
+                                          id: s.id,
+                                          invoice_number: s.invoiceNumber,
+                                          invoice_date: s.dateFormatted || todayDateStr,
+                                          customer_name: s.customerName,
+                                          total: s.total,
+                                          items: s.items || [],
+                                        },
+                                        {
+                                          title: 'إيصال مبيعات نقطة البيع POS',
+                                          currency: s.currencySymbol || currSym,
+                                        }
+                                      );
+                                    }
+                                  }}
+                                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                                  title="طباعة إيصال الفاتورة"
+                                >
+                                  <Printer className="w-3.5 h-3.5 text-blue-400" />
+                                  <span>طباعة</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsPosDailySalesOpen(false);
+                                    setIsReturnsModalOpen(true);
+                                  }}
+                                  className="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                                  title="بدء استرجاع أو استبدال أصناف هذه الفاتورة"
+                                >
+                                  <RotateCcw className="w-3.5 h-3.5" />
+                                  <span>مرتجع</span>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-3 bg-slate-950/80 border-t border-slate-800 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsPosDailySalesOpen(false)}
+                className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                إغلاق
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

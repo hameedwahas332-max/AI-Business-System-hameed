@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api';
-import { formatAmount } from '../../lib/formatters';
+import { formatAmount, getActiveCurrencySymbol } from '../../lib/formatters';
 import {
   TrendingUp,
   TrendingDown,
@@ -91,9 +91,20 @@ export const CashFlowForecastTab: React.FC = () => {
     if (!authLoading) {
       fetchForecast();
     }
+    const handleSync = () => {
+      if (!authLoading) {
+        fetchForecast();
+      }
+    };
+    window.addEventListener('erp-demo-data-wiped', handleSync);
+    window.addEventListener('erp-inventory-updated', handleSync);
+    return () => {
+      window.removeEventListener('erp-demo-data-wiped', handleSync);
+      window.removeEventListener('erp-inventory-updated', handleSync);
+    };
   }, [authLoading, isAuthenticated]);
 
-  const currency = company?.currency || forecastData?.currency || 'YER';
+  const currency = getActiveCurrencySymbol(company?.currency || forecastData?.currency);
 
   return (
     <div className="space-y-6 pb-12">

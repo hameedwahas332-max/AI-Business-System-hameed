@@ -41,6 +41,7 @@ import {
   getTenantWhatsAppState,
   saveTenantWhatsAppState,
   recordSentWhatsAppMessage,
+  persistAllToDisk,
 } from './server/dataStore';
 
 const { Pool } = pg;
@@ -944,6 +945,41 @@ app.post('/api/v1/invoices', (req: Request, res: Response) => {
     });
   }
 
+  // Deduct inventory and log stock movements for invoice items
+  if (Array.isArray(inv.items)) {
+    inv.items.forEach((it: any) => {
+      const prodId = it.product_id || it.productId || it.id;
+      const prod = mockProducts.find((p) => p.id === prodId || (p.sku && p.sku === it.sku) || (p.barcode && p.barcode === it.barcode));
+      if (prod) {
+        const factor = Number(it.unitFactor || it.conversionFactor || 1);
+        const qty = Number(it.quantity || 1);
+        const baseQty = qty * factor;
+        const oldStock = Number(prod.current_stock ?? prod.qty ?? 0);
+        const newStock = Math.max(0, oldStock - baseQty);
+        prod.current_stock = newStock;
+        prod.qty = newStock;
+        prod.stock = newStock;
+        prod.totalSold = (Number(prod.totalSold) || 0) + baseQty;
+        prod.soldToday = (Number(prod.soldToday) || 0) + baseQty;
+
+        mockInventoryMovements.unshift({
+          id: `mov-sale-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          product_id: prod.id,
+          product_name: prod.name,
+          type: 'OUT',
+          quantity: -baseQty,
+          remaining_stock: newStock,
+          reference_type: 'SALES_INVOICE',
+          reference_id: newInv.invoice_number,
+          notes: `مبيعات فاتورة رقم: ${newInv.invoice_number}`,
+          date: invoiceDate,
+        });
+      }
+    });
+  }
+
+  persistAllToDisk();
+
   res.status(201).json({
     success: true,
     data: newInv,
@@ -966,14 +1002,101 @@ app.get('/api/v1/purchase-invoices', (_req: Request, res: Response) => {
   });
 });
 
+app.get('/api/v1/purchase-invoices/:id', (req: Request, res: Response) => {
+  const inv = mockPurchaseInvoicesList.find((p) => p.id === req.params.id || p.invoice_number === req.params.id);
+  if (inv) {
+    return res.json({ success: true, data: inv });
+  }
+  res.status(404).json({ success: false, error: 'Purchase invoice not found' });
+});
+
 app.post('/api/v1/purchase-invoices', (req: Request, res: Response) => {
   const pur = req.body || {};
-  const totalVal = Number(pur.total || 0);
-  const paidVal = Number(pur.paid_amount || 0);
-  const remainingVal = Number(pur.remaining_amount !== undefined ? pur.remaining_amount : Math.max(0, totalVal - paidVal));
   const rawDate = String(pur.invoice_date || pur.date || pur.created_at || '').trim();
   const invoiceDate = (rawDate ? rawDate.split('T')[0] : new Date().toISOString().split('T')[0]);
   const invoiceCreatedAt = rawDate ? `${invoiceDate}T12:00:00.000Z` : new Date().toISOString();
+  const rawItems = Array.isArray(pur.items) ? pur.items : [];
+
+  let calculatedSubtotal = 0;
+  let calculatedItemsDiscount = 0;
+  let totalReceivedUnits = 0;
+
+  const processedItems = rawItems.map((it: any) => {
+    const paidQty = Math.max(0, Number(it.quantity || 0));
+    const freeQty = Math.max(0, Number(it.freeQuantity || 0));
+    const totalQty = paidQty + freeQty;
+    const unitCost = Math.max(0, Number(it.unit_cost !== undefined ? it.unit_cost : (it.unitPrice || it.price || 0)));
+    const grossTotal = paidQty * unitCost;
+
+    const discType = it.discountType || 'amount';
+    const discVal = Math.max(0, Number(it.discountValue !== undefined ? it.discountValue : (it.discount || 0)));
+    const lineDiscount = discType === 'percent' ? (grossTotal * (discVal / 100)) : discVal;
+    const netLineTotal = Math.max(0, grossTotal - lineDiscount);
+    const effectiveCost = totalQty > 0 ? (netLineTotal / totalQty) : unitCost;
+
+    calculatedSubtotal += grossTotal;
+    calculatedItemsDiscount += lineDiscount;
+    totalReceivedUnits += totalQty;
+
+    // Inventory and cost price sync
+    const prodId = it.product_id || it.productId || it.id;
+    const prod = mockProducts.find((p) => p.id === prodId || p.sku === it.sku || p.barcode === it.barcode);
+    if (prod) {
+      const unitFactor = Number(it.unitFactor || 1);
+      const incomingStock = totalQty * unitFactor;
+      prod.current_stock = (Number(prod.current_stock || 0) + incomingStock);
+      prod.qty = prod.current_stock;
+
+      // Update unit cost to effective unit cost
+      if (effectiveCost > 0) {
+        prod.purchase_price = effectiveCost;
+        prod.cost_price = effectiveCost;
+      }
+
+      // Log inventory movement
+      mockInventoryMovements.unshift({
+        id: `mov-pur-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        product_id: prod.id,
+        product_name: prod.name,
+        type: 'IN',
+        quantity: incomingStock,
+        remaining_stock: prod.current_stock,
+        reference_type: 'PURCHASE_INVOICE',
+        reference_id: pur.invoice_number || `PUR-${Date.now()}`,
+        notes: `توريد مشتريات (شراء: ${paidQty} + بونص مجاني: ${freeQty})`,
+        date: invoiceDate,
+      });
+    }
+
+    return {
+      ...it,
+      quantity: paidQty,
+      freeQuantity: freeQty,
+      totalReceivedQuantity: totalQty,
+      unit_cost: unitCost,
+      discount: lineDiscount,
+      discountValue: discVal,
+      discountType: discType,
+      grossTotal: grossTotal,
+      total: netLineTotal,
+      effectiveUnitCost: effectiveCost,
+    };
+  });
+
+  const invoiceDiscountVal = Math.max(0, Number(pur.invoice_discount_value !== undefined ? pur.invoice_discount_value : (pur.invoice_discount || 0)));
+  const invoiceDiscountType = pur.invoice_discount_type || 'amount';
+  const subtotalAfterItemDisc = Math.max(0, calculatedSubtotal - calculatedItemsDiscount);
+  const invoiceDiscountAmount = invoiceDiscountType === 'percent'
+    ? (subtotalAfterItemDisc * (invoiceDiscountVal / 100))
+    : invoiceDiscountVal;
+
+  const totalDiscount = calculatedItemsDiscount + invoiceDiscountAmount;
+  const taxVal = Math.max(0, Number(pur.tax || 0));
+  const finalCalculatedTotal = Math.max(0, (calculatedSubtotal - totalDiscount) + taxVal);
+
+  const totalVal = Number(pur.total !== undefined ? pur.total : finalCalculatedTotal);
+  const paidVal = Math.max(0, Number(pur.paid_amount || 0));
+  const remainingVal = Number(pur.remaining_amount !== undefined ? pur.remaining_amount : Math.max(0, totalVal - paidVal));
 
   const newPur = {
     ...pur,
@@ -982,10 +1105,19 @@ app.post('/api/v1/purchase-invoices', (req: Request, res: Response) => {
     supplier_name: pur.supplier_name || 'مورد تجاري',
     invoice_date: invoiceDate,
     date: invoiceDate,
+    subtotal: calculatedSubtotal || totalVal,
+    items_discount: calculatedItemsDiscount,
+    invoice_discount: invoiceDiscountAmount,
+    invoice_discount_value: invoiceDiscountVal,
+    invoice_discount_type: invoiceDiscountType,
+    discount: totalDiscount,
+    tax: taxVal,
     total: totalVal,
     paid_amount: paidVal,
     remaining_amount: remainingVal,
+    total_received_quantity: totalReceivedUnits,
     status: pur.status || (remainingVal === 0 ? 'PAID' : 'PARTIAL'),
+    items: processedItems,
     created_at: invoiceCreatedAt,
   };
   mockPurchaseInvoicesList.unshift(newPur);
@@ -1005,17 +1137,19 @@ app.post('/api/v1/purchase-invoices', (req: Request, res: Response) => {
       party_id: supp.id,
       party_type: 'SUPPLIER',
       type: 'PURCHASE_INVOICE',
-      amount: totalVal,
+      amount: totalVal, // ONLY Final Net Total (never gross subtotal)
       currency: newPur.currency || supp.currency || 'YER',
       exchange_rate: 1.0,
       balance_after: supp.current_balance,
       running_balance: supp.current_balance,
       date: invoiceDate,
-      description: `فاتورة مشتريات وتوريد ${newPur.invoice_number}`,
+      description: `فاتورة مشتريات وتوريد ${newPur.invoice_number} (الصافي المستحق للمورد)`,
       reference_no: newPur.invoice_number,
       created_at: invoiceCreatedAt,
     });
   }
+
+  persistAllToDisk();
 
   res.status(201).json({
     success: true,
@@ -1026,7 +1160,10 @@ app.post('/api/v1/purchase-invoices', (req: Request, res: Response) => {
 app.delete('/api/v1/purchase-invoices/:id', (req: Request, res: Response) => {
   const { id } = req.params;
   const idx = mockPurchaseInvoicesList.findIndex((p) => p.id === id);
-  if (idx !== -1) mockPurchaseInvoicesList.splice(idx, 1);
+  if (idx !== -1) {
+    mockPurchaseInvoicesList.splice(idx, 1);
+    persistAllToDisk();
+  }
   res.json({ success: true, message: 'Purchase invoice deleted' });
 });
 
@@ -1216,26 +1353,65 @@ app.post('/api/v1/saas/sample-data/seed', (_req: Request, res: Response) => {
 });
 
 app.get('/api/v1/reports/sales', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const isClean = isTenantCleanProductionMode(companyId);
+
+  if (isClean && mockInvoicesList.length === 0) {
+    return res.json({ success: true, data: [] });
+  }
+
   const groupBy = req.query.group_by || 'by_month';
-  let rows = [];
-  if (groupBy === 'by_month') {
-    rows = [
-      { groupName: 'أكتوبر 2026', subtotal: 135000, discount: 5000, tax: 19500, total: 149500, paid: 130000, outstanding: 19500 },
-      { groupName: 'سبتمبر 2026', subtotal: 122000, discount: 4200, tax: 17670, total: 135470, paid: 128000, outstanding: 7470 },
-      { groupName: 'أغسطس 2026', subtotal: 110000, discount: 3500, tax: 15975, total: 122475, paid: 122475, outstanding: 0 },
-    ];
-  } else if (groupBy === 'by_product') {
-    rows = [
-      { groupName: 'شاي سيلاني فاخر 100 كيس', subtotal: 45000, discount: 1500, tax: 6525, total: 50025, paid: 48000, outstanding: 2025 },
-      { groupName: 'بطارية هانكوك 70 أمبير', subtotal: 38000, discount: 1200, tax: 5520, total: 42320, paid: 35000, outstanding: 7320 },
-      { groupName: 'زيت محرك بترومين 20W-50', subtotal: 29000, discount: 900, tax: 4215, total: 32315, paid: 30000, outstanding: 2315 },
-    ];
-  } else {
-    rows = [
-      { groupName: 'مؤسسة الأفق للتجارة', subtotal: 58000, discount: 2000, tax: 8400, total: 64400, paid: 56200, outstanding: 8200 },
-      { groupName: 'شركة الوفاق المحدودة', subtotal: 42000, discount: 1500, tax: 6075, total: 46575, paid: 41175, outstanding: 5400 },
-      { groupName: 'عملاء الكاشير والنقدي', subtotal: 35000, discount: 1000, tax: 5100, total: 39100, paid: 39100, outstanding: 0 },
-    ];
+  let rows: any[] = [];
+
+  if (mockInvoicesList.length > 0) {
+    if (groupBy === 'by_product') {
+      const prodMap: Record<string, { subtotal: number; discount: number; tax: number; total: number; paid: number; outstanding: number }> = {};
+      for (const inv of mockInvoicesList) {
+        const items = inv.items || [];
+        for (const it of items) {
+          const name = it.product_name || it.name || 'صنف';
+          if (!prodMap[name]) prodMap[name] = { subtotal: 0, discount: 0, tax: 0, total: 0, paid: 0, outstanding: 0 };
+          const lineTotal = Number(it.total || (it.quantity * it.unit_price) || 0);
+          prodMap[name].subtotal += lineTotal;
+          prodMap[name].total += lineTotal;
+          prodMap[name].paid += lineTotal;
+        }
+      }
+      rows = Object.entries(prodMap).map(([groupName, data]) => ({ groupName, ...data }));
+    } else if (groupBy === 'by_customer') {
+      const custMap: Record<string, { subtotal: number; discount: number; tax: number; total: number; paid: number; outstanding: number }> = {};
+      for (const inv of mockInvoicesList) {
+        const name = inv.customer_name || 'عميل';
+        if (!custMap[name]) custMap[name] = { subtotal: 0, discount: 0, tax: 0, total: 0, paid: 0, outstanding: 0 };
+        const tot = Number(inv.total || inv.amount || 0);
+        const disc = Number(inv.discount || 0);
+        const tx = Number(inv.tax || 0);
+        custMap[name].subtotal += tot - tx + disc;
+        custMap[name].discount += disc;
+        custMap[name].tax += tx;
+        custMap[name].total += tot;
+        custMap[name].paid += inv.payment_status === 'PAID' ? tot : 0;
+        custMap[name].outstanding += inv.payment_status !== 'PAID' ? tot : 0;
+      }
+      rows = Object.entries(custMap).map(([groupName, data]) => ({ groupName, ...data }));
+    } else {
+      // by_month
+      const monthMap: Record<string, { subtotal: number; discount: number; tax: number; total: number; paid: number; outstanding: number }> = {};
+      for (const inv of mockInvoicesList) {
+        const m = (inv.issue_date || inv.date || new Date().toISOString()).slice(0, 7);
+        if (!monthMap[m]) monthMap[m] = { subtotal: 0, discount: 0, tax: 0, total: 0, paid: 0, outstanding: 0 };
+        const tot = Number(inv.total || inv.amount || 0);
+        const disc = Number(inv.discount || 0);
+        const tx = Number(inv.tax || 0);
+        monthMap[m].subtotal += tot - tx + disc;
+        monthMap[m].discount += disc;
+        monthMap[m].tax += tx;
+        monthMap[m].total += tot;
+        monthMap[m].paid += inv.payment_status === 'PAID' ? tot : 0;
+        monthMap[m].outstanding += inv.payment_status !== 'PAID' ? tot : 0;
+      }
+      rows = Object.entries(monthMap).map(([groupName, data]) => ({ groupName, ...data }));
+    }
   }
 
   res.json({
@@ -1245,18 +1421,32 @@ app.get('/api/v1/reports/sales', (req: Request, res: Response) => {
 });
 
 app.get('/api/v1/reports/purchases', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const isClean = isTenantCleanProductionMode(companyId);
+
+  if (isClean && mockPurchaseInvoicesList.length === 0) {
+    return res.json({ success: true, data: [] });
+  }
+
   const groupBy = req.query.group_by || 'by_month';
-  let rows = [];
-  if (groupBy === 'by_month') {
-    rows = [
-      { groupName: 'أكتوبر 2026', subtotal: 78000, discount: 2500, tax: 11325, total: 86825, paid: 72000, outstanding: 14825 },
-      { groupName: 'سبتمبر 2026', subtotal: 65000, discount: 1800, tax: 9480, total: 72680, paid: 70000, outstanding: 2680 },
-    ];
-  } else {
-    rows = [
-      { groupName: 'شركة التوريدات الوطنية الكبرى', subtotal: 54000, discount: 1800, tax: 7830, total: 60030, paid: 45830, outstanding: 14200 },
-      { groupName: 'مؤسسة الاستيراد المباشر', subtotal: 24000, discount: 700, tax: 3495, total: 26795, paid: 22795, outstanding: 4000 },
-    ];
+  let rows: any[] = [];
+
+  if (mockPurchaseInvoicesList.length > 0) {
+    const suppMap: Record<string, { subtotal: number; discount: number; tax: number; total: number; paid: number; outstanding: number }> = {};
+    for (const pi of mockPurchaseInvoicesList) {
+      const name = groupBy === 'by_supplier' ? (pi.supplierName || 'مورد') : (pi.invoiceDate || new Date().toISOString()).slice(0, 7);
+      if (!suppMap[name]) suppMap[name] = { subtotal: 0, discount: 0, tax: 0, total: 0, paid: 0, outstanding: 0 };
+      const tot = Number(pi.grandTotal || pi.total || 0);
+      const disc = Number(pi.invoiceDiscount || pi.discount || 0);
+      const tx = Number(pi.taxAmount || 0);
+      suppMap[name].subtotal += tot - tx + disc;
+      suppMap[name].discount += disc;
+      suppMap[name].tax += tx;
+      suppMap[name].total += tot;
+      suppMap[name].paid += pi.paymentStatus === 'PAID' ? tot : 0;
+      suppMap[name].outstanding += pi.paymentStatus !== 'PAID' ? tot : 0;
+    }
+    rows = Object.entries(suppMap).map(([groupName, data]) => ({ groupName, ...data }));
   }
 
   res.json({
@@ -1265,42 +1455,93 @@ app.get('/api/v1/reports/purchases', (req: Request, res: Response) => {
   });
 });
 
-app.get('/api/v1/reports/profit-loss', (_req: Request, res: Response) => {
+app.get('/api/v1/reports/profit-loss', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const isClean = isTenantCleanProductionMode(companyId);
+
+  let revenue = mockInvoicesList.reduce((s, i) => s + Number(i.total || i.amount || 0), 0);
+  let cogs = mockPurchaseInvoicesList.reduce((s, p) => s + Number(p.grandTotal || p.total || 0), 0);
+  if (cogs === 0 && revenue > 0) cogs = Math.round(revenue * 0.65);
+  let grossProfit = Math.max(0, revenue - cogs);
+  let operatingExpenses = mockExpensesList.reduce((s, e: any) => s + Number(e.amount || 0), 0);
+  let netProfit = Math.max(0, grossProfit - operatingExpenses);
+
+  if (isClean && mockInvoicesList.length === 0) {
+    revenue = 0;
+    cogs = 0;
+    grossProfit = 0;
+    operatingExpenses = 0;
+    netProfit = 0;
+  }
+
   res.json({
     success: true,
     data: {
-      revenue: 142500,
-      cogs: 72200,
-      grossProfit: 70300,
-      operatingExpenses: 18500,
-      netProfit: 51800,
+      revenue,
+      cogs,
+      grossProfit,
+      operatingExpenses,
+      netProfit,
     },
   });
 });
 
-app.get('/api/v1/reports/receivables', (_req: Request, res: Response) => {
+app.get('/api/v1/reports/receivables', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const isClean = isTenantCleanProductionMode(companyId);
+
+  const customerAging = mockCustomersList
+    .filter((c) => Number(c.balance || c.current_balance || 0) > 0)
+    .map((c) => {
+      const bal = Number(c.balance || c.current_balance || 0);
+      return {
+        name: c.name,
+        phone: c.phone || '-',
+        currentBalance: bal,
+        b0_30: bal,
+        b31_60: 0,
+        b61_90: 0,
+        b90_plus: 0,
+      };
+    });
+
+  const totalReceivables = customerAging.reduce((s, c) => s + c.currentBalance, 0);
+
   res.json({
     success: true,
     data: {
-      totalReceivables: 18200,
-      customerAging: [
-        { name: 'مؤسسة الأفق للتجارة', phone: '0501234567', currentBalance: 8200, b0_30: 5200, b31_60: 2000, b61_90: 1000, b90_plus: 0 },
-        { name: 'شركة الوفاق المحدودة', phone: '0559876543', currentBalance: 5400, b0_30: 3400, b31_60: 2000, b61_90: 0, b90_plus: 0 },
-        { name: 'مجمع الرياض الطبي', phone: '0543322110', currentBalance: 4600, b0_30: 2600, b31_60: 1500, b61_90: 500, b90_plus: 0 },
-      ],
+      totalReceivables: isClean && mockCustomersList.length === 0 ? 0 : totalReceivables,
+      customerAging: isClean && mockCustomersList.length === 0 ? [] : customerAging,
     },
   });
 });
 
-app.get('/api/v1/reports/payables', (_req: Request, res: Response) => {
+app.get('/api/v1/reports/payables', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const isClean = isTenantCleanProductionMode(companyId);
+
+  const supplierAging = mockSuppliersList
+    .filter((s) => Number(s.balance || s.current_balance || 0) > 0)
+    .map((s) => {
+      const bal = Number(s.balance || s.current_balance || 0);
+      return {
+        name: s.name,
+        phone: s.phone || '-',
+        currentBalance: bal,
+        b0_30: bal,
+        b31_60: 0,
+        b61_90: 0,
+        b90_plus: 0,
+      };
+    });
+
+  const totalPayables = supplierAging.reduce((s, sp) => s + sp.currentBalance, 0);
+
   res.json({
     success: true,
     data: {
-      totalPayables: 18200,
-      supplierAging: [
-        { name: 'شركة التوريدات الوطنية الكبرى', phone: '0511122334', currentBalance: 14200, b0_30: 8200, b31_60: 4000, b61_90: 2000, b90_plus: 0 },
-        { name: 'مؤسسة الاستيراد المباشر', phone: '0522233445', currentBalance: 4000, b0_30: 2500, b31_60: 1500, b61_90: 0, b90_plus: 0 },
-      ],
+      totalPayables: isClean && mockSuppliersList.length === 0 ? 0 : totalPayables,
+      supplierAging: isClean && mockSuppliersList.length === 0 ? [] : supplierAging,
     },
   });
 });

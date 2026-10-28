@@ -13,6 +13,7 @@ import {
   Package,
 } from 'lucide-react';
 import { api } from '../../../api';
+import { getActiveCurrencySymbol, applyStockMovementSync } from '../../../lib/formatters';
 
 interface POSReturnsModalProps {
   isOpen: boolean;
@@ -59,6 +60,8 @@ export const POSReturnsModal: React.FC<POSReturnsModalProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const currSym = getActiveCurrencySymbol(invoice?.currency || currency);
 
   if (!isOpen) return null;
 
@@ -194,6 +197,31 @@ export const POSReturnsModal: React.FC<POSReturnsModalProps> = ({
       });
 
       if (res.success) {
+        // Sync stock restoration and sales decrement
+        try {
+          applyStockMovementSync(
+            selectedToReturn.map((it) => ({
+              productId: it.productId,
+              name: it.name,
+              sku: it.itemCode || it.partNumber,
+              quantity: it.quantity,
+              unit: it.unit,
+              unitPrice: it.unitPrice,
+              total: it.refundAmount,
+            })),
+            {
+              type: 'return',
+              referenceNumber: `RET-${invoice.invoice_number || invoice.id}`,
+              referenceId: invoice.id,
+              customerOrSupplierName: invoice.customer_name || 'العميل',
+              date: new Date().toISOString().split('T')[0],
+              notes: `مرتجع مبيعات نقطة البيع: ${reason}`,
+            }
+          );
+        } catch (stockErr) {
+          console.error('Failed to sync stock on return:', stockErr);
+        }
+
         setSuccess('تمت معالجة مرتجع المبيعات وإعادة الأصناف للمخزون بالوحدات المحددة وتسوية القيود بنجاح');
         setTimeout(() => {
           onReturnCompleted();
@@ -286,7 +314,7 @@ export const POSReturnsModal: React.FC<POSReturnsModalProps> = ({
                 </div>
                 <div>
                   <span className="text-slate-400 block">إجمالي الفاتورة:</span>
-                  <span className="font-bold text-white font-mono" dir="ltr">{Number(invoice.total).toLocaleString('en-US', { minimumFractionDigits: 2 })} {invoice.currency || currency}</span>
+                  <span className="font-bold text-white font-mono" dir="ltr">{Number(invoice.total).toLocaleString('en-US', { minimumFractionDigits: 2 })} {currSym}</span>
                 </div>
               </div>
 
@@ -327,7 +355,7 @@ export const POSReturnsModal: React.FC<POSReturnsModalProps> = ({
                             </span>
                           )}
                           <span>الكمية المشتراة: <strong className="text-white font-mono">{item.originalQty}</strong> {item.unit}</span>
-                          <span>السعر: <strong className="text-white font-mono" dir="ltr">{item.unitPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong> {invoice.currency || currency}</span>
+                          <span>السعر: <strong className="text-white font-mono" dir="ltr">{item.unitPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong> {currSym}</span>
                         </div>
 
                         {/* Warranty Badge */}
@@ -366,7 +394,7 @@ export const POSReturnsModal: React.FC<POSReturnsModalProps> = ({
                         <div className="text-left min-w-[90px]">
                           <span className="text-[10px] text-slate-400 block">المبلغ المسترد:</span>
                           <span className="font-bold text-rose-400 font-mono text-xs" dir="ltr">
-                            {item.refundAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })} {invoice.currency || currency}
+                            {item.refundAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })} {currSym}
                           </span>
                         </div>
                       </div>
@@ -408,7 +436,7 @@ export const POSReturnsModal: React.FC<POSReturnsModalProps> = ({
                 <div>
                   <span className="text-xs text-rose-300 font-semibold block">إجمالي مبلغ الاسترداد المستحق:</span>
                   <span className="text-2xl font-black text-rose-400">
-                    {totalRefund.toLocaleString()} {invoice.currency || currency}
+                    {totalRefund.toLocaleString()} {currSym}
                   </span>
                 </div>
                 <button

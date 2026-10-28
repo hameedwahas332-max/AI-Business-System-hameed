@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { safeFetchJson } from '../../lib/safeFetch';
-import { formatAmount, formatNumber } from '../../lib/formatters';
+import { formatAmount, formatNumber, getActiveCurrencySymbol } from '../../lib/formatters';
 import {
   Briefcase,
   UploadCloud,
@@ -147,6 +147,7 @@ type SubTab =
 
 export const RealBusinessOperationsTab: React.FC = () => {
   const { token } = useAuth();
+  const currSym = getActiveCurrencySymbol();
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('dashboard');
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -474,7 +475,11 @@ export const RealBusinessOperationsTab: React.FC = () => {
       fetchDashboard();
     };
     window.addEventListener('erp-demo-data-wiped', handleWiped);
-    return () => window.removeEventListener('erp-demo-data-wiped', handleWiped);
+    window.addEventListener('erp-inventory-updated', handleWiped);
+    return () => {
+      window.removeEventListener('erp-demo-data-wiped', handleWiped);
+      window.removeEventListener('erp-inventory-updated', handleWiped);
+    };
   }, [token]);
 
   const fetchMasterData = async () => {
@@ -520,8 +525,104 @@ export const RealBusinessOperationsTab: React.FC = () => {
     try {
       setLoading(true);
       const res = await safeFetchJson('/api/v1/business/dashboard', { headers });
-      if (res.ok && res.data?.success) {
-        setOperatingData(res.data.data);
+      let data = res.ok && res.data?.success ? res.data.data : null;
+
+      try {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const isClean = localStorage.getItem('erp_clean_production_mode_v1') === 'true';
+
+        let localInvoices: any[] = [];
+        let localPosSales: any[] = [];
+        let localPurchases: any[] = [];
+        let localPayments: any[] = [];
+        let localProducts: any[] = [];
+        let localCusts: any[] = [];
+        let localSupps: any[] = [];
+
+        try {
+          const invStr = localStorage.getItem('erp_invoices_v1');
+          if (invStr) localInvoices = JSON.parse(invStr);
+          const posStr = localStorage.getItem('erp_pos_sales_log_v1');
+          if (posStr) localPosSales = JSON.parse(posStr);
+          const purStr = localStorage.getItem('erp_purchase_invoices_v1');
+          if (purStr) localPurchases = JSON.parse(purStr);
+          const pmtStr = localStorage.getItem('erp_payments_v1');
+          if (pmtStr) localPayments = JSON.parse(pmtStr);
+          const prdStr = localStorage.getItem('erp_products_v1');
+          if (prdStr) localProducts = JSON.parse(prdStr);
+          const cstStr = localStorage.getItem('erp_customers_v1');
+          if (cstStr) localCusts = JSON.parse(cstStr);
+          const supStr = localStorage.getItem('erp_suppliers_v1');
+          if (supStr) localSupps = JSON.parse(supStr);
+        } catch {}
+
+        const todayInvoices = localInvoices.filter((i: any) => String(i.date || i.created_at || '').startsWith(todayStr));
+        const todayPos = localPosSales.filter((s: any) => String(s.date || s.created_at || '').startsWith(todayStr));
+        const todaySalesVal = todayInvoices.reduce((sum: number, i: any) => sum + Number(i.total || i.amount || 0), 0) +
+          todayPos.reduce((sum: number, s: any) => sum + Number(s.total || s.total_amount || 0), 0);
+
+        const todayPurchasesVal = localPurchases
+          .filter((p: any) => String(p.invoiceDate || p.date || p.created_at || '').startsWith(todayStr))
+          .reduce((sum: number, p: any) => sum + Number(p.grandTotal || p.total || 0), 0);
+
+        const todayReceiptsVal = localPayments
+          .filter((p: any) => (p.type === 'CUSTOMER_PAYMENT' || p.type === 'RECEIPT') && String(p.payment_date || p.date || '').startsWith(todayStr))
+          .reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+
+        const todayDisbursedVal = localPayments
+          .filter((p: any) => (p.type === 'SUPPLIER_PAYMENT' || p.type === 'EXPENSE') && String(p.payment_date || p.date || '').startsWith(todayStr))
+          .reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+
+        const totalCashIn = localPayments
+          .filter((p: any) => p.type === 'CUSTOMER_PAYMENT' || p.type === 'RECEIPT')
+          .reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+        const totalCashOut = localPayments
+          .filter((p: any) => p.type === 'SUPPLIER_PAYMENT' || p.type === 'EXPENSE')
+          .reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+        const netCashTotal = Math.max(0, totalCashIn - totalCashOut);
+
+        const receivablesVal = localCusts.reduce((sum: number, c: any) => sum + Math.max(0, Number(c.balance || c.current_balance || 0)), 0);
+        const payablesVal = localSupps.reduce((sum: number, s: any) => sum + Math.max(0, Number(s.balance || s.current_balance || 0)), 0);
+        const invValuation = localProducts.reduce((sum: number, p: any) => sum + (Number(p.cost_price || p.purchase_price || 0) * Number(p.current_stock || p.stock || 0)), 0);
+        const lowStockCount = localProducts.filter((p: any) => Number(p.current_stock || p.stock || 0) <= Number(p.min_stock || 10)).length;
+
+        if (isClean && localInvoices.length === 0 && localPayments.length === 0) {
+          data = {
+            todaySales: 0,
+            todayCollections: 0,
+            todayPurchases: 0,
+            todayPayments: 0,
+            todayExpenses: 0,
+            cashBalance: 0,
+            bankBalance: 0,
+            receivables: receivablesVal,
+            payables: payablesVal,
+            inventoryValuation: invValuation,
+            netCashFlow: 0,
+            lowStockCount,
+            openReconciliationIssues: 0,
+          };
+        } else if (localInvoices.length > 0 || localPayments.length > 0) {
+          data = {
+            todaySales: todaySalesVal,
+            todayCollections: todayReceiptsVal,
+            todayPurchases: todayPurchasesVal,
+            todayPayments: todayDisbursedVal,
+            todayExpenses: 0,
+            cashBalance: Math.round(netCashTotal * 0.4),
+            bankBalance: Math.round(netCashTotal * 0.6),
+            receivables: receivablesVal,
+            payables: payablesVal,
+            inventoryValuation: invValuation,
+            netCashFlow: todayReceiptsVal - todayDisbursedVal,
+            lowStockCount,
+            openReconciliationIssues: 0,
+          };
+        }
+      } catch {}
+
+      if (data) {
+        setOperatingData(data);
       } else if (res.error) {
         showFeedback('error', res.error);
       }
@@ -933,7 +1034,7 @@ export const RealBusinessOperationsTab: React.FC = () => {
               </div>
               <div className="text-xl font-bold text-slate-900 font-mono">
                 {formatAmount(operatingData?.todaySales)}{' '}
-                <span className="text-xs font-normal text-slate-500">ر.س</span>
+                <span className="text-xs font-normal text-slate-500">{currSym}</span>
               </div>
             </div>
 
@@ -945,7 +1046,7 @@ export const RealBusinessOperationsTab: React.FC = () => {
               </div>
               <div className="text-xl font-bold text-slate-900 font-mono">
                 {formatAmount(operatingData?.todayCollections)}{' '}
-                <span className="text-xs font-normal text-slate-500">ر.س</span>
+                <span className="text-xs font-normal text-slate-500">{currSym}</span>
               </div>
             </div>
 
@@ -957,7 +1058,7 @@ export const RealBusinessOperationsTab: React.FC = () => {
               </div>
               <div className="text-xl font-bold text-slate-900 font-mono">
                 {formatAmount(operatingData?.todayPurchases)}{' '}
-                <span className="text-xs font-normal text-slate-500">ر.س</span>
+                <span className="text-xs font-normal text-slate-500">{currSym}</span>
               </div>
             </div>
 
@@ -969,7 +1070,7 @@ export const RealBusinessOperationsTab: React.FC = () => {
               </div>
               <div className="text-xl font-bold text-slate-900 font-mono">
                 {formatAmount((operatingData?.todayPayments || 0) + (operatingData?.todayExpenses || 0))}{' '}
-                <span className="text-xs font-normal text-slate-500">ر.س</span>
+                <span className="text-xs font-normal text-slate-500">{currSym}</span>
               </div>
             </div>
 
@@ -981,7 +1082,7 @@ export const RealBusinessOperationsTab: React.FC = () => {
               </div>
               <div className="text-xl font-bold text-emerald-700 font-mono">
                 {formatAmount(operatingData?.cashBalance)}{' '}
-                <span className="text-xs font-normal text-slate-500">ر.س</span>
+                <span className="text-xs font-normal text-slate-500">{currSym}</span>
               </div>
             </div>
 
@@ -993,7 +1094,7 @@ export const RealBusinessOperationsTab: React.FC = () => {
               </div>
               <div className="text-xl font-bold text-blue-700 font-mono">
                 {formatAmount(operatingData?.bankBalance)}{' '}
-                <span className="text-xs font-normal text-slate-500">ر.س</span>
+                <span className="text-xs font-normal text-slate-500">{currSym}</span>
               </div>
             </div>
 
@@ -1005,7 +1106,7 @@ export const RealBusinessOperationsTab: React.FC = () => {
               </div>
               <div className="text-xl font-bold text-slate-900 font-mono">
                 {formatAmount(operatingData?.receivables)}{' '}
-                <span className="text-xs font-normal text-slate-500">ر.س</span>
+                <span className="text-xs font-normal text-slate-500">{currSym}</span>
               </div>
             </div>
 
@@ -1017,7 +1118,7 @@ export const RealBusinessOperationsTab: React.FC = () => {
               </div>
               <div className="text-xl font-bold text-slate-900 font-mono">
                 {formatAmount(operatingData?.payables)}{' '}
-                <span className="text-xs font-normal text-slate-500">ر.س</span>
+                <span className="text-xs font-normal text-slate-500">{currSym}</span>
               </div>
             </div>
 
@@ -1029,7 +1130,7 @@ export const RealBusinessOperationsTab: React.FC = () => {
               </div>
               <div className="text-xl font-bold text-slate-900 font-mono">
                 {formatAmount(operatingData?.inventoryValuation)}{' '}
-                <span className="text-xs font-normal text-slate-500">ر.س</span>
+                <span className="text-xs font-normal text-slate-500">{currSym}</span>
               </div>
             </div>
 
@@ -1041,7 +1142,7 @@ export const RealBusinessOperationsTab: React.FC = () => {
               </div>
               <div className={`text-xl font-bold font-mono ${operatingData?.netCashFlow >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                 {formatAmount(operatingData?.netCashFlow)}{' '}
-                <span className="text-xs font-normal text-slate-500">ر.س</span>
+                <span className="text-xs font-normal text-slate-500">{currSym}</span>
               </div>
             </div>
 
@@ -1182,7 +1283,7 @@ export const RealBusinessOperationsTab: React.FC = () => {
                 </div>
                 <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
                   <span className="text-amber-700 block">المبالغ المالية المستوردة:</span>
-                  <span className="text-base font-bold font-mono text-amber-800">{importPreview.financialTotal} ر.س</span>
+                  <span className="text-base font-bold font-mono text-amber-800">{importPreview.financialTotal} {currSym}</span>
                 </div>
               </div>
 
@@ -1251,7 +1352,7 @@ export const RealBusinessOperationsTab: React.FC = () => {
                     <option value="">-- اختر العميل --</option>
                     {(customersList || []).map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.name} (الرصيد: {c.current_balance} ر.س)
+                        {c.name} (الرصيد: {c.current_balance} {currSym})
                       </option>
                     ))}
                   </select>
@@ -1270,7 +1371,7 @@ export const RealBusinessOperationsTab: React.FC = () => {
                     <option value="">-- اختر المورد --</option>
                     {(suppliersList || []).map((s) => (
                       <option key={s.id} value={s.id}>
-                        {s.name} (الرصيد: {s.current_balance} ر.س)
+                        {s.name} (الرصيد: {s.current_balance} {currSym})
                       </option>
                     ))}
                   </select>
@@ -1289,7 +1390,7 @@ export const RealBusinessOperationsTab: React.FC = () => {
                     <option value="">-- اختر الصندوق النقدي --</option>
                     {cashAccounts.map((a) => (
                       <option key={a.id} value={a.id}>
-                        {a.name} (الرصيد: {a.current_balance} ر.س)
+                        {a.name} (الرصيد: {a.current_balance} {currSym})
                       </option>
                     ))}
                   </select>
@@ -1308,7 +1409,7 @@ export const RealBusinessOperationsTab: React.FC = () => {
                     <option value="">-- اختر الحساب البنكي --</option>
                     {bankAccounts.map((b) => (
                       <option key={b.id} value={b.id}>
-                        {b.account_name} - {b.bank_name} ({b.current_balance} ر.س)
+                        {b.account_name} - {b.bank_name} ({b.current_balance} {currSym})
                       </option>
                     ))}
                   </select>
@@ -1336,7 +1437,7 @@ export const RealBusinessOperationsTab: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">المبلغ (SAR):</label>
+                  <label className="font-semibold text-slate-700 block mb-1">المبلغ ({currSym}):</label>
                   <input
                     type="number"
                     step="0.01"
@@ -1418,7 +1519,7 @@ export const RealBusinessOperationsTab: React.FC = () => {
                     openingBalances.map((ob) => (
                       <tr key={ob.id}>
                         <td className="p-2.5 font-medium">{ob.balance_type}</td>
-                        <td className="p-2.5 font-mono font-bold">{ob.amount} ر.س</td>
+                        <td className="p-2.5 font-mono font-bold">{ob.amount} {currSym}</td>
                         <td className="p-2.5 font-mono">{ob.entry_side}</td>
                         <td className="p-2.5 font-mono">{ob.accounting_date}</td>
                         <td className="p-2.5">

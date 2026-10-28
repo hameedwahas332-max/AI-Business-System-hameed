@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
+import { getActiveCurrencySymbol } from '../../lib/formatters';
 import {
   Sliders,
   Shield,
@@ -138,7 +139,7 @@ const DEFAULT_ENTERPRISE_SETTINGS: SettingItem[] = [
       category: 'ACCOUNTING',
       allowedScopes: ['COMPANY'],
       dataType: 'STRING',
-      defaultValue: 'SAR',
+      defaultValue: 'YER',
       riskLevel: 'HIGH',
       isLocked: false,
       isMandatory: true,
@@ -147,12 +148,12 @@ const DEFAULT_ENTERPRISE_SETTINGS: SettingItem[] = [
       rollbackSupported: true,
       affectedModules: ['accounting', 'invoices', 'reports'],
     },
-    effectiveValue: 'SAR',
+    effectiveValue: 'YER',
     sourceScope: 'COMPANY',
     sourceScopeId: 'comp_001',
     isInherited: false,
     status: 'Active',
-    hierarchyChain: [{ scope: 'COMPANY', scopeId: 'comp_001', value: 'SAR', isActive: true }],
+    hierarchyChain: [{ scope: 'COMPANY', scopeId: 'comp_001', value: 'YER', isActive: true }],
     hasPendingChangeRequest: false,
     hasDrift: false,
   },
@@ -508,6 +509,7 @@ const DEFAULT_CHANGE_REQUESTS: ChangeRequest[] = [
 ];
 
 export const EnterpriseControlCenterTab: React.FC = () => {
+  const currSym = getActiveCurrencySymbol();
   // Sync with Global Module Settings & Business Isolation
   const {
     settings: moduleSettings,
@@ -734,6 +736,13 @@ export const EnterpriseControlCenterTab: React.FC = () => {
 
   useEffect(() => {
     loadAllData();
+    const handleSync = () => loadAllData();
+    window.addEventListener('erp-demo-data-wiped', handleSync);
+    window.addEventListener('erp-inventory-updated', handleSync);
+    return () => {
+      window.removeEventListener('erp-demo-data-wiped', handleSync);
+      window.removeEventListener('erp-inventory-updated', handleSync);
+    };
   }, []);
 
   // Compute real dynamic health score
@@ -1225,7 +1234,7 @@ export const EnterpriseControlCenterTab: React.FC = () => {
           <div className="flex items-center gap-2 bg-slate-950/80 p-1.5 rounded-xl border border-slate-800">
             <span className="text-xs text-slate-400 font-semibold px-2">العملة الافتراضية:</span>
             {(['YER', 'SAR', 'USD'] as const).map((curr) => {
-              const isSelected = (localStorage.getItem('erp_default_currency') || 'SAR') === curr;
+              const isSelected = (localStorage.getItem('erp_default_currency') || 'YER') === curr;
               return (
                 <button
                   key={curr}
@@ -1495,7 +1504,7 @@ export const EnterpriseControlCenterTab: React.FC = () => {
             </div>
             <div className="text-[11px] text-sky-400 font-mono tabular-nums flex items-center justify-between border-t border-slate-800/80 pt-1.5">
               <span>مديونيات قائمة:</span>
-              <span className="font-bold">{(realCounters?.totalReceivables || 0).toLocaleString()} ر.س</span>
+              <span className="font-bold">{(realCounters?.totalReceivables || 0).toLocaleString()} {currSym}</span>
             </div>
           </div>
 
@@ -1512,7 +1521,7 @@ export const EnterpriseControlCenterTab: React.FC = () => {
             </div>
             <div className="text-[11px] text-purple-400 font-mono tabular-nums flex items-center justify-between border-t border-slate-800/80 pt-1.5">
               <span>مستحقات للموردين:</span>
-              <span className="font-bold">{(realCounters?.totalPayables || 0).toLocaleString()} ر.س</span>
+              <span className="font-bold">{(realCounters?.totalPayables || 0).toLocaleString()} {currSym}</span>
             </div>
           </div>
 
@@ -1529,7 +1538,7 @@ export const EnterpriseControlCenterTab: React.FC = () => {
             </div>
             <div className="text-[11px] text-amber-400 font-mono tabular-nums flex items-center justify-between border-t border-slate-800/80 pt-1.5">
               <span>أصناف منخفضة: {realCounters?.lowStockCount ?? 0}</span>
-              <span className="font-bold">تقييم: {(realCounters?.inventoryValuation || 0).toLocaleString()} ر.س</span>
+              <span className="font-bold">تقييم: {(realCounters?.inventoryValuation || 0).toLocaleString()} {currSym}</span>
             </div>
           </div>
 
@@ -1559,7 +1568,7 @@ export const EnterpriseControlCenterTab: React.FC = () => {
               </div>
             </div>
             <div className="text-2xl font-black text-emerald-400 font-mono tabular-nums">
-              {(realCounters?.salesTotal || 0).toLocaleString()} <span className="text-xs text-slate-400 font-normal">ر.س</span>
+              {(realCounters?.salesTotal || 0).toLocaleString()} <span className="text-xs text-slate-400 font-normal">{currSym}</span>
             </div>
             <div className="text-[11px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-1.5">
               <span>حالة المبيعات:</span>
@@ -1576,7 +1585,7 @@ export const EnterpriseControlCenterTab: React.FC = () => {
               </div>
             </div>
             <div className="text-2xl font-black text-amber-400 font-mono tabular-nums">
-              {(realCounters?.purchasesTotal || 0).toLocaleString()} <span className="text-xs text-slate-400 font-normal">ر.س</span>
+              {(realCounters?.purchasesTotal || 0).toLocaleString()} <span className="text-xs text-slate-400 font-normal">{currSym}</span>
             </div>
             <div className="text-[11px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-1.5">
               <span>التكاليف المعتمدة:</span>
@@ -1593,7 +1602,7 @@ export const EnterpriseControlCenterTab: React.FC = () => {
               </div>
             </div>
             <div className="text-2xl font-black text-emerald-300 font-mono tabular-nums">
-              {(realCounters?.netProfit || 0).toLocaleString()} <span className="text-xs text-slate-400 font-normal">ر.س</span>
+              {(realCounters?.netProfit || 0).toLocaleString()} <span className="text-xs text-slate-400 font-normal">{currSym}</span>
             </div>
             <div className="text-[11px] text-emerald-400 flex items-center justify-between border-t border-slate-800/80 pt-1.5">
               <span>هامش الربح:</span>
@@ -1612,7 +1621,7 @@ export const EnterpriseControlCenterTab: React.FC = () => {
               </div>
             </div>
             <div className="text-2xl font-black text-indigo-300 font-mono tabular-nums">
-              {(realCounters?.vatPayable || 0).toLocaleString()} <span className="text-xs text-slate-400 font-normal">ر.س</span>
+              {(realCounters?.vatPayable || 0).toLocaleString()} <span className="text-xs text-slate-400 font-normal">{currSym}</span>
             </div>
             <div className="text-[11px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-1.5">
               <span>حالة الإقرار:</span>

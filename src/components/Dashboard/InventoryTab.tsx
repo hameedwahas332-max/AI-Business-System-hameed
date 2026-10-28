@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../api';
-import { formatAmount, formatNumber } from '../../lib/formatters';
+import { formatAmount, formatNumber, getActiveCurrencySymbol } from '../../lib/formatters';
 import { ModuleSettingsModal } from '../Common/ModuleSettingsModal';
 import { ProductActivityType } from '../../types';
 import {
@@ -275,7 +275,22 @@ export const InventoryTab: React.FC = () => {
       ]);
 
       const prods = prodRes?.data || [];
-      setMovements(movRes?.data || []);
+      const localMovs = (() => {
+        try {
+          return JSON.parse(localStorage.getItem('erp_inventory_movements_v1') || '[]');
+        } catch {
+          return [];
+        }
+      })();
+      const serverMovs = movRes?.data || [];
+      const mergedMovs = [...localMovs];
+      serverMovs.forEach((sm: any) => {
+        if (!mergedMovs.some((m) => m.id === sm.id || (m.referenceNumber && m.referenceNumber === sm.reference_number))) {
+          mergedMovs.push(sm);
+        }
+      });
+
+      setMovements(mergedMovs);
       setProducts(prods);
 
       // Initialize physical counts with current book stock
@@ -299,8 +314,15 @@ export const InventoryTab: React.FC = () => {
       setAuditNotes({});
       fetchData();
     };
+    const handleInvUpdated = () => {
+      fetchData();
+    };
     window.addEventListener('erp-demo-data-wiped', handleWiped);
-    return () => window.removeEventListener('erp-demo-data-wiped', handleWiped);
+    window.addEventListener('erp-inventory-updated', handleInvUpdated);
+    return () => {
+      window.removeEventListener('erp-demo-data-wiped', handleWiped);
+      window.removeEventListener('erp-inventory-updated', handleInvUpdated);
+    };
   }, [typeFilter]);
 
   // Stock breakdown helper (Cartons + Pieces)
@@ -926,6 +948,53 @@ export const InventoryTab: React.FC = () => {
       {/* ========================================================================= */}
       {activeSubTab === 'movements_balances' && (
         <div className="space-y-6">
+          {/* Summary KPI Cards for Inventory */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between shadow-sm">
+              <div>
+                <span className="text-[11px] font-semibold text-slate-400 block mb-0.5">إجمالي الأصناف المسجلة</span>
+                <span className="text-xl font-bold font-mono text-white">{products.length} صنف</span>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-blue-950/80 border border-blue-800/40 text-blue-400 flex items-center justify-center">
+                <Boxes className="w-5 h-5" />
+              </div>
+            </div>
+
+            <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between shadow-sm">
+              <div>
+                <span className="text-[11px] font-semibold text-slate-400 block mb-0.5">مبيعات المخزون اليوم</span>
+                <span className="text-xl font-bold font-mono text-cyan-400">
+                  {formatNumber(products.reduce((acc, p) => acc + Number(p.soldToday || 0), 0))} قطعة
+                </span>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-cyan-950/80 border border-cyan-800/40 text-cyan-400 flex items-center justify-center">
+                <ArrowUpLeft className="w-5 h-5" />
+              </div>
+            </div>
+
+            <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between shadow-sm">
+              <div>
+                <span className="text-[11px] font-semibold text-slate-400 block mb-0.5">البضاعة المتبقية بالمستودع</span>
+                <span className="text-xl font-bold font-mono text-emerald-400">
+                  {formatNumber(products.reduce((acc, p) => acc + Number(p.current_stock ?? p.qty ?? 0), 0))} قطعة
+                </span>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-emerald-950/80 border border-emerald-800/40 text-emerald-400 flex items-center justify-center">
+                <PackageCheck className="w-5 h-5" />
+              </div>
+            </div>
+
+            <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between shadow-sm">
+              <div>
+                <span className="text-[11px] font-semibold text-slate-400 block mb-0.5">حركات المخزون المسجلة</span>
+                <span className="text-xl font-bold font-mono text-amber-400">{movements.length} حركة</span>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-amber-950/80 border border-amber-800/40 text-amber-400 flex items-center justify-center">
+                <History className="w-5 h-5" />
+              </div>
+            </div>
+          </div>
+
           {/* Activity Filter & Search Bar */}
           <div className="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-3 shadow-md">
             <div className="relative flex-1 w-full max-w-md">
@@ -982,7 +1051,10 @@ export const InventoryTab: React.FC = () => {
                   <tr>
                     <th className="p-3.5">الصنف / النشاط</th>
                     <th className="p-3.5">الرمز SKU</th>
-                    <th className="p-3.5">الرصيد الإجمالي (قطع)</th>
+                    <th className="p-3.5">الوارد / الافتتاحي</th>
+                    <th className="p-3.5 text-cyan-400">المباع اليوم</th>
+                    <th className="p-3.5 text-purple-400">إجمالي المباع</th>
+                    <th className="p-3.5 text-emerald-400">الرصيد المتبقي الفعلي</th>
                     <th className="p-3.5 text-emerald-400">التفصيل بالكرتون والوحدة</th>
                     <th className="p-3.5">حد الأمان</th>
                     <th className="p-3.5">حالة التوفر</th>
@@ -991,19 +1063,22 @@ export const InventoryTab: React.FC = () => {
                 <tbody className="divide-y divide-slate-800/60 font-medium">
                   {loading ? (
                     <tr>
-                      <td colSpan={6} className="p-8 text-center text-slate-400">
+                      <td colSpan={9} className="p-8 text-center text-slate-400">
                         <Loader2 className="w-6 h-6 animate-spin text-emerald-500 mx-auto" />
                       </td>
                     </tr>
                   ) : filteredProducts.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="p-8 text-center text-slate-500">
+                      <td colSpan={9} className="p-8 text-center text-slate-500">
                         لا توجد أصناف مطابقة للبحث أو الفلتر.
                       </td>
                     </tr>
                   ) : (
                     filteredProducts.map((prod) => {
-                      const stock = Number(prod.current_stock ?? prod.qty ?? 0);
+                      const stock = Number(prod.current_stock ?? prod.qty ?? prod.stock ?? 0);
+                      const totalSold = Number(prod.totalSold || 0);
+                      const soldToday = Number(prod.soldToday || 0);
+                      const incomingTotal = stock + totalSold;
                       const minStock = Number(prod.min_stock_level ?? 5);
                       const isLow = stock <= minStock;
 
@@ -1023,11 +1098,20 @@ export const InventoryTab: React.FC = () => {
                             </div>
                           </td>
                           <td className="p-3.5 font-mono text-slate-300">{prod.sku || '-'}</td>
-                          <td className="p-3.5 font-mono font-bold text-slate-100">
+                          <td className="p-3.5 font-mono font-bold text-slate-300">
+                            {formatNumber(incomingTotal)} {prod.baseUnitName || prod.unit || 'حبة'}
+                          </td>
+                          <td className="p-3.5 font-mono font-bold text-cyan-400">
+                            {formatNumber(soldToday)}
+                          </td>
+                          <td className="p-3.5 font-mono font-bold text-purple-400">
+                            {formatNumber(totalSold)}
+                          </td>
+                          <td className="p-3.5 font-mono font-bold text-emerald-400">
                             {formatNumber(stock)} {prod.baseUnitName || prod.unit || 'حبة'}
                           </td>
                           <td className="p-3.5 font-bold text-emerald-400">
-                            <span className="bg-emerald-950/80 px-2.5 py-1 rounded-lg border border-emerald-800/50 inline-block font-mono">
+                            <span className="bg-emerald-950/80 px-2.5 py-1 rounded-lg border border-emerald-800/50 inline-block font-mono text-[11px]">
                               {getStockBreakdown(prod)}
                             </span>
                           </td>
@@ -1099,36 +1183,42 @@ export const InventoryTab: React.FC = () => {
                       const isPositive = mov.type === 'IN';
                       const isAdjustment = mov.type === 'ADJUSTMENT';
 
-                      return (
-                        <tr key={mov.id} className="hover:bg-slate-800/40 transition-colors">
-                          <td className="p-3.5 font-bold text-white">{mov.product_name}</td>
-                          <td className="p-3.5">
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${
-                                isPositive
-                                  ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/60'
-                                  : isAdjustment
-                                  ? 'bg-amber-950 text-amber-300 border border-amber-800/60'
-                                  : 'bg-rose-950 text-rose-300 border border-rose-800/60'
-                              }`}
-                            >
-                              {isPositive ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpLeft className="w-3 h-3" />}
-                              <span>{isPositive ? 'وارد (IN)' : isAdjustment ? 'تسوية (ADJ)' : 'صادر (OUT)'}</span>
-                            </span>
-                          </td>
-                          <td className="p-3.5 font-mono font-bold">
-                            <span className={isPositive ? 'text-emerald-400' : 'text-rose-400'}>
-                              {isPositive ? `+${mov.quantity}` : `-${Math.abs(mov.quantity)}`}
-                            </span>
-                          </td>
-                          <td className="p-3.5 font-mono text-slate-200 font-bold">{mov.remaining_stock}</td>
-                          <td className="p-3.5 text-slate-400 font-mono text-[11px]">{mov.reference_type || '-'}</td>
-                          <td className="p-3.5 text-slate-400 font-mono text-[11px]">
-                            {mov.date ? new Date(mov.date).toLocaleString('ar-SA') : '-'}
-                          </td>
-                          <td className="p-3.5 text-slate-300 max-w-[200px] truncate">{mov.notes || '-'}</td>
-                        </tr>
-                      );
+                        const prodName = mov.product_name || mov.productName || 'صنف غير محدد';
+                        const remaining = mov.remaining_stock ?? mov.remainingStock ?? mov.afterStock ?? '-';
+                        const refInfo = mov.reference_type || mov.referenceType || (mov.referenceNumber ? `مرجع: ${mov.referenceNumber}` : '-');
+                        const movDate = mov.date || mov.createdAt || '';
+                        const movNotes = mov.notes || mov.reason || '-';
+
+                        return (
+                          <tr key={mov.id} className="hover:bg-slate-800/40 transition-colors">
+                            <td className="p-3.5 font-bold text-white">{prodName}</td>
+                            <td className="p-3.5">
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${
+                                  isPositive
+                                    ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/60'
+                                    : isAdjustment
+                                    ? 'bg-amber-950 text-amber-300 border border-amber-800/60'
+                                    : 'bg-rose-950 text-rose-300 border border-rose-800/60'
+                                }`}
+                              >
+                                {isPositive ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpLeft className="w-3 h-3" />}
+                                <span>{isPositive ? 'وارد (IN)' : isAdjustment ? 'تسوية (ADJ)' : 'صادر (OUT)'}</span>
+                              </span>
+                            </td>
+                            <td className="p-3.5 font-mono font-bold">
+                              <span className={isPositive ? 'text-emerald-400' : 'text-rose-400'}>
+                                {isPositive ? `+${mov.quantity}` : `-${Math.abs(mov.quantity)}`}
+                              </span>
+                            </td>
+                            <td className="p-3.5 font-mono text-slate-200 font-bold">{remaining}</td>
+                            <td className="p-3.5 text-slate-400 font-mono text-[11px]">{refInfo}</td>
+                            <td className="p-3.5 text-slate-400 font-mono text-[11px]">
+                              {movDate ? new Date(movDate).toLocaleString('ar-SA') : '-'}
+                            </td>
+                            <td className="p-3.5 text-slate-300 max-w-[200px] truncate">{movNotes}</td>
+                          </tr>
+                        );
                     })
                   )}
                 </tbody>

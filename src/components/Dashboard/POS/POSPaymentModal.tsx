@@ -17,7 +17,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { POSPaymentSplit } from '../../../types';
-import { roundMoney, parseEnglishNumber, toEnglishDigits } from '../../../lib/formatters';
+import { roundMoney, parseEnglishNumber, toEnglishDigits, getActiveCurrencySymbol } from '../../../lib/formatters';
 
 interface POSPaymentModalProps {
   isOpen: boolean;
@@ -152,6 +152,8 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
     });
   };
 
+  const currSym = getActiveCurrencySymbol(currency);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 overflow-y-auto" dir="rtl">
       <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -180,7 +182,7 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
             <div>
               <span className="text-xs font-semibold text-slate-400 block mb-1">المبلغ الإجمالي المستحق:</span>
               <div className="text-3xl font-black text-white tracking-tight">
-                {cartTotal.toLocaleString()} <span className="text-emerald-400 text-lg font-bold">{currency}</span>
+                {cartTotal.toLocaleString()} <span className="text-emerald-400 text-lg font-bold">{currSym}</span>
               </div>
             </div>
 
@@ -191,7 +193,7 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
               </span>
               {customer?.id && (
                 <div className="text-[11px] text-slate-400 mt-0.5">
-                  الرصيد السابق: {currentCustBal.toLocaleString()} {currency}
+                  الرصيد السابق: {currentCustBal.toLocaleString()} {currSym}
                 </div>
               )}
             </div>
@@ -245,7 +247,7 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
             <div className="space-y-4 bg-slate-950/40 p-4 rounded-2xl border border-slate-800/80">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  المبلغ المسدد / المقبوض ({currency}):
+                  المبلغ المسدد / المقبوض ({currSym}):
                 </label>
                 <div className="relative">
                   <DollarSign className="w-5 h-5 text-slate-500 absolute right-3.5 top-3" />
@@ -282,7 +284,7 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
                         onClick={() => setTenderedAmount(preset)}
                         className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-medium transition-all"
                       >
-                        +{preset.toLocaleString()} {currency}
+                        +{preset.toLocaleString()} {currSym}
                       </button>
                     ))}
                   </div>
@@ -294,13 +296,13 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
                 <div className="p-3 bg-slate-900 rounded-xl border border-slate-800">
                   <span className="text-xs text-slate-400 block">المبلغ المتبقي (آجل):</span>
                   <span className={`text-base font-bold ${remainingAmount > 0 ? 'text-amber-400' : 'text-slate-300'}`}>
-                    {remainingAmount.toLocaleString()} {currency}
+                    {remainingAmount.toLocaleString()} {currSym}
                   </span>
                 </div>
                 <div className="p-3 bg-emerald-950/30 rounded-xl border border-emerald-800/40">
                   <span className="text-xs text-emerald-300 block">الباقي للعميل (فكة):</span>
                   <span className="text-base font-black text-emerald-400">
-                    {changeAmount.toLocaleString()} {currency}
+                    {changeAmount.toLocaleString()} {currSym}
                   </span>
                 </div>
               </div>
@@ -359,8 +361,8 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
               ))}
 
               <div className="flex items-center justify-between text-xs text-slate-300 pt-2 border-t border-slate-800">
-                <span>المسدد في التقسيم: <strong className="text-emerald-400">{paidAmount.toLocaleString()} {currency}</strong></span>
-                <span>المتبقي آجل: <strong className={remainingAmount > 0 ? 'text-amber-400' : 'text-slate-400'}>{remainingAmount.toLocaleString()} {currency}</strong></span>
+                <span>المسدد في التقسيم: <strong className="text-emerald-400">{paidAmount.toLocaleString()} {currSym}</strong></span>
+                <span>المتبقي آجل: <strong className={remainingAmount > 0 ? 'text-amber-400' : 'text-slate-400'}>{remainingAmount.toLocaleString()} {currSym}</strong></span>
               </div>
             </div>
           )}
@@ -373,7 +375,7 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
                 <span>تنبيه: تجاوز سقف الائتمان للعميل!</span>
               </div>
               <p className="text-xs text-slate-300">
-                رصيد العميل الحالي ({currentCustBal.toLocaleString()} {currency}) + المستحق الجديد ({remainingAmount.toLocaleString()} {currency}) = <strong>{potentialDebt.toLocaleString()} {currency}</strong> وهو أعلى من الحد المصرح به ({creditLimit.toLocaleString()} {currency}).
+                رصيد العميل الحالي ({currentCustBal.toLocaleString()} {currSym}) + المستحق الجديد ({remainingAmount.toLocaleString()} {currSym}) = <strong>{potentialDebt.toLocaleString()} {currSym}</strong> وهو أعلى من الحد المصرح به ({creditLimit.toLocaleString()} {currSym}).
               </p>
               <label className="flex items-center gap-2 text-xs font-bold text-amber-300 pt-1 cursor-pointer">
                 <input

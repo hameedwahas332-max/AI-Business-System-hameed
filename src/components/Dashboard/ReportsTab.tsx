@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useModuleSettings } from '../../context/ModuleSettingsContext';
 import { api } from '../../api';
-import { formatAmount, formatNumber, toEnglishDigits } from '../../lib/formatters';
+import { formatAmount, formatNumber, toEnglishDigits, getActiveCurrencySymbol } from '../../lib/formatters';
 import { printReport, exportToCSV } from '../../lib/exportUtils';
 import {
   FileText,
@@ -154,10 +154,14 @@ export const ReportsTab: React.FC = () => {
       }
     };
     window.addEventListener('erp-demo-data-wiped', handleWiped);
-    return () => window.removeEventListener('erp-demo-data-wiped', handleWiped);
+    window.addEventListener('erp-inventory-updated', handleWiped);
+    return () => {
+      window.removeEventListener('erp-demo-data-wiped', handleWiped);
+      window.removeEventListener('erp-inventory-updated', handleWiped);
+    };
   }, [authLoading, isAuthenticated, activeReport, startDate, endDate, groupBy]);
 
-  const currency = company?.currency || 'SAR';
+  const currency = getActiveCurrencySymbol(company?.currency);
   const [exportLoading, setExportLoading] = useState(false);
 
   const handleExport = async (format: 'csv' | 'pdf') => {

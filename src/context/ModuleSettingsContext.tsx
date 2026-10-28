@@ -41,6 +41,10 @@ export interface ModuleSettings {
   defaultCustomerPriceTier: 'retail' | 'half_wholesale' | 'wholesale' | 'vip';
   autoWhatsAppAfterVoucher: boolean;
 
+  // Currency Settings
+  defaultCurrency: string;
+  baseCurrency: string;
+
   // Navigation & Tabs Visibility
   hiddenSidebarTabs: string[];
 }
@@ -275,6 +279,9 @@ export const DEFAULT_MODULE_SETTINGS: ModuleSettings = {
 
   defaultCustomerPriceTier: 'retail',
   autoWhatsAppAfterVoucher: true,
+
+  defaultCurrency: 'YER',
+  baseCurrency: 'YER',
 
   hiddenSidebarTabs: [],
 };

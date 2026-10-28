@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Lock, Unlock, ArrowDownLeft, ArrowUpRight, DollarSign, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
 import { POSShift } from '../../../types';
-import { formatAmount, formatDateTime } from '../../../lib/formatters';
+import { formatAmount, formatDateTime, getActiveCurrencySymbol } from '../../../lib/formatters';
 import { api } from '../../../api';
 
 interface POSShiftModalProps {
@@ -28,6 +28,8 @@ export const POSShiftModal: React.FC<POSShiftModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeSubTab, setActiveSubTab] = useState<'overview' | 'wallets' | 'movement' | 'close'>('overview');
+
+  const currSym = getActiveCurrencySymbol(currency);
 
   if (!isOpen) return null;
 
@@ -151,7 +153,7 @@ export const POSShiftModal: React.FC<POSShiftModalProps> = ({
 
             <div>
               <label className="block text-xs font-bold text-slate-300 mb-1">
-                الرصيد الافتتاحي للعهدة النقدية ({currency})
+                الرصيد الافتتاحي للعهدة النقدية ({currSym})
               </label>
               <input
                 type="text"
@@ -246,24 +248,24 @@ export const POSShiftModal: React.FC<POSShiftModalProps> = ({
                   </div>
                   <div className="flex justify-between items-center text-slate-400">
                     <span>العهدة الافتتاحية:</span>
-                    <span className="font-bold text-white font-mono" dir="ltr">{openingNum.toLocaleString('en-US', { minimumFractionDigits: 2 })} {currency}</span>
+                    <span className="font-bold text-white font-mono" dir="ltr">{openingNum.toLocaleString('en-US', { minimumFractionDigits: 2 })} {currSym}</span>
                   </div>
                   <div className="flex justify-between items-center text-slate-400">
                     <span>مبيعات نقداً (Cash):</span>
-                    <span className="font-bold text-emerald-400 font-mono" dir="ltr">{cashSales.toLocaleString('en-US', { minimumFractionDigits: 2 })} {currency}</span>
+                    <span className="font-bold text-emerald-400 font-mono" dir="ltr">{cashSales.toLocaleString('en-US', { minimumFractionDigits: 2 })} {currSym}</span>
                   </div>
                   <div className="flex justify-between items-center text-slate-400">
                     <span>مبيعات محافظ وبنوك:</span>
-                    <span className="font-bold text-cyan-400 font-mono" dir="ltr">{(cardSales + bankSales).toLocaleString('en-US', { minimumFractionDigits: 2 })} {currency}</span>
+                    <span className="font-bold text-cyan-400 font-mono" dir="ltr">{(cardSales + bankSales).toLocaleString('en-US', { minimumFractionDigits: 2 })} {currSym}</span>
                   </div>
                   <div className="flex justify-between items-center text-slate-400">
                     <span>سحوبات / مصروفات:</span>
-                    <span className="font-bold text-rose-400 font-mono" dir="ltr">{(cashOut + cashRefunds).toLocaleString('en-US', { minimumFractionDigits: 2 })} {currency}</span>
+                    <span className="font-bold text-rose-400 font-mono" dir="ltr">{(cashOut + cashRefunds).toLocaleString('en-US', { minimumFractionDigits: 2 })} {currSym}</span>
                   </div>
                   <div className="pt-2 border-t border-slate-700/60 flex justify-between items-center">
                     <span className="font-bold text-slate-200">إجمالي النقد المتوقع بالدرج:</span>
                     <span className="text-base font-black text-emerald-400 font-mono" dir="ltr">
-                      {expectedCash.toLocaleString('en-US', { minimumFractionDigits: 2 })} {currency}
+                      {expectedCash.toLocaleString('en-US', { minimumFractionDigits: 2 })} {currSym}
                     </span>
                   </div>
                 </div>
@@ -398,7 +400,7 @@ export const POSShiftModal: React.FC<POSShiftModalProps> = ({
                         <span className="text-[10px] text-slate-500">مدى / فيزا / ماستركارد</span>
                       </div>
                       <div className="text-left font-mono text-xs font-bold text-cyan-400" dir="ltr">
-                        {cardSales.toLocaleString('en-US', { minimumFractionDigits: 2 })} {currency}
+                        {cardSales.toLocaleString('en-US', { minimumFractionDigits: 2 })} {currSym}
                       </div>
                     </div>
                   </div>
@@ -448,7 +450,7 @@ export const POSShiftModal: React.FC<POSShiftModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">المبلغ ({currency}) *</label>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">المبلغ ({currSym}) *</label>
                   <input
                     type="text"
                     inputMode="decimal"
@@ -497,7 +499,7 @@ export const POSShiftModal: React.FC<POSShiftModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">النقد الفعلي بالدرج ({currency}) *</label>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">النقد الفعلي بالدرج ({currSym}) *</label>
                   <input
                     type="text"
                     inputMode="decimal"

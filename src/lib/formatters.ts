@@ -68,8 +68,42 @@ export function formatSupplierAmount(val: number | string | null | undefined): s
   return formatNumber(val);
 }
 
-export function formatCurrencyAmount(val: number | string | null | undefined, currency = 'SAR'): string {
-  return `${formatNumber(val)} ${currency}`;
+export function formatCurrencyAmount(val: number | string | null | undefined, currency?: string): string {
+  const sym = getActiveCurrencySymbol(currency);
+  return `${formatNumber(val)} ${sym}`;
+}
+
+/**
+ * Universal Central Currency Engine
+ * Standardized on Yemeni Rial ('YER' / 'ر.ي') as base system currency,
+ * reading directly from ModuleSettings and ExchangeRates with fallback to 'ر.ي'.
+ */
+export function getActiveCurrencyCode(): string {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const savedSettings = window.localStorage.getItem('erp_module_settings_v1');
+      if (savedSettings) {
+        const parsed = JSON.parse(savedSettings);
+        if (parsed.defaultCurrency || parsed.baseCurrency || parsed.currency) {
+          return String(parsed.defaultCurrency || parsed.baseCurrency || parsed.currency).toUpperCase().trim();
+        }
+      }
+      const savedRates = window.localStorage.getItem('erp_exchange_rates_v1');
+      if (savedRates) {
+        const parsed = JSON.parse(savedRates);
+        if (parsed.baseCurrency) return String(parsed.baseCurrency).toUpperCase().trim();
+      }
+    }
+  } catch {}
+  return 'YER';
+}
+
+export function getActiveCurrencySymbol(overrideCurrency?: string): string {
+  const code = (overrideCurrency || getActiveCurrencyCode()).toUpperCase().trim();
+  if (code === 'YER' || code === 'ريال يمني' || code === 'ر.ي') return 'ر.ي';
+  if (code === 'SAR' || code === 'ريال سعودي' || code === 'ر.س') return 'ر.س';
+  if (code === 'USD' || code === 'دولار' || code === '$') return '$';
+  return code || 'ر.ي';
 }
 
 /**
@@ -112,7 +146,7 @@ export function formatAmountWithEquivalent(
 ): { formatted: string; equivalent: string; isBase: boolean } {
   const num = parseEnglishNumber(val, 0);
   const cur = (currency || 'YER').toUpperCase();
-  const formatted = `${formatNumber(num)} ${cur}`;
+  const formatted = `${formatNumber(num)} ${getActiveCurrencySymbol(cur)}`;
 
   if (cur === 'YER') {
     return { formatted, equivalent: '', isBase: true };
@@ -120,8 +154,134 @@ export function formatAmountWithEquivalent(
 
   const rate = exchangeRate || (cur === 'SAR' ? 535 : cur === 'USD' ? 2050 : 1);
   const baseEquivalent = num * rate;
-  const equivalent = `≈ ${formatNumber(baseEquivalent)} YER`;
+  const equivalent = `≈ ${formatNumber(baseEquivalent)} ${getActiveCurrencySymbol('YER')}`;
 
   return { formatted, equivalent, isBase: false };
+}
+
+/**
+ * Real-Time Unified Stock & Movement Synchronization Engine
+ * Automatically deducts stock from product.stock, product.quantity, and product.current_stock,
+ * logs stock movements, tracks soldToday and totalSold, and notifies all listening tabs.
+ */
+export interface StockDeductionItem {
+  productId: string;
+  quantity: number;
+  unitFactor?: number;
+  unitName?: string;
+  price?: number;
+  total?: number;
+}
+
+export interface StockDeductionOptions {
+  type: 'sale' | 'pos_sale' | 'purchase' | 'return';
+  referenceNumber: string;
+  referenceId?: string;
+  customerName?: string;
+  customerOrSupplierName?: string;
+  paymentMethod?: string;
+  total?: number;
+  currency?: string;
+  date?: string;
+  notes?: string;
+}
+
+export function applyStockMovementSync(items: StockDeductionItem[], options: StockDeductionOptions): void {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    const today = options.date || new Date().toISOString().split('T')[0];
+    const rawProducts = localStorage.getItem('erp_products_v1');
+    let products: any[] = rawProducts ? JSON.parse(rawProducts) : [];
+    const rawMovements = localStorage.getItem('erp_inventory_movements_v1');
+    let movements: any[] = rawMovements ? JSON.parse(rawMovements) : [];
+
+    const isStockDecrease = options.type === 'sale' || options.type === 'pos_sale';
+    const isStockIncrease = options.type === 'purchase' || options.type === 'return';
+
+    items.forEach((item) => {
+      const pIdx = products.findIndex((p) => p.id === item.productId || p.itemCode === item.productId || p.sku === item.productId);
+      const factor = Number(item.unitFactor || 1);
+      const baseQty = Number(item.quantity || 0) * factor;
+
+      let stockBefore = 0;
+      let stockAfter = 0;
+      let prodName = 'صنف تجاري';
+      let prodCode = '';
+
+      if (pIdx !== -1) {
+        const p = products[pIdx];
+        stockBefore = Number(p.current_stock !== undefined ? p.current_stock : (p.stock !== undefined ? p.stock : (p.quantity || 0)));
+        prodName = p.name || prodName;
+        prodCode = p.itemCode || p.sku || p.barcode || '';
+
+        if (isStockDecrease) {
+          stockAfter = Math.max(0, stockBefore - baseQty);
+          p.totalSold = Number(p.totalSold || 0) + baseQty;
+          const lastSoldDate = p.lastSoldDate || '';
+          if (lastSoldDate === today) {
+            p.soldToday = Number(p.soldToday || 0) + baseQty;
+          } else {
+            p.soldToday = baseQty;
+            p.lastSoldDate = today;
+          }
+        } else if (isStockIncrease) {
+          stockAfter = stockBefore + baseQty;
+          if (options.type === 'return') {
+            p.totalSold = Math.max(0, Number(p.totalSold || 0) - baseQty);
+            if (p.lastSoldDate === today) {
+              p.soldToday = Math.max(0, Number(p.soldToday || 0) - baseQty);
+            }
+          }
+        } else {
+          stockAfter = stockBefore;
+        }
+
+        p.current_stock = stockAfter;
+        p.stock = stockAfter;
+        p.quantity = stockAfter;
+        p.qty = stockAfter;
+        p.updated_at = new Date().toISOString();
+        products[pIdx] = p;
+      }
+
+      movements.unshift({
+        id: `mov-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        date: today,
+        timestamp: new Date().toISOString(),
+        productId: item.productId,
+        productCode: prodCode,
+        productName: prodName,
+        type: options.type,
+        unitName: item.unitName || 'حبة',
+        quantity: Number(item.quantity || 0),
+        baseQuantity: baseQty,
+        stockBefore,
+        stockAfter,
+        referenceNumber: options.referenceNumber,
+        customerOrSupplierName: options.customerOrSupplierName || 'العميل النقدي',
+        totalAmount: Number(item.total || 0),
+      });
+    });
+
+    localStorage.setItem('erp_products_v1', JSON.stringify(products));
+    localStorage.setItem('erp_inventory_movements_v1', JSON.stringify(movements.slice(0, 500)));
+
+    // Save to company specific key if present
+    const authData = localStorage.getItem('erp_auth_company_v1');
+    if (authData) {
+      try {
+        const comp = JSON.parse(authData);
+        if (comp?.id) {
+          localStorage.setItem(`erp_products_v1_${comp.id}`, JSON.stringify(products));
+        }
+      } catch {}
+    }
+
+    // Broadcast global event
+    window.dispatchEvent(new CustomEvent('erp-inventory-updated', { detail: { items, options } }));
+    window.dispatchEvent(new Event('erp-inventory-updated'));
+  } catch (err) {
+    console.warn('Stock sync error:', err);
+  }
 }
 

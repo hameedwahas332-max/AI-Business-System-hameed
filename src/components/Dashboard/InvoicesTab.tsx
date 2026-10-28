@@ -10,7 +10,7 @@ import { SalesInvoicePaymentModal } from './SalesInvoices/SalesInvoicePaymentMod
 import { SalesInvoiceReturnModal } from './SalesInvoices/SalesInvoiceReturnModal';
 import { ExportActions } from '../Common/ExportActions';
 import { TableExportConfig, printInvoiceDocument } from '../../lib/exportUtils';
-import { formatAmount } from '../../lib/formatters';
+import { formatAmount, getActiveCurrencySymbol } from '../../lib/formatters';
 import {
   FileText,
   ShoppingBag,
@@ -135,7 +135,11 @@ export const InvoicesTab: React.FC = () => {
       fetchData();
     };
     window.addEventListener('erp-demo-data-wiped', handleWiped);
-    return () => window.removeEventListener('erp-demo-data-wiped', handleWiped);
+    window.addEventListener('erp-inventory-updated', fetchData);
+    return () => {
+      window.removeEventListener('erp-demo-data-wiped', handleWiped);
+      window.removeEventListener('erp-inventory-updated', fetchData);
+    };
   }, [
     activeSubView,
     searchQuery,
@@ -249,7 +253,7 @@ export const InvoicesTab: React.FC = () => {
         inv.customer_phone || '-',
         inv.invoice_date || inv.created_at?.split('T')[0] || '-',
         inv.due_date || '-',
-        inv.currency || 'YER',
+        `${getActiveCurrencySymbol(inv.currency)} (${inv.currency || 'YER'})`,
         formatAmount(inv.subtotal, inv.currency),
         formatAmount(inv.discount, inv.currency),
         formatAmount(inv.tax, inv.currency),

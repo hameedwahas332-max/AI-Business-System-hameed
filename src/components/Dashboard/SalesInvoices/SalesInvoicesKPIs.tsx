@@ -1,5 +1,5 @@
 import React from 'react';
-import { formatAmount } from '../../../lib/formatters';
+import { formatAmount, getActiveCurrencySymbol } from '../../../lib/formatters';
 import { DollarSign, CheckCircle2, Clock, AlertTriangle, FileText } from 'lucide-react';
 
 interface SalesInvoicesKPIsProps {
@@ -66,6 +66,8 @@ export const SalesInvoicesKPIs: React.FC<SalesInvoicesKPIsProps> = ({ invoices, 
     });
   };
 
+  const currSymbol = getActiveCurrencySymbol(currency);
+
   return (
     <div className="space-y-3 mb-6" id="sales-invoices-kpi-grid">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -74,7 +76,7 @@ export const SalesInvoicesKPIs: React.FC<SalesInvoicesKPIsProps> = ({ invoices, 
           <div>
             <p className="text-xs font-medium text-slate-400 mb-1">إجمالي المبيعات المعتمدة</p>
             <h3 className="text-xl font-black text-white tracking-tight font-mono" dir="ltr">
-              {formatEnglishNum(totalSales)} <span className="text-xs font-normal text-slate-400">{currency}</span>
+              {formatEnglishNum(totalSales)} <span className="text-xs font-bold text-blue-400">{currSymbol}</span>
             </h3>
             <p className="text-xs text-slate-500 mt-1 font-mono">
               {invoices.length} فواتير مسجلة
@@ -90,7 +92,7 @@ export const SalesInvoicesKPIs: React.FC<SalesInvoicesKPIsProps> = ({ invoices, 
           <div>
             <p className="text-xs font-medium text-emerald-400 mb-1">إجمالي المحصل (النقد والبنك)</p>
             <h3 className="text-xl font-black text-emerald-400 tracking-tight font-mono" dir="ltr">
-              {formatEnglishNum(totalPaid)} <span className="text-xs font-normal text-emerald-300">{currency}</span>
+              {formatEnglishNum(totalPaid)} <span className="text-xs font-bold text-emerald-400">{currSymbol}</span>
             </h3>
             <p className="text-xs text-slate-500 mt-1 font-mono">
               {paidCount} مسددة | {partialCount} جزئي
@@ -106,7 +108,7 @@ export const SalesInvoicesKPIs: React.FC<SalesInvoicesKPIsProps> = ({ invoices, 
           <div>
             <p className="text-xs font-medium text-amber-400 mb-1">المتبقي (الذمم المدينة على العملاء)</p>
             <h3 className="text-xl font-black text-amber-400 tracking-tight font-mono" dir="ltr">
-              {formatEnglishNum(totalRemaining)} <span className="text-xs font-normal text-amber-300">{currency}</span>
+              {formatEnglishNum(totalRemaining)} <span className="text-xs font-bold text-amber-400">{currSymbol}</span>
             </h3>
             <p className="text-xs text-slate-500 mt-1 font-mono">
               {pendingCount + partialCount} فواتير آجلة
@@ -122,7 +124,7 @@ export const SalesInvoicesKPIs: React.FC<SalesInvoicesKPIsProps> = ({ invoices, 
           <div>
             <p className="text-xs font-medium text-rose-400 mb-1">مستحقات متجاوزة تاريخ الاستحقاق</p>
             <h3 className="text-xl font-black text-rose-400 tracking-tight font-mono" dir="ltr">
-              {formatEnglishNum(overdueAmount)} <span className="text-xs font-normal text-rose-300">{currency}</span>
+              {formatEnglishNum(overdueAmount)} <span className="text-xs font-bold text-rose-400">{currSymbol}</span>
             </h3>
             <p className="text-xs text-rose-400/80 mt-1 font-mono">
               {overdueCount} فواتير متأخرة
@@ -139,15 +141,15 @@ export const SalesInvoicesKPIs: React.FC<SalesInvoicesKPIsProps> = ({ invoices, 
         <span className="font-semibold text-slate-300">إجمالي المبيعات حسب العملة (English Digits):</span>
         <div className="flex items-center gap-4 flex-wrap font-mono" dir="ltr">
           <span className="text-emerald-400">
-            <strong>YER:</strong> {formatEnglishNum(currencyTotals.YER.sales)}
+            <strong>{getActiveCurrencySymbol('YER')} (YER):</strong> {formatEnglishNum(currencyTotals.YER.sales)}
           </span>
           <span className="text-slate-600">|</span>
           <span className="text-amber-300">
-            <strong>SAR:</strong> {formatEnglishNum(currencyTotals.SAR.sales)}
+            <strong>{getActiveCurrencySymbol('SAR')} (SAR):</strong> {formatEnglishNum(currencyTotals.SAR.sales)}
           </span>
           <span className="text-slate-600">|</span>
           <span className="text-blue-400">
-            <strong>USD:</strong> {formatEnglishNum(currencyTotals.USD.sales)}
+            <strong>{getActiveCurrencySymbol('USD')} (USD):</strong> {formatEnglishNum(currencyTotals.USD.sales)}
           </span>
         </div>
       </div>

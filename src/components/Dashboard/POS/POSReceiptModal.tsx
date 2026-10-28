@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { printInvoiceDocument } from '../../../lib/exportUtils';
+import { getActiveCurrencySymbol } from '../../../lib/formatters';
 
 interface POSReceiptModalProps {
   isOpen: boolean;
@@ -33,12 +34,14 @@ export const POSReceiptModal: React.FC<POSReceiptModalProps> = ({
   const receiptRef = useRef<HTMLDivElement>(null);
   const [printLayout, setPrintLayout] = useState<'80mm' | 'A4'>('80mm');
 
+  const currSym = getActiveCurrencySymbol(receiptData?.currency || 'YER');
+
   if (!isOpen || !receiptData) return null;
 
   const handlePrint = () => {
     printInvoiceDocument({
       layout: printLayout,
-      currency: receiptData.currency || 'YER',
+      currency: currSym,
       companyName: company?.name || 'المؤسسة التجارية',
       invoiceType: 'SALES',
       invoiceNumber: receiptData.invoiceNumber,
@@ -77,9 +80,9 @@ export const POSReceiptModal: React.FC<POSReceiptModalProps> = ({
     const message = `مرحباً بك، فاتورة مشترياتكم من ${company?.name || 'المتجر'}
 رقم الفاتورة: #${receiptData.invoiceNumber}
 التاريخ: ${receiptData.invoiceDate}
-الإجمالي: ${receiptData.total?.toLocaleString()} ${receiptData.currency}
-المدفوع: ${receiptData.paidAmount?.toLocaleString()} ${receiptData.currency}
-المتبقي: ${receiptData.remainingAmount?.toLocaleString()} ${receiptData.currency}
+الإجمالي: ${receiptData.total?.toLocaleString()} ${currSym}
+المدفوع: ${receiptData.paidAmount?.toLocaleString()} ${currSym}
+المتبقي: ${receiptData.remainingAmount?.toLocaleString()} ${currSym}
 شكراً لزيارتكم ونسعد بخدمتكم دائماً!`;
 
     const url = cleanPhone
@@ -207,7 +210,7 @@ export const POSReceiptModal: React.FC<POSReceiptModalProps> = ({
                           )}
                         </div>
                         <span className="text-[9px] text-slate-500">
-                          {item.quantity} {item.unit || item.unitName || 'حبة'} × {item.unitPrice?.toLocaleString()} {receiptData.currency}
+                          {item.quantity} {item.unit || item.unitName || 'حبة'} × {item.unitPrice?.toLocaleString()} {currSym}
                         </span>
                       </div>
                       <div className="w-1/6 text-center font-bold">{item.quantity}</div>
@@ -225,7 +228,7 @@ export const POSReceiptModal: React.FC<POSReceiptModalProps> = ({
                     )}
                     {Number(item.scrapDiscount) > 0 && (
                       <div className="text-[9px] text-emerald-800 font-bold mt-0.5">
-                        ♻️ خصم رجيع بطارية قديمة: -{Number(item.scrapDiscount).toLocaleString()} {receiptData.currency}
+                        ♻️ خصم رجيع بطارية قديمة: -{Number(item.scrapDiscount).toLocaleString()} {currSym}
                       </div>
                     )}
                   </div>
@@ -237,23 +240,23 @@ export const POSReceiptModal: React.FC<POSReceiptModalProps> = ({
             <div className="py-2.5 border-b border-dashed border-slate-400 space-y-1">
               <div className="flex justify-between">
                 <span>المجموع الفرعي:</span>
-                <span>{receiptData.subtotal?.toLocaleString()} {receiptData.currency}</span>
+                <span>{receiptData.subtotal?.toLocaleString()} {currSym}</span>
               </div>
               {Number(receiptData.discount) > 0 && (
                 <div className="flex justify-between text-rose-600">
                   <span>الخصم:</span>
-                  <span>-{receiptData.discount?.toLocaleString()} {receiptData.currency}</span>
+                  <span>-{receiptData.discount?.toLocaleString()} {currSym}</span>
                 </div>
               )}
               {Number(receiptData.tax) > 0 && (
                 <div className="flex justify-between">
                   <span>ضريبة القيمة المضافة:</span>
-                  <span>+{receiptData.tax?.toLocaleString()} {receiptData.currency}</span>
+                  <span>+{receiptData.tax?.toLocaleString()} {currSym}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm font-black border-t border-slate-400 pt-1.5 mt-1">
                 <span>الإجمالي النهائي:</span>
-                <span>{receiptData.total?.toLocaleString()} {receiptData.currency}</span>
+                <span>{receiptData.total?.toLocaleString()} {currSym}</span>
               </div>
             </div>
 
@@ -265,18 +268,18 @@ export const POSReceiptModal: React.FC<POSReceiptModalProps> = ({
               </div>
               <div className="flex justify-between">
                 <span>المدفوع / المقبوض:</span>
-                <span className="font-bold">{receiptData.paidAmount?.toLocaleString()} {receiptData.currency}</span>
+                <span className="font-bold">{receiptData.paidAmount?.toLocaleString()} {currSym}</span>
               </div>
               {Number(receiptData.changeAmount) > 0 && (
                 <div className="flex justify-between text-emerald-700 font-bold">
                   <span>المتبقي للعميل (فكة):</span>
-                  <span>{receiptData.changeAmount?.toLocaleString()} {receiptData.currency}</span>
+                  <span>{receiptData.changeAmount?.toLocaleString()} {currSym}</span>
                 </div>
               )}
               {Number(receiptData.remainingAmount) > 0 && (
                 <div className="flex justify-between text-amber-700 font-bold">
                   <span>المتبقي على الحساب (آجل):</span>
-                  <span>{receiptData.remainingAmount?.toLocaleString()} {receiptData.currency}</span>
+                  <span>{receiptData.remainingAmount?.toLocaleString()} {currSym}</span>
                 </div>
               )}
             </div>

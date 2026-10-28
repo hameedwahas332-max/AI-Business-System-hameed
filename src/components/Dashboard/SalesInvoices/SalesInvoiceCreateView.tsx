@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../../api';
-import { formatAmount, formatNumber, toEnglishDigits, parseEnglishNumber } from '../../../lib/formatters';
+import {
+  formatAmount,
+  formatNumber,
+  toEnglishDigits,
+  parseEnglishNumber,
+  getActiveCurrencyCode,
+  getActiveCurrencySymbol,
+  applyStockMovementSync,
+} from '../../../lib/formatters';
 import { printInvoiceDocument } from '../../../lib/exportUtils';
 import {
   ArrowRight,
@@ -128,7 +136,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
   const [dueDate, setDueDate] = useState('');
-  const [currency, setCurrency] = useState('YER');
+  const [currency, setCurrency] = useState(getActiveCurrencyCode());
   const [exchangeRate, setExchangeRate] = useState<number>(1.0);
   const [salespersonName, setSalespersonName] = useState('');
   const [branchName, setBranchName] = useState('');
@@ -562,6 +570,24 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
     }
   };
 
+  // Check for items priced below purchase cost or zero/empty price
+  const belowCostItems = React.useMemo(() => {
+    return items.filter((it) => {
+      if (!it.product_id && !it.name?.trim()) return false;
+      const prod = it.product_id ? productList.find((p) => p.id === it.product_id) : null;
+      const baseCost = prod ? Number(prod.costPrice || prod.purchasePrice || prod.cost_price || (prod as any).purchase_price || 0) : 0;
+      const unitCost = Number((baseCost * (it.unitFactor || 1)).toFixed(2));
+      const qty = it.quantity || 1;
+      const netUnitPrice = qty > 0 ? (qty * it.unit_price - (it.discount || 0) - (it.scrapDiscount || 0)) / qty : it.unit_price;
+      if (unitCost > 0) {
+        return Number(it.unit_price) <= 0 || Number(it.unit_price) < unitCost || netUnitPrice < unitCost;
+      }
+      return it.product_id ? Number(it.unit_price) <= 0 : false;
+    });
+  }, [items, productList]);
+
+  const hasBelowCost = belowCostItems.length > 0;
+
   const handleSave = async (statusToSave: 'PENDING' | 'DRAFT', shouldPrint: boolean = false) => {
     if (!selectedCustomerId) {
       setError('يرجى اختيار العميل أولاً لإصدار الفاتورة');
@@ -571,6 +597,12 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
     const validItems = items.filter((it) => (it.product_id || it.name?.trim()) && it.quantity > 0);
     if (validItems.length === 0) {
       setError('يجب إدخال صنف واحد على الأقل بكمية صحيحة');
+      return;
+    }
+
+    if (hasBelowCost) {
+      const names = belowCostItems.map((it) => it.name || it.itemCode || 'صنف').join('، ');
+      setError(`⛔ تنبيه محاسبي: لا يمكن إتمام البيع بأقل من سعر الشراء للأصناف التالية: (${names}). يرجى رفع سعر البيع ليغطي التكلفة.`);
       return;
     }
 
@@ -631,6 +663,32 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
       const res = await api.createInvoice(payload);
 
       if (res.success && res.data) {
+        // Apply real-time inventory deduction and sales tracking sync
+        try {
+          applyStockMovementSync(
+            validItems.map((it) => ({
+              productId: it.product_id,
+              sku: it.sku,
+              name: it.name,
+              quantity: it.quantity,
+              unit: it.unit,
+              unitFactor: it.unitFactor || 1,
+              unitPrice: it.unit_price,
+              total: it.total,
+            })),
+            {
+              type: 'sale',
+              referenceNumber: res.data.invoice_number || invoiceNumber,
+              referenceId: res.data.id,
+              customerOrSupplierName: selectedCustomer?.name || 'العميل',
+              date: invoiceDate,
+              notes: combinedNotes,
+            }
+          );
+        } catch (stockErr) {
+          console.error('Failed to sync stock deduction:', stockErr);
+        }
+
         if (shouldPrint) {
           // Print invoice preview with unit, serial & scrap info
           printInvoiceDocument({
@@ -638,6 +696,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
             invoiceType: 'SALES',
             invoiceNumber: res.data.invoice_number || invoiceNumber,
             date: invoiceDate,
+            currency: getActiveCurrencySymbol(currency),
             dueDate: dueDate || undefined,
             status: paidAmount >= grandTotal ? 'PAID' : paidAmount > 0 ? 'PARTIAL' : 'PENDING',
             partyName: selectedCustomer?.name || 'العميل',
@@ -757,6 +816,13 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
         <div className="p-3 bg-emerald-500/15 border border-emerald-500/30 rounded-xl text-emerald-400 text-xs font-semibold flex items-center gap-2 animate-fadeIn">
           <CheckCircle2 className="w-4 h-4" />
           <span>{quickNotice}</span>
+        </div>
+      )}
+
+      {hasBelowCost && (
+        <div className="p-4 bg-rose-500/15 border border-rose-500/40 rounded-2xl text-rose-300 text-sm font-bold flex items-center gap-3 shadow-lg shadow-rose-950/20 animate-pulse">
+          <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+          <span>⛔ تنبيه محاسبي: يوجد صنف مسعّر بأقل من سعر الشراء! لا يمكن إتمام البيع بخسارة حتى يتم تعديل السعر.</span>
         </div>
       )}
 
@@ -1212,15 +1278,55 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
 
                       {/* Unit Price (Resilient English Input) */}
                       <td className="py-2.5 px-3">
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          dir="ltr"
-                          lang="en"
-                          value={it.unit_price}
-                          onChange={(e) => updateItem(idx, { unit_price: parseEnglishNumber(e.target.value, 0) })}
-                          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-left text-white focus:outline-none focus:border-blue-500 font-mono"
-                        />
+                        {(() => {
+                          const prod = it.product_id ? productList.find((p) => p.id === it.product_id) : null;
+                          const baseCost = prod ? Number(prod.costPrice || prod.purchasePrice || prod.cost_price || (prod as any).purchase_price || 0) : 0;
+                          const unitCostPrice = Number((baseCost * (it.unitFactor || 1)).toFixed(2));
+                          const qty = it.quantity || 1;
+                          const netUnitPrice = qty > 0 ? (qty * it.unit_price - (it.discount || 0) - (it.scrapDiscount || 0)) / qty : it.unit_price;
+                          const isRowBelowCost = (unitCostPrice > 0 && (Number(it.unit_price) < unitCostPrice || netUnitPrice < unitCostPrice)) || (it.product_id && Number(it.unit_price) <= 0);
+
+                          return (
+                            <div className="space-y-1">
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  dir="ltr"
+                                  lang="en"
+                                  value={it.unit_price === 0 ? '' : it.unit_price}
+                                  onChange={(e) => updateItem(idx, { unit_price: parseEnglishNumber(e.target.value, 0) })}
+                                  placeholder={unitCostPrice > 0 ? String(unitCostPrice) : '0'}
+                                  className={`w-full bg-slate-800 border rounded-lg px-2 py-1.5 text-xs text-left font-mono focus:outline-none placeholder:text-slate-400/30 dark:placeholder:text-slate-500/30 placeholder:font-normal select-none ${
+                                    isRowBelowCost
+                                      ? 'border-rose-500 bg-rose-500/10 text-rose-400 ring-1 ring-rose-500/40'
+                                      : 'border-slate-700 text-white focus:border-blue-500'
+                                  }`}
+                                />
+                              </div>
+
+                              {/* Discrete Pro Cost Peek */}
+                              {unitCostPrice > 0 && (
+                                <div className="flex items-center justify-between text-[10px]">
+                                  <span
+                                    className="text-[10px] text-slate-400/25 hover:text-slate-400/75 transition-opacity cursor-help select-none group/cost inline-flex items-center"
+                                    title={`سعر الشراء الفعلي: ${unitCostPrice}`}
+                                  >
+                                    <span className="group-hover/cost:hidden">ك: ••••</span>
+                                    <span className="hidden group-hover/cost:inline font-mono">ك: {unitCostPrice}</span>
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Real-Time Row Warning Badge */}
+                              {isRowBelowCost && (
+                                <div className="text-[10px] text-rose-400 font-bold flex items-center gap-1 bg-rose-500/10 border border-rose-500/30 rounded-md px-1.5 py-0.5 leading-tight">
+                                  <span>⚠️ تحذير: سعر البيع أقل من سعر الشراء!</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
 
                       {/* Discount (Resilient English Input) */}
@@ -1601,7 +1707,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">
-                المبلغ المسلم / المسدد فورا ({currency})
+                المبلغ المسلم / المسدد فورا ({getActiveCurrencySymbol(currency)})
               </label>
               <input
                 type="text"
@@ -1643,6 +1749,13 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
             <span>الحسابات والإجمالي الختامي</span>
           </div>
 
+          {hasBelowCost && (
+            <div className="p-3 bg-rose-500/15 border border-rose-500/40 rounded-xl text-rose-300 text-xs font-bold flex items-center gap-2 animate-pulse shadow-md shadow-rose-950/20">
+              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>⛔ تنبيه محاسبي: يوجد صنف مسعّر بأقل من سعر الشراء! لا يمكن إتمام البيع بخسارة حتى يتم تعديل السعر.</span>
+            </div>
+          )}
+
           <div className="space-y-2 text-sm">
             <div className="flex justify-between text-slate-300">
               <span>المجموع الفرعي (Subtotal):</span>
@@ -1667,7 +1780,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
             {currency !== 'YER' && (
               <div className="flex justify-between text-xs text-amber-300 font-mono font-bold pt-1 border-t border-slate-800/60">
                 <span>المعادل بالعملة الأساسية:</span>
-                <span>≈ {formatNumber(grandTotal * (exchangeRate || 1))} YER</span>
+                <span>≈ {formatNumber(grandTotal * (exchangeRate || 1))} {getActiveCurrencySymbol('YER')}</span>
               </div>
             )}
 

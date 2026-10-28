@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { formatAmount } from '../../../lib/formatters';
+import { formatAmount, getActiveCurrencySymbol } from '../../../lib/formatters';
 import { printInvoiceDocument } from '../../../lib/exportUtils';
 import {
   Eye,
@@ -305,12 +305,12 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
                             ? 'bg-amber-950 text-amber-300 border-amber-800'
                             : 'bg-blue-950 text-blue-300 border-blue-800'
                         }`}>
-                          {currency}
+                          {getActiveCurrencySymbol(currency)}
                         </span>
                       </div>
                       {currency !== 'YER' && (
                         <div className="text-[10px] text-amber-300/90 font-mono text-left" dir="ltr">
-                          ≈ {baseEquivalent.toLocaleString('en-US', { maximumFractionDigits: 0 })} YER
+                          ≈ {baseEquivalent.toLocaleString('en-US', { maximumFractionDigits: 0 })} {getActiveCurrencySymbol('YER')}
                         </div>
                       )}
                     </div>
@@ -349,7 +349,7 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
                       {/* Print */}
                       <button
                         type="button"
-                        onClick={() => printInvoiceDocument(inv)}
+                        onClick={() => printInvoiceDocument({ ...inv, currency: getActiveCurrencySymbol(inv.currency) })}
                         className="p-1.5 bg-slate-800 hover:bg-slate-700 text-blue-400 rounded-lg transition-colors"
                         title="طباعة"
                       >
