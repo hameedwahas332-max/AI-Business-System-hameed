@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../api';
-import { formatAmount, formatNumber, getActiveCurrencySymbol } from '../../lib/formatters';
+import {
+  formatAmount,
+  formatNumber,
+  getActiveCurrencySymbol,
+  toEnglishDigits,
+  parseEnglishNumber,
+} from '../../lib/formatters';
 import { ExportActions } from '../Common/ExportActions';
 import { ModuleSettingsModal } from '../Common/ModuleSettingsModal';
 import { TableExportConfig } from '../../lib/exportUtils';
@@ -30,7 +36,28 @@ import {
   Sliders,
   Scale,
   RefreshCw,
+  Calculator,
+  Sparkles,
+  TrendingUp,
 } from 'lucide-react';
+
+export const EXPANDED_PACKAGING_UNITS: string[] = [
+  'قطعة / حبة',
+  'باكت / شدة',
+  'كرتون',
+  'قطمة',
+  'كيس / شوال',
+  'دبة / جالون',
+  'برميل',
+  'درزن',
+  'طقم',
+  'طبق / طبقة',
+  'كيلوجرام',
+  'جرام',
+  'أوقية',
+  'لتر',
+  'متر',
+];
 
 export const ACTIVITY_OPTIONS: { id: ProductActivityType | 'ALL'; label: string; icon: string }[] = [
   { id: 'ALL', label: 'كافة الأنشطة', icon: '🌐' },
@@ -55,6 +82,14 @@ export const ProductsTab: React.FC = () => {
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
+
+  // Auto Sub-Unit Pricing Calculator State
+  const [showAutoPricingCalc, setShowAutoPricingCalc] = useState(false);
+  const [calcBulkUnit, setCalcBulkUnit] = useState('كرتون');
+  const [calcBulkCost, setCalcBulkCost] = useState('');
+  const [calcConversionFactor, setCalcConversionFactor] = useState('');
+  const [calcProfitMarginPercent, setCalcProfitMarginPercent] = useState('20');
+  const [calcBulkSellingPrice, setCalcBulkSellingPrice] = useState('');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -216,6 +251,12 @@ export const ProductsTab: React.FC = () => {
       tankId: '',
       meterId: '',
     });
+    setShowAutoPricingCalc(false);
+    setCalcBulkUnit('كرتون');
+    setCalcBulkCost('');
+    setCalcConversionFactor('');
+    setCalcProfitMarginPercent('20');
+    setCalcBulkSellingPrice('');
     setIsModalOpen(true);
   };
 
@@ -273,7 +314,49 @@ export const ProductsTab: React.FC = () => {
       tankId: prod.tankId || '',
       meterId: prod.meterId || '',
     });
+    setShowAutoPricingCalc(false);
+    setCalcBulkUnit(prod.majorUnitName || 'كرتون');
+    setCalcBulkCost(prod.purchasePrice && prod.majorUnitFactor ? String(Math.round(Number(prod.purchasePrice) * Number(prod.majorUnitFactor))) : (prod.majorUnitPrice ? String(prod.majorUnitPrice) : ''));
+    setCalcConversionFactor(prod.majorUnitFactor ? String(prod.majorUnitFactor) : '');
+    setCalcProfitMarginPercent('20');
+    setCalcBulkSellingPrice(prod.majorUnitPrice ? String(prod.majorUnitPrice) : '');
     setIsModalOpen(true);
+  };
+
+  // Live calculation for Auto Sub-Unit Pricing Calculator
+  const cBulkCost = parseEnglishNumber(calcBulkCost, 0);
+  const cFactor = parseEnglishNumber(calcConversionFactor, 0);
+  const cMargin = parseEnglishNumber(calcProfitMarginPercent, 20);
+  const cBulkSelling = parseEnglishNumber(calcBulkSellingPrice, 0);
+
+  const calcSingleUnitCost = cBulkCost > 0 && cFactor > 0 ? Math.round((cBulkCost / cFactor) * 100) / 100 : 0;
+  const calcSuggestedRetailPrice = calcSingleUnitCost > 0 ? Math.round((calcSingleUnitCost * (1 + cMargin / 100)) * 100) / 100 : 0;
+  const calcSuggestedHalfWholesalePrice = calcSingleUnitCost > 0 ? Math.round((calcSingleUnitCost * (1 + (cMargin * 0.6) / 100)) * 100) / 100 : 0;
+  const calcSuggestedWholesalePrice = calcSingleUnitCost > 0 ? Math.round((calcSingleUnitCost * (1 + (cMargin * 0.35) / 100)) * 100) / 100 : 0;
+  const calcBulkPriceToApply = cBulkSelling > 0 ? cBulkSelling : (calcSuggestedRetailPrice > 0 && cFactor > 0 ? Math.round(calcSuggestedRetailPrice * cFactor * 0.92 * 100) / 100 : 0);
+
+  const handleApplyCalculatedPricing = () => {
+    if (calcSingleUnitCost <= 0) {
+      alert('يرجى إدخال تكلفة الكرتون/الشوال ومعامل التحويل أولاً للحساب');
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      purchasePrice: toEnglishDigits(calcSingleUnitCost),
+      sellingPrice: toEnglishDigits(calcSuggestedRetailPrice),
+      retailPrice: toEnglishDigits(calcSuggestedRetailPrice),
+      halfWholesalePrice: toEnglishDigits(calcSuggestedHalfWholesalePrice),
+      wholesalePrice: toEnglishDigits(calcSuggestedWholesalePrice),
+      baseUnitName: prev.baseUnitName || 'قطعة / حبة',
+      unit: prev.baseUnitName || 'قطعة / حبة',
+      majorUnitName: calcBulkUnit || 'كرتون',
+      majorUnitFactor: toEnglishDigits(cFactor > 0 ? cFactor : 1),
+      majorUnitPrice: toEnglishDigits(calcBulkPriceToApply),
+    }));
+
+    setSuccess(`✅ تم احتساب وتطبيق تكلفة القطعة (${calcSingleUnitCost}) وسعر التجزئة (${calcSuggestedRetailPrice}) وتفاصيل ${calcBulkUnit} بنجاح!`);
+    setTimeout(() => setSuccess(null), 3500);
   };
 
   const handleSaveProduct = async (e: React.FormEvent) => {
@@ -1063,15 +1146,170 @@ export const ProductsTab: React.FC = () => {
                 </div>
 
                 <div>
+                  <datalist id="packaging-units-list">
+                    {EXPANDED_PACKAGING_UNITS.map((u) => (
+                      <option key={u} value={u} />
+                    ))}
+                  </datalist>
+
                   <label className="block text-slate-300 font-semibold mb-1">الوحدة الأساسية (Base Unit)</label>
                   <input
                     type="text"
+                    list="packaging-units-list"
                     placeholder="حبة، علبة، لتر، كيلو..."
                     value={formData.baseUnitName}
                     onChange={(e) => setFormData({ ...formData, baseUnitName: e.target.value, unit: e.target.value })}
                     className="w-full p-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   />
+                  <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                    {['قطعة / حبة', 'باكت / شدة', 'كرتون', 'قطمة', 'كيس / شوال', 'دبة / جالون', 'درزن', 'كيلوجرام', 'لتر'].map((u) => (
+                      <button
+                        key={u}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, baseUnitName: u, unit: u })}
+                        className={`text-[10px] px-2 py-0.5 rounded-full border transition-all cursor-pointer ${
+                          formData.baseUnitName === u
+                            ? 'bg-emerald-600/30 text-emerald-300 border-emerald-500/60 font-bold'
+                            : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white hover:bg-slate-800'
+                        }`}
+                      >
+                        {u}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+              </div>
+
+              {/* Auto Sub-Unit Pricing Calculator Panel */}
+              <div className="bg-gradient-to-br from-emerald-950/70 via-slate-950 to-teal-950/60 p-3.5 rounded-xl border border-emerald-500/40 shadow-lg space-y-3">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+                      <Calculator className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-white text-xs flex items-center gap-1.5">
+                        <span>حاسبة تسعير التجزئة التلقائية</span>
+                        <span className="text-[10px] font-mono px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 rounded border border-emerald-500/30">
+                          Auto Sub-Unit Pricing
+                        </span>
+                      </h4>
+                      <p className="text-[10px] text-slate-400">
+                        احسب تكلفة وسعر بيع القطعة/الحبة آلياً من تكلفة الكرتون/الشوال وهامش الربح
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAutoPricingCalc(!showAutoPricingCalc)}
+                    className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Calculator className="w-3.5 h-3.5" />
+                    <span>{showAutoPricingCalc ? 'إخفاء الحاسبة' : 'فتح الحاسبة التلقائية ⚡'}</span>
+                  </button>
+                </div>
+
+                {showAutoPricingCalc && (
+                  <div className="space-y-3 pt-2 border-t border-emerald-900/50 animate-in fade-in duration-200">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      <div>
+                        <label className="block text-slate-300 text-[11px] font-semibold mb-1">
+                          نوع الوحدة الكبرى
+                        </label>
+                        <input
+                          type="text"
+                          list="packaging-units-list"
+                          placeholder="كرتون / شوال"
+                          value={calcBulkUnit}
+                          onChange={(e) => setCalcBulkUnit(e.target.value)}
+                          className="w-full p-2 bg-slate-900 border border-emerald-800/60 rounded-lg text-white font-medium text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-300 text-[11px] font-semibold mb-1">
+                          تكلفة شراء {calcBulkUnit || 'الكرتون'} ({getActiveCurrencySymbol()})
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="مثال: 24000"
+                          value={calcBulkCost}
+                          onChange={(e) => setCalcBulkCost(toEnglishDigits(e.target.value))}
+                          className="w-full p-2 bg-slate-900 border border-emerald-800/60 rounded-lg text-emerald-300 font-mono font-bold text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-300 text-[11px] font-semibold mb-1">
+                          معامل التحويل (كم حبة بالكرتون؟)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="مثال: 24"
+                          value={calcConversionFactor}
+                          onChange={(e) => setCalcConversionFactor(toEnglishDigits(e.target.value))}
+                          className="w-full p-2 bg-slate-900 border border-emerald-800/60 rounded-lg text-white font-mono font-bold text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-300 text-[11px] font-semibold mb-1">
+                          هامش ربح التجزئة %
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="20"
+                          value={calcProfitMarginPercent}
+                          onChange={(e) => setCalcProfitMarginPercent(toEnglishDigits(e.target.value))}
+                          className="w-full p-2 bg-slate-900 border border-emerald-800/60 rounded-lg text-cyan-300 font-mono font-bold text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-950/80 p-2.5 rounded-xl border border-emerald-900/60 text-center">
+                      <div className="p-1.5 bg-slate-900/90 rounded-lg border border-slate-800">
+                        <div className="text-[10px] text-slate-400">تكلفة القطعة الفردية</div>
+                        <div className="text-xs font-mono font-bold text-slate-200">
+                          {formatNumber(calcSingleUnitCost)} <span className="text-[9px] font-sans">{getActiveCurrencySymbol()}</span>
+                        </div>
+                      </div>
+                      <div className="p-1.5 bg-emerald-950/60 rounded-lg border border-emerald-800/50">
+                        <div className="text-[10px] text-emerald-400 font-bold">سعر التجزئة المقترح</div>
+                        <div className="text-xs font-mono font-bold text-emerald-300">
+                          {formatNumber(calcSuggestedRetailPrice)} <span className="text-[9px] font-sans">{getActiveCurrencySymbol()}</span>
+                        </div>
+                      </div>
+                      <div className="p-1.5 bg-slate-900/90 rounded-lg border border-slate-800">
+                        <div className="text-[10px] text-slate-400">سعر الجملة المقترح</div>
+                        <div className="text-xs font-mono font-bold text-slate-200">
+                          {formatNumber(calcSuggestedWholesalePrice)} <span className="text-[9px] font-sans">{getActiveCurrencySymbol()}</span>
+                        </div>
+                      </div>
+                      <div className="p-1.5 bg-slate-900/90 rounded-lg border border-slate-800">
+                        <div className="text-[10px] text-slate-400">سعر بيع {calcBulkUnit || 'الكرتون'}</div>
+                        <div className="text-xs font-mono font-bold text-amber-300">
+                          {formatNumber(calcBulkPriceToApply)} <span className="text-[9px] font-sans">{getActiveCurrencySymbol()}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <div className="text-[10px] text-slate-400">
+                        💡 بالضغط على الزر أدناه، سيتم تحديث أسعار التجزئة والجملة وسعر وتكلفة {calcBulkUnit || 'الكرتون'} فوراً
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleApplyCalculatedPricing}
+                        disabled={calcSingleUnitCost <= 0}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-md ${
+                          calcSingleUnitCost > 0
+                            ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-950/60 border border-emerald-400/40 active:scale-95'
+                            : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                        }`}
+                      >
+                        <Sparkles className="w-4 h-4 text-emerald-300" />
+                        <span>تطبيق الأسعار والتكلفة تلقائياً على الصنف</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Multi-UOM Section */}
@@ -1087,6 +1325,7 @@ export const ProductsTab: React.FC = () => {
                     <label className="block text-slate-400 text-[11px] mb-1">الوحدة الفرعية (Sub Unit)</label>
                     <input
                       type="text"
+                      list="packaging-units-list"
                       placeholder="باكت، درزن..."
                       value={formData.subUnitName}
                       onChange={(e) => setFormData({ ...formData, subUnitName: e.target.value })}
@@ -1123,6 +1362,7 @@ export const ProductsTab: React.FC = () => {
                     <label className="block text-slate-400 text-[11px] mb-1">الوحدة الكبرى (Major Unit)</label>
                     <input
                       type="text"
+                      list="packaging-units-list"
                       placeholder="كرتون، شوال، طبلية..."
                       value={formData.majorUnitName}
                       onChange={(e) => setFormData({ ...formData, majorUnitName: e.target.value })}

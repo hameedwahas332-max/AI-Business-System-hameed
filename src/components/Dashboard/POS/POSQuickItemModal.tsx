@@ -223,13 +223,22 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
                 onChange={(e) => setUnit(e.target.value)}
                 className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
               >
-                <option value="حبة">حبة / قطعة</option>
-                <option value="باكت">باكت / علبة</option>
+                <option value="قطعة / حبة">قطعة / حبة</option>
+                <option value="باكت / شدة">باكت / شدة</option>
                 <option value="كرتون">كرتون</option>
-                <option value="كيلو">كيلوغرام (kg)</option>
-                <option value="لتر">لتر (L)</option>
-                <option value="طقم">طقم / درزن</option>
-                <option value="خدمة">خدمة / مصنعية</option>
+                <option value="قطمة">قطمة</option>
+                <option value="كيس / شوال">كيس / شوال</option>
+                <option value="دبة / جالون">دبة / جالون</option>
+                <option value="برميل">برميل</option>
+                <option value="درزن">درزن</option>
+                <option value="طقم">طقم</option>
+                <option value="طبق / طبقة">طبق / طبقة</option>
+                <option value="كيلوجرام">كيلوجرام</option>
+                <option value="جرام">جرام</option>
+                <option value="أوقية">أوقية</option>
+                <option value="لتر">لتر</option>
+                <option value="متر">متر</option>
+                <option value="خدمة / مصنعية">خدمة / مصنعية</option>
               </select>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../api';
-import { formatAmount, formatSupplierAmount, parseEnglishNumber, toEnglishDigits } from '../../lib/formatters';
+import { formatAmount, formatSupplierAmount, parseEnglishNumber, toEnglishDigits, applyStockMovementSync } from '../../lib/formatters';
 import { getAccountingRate } from '../../lib/exchangeRates';
 import { ExportActions } from '../Common/ExportActions';
 import { TableExportConfig, printInvoiceDocument } from '../../lib/exportUtils';
@@ -46,20 +46,40 @@ export const PurchaseInvoicesTab: React.FC = () => {
   const [status, setStatus] = useState('PENDING'); // DRAFT, PENDING
   const [notes, setNotes] = useState('');
   const [paidAmount, setPaidAmount] = useState<any>(0);
-  const [invoiceDiscount, setInvoiceDiscount] = useState<any>(0);
-  const [invoiceDiscountType, setInvoiceDiscountType] = useState<'amount' | 'percent'>('amount');
+  const [invoiceDiscountAmount, setInvoiceDiscountAmount] = useState<any>(0);
+  const [invoiceDiscountPercent, setInvoiceDiscountPercent] = useState<any>(0);
   const [builderItems, setBuilderItems] = useState<
     Array<{
       product_id: string;
       quantity: any;
+      bonusQuantity: any;
       freeQuantity: any;
+      costPrice: any;
       unit_cost: any;
+      unitFactor: any;
+      unitName?: string;
+      itemDiscountPercent: any;
+      itemDiscountAmount: any;
       discount: any;
       discountType: 'amount' | 'percent';
       tax: any;
     }>
   >([
-    { product_id: '', quantity: 1, freeQuantity: 0, unit_cost: 0, discount: 0, discountType: 'amount', tax: 0 },
+    {
+      product_id: '',
+      quantity: 1,
+      bonusQuantity: 0,
+      freeQuantity: 0,
+      costPrice: 0,
+      unit_cost: 0,
+      unitFactor: 1,
+      unitName: 'حبة',
+      itemDiscountPercent: 0,
+      itemDiscountAmount: 0,
+      discount: 0,
+      discountType: 'amount',
+      tax: 0,
+    },
   ]);
 
   const fetchData = async () => {
@@ -103,14 +123,22 @@ export const PurchaseInvoicesTab: React.FC = () => {
     setStatus('PENDING');
     setNotes('');
     setPaidAmount(0);
-    setInvoiceDiscount(0);
-    setInvoiceDiscountType('amount');
+    setInvoiceDiscountAmount(0);
+    setInvoiceDiscountPercent(0);
+    const firstProd = products[0];
+    const initialCost = Number(firstProd?.costPrice || firstProd?.purchasePrice || firstProd?.cost_price || firstProd?.purchase_price || 0);
     setBuilderItems([
       {
-        product_id: products[0]?.id || '',
+        product_id: firstProd?.id || '',
         quantity: 1,
+        bonusQuantity: 0,
         freeQuantity: 0,
-        unit_cost: products[0]?.purchase_price || 0,
+        costPrice: initialCost,
+        unit_cost: initialCost,
+        unitFactor: 1,
+        unitName: firstProd?.unit || 'حبة',
+        itemDiscountPercent: 0,
+        itemDiscountAmount: 0,
         discount: 0,
         discountType: 'amount',
         tax: 0,
@@ -121,23 +149,35 @@ export const PurchaseInvoicesTab: React.FC = () => {
 
   const handleProductChange = (index: number, productId: string) => {
     const prod = products.find((p) => p.id === productId);
+    const prodCost = Number(prod?.costPrice || prod?.purchasePrice || prod?.cost_price || prod?.purchase_price || 0);
     const updated = [...builderItems];
     updated[index] = {
       ...updated[index],
       product_id: productId,
-      unit_cost: prod ? prod.purchase_price : 0,
+      costPrice: prodCost,
+      unit_cost: prodCost,
+      unitName: prod?.unit || 'حبة',
+      unitFactor: 1,
     };
     setBuilderItems(updated);
   };
 
   const handleAddItem = () => {
+    const firstProd = products[0];
+    const prodCost = Number(firstProd?.costPrice || firstProd?.purchasePrice || firstProd?.cost_price || firstProd?.purchase_price || 0);
     setBuilderItems([
       ...builderItems,
       {
-        product_id: products[0]?.id || '',
+        product_id: firstProd?.id || '',
         quantity: 1,
+        bonusQuantity: 0,
         freeQuantity: 0,
-        unit_cost: products[0]?.purchase_price || 0,
+        costPrice: prodCost,
+        unit_cost: prodCost,
+        unitFactor: 1,
+        unitName: firstProd?.unit || 'حبة',
+        itemDiscountPercent: 0,
+        itemDiscountAmount: 0,
         discount: 0,
         discountType: 'amount',
         tax: 0,
@@ -150,55 +190,56 @@ export const PurchaseInvoicesTab: React.FC = () => {
     setBuilderItems(builderItems.filter((_, i) => i !== index));
   };
 
-  // Helper to compute individual line calculations
+  // Helper to compute individual line calculations with exact ERP logic
   const getItemCalculations = (item: any) => {
-    const paidQty = Math.max(0, parseFloat(item.quantity) || 0);
-    const freeQty = Math.max(0, parseFloat(item.freeQuantity) || 0);
-    const totalReceived = paidQty + freeQty;
-    const unitCost = Math.max(0, parseFloat(item.unit_cost) || 0);
-    const grossLine = paidQty * unitCost;
-    const discVal = Math.max(0, parseFloat(item.discount) || 0);
-    const lineDiscount = item.discountType === 'percent'
-      ? (grossLine * (discVal / 100))
-      : discVal;
-    const netLine = Math.max(0, grossLine - lineDiscount);
-    const effectiveCost = totalReceived > 0 ? (netLine / totalReceived) : unitCost;
+    const qty = Math.max(0, parseFloat(item.quantity) || 0);
+    const bonusQuantity = Math.max(0, parseFloat(item.bonusQuantity !== undefined ? item.bonusQuantity : item.freeQuantity) || 0);
+    const unitFactor = Math.max(1, parseFloat(item.unitFactor) || 1);
+    const totalReceivedBaseUnits = (qty + bonusQuantity) * unitFactor;
+
+    const costPrice = Math.max(0, parseFloat(item.costPrice !== undefined ? item.costPrice : item.unit_cost) || 0);
+    const grossRowCost = qty * costPrice;
+
+    const itemDiscountAmount = Math.max(0, parseFloat(item.itemDiscountAmount !== undefined ? item.itemDiscountAmount : item.discount) || 0);
+    const itemDiscountPercent = grossRowCost > 0 ? (itemDiscountAmount / grossRowCost) * 100 : (parseFloat(item.itemDiscountPercent) || 0);
+    const netRowCost = Math.max(0, grossRowCost - itemDiscountAmount);
+
+    const effectiveUnitCost = totalReceivedBaseUnits > 0 ? (netRowCost / totalReceivedBaseUnits) : costPrice;
 
     return {
-      paidQty,
-      freeQty,
-      totalReceived,
-      unitCost,
-      grossLine,
-      discVal,
-      lineDiscount,
-      netLine,
-      effectiveCost,
+      qty,
+      bonusQuantity,
+      freeQuantity: bonusQuantity,
+      unitFactor,
+      totalReceivedBaseUnits,
+      costPrice,
+      grossRowCost,
+      itemDiscountAmount,
+      itemDiscountPercent,
+      netRowCost,
+      effectiveUnitCost,
     };
   };
 
   // Live Aggregate Calculations
   const calculatedSubtotal = builderItems.reduce(
-    (sum, item) => sum + getItemCalculations(item).grossLine,
+    (sum, item) => sum + getItemCalculations(item).grossRowCost,
     0
   );
   const calculatedItemsDiscount = builderItems.reduce(
-    (sum, item) => sum + getItemCalculations(item).lineDiscount,
+    (sum, item) => sum + getItemCalculations(item).itemDiscountAmount,
     0
   );
   const subtotalAfterItemsDisc = Math.max(0, calculatedSubtotal - calculatedItemsDiscount);
-  const numInvoiceDisc = Math.max(0, parseFloat(invoiceDiscount) || 0);
-  const calculatedInvoiceDiscount = invoiceDiscountType === 'percent'
-    ? (subtotalAfterItemsDisc * (numInvoiceDisc / 100))
-    : numInvoiceDisc;
-  const calculatedTotalDiscount = calculatedItemsDiscount + calculatedInvoiceDiscount;
+  const numInvoiceDisc = Math.max(0, parseFloat(invoiceDiscountAmount) || 0);
+  const calculatedTotalDiscount = calculatedItemsDiscount + numInvoiceDisc;
   const calculatedTax = builderItems.reduce(
     (sum, item) => sum + (parseFloat(item.tax) || 0),
     0
   );
   const calculatedTotal = Math.max(0, calculatedSubtotal - calculatedTotalDiscount + calculatedTax);
   const calculatedTotalReceivedUnits = builderItems.reduce(
-    (sum, item) => sum + getItemCalculations(item).totalReceived,
+    (sum, item) => sum + getItemCalculations(item).totalReceivedBaseUnits,
     0
   );
 
@@ -308,21 +349,27 @@ export const PurchaseInvoicesTab: React.FC = () => {
           product_name: prod?.name || 'صنف مشتريات',
           itemCode: prod?.itemCode || prod?.sku || '',
           sku: prod?.sku || '',
-          quantity: calcs.paidQty,
-          freeQuantity: calcs.freeQty,
-          totalReceivedQuantity: calcs.totalReceived,
-          unit_cost: calcs.unitCost,
-          discount: calcs.lineDiscount,
-          discountValue: calcs.discVal,
-          discountType: item.discountType || 'amount',
-          grossTotal: calcs.grossLine,
+          quantity: calcs.qty,
+          bonusQuantity: calcs.bonusQuantity,
+          freeQuantity: calcs.bonusQuantity,
+          unitFactor: calcs.unitFactor,
+          totalReceivedBaseUnits: calcs.totalReceivedBaseUnits,
+          totalReceivedQuantity: calcs.totalReceivedBaseUnits,
+          costPrice: calcs.costPrice,
+          unit_cost: calcs.costPrice,
+          itemDiscountPercent: calcs.itemDiscountPercent,
+          itemDiscountAmount: calcs.itemDiscountAmount,
+          discount: calcs.itemDiscountAmount,
+          grossTotal: calcs.grossRowCost,
           tax: Number(item.tax || 0),
-          total: calcs.netLine,
-          effectiveUnitCost: calcs.effectiveCost,
+          netRowCost: calcs.netRowCost,
+          total: calcs.netRowCost,
+          effectiveUnitCost: calcs.effectiveUnitCost,
+          unitName: item.unitName || prod?.unit || 'حبة',
         };
       });
 
-      await api.createPurchaseInvoice({
+      const res = await api.createPurchaseInvoice({
         supplier_id: selectedSupplierId,
         supplier_name: supp?.name || '',
         currency: currency || 'YER',
@@ -332,20 +379,64 @@ export const PurchaseInvoicesTab: React.FC = () => {
         status: status === 'PENDING' && Number(paidAmount) >= calculatedTotal ? 'PAID' : status === 'PENDING' && Number(paidAmount) > 0 ? 'PARTIALLY_PAID' : status,
         subtotal: calculatedSubtotal,
         items_discount: calculatedItemsDiscount,
-        invoice_discount: calculatedInvoiceDiscount,
-        invoice_discount_value: numInvoiceDisc,
-        invoice_discount_type: invoiceDiscountType,
+        invoice_discount: numInvoiceDisc,
+        invoice_discount_amount: numInvoiceDisc,
         discount: calculatedTotalDiscount,
         tax: calculatedTax,
         total: calculatedTotal,
         total_received_quantity: calculatedTotalReceivedUnits,
+        total_received_base_units: calculatedTotalReceivedUnits,
         paid_amount: Number(paidAmount || 0),
         remaining_amount: remainingToSupplier,
         notes,
         items: processedItems,
       });
 
-      setSuccess('تم تسجيل فاتورة المشتريات وتوريد الكميات الفعلية للمخزن بنجاح');
+      // 1. Sync inventory stock movement (including bonus quantities)
+      try {
+        applyStockMovementSync(
+          processedItems.map((it) => ({
+            productId: it.product_id,
+            quantity: it.totalReceivedBaseUnits,
+            unitFactor: 1,
+            unitName: it.unitName || 'حبة',
+            price: it.effectiveUnitCost,
+            total: it.netRowCost,
+          })),
+          {
+            type: 'purchase',
+            referenceNumber: res.data?.invoice_number || `PUR-${Date.now().toString().slice(-6)}`,
+            referenceId: res.data?.id,
+            customerOrSupplierName: supp?.name || 'المورد',
+            notes: `توريد فاتورة مشتريات وبونص #${res.data?.invoice_number || ''}`,
+          }
+        );
+      } catch (syncErr) {
+        console.warn('Failed to sync stock movement for purchase:', syncErr);
+      }
+
+      // 2. Update product costPrice with effectiveUnitCost in erp_products_v1
+      try {
+        const rawProducts = localStorage.getItem('erp_products_v1');
+        if (rawProducts) {
+          const prods = JSON.parse(rawProducts);
+          processedItems.forEach((it) => {
+            const pIdx = prods.findIndex((p: any) => p.id === it.product_id);
+            if (pIdx !== -1) {
+              prods[pIdx].costPrice = it.effectiveUnitCost;
+              prods[pIdx].cost_price = it.effectiveUnitCost;
+              prods[pIdx].purchasePrice = it.effectiveUnitCost;
+              prods[pIdx].purchase_price = it.effectiveUnitCost;
+            }
+          });
+          localStorage.setItem('erp_products_v1', JSON.stringify(prods));
+          window.dispatchEvent(new CustomEvent('erp-inventory-updated'));
+        }
+      } catch (prodErr) {
+        console.warn('Failed to update product cost price in storage:', prodErr);
+      }
+
+      setSuccess('تم تسجيل فاتورة المشتريات وتوريد الكميات الفعلية شاملة البونص وتحديث تكلفة الصنف بنجاح');
       setIsBuilderOpen(false);
       fetchData();
       setTimeout(() => setSuccess(null), 4000);
@@ -683,7 +774,7 @@ export const PurchaseInvoicesTab: React.FC = () => {
                       >
                         <div className="grid grid-cols-12 gap-2 items-center">
                           {/* Product Selection */}
-                          <div className="col-span-12 sm:col-span-4">
+                          <div className="col-span-12 sm:col-span-3">
                             <label className="block text-[10px] text-slate-400 mb-0.5">الصنف / رقم القطعة</label>
                             <select
                               value={item.product_id}
@@ -702,7 +793,7 @@ export const PurchaseInvoicesTab: React.FC = () => {
                           {/* Paid Quantity */}
                           <div className="col-span-6 sm:col-span-2">
                             <label className="block text-[10px] text-slate-400 mb-0.5 flex items-center justify-between">
-                              <span>الكمية المشترات</span>
+                              <span>الكمية المشتراة</span>
                               <span className="text-[9px] text-amber-400 font-mono">0-9 EN</span>
                             </label>
                             <input
@@ -726,7 +817,7 @@ export const PurchaseInvoicesTab: React.FC = () => {
                             <label className="block text-[10px] text-emerald-400 font-semibold mb-0.5 flex items-center justify-between">
                               <span className="flex items-center gap-1">
                                 <Gift className="w-3 h-3 text-emerald-400" />
-                                <span>بونص مجاني</span>
+                                <span>بونص مجاني 🎁</span>
                               </span>
                               <span className="text-[9px] text-emerald-400 font-mono">0-9 EN</span>
                             </label>
@@ -735,10 +826,12 @@ export const PurchaseInvoicesTab: React.FC = () => {
                               inputMode="decimal"
                               dir="ltr"
                               lang="en"
-                              value={item.freeQuantity}
+                              value={item.bonusQuantity !== undefined ? item.bonusQuantity : item.freeQuantity}
                               onChange={(e) => {
                                 const updated = [...builderItems];
-                                updated[index].freeQuantity = toEnglishDigits(e.target.value).replace(/[^0-9.]/g, '');
+                                const val = toEnglishDigits(e.target.value).replace(/[^0-9.]/g, '');
+                                updated[index].bonusQuantity = val;
+                                updated[index].freeQuantity = val;
                                 setBuilderItems(updated);
                               }}
                               placeholder="0"
@@ -757,10 +850,12 @@ export const PurchaseInvoicesTab: React.FC = () => {
                               inputMode="decimal"
                               dir="ltr"
                               lang="en"
-                              value={item.unit_cost}
+                              value={item.costPrice !== undefined ? item.costPrice : item.unit_cost}
                               onChange={(e) => {
                                 const updated = [...builderItems];
-                                updated[index].unit_cost = toEnglishDigits(e.target.value).replace(/[^0-9.]/g, '');
+                                const val = toEnglishDigits(e.target.value).replace(/[^0-9.]/g, '');
+                                updated[index].costPrice = val;
+                                updated[index].unit_cost = val;
                                 setBuilderItems(updated);
                               }}
                               placeholder="0"
@@ -768,59 +863,82 @@ export const PurchaseInvoicesTab: React.FC = () => {
                             />
                           </div>
 
-                          {/* Item Discount */}
-                          <div className="col-span-6 sm:col-span-2">
+                          {/* Item Discount Percent & Amount */}
+                          <div className="col-span-6 sm:col-span-3">
                             <label className="block text-[10px] text-slate-400 mb-0.5 flex items-center justify-between">
-                              <span>خصم الصنف</span>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const updated = [...builderItems];
-                                  updated[index].discountType = updated[index].discountType === 'percent' ? 'amount' : 'percent';
-                                  setBuilderItems(updated);
-                                }}
-                                className="text-[9px] px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded font-semibold border border-slate-600 transition-colors cursor-pointer"
-                                title="تبديل نوع الخصم بين مبلغ ونسبة"
-                              >
-                                {item.discountType === 'percent' ? '%' : currency}
-                              </button>
+                              <span>خصم الصنف (% ومبلغ)</span>
+                              <span className="text-[9px] text-amber-400 font-mono">0-9 EN</span>
                             </label>
-                            <input
-                              type="text"
-                              inputMode="decimal"
-                              dir="ltr"
-                              lang="en"
-                              value={item.discount}
-                              onChange={(e) => {
-                                const updated = [...builderItems];
-                                updated[index].discount = toEnglishDigits(e.target.value).replace(/[^0-9.]/g, '');
-                                setBuilderItems(updated);
-                              }}
-                              placeholder="0"
-                              className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg font-mono text-xs text-amber-300 focus:border-amber-500 text-center font-bold"
-                            />
+                            <div className="grid grid-cols-2 gap-1">
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  dir="ltr"
+                                  lang="en"
+                                  value={item.itemDiscountPercent || ''}
+                                  onChange={(e) => {
+                                    const updated = [...builderItems];
+                                    const pct = parseEnglishNumber(e.target.value, 0);
+                                    const q = parseFloat(item.quantity) || 0;
+                                    const c = parseFloat(item.costPrice || item.unit_cost) || 0;
+                                    const amt = Math.round(((q * c * pct) / 100) * 100) / 100;
+                                    updated[index].itemDiscountPercent = e.target.value;
+                                    updated[index].itemDiscountAmount = amt;
+                                    updated[index].discount = amt;
+                                    setBuilderItems(updated);
+                                  }}
+                                  placeholder="0%"
+                                  className="w-full p-1.5 bg-slate-900 border border-slate-700 rounded-lg font-mono text-xs text-amber-300 focus:border-amber-500 text-center"
+                                />
+                                <span className="absolute left-1.5 top-1.5 text-[9px] text-slate-500">%</span>
+                              </div>
+
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  dir="ltr"
+                                  lang="en"
+                                  value={item.itemDiscountAmount !== undefined ? item.itemDiscountAmount : item.discount}
+                                  onChange={(e) => {
+                                    const updated = [...builderItems];
+                                    const amt = parseEnglishNumber(e.target.value, 0);
+                                    const q = parseFloat(item.quantity) || 0;
+                                    const c = parseFloat(item.costPrice || item.unit_cost) || 0;
+                                    const pct = q * c > 0 ? Math.round(((amt / (q * c)) * 100) * 10) / 10 : 0;
+                                    updated[index].itemDiscountAmount = e.target.value;
+                                    updated[index].discount = e.target.value;
+                                    updated[index].itemDiscountPercent = pct;
+                                    setBuilderItems(updated);
+                                  }}
+                                  placeholder="0 مبلغ"
+                                  className="w-full p-1.5 bg-slate-900 border border-slate-700 rounded-lg font-mono text-xs text-amber-300 focus:border-amber-500 text-center font-bold"
+                                />
+                              </div>
+                            </div>
                           </div>
                         </div>
 
                         {/* Row Calculations Bar */}
                         <div className="flex flex-wrap items-center justify-between pt-1.5 border-t border-slate-800/80 text-[11px] gap-2">
                           <div className="flex flex-wrap items-center gap-2">
-                            {(calcs.freeQty > 0 || calcs.lineDiscount > 0) ? (
+                            {(calcs.bonusQuantity > 0 || calcs.itemDiscountAmount > 0) ? (
                               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-emerald-950/80 border border-emerald-800/60 text-emerald-300 font-medium">
                                 <Gift className="w-3.5 h-3.5 text-emerald-400" />
-                                <span>إجمالي الداخل للمخزن: <strong className="font-mono font-bold text-white">{calcs.totalReceived}</strong></span>
+                                <span>إجمالي الداخل للمخزن: <strong className="font-mono font-bold text-white">{calcs.totalReceivedBaseUnits}</strong></span>
                                 <span className="text-emerald-600">|</span>
-                                <span>التكلفة الفعلية للوحدة: <strong className="font-mono font-bold text-emerald-200">{Math.round(calcs.effectiveCost * 100) / 100}</strong> {currency}</span>
+                                <span>التكلفة الفعلية للوحدة: <strong className="font-mono font-bold text-emerald-200">{Math.round(calcs.effectiveUnitCost * 100) / 100}</strong> {currency}</span>
                               </span>
                             ) : (
                               <span className="text-slate-400">
-                                الكمية الداخلة للمستودع: <strong className="font-mono text-slate-200">{calcs.totalReceived}</strong>
+                                الكمية الداخلة للمستودع: <strong className="font-mono text-slate-200">{calcs.totalReceivedBaseUnits}</strong>
                               </span>
                             )}
 
-                            {calcs.lineDiscount > 0 && (
+                            {calcs.itemDiscountAmount > 0 && (
                               <span className="text-amber-400 font-mono text-[10px]">
-                                (وفر الخصم: -{formatAmount(calcs.lineDiscount)} {currency})
+                                (وفر الخصم: -{formatAmount(calcs.itemDiscountAmount)} {currency})
                               </span>
                             )}
                           </div>
@@ -828,7 +946,7 @@ export const PurchaseInvoicesTab: React.FC = () => {
                           <div className="flex items-center gap-3">
                             <div className="text-left font-mono">
                               <span className="text-[10px] text-slate-400 ml-1">صافي الصنف:</span>
-                              <strong className="text-sm font-bold text-emerald-400">{formatAmount(calcs.netLine)} {currency}</strong>
+                              <strong className="text-sm font-bold text-emerald-400">{formatAmount(calcs.netRowCost)} {currency}</strong>
                             </div>
 
                             <button
@@ -858,53 +976,37 @@ export const PurchaseInvoicesTab: React.FC = () => {
                       <Tag className="w-4 h-4" />
                     </div>
                     <div>
-                      <div className="font-bold text-white text-xs">خصم المورد الإضافي على الفاتورة (خصم عام)</div>
+                      <div className="font-bold text-white text-xs">خصم الفاتورة الإجمالي (Invoice Discount)</div>
                       <div className="text-[10px] text-slate-400">خصم تجاري خاص يمنحه المورد على إجمالي الفاتورة</div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <div className="flex rounded-lg overflow-hidden border border-slate-700 bg-slate-900 p-0.5">
-                      <button
-                        type="button"
-                        onClick={() => setInvoiceDiscountType('amount')}
-                        className={`px-2.5 py-1 text-xs font-bold rounded transition-colors cursor-pointer ${
-                          invoiceDiscountType === 'amount'
-                            ? 'bg-amber-500 text-slate-950 shadow-sm'
-                            : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        مبلغ ({currency})
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setInvoiceDiscountType('percent')}
-                        className={`px-2.5 py-1 text-xs font-bold rounded transition-colors cursor-pointer ${
-                          invoiceDiscountType === 'percent'
-                            ? 'bg-amber-500 text-slate-950 shadow-sm'
-                            : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        نسبة مئوية (%)
-                      </button>
-                    </div>
-
-                    <div className="w-28">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-slate-400">مبلغ الخصم:</span>
                       <input
                         type="text"
                         inputMode="decimal"
                         dir="ltr"
                         lang="en"
-                        value={invoiceDiscount}
-                        onChange={(e) => setInvoiceDiscount(toEnglishDigits(e.target.value).replace(/[^0-9.]/g, ''))}
+                        value={invoiceDiscountAmount}
+                        onChange={(e) => {
+                          const val = toEnglishDigits(e.target.value).replace(/[^0-9.]/g, '');
+                          setInvoiceDiscountAmount(val);
+                          const amt = parseFloat(val) || 0;
+                          if (subtotalAfterItemsDisc > 0) {
+                            setInvoiceDiscountPercent(Math.round(((amt / subtotalAfterItemsDisc) * 100) * 10) / 10);
+                          }
+                        }}
                         placeholder="0"
-                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg font-mono text-xs text-amber-300 font-bold focus:border-amber-500 text-center"
+                        className="w-28 p-2 bg-slate-900 border border-slate-700 rounded-lg font-mono text-xs text-amber-300 font-bold focus:border-amber-500 text-center"
                       />
+                      <span className="text-xs text-slate-400">{currency}</span>
                     </div>
 
-                    {calculatedInvoiceDiscount > 0 && (
-                      <span className="text-xs font-mono font-bold text-amber-400 whitespace-nowrap">
-                        = -{formatAmount(calculatedInvoiceDiscount)} {currency}
+                    {numInvoiceDisc > 0 && (
+                      <span className="text-xs font-mono font-bold text-amber-400 whitespace-nowrap bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20">
+                        -{formatAmount(numInvoiceDisc)} {currency} ({invoiceDiscountPercent}%)
                       </span>
                     )}
                   </div>
