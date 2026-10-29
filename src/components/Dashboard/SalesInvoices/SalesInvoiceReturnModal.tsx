@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../../api';
-import { formatAmount } from '../../../lib/formatters';
+import { formatAmount, applyStockMovementSync, getActiveCurrencySymbol } from '../../../lib/formatters';
 import {
   X,
   RotateCcw,
@@ -168,6 +168,28 @@ export const SalesInvoiceReturnModal: React.FC<SalesInvoiceReturnModalProps> = (
       });
 
       if (res.success) {
+        // Restore returned items back into inventory
+        try {
+          applyStockMovementSync(
+            toReturn.map((it) => ({
+              productId: it.product_id || it.item_code || '',
+              quantity: it.quantity,
+              unitName: it.unit,
+              price: it.unit_price,
+              total: it.quantity * it.unit_price,
+            })),
+            {
+              type: 'return',
+              referenceNumber: `RET-${invoice.invoice_number}`,
+              referenceId: invoice.id,
+              customerOrSupplierName: invoice.customer_name,
+              notes: reason || `مرتجع مبيعات للفاتورة #${invoice.invoice_number}`,
+            }
+          );
+        } catch (syncErr) {
+          console.error('Failed to sync return to inventory:', syncErr);
+        }
+
         onSuccess();
         onClose();
       } else {

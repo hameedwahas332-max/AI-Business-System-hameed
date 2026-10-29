@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../../../api';
-import { formatAmount, parseEnglishNumber, toEnglishDigits } from '../../../lib/formatters';
+import { formatAmount, parseEnglishNumber, toEnglishDigits, getActiveCurrencySymbol } from '../../../lib/formatters';
 import { X, DollarSign, AlertCircle, Loader2 } from 'lucide-react';
 
 interface SalesInvoicePaymentModalProps {
@@ -133,7 +133,7 @@ export const SalesInvoicePaymentModal: React.FC<SalesInvoicePaymentModalProps> =
                 required
               />
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
-                {invoice.currency || 'YER'}
+                {getActiveCurrencySymbol(invoice?.currency)}
               </span>
             </div>
           </div>
