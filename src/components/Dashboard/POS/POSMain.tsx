@@ -258,14 +258,16 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
   const belowCostCartItems = React.useMemo(() => {
     return cart.filter((it) => {
       const prod = products.find((p) => p.id === it.productId || p.id === it.product_id);
-      const baseCost = Number(prod?.costPrice || prod?.purchasePrice || prod?.cost_price || (prod as any)?.purchase_price || it.costPrice || it.cost || 0);
-      const unitCost = Number((baseCost * (it.unitFactor || 1)).toFixed(2));
+      const unitCostPrice = Math.round(
+        Number(prod?.costPrice || prod?.purchasePrice || prod?.cost_price || (prod as any)?.purchase_price || it.costPrice || it.cost || 0) *
+          Number(it.unitFactor || 1)
+      );
       const qty = it.quantity || 1;
       const netUnit = qty > 0 ? (qty * it.unitPrice - (Number(it.discount) || 0) - (Number(it.scrapDiscount) || 0)) / qty : it.unitPrice;
-      if (unitCost > 0) {
-        return Number(it.unitPrice) <= 0 || Number(it.unitPrice) < unitCost || netUnit < unitCost;
+      if (unitCostPrice > 0) {
+        return Number(it.unitPrice || 0) < unitCostPrice || netUnit < unitCostPrice || Number(it.unitPrice) <= 0;
       }
-      return Number(it.unitPrice) <= 0;
+      return Number(it.unitPrice || 0) <= 0;
     });
   }, [cart, products]);
 
@@ -275,7 +277,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
     if (cart.length === 0) return;
     if (hasBelowCostInCart) {
       const names = belowCostCartItems.map((it) => it.name).join('، ');
-      setError(`⛔ تنبيه محاسبي: لا يمكن إتمام البيع بأقل من سعر الشراء للأصناف التالية: (${names}). يرجى تعديل السعر أولاً.`);
+      setError(`⛔ تنبيه رقابي: لا يمكن إتمام البيع بسعر أقل من سعر الشراء لمنع الخسائر! الأصناف: (${names}). يرجى رفع سعر البيع ليغطي التكلفة.`);
       return;
     }
     setIsPaymentModalOpen(true);
@@ -285,7 +287,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
     if (cart.length === 0 || checkoutLoading) return;
     if (hasBelowCostInCart) {
       const names = belowCostCartItems.map((it) => it.name).join('، ');
-      setError(`⛔ تنبيه محاسبي: لا يمكن إتمام البيع بأقل من سعر الشراء للأصناف التالية: (${names}). يرجى تعديل السعر أولاً.`);
+      setError(`⛔ تنبيه رقابي: لا يمكن إتمام البيع بسعر أقل من سعر الشراء لمنع الخسائر! الأصناف: (${names}). يرجى رفع سعر البيع ليغطي التكلفة.`);
       return;
     }
     try {
@@ -1146,11 +1148,13 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                       <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 flex-wrap">
                         {(() => {
                           const prod = products.find((p) => p.id === item.productId || p.id === item.product_id);
-                          const baseCost = Number(prod?.costPrice || prod?.purchasePrice || prod?.cost_price || (prod as any)?.purchase_price || item.costPrice || item.cost || 0);
-                          const unitCostPrice = Number((baseCost * (item.unitFactor || 1)).toFixed(2));
+                          const unitCostPrice = Math.round(
+                            Number(prod?.costPrice || prod?.purchasePrice || prod?.cost_price || (prod as any)?.purchase_price || item.costPrice || item.cost || 0) *
+                              Number(item.unitFactor || 1)
+                          );
                           const qty = item.quantity || 1;
                           const netUnit = qty > 0 ? (qty * item.unitPrice - (Number(item.discount) || 0) - (Number(item.scrapDiscount) || 0)) / qty : item.unitPrice;
-                          const isBelowCost = (unitCostPrice > 0 && (Number(item.unitPrice) < unitCostPrice || netUnit < unitCostPrice)) || Number(item.unitPrice) <= 0;
+                          const isBelowCost = (unitCostPrice > 0 && (Number(item.unitPrice || 0) < unitCostPrice || netUnit < unitCostPrice)) || Number(item.unitPrice || 0) <= 0;
 
                           return (
                             <div className="flex flex-col gap-0.5">
@@ -1161,10 +1165,10 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                                   inputMode="decimal"
                                   dir="ltr"
                                   lang="en"
-                                  value={item.unitPrice === 0 ? '' : item.unitPrice}
+                                  value={item.unitPrice === 0 || (item.unitPrice as any) === '' ? '' : item.unitPrice}
                                   onChange={(e) => handleUpdatePrice(idx, parseEnglishNumber(e.target.value, 0))}
                                   placeholder={unitCostPrice > 0 ? String(unitCostPrice) : '0'}
-                                  className={`w-20 bg-slate-900 border rounded-lg px-2 py-0.5 text-xs text-left font-mono font-bold focus:outline-none placeholder:text-slate-400/30 dark:placeholder:text-slate-500/30 placeholder:font-normal select-none ${
+                                  className={`w-20 bg-slate-900 border rounded-lg px-2 py-0.5 text-xs text-left font-mono font-bold focus:outline-none placeholder:text-slate-400/35 select-none font-mono ${
                                     isBelowCost
                                       ? 'border-rose-500 bg-rose-500/10 text-rose-400 ring-1 ring-rose-500/40'
                                       : 'border-slate-700 text-emerald-400 focus:border-blue-500'
@@ -1175,8 +1179,8 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                                 {/* Discrete Pro Cost Peek */}
                                 {unitCostPrice > 0 && (
                                   <span
-                                    className="text-[10px] text-slate-400/25 hover:text-slate-400/75 transition-opacity cursor-help select-none group/cost inline-flex items-center"
-                                    title={`سعر الشراء الفعلي: ${unitCostPrice} ${currency}`}
+                                    className="text-[10px] text-slate-400/25 hover:text-slate-300 transition-opacity cursor-help select-none group/cost inline-flex items-center"
+                                    title={`سعر التكلفة: ${unitCostPrice}`}
                                   >
                                     <span className="group-hover/cost:hidden">ك: ••••</span>
                                     <span className="hidden group-hover/cost:inline font-mono">ك: {unitCostPrice}</span>
@@ -1187,7 +1191,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                               {/* Real-Time Row Warning Badge */}
                               {isBelowCost && (
                                 <div className="text-[10px] text-rose-400 font-bold flex items-center gap-1 bg-rose-500/10 border border-rose-500/30 rounded-md px-1.5 py-0.5 leading-tight">
-                                  <span>⚠️ تحذير: سعر البيع أقل من سعر الشراء!</span>
+                                  <span>⚠️ أقل من التكلفة ({unitCostPrice})</span>
                                 </div>
                               )}
                             </div>
@@ -1368,7 +1372,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
             {hasBelowCostInCart && (
               <div className="p-2.5 bg-rose-500/15 border border-rose-500/40 rounded-xl text-rose-300 text-xs font-bold flex items-center gap-2 animate-pulse shadow-md shadow-rose-950/20">
                 <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
-                <span>⛔ تنبيه محاسبي: يوجد صنف مسعّر بأقل من سعر الشراء! لا يمكن إتمام البيع بخسارة حتى يتم تعديل السعر.</span>
+                <span>⛔ تنبيه رقابي: لا يمكن إتمام البيع بسعر أقل من سعر الشراء لمنع الخسائر!</span>
               </div>
             )}
 
@@ -1434,9 +1438,9 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
 
               <button
                 onClick={handleQuickCashCheckout}
-                disabled={cart.length === 0 || checkoutLoading}
-                className="py-2.5 bg-emerald-700/30 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-bold disabled:opacity-40 transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer shadow-sm"
-                title="دفع نقدي فوري وإصدار الفاتورة فوراً (F9)"
+                disabled={cart.length === 0 || checkoutLoading || hasBelowCostInCart}
+                className="py-2.5 bg-emerald-700/30 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-bold disabled:opacity-40 transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer shadow-sm disabled:cursor-not-allowed"
+                title={hasBelowCostInCart ? 'لا يمكن البيع بسعر أقل من سعر الشراء' : 'دفع نقدي فوري وإصدار الفاتورة فوراً (F9)'}
               >
                 <Banknote className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="text-[10px] font-black">نقدي سريع (F9)</span>
@@ -1444,9 +1448,9 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
 
               <button
                 onClick={handleOpenPaymentModal}
-                disabled={cart.length === 0}
-                className="py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-black shadow-lg shadow-blue-950/40 disabled:opacity-40 transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer"
-                title="سداد ودفع متعدد / آجل / محافظ (F10)"
+                disabled={cart.length === 0 || hasBelowCostInCart}
+                className="py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-black shadow-lg shadow-blue-950/40 disabled:opacity-40 transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer disabled:cursor-not-allowed"
+                title={hasBelowCostInCart ? 'لا يمكن البيع بسعر أقل من سعر الشراء' : 'سداد ودفع متعدد / آجل / محافظ (F10)'}
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span className="text-[10px]">دفع متعدد (F10)</span>

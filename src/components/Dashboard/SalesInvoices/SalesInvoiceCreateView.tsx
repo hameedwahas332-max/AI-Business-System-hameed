@@ -575,14 +575,16 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
     return items.filter((it) => {
       if (!it.product_id && !it.name?.trim()) return false;
       const prod = it.product_id ? productList.find((p) => p.id === it.product_id) : null;
-      const baseCost = prod ? Number(prod.costPrice || prod.purchasePrice || prod.cost_price || (prod as any).purchase_price || 0) : 0;
-      const unitCost = Number((baseCost * (it.unitFactor || 1)).toFixed(2));
+      const unitCostPrice = Math.round(
+        Number(prod?.costPrice || prod?.purchasePrice || prod?.cost_price || (prod as any)?.purchase_price || 0) *
+          Number(it.unitFactor || 1)
+      );
       const qty = it.quantity || 1;
       const netUnitPrice = qty > 0 ? (qty * it.unit_price - (it.discount || 0) - (it.scrapDiscount || 0)) / qty : it.unit_price;
-      if (unitCost > 0) {
-        return Number(it.unit_price) <= 0 || Number(it.unit_price) < unitCost || netUnitPrice < unitCost;
+      if (unitCostPrice > 0) {
+        return Number(it.unit_price || 0) < unitCostPrice || netUnitPrice < unitCostPrice || Number(it.unit_price) <= 0;
       }
-      return it.product_id ? Number(it.unit_price) <= 0 : false;
+      return it.product_id ? Number(it.unit_price || 0) <= 0 : false;
     });
   }, [items, productList]);
 
@@ -602,7 +604,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
 
     if (hasBelowCost) {
       const names = belowCostItems.map((it) => it.name || it.itemCode || 'صنف').join('، ');
-      setError(`⛔ تنبيه محاسبي: لا يمكن إتمام البيع بأقل من سعر الشراء للأصناف التالية: (${names}). يرجى رفع سعر البيع ليغطي التكلفة.`);
+      setError(`⛔ تنبيه رقابي: لا يمكن إتمام البيع بسعر أقل من سعر الشراء لمنع الخسائر! الأصناف: (${names}). يرجى رفع سعر البيع ليغطي التكلفة.`);
       return;
     }
 
@@ -768,8 +770,9 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
           <button
             type="button"
             onClick={() => handleSave('DRAFT')}
-            disabled={loading}
-            className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 rounded-xl text-xs sm:text-sm font-medium transition-colors border border-slate-700"
+            disabled={loading || hasBelowCost}
+            className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 rounded-xl text-xs sm:text-sm font-medium transition-colors border border-slate-700 disabled:cursor-not-allowed"
+            title={hasBelowCost ? 'لا يمكن الحفظ: يوجد صنف مسعر بأقل من سعر الشراء' : undefined}
           >
             حفظ كمسودة
           </button>
@@ -777,8 +780,9 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
           <button
             type="button"
             onClick={() => handleSave('PENDING', true)}
-            disabled={loading}
-            className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-blue-400 border border-blue-500/30 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-colors"
+            disabled={loading || hasBelowCost}
+            className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-blue-400 border border-blue-500/30 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-colors disabled:cursor-not-allowed"
+            title={hasBelowCost ? 'لا يمكن الحفظ: يوجد صنف مسعر بأقل من سعر الشراء' : undefined}
           >
             <Printer className="w-4 h-4" />
             حفظ وطباعة
@@ -787,8 +791,9 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
           <button
             type="button"
             onClick={() => handleSave('PENDING')}
-            disabled={loading}
-            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 shadow-lg shadow-blue-600/20 transition-all"
+            disabled={loading || hasBelowCost}
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 shadow-lg shadow-blue-600/20 transition-all disabled:cursor-not-allowed"
+            title={hasBelowCost ? 'لا يمكن الحفظ: يوجد صنف مسعر بأقل من سعر الشراء' : undefined}
           >
             {loading ? (
               <>
@@ -822,7 +827,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
       {hasBelowCost && (
         <div className="p-4 bg-rose-500/15 border border-rose-500/40 rounded-2xl text-rose-300 text-sm font-bold flex items-center gap-3 shadow-lg shadow-rose-950/20 animate-pulse">
           <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
-          <span>⛔ تنبيه محاسبي: يوجد صنف مسعّر بأقل من سعر الشراء! لا يمكن إتمام البيع بخسارة حتى يتم تعديل السعر.</span>
+          <span>⛔ تنبيه رقابي: لا يمكن إتمام البيع بسعر أقل من سعر الشراء لمنع الخسائر!</span>
         </div>
       )}
 
@@ -1280,11 +1285,13 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                       <td className="py-2.5 px-3">
                         {(() => {
                           const prod = it.product_id ? productList.find((p) => p.id === it.product_id) : null;
-                          const baseCost = prod ? Number(prod.costPrice || prod.purchasePrice || prod.cost_price || (prod as any).purchase_price || 0) : 0;
-                          const unitCostPrice = Number((baseCost * (it.unitFactor || 1)).toFixed(2));
+                          const unitCostPrice = Math.round(
+                            Number(prod?.costPrice || prod?.purchasePrice || prod?.cost_price || (prod as any)?.purchase_price || 0) *
+                              Number(it.unitFactor || 1)
+                          );
                           const qty = it.quantity || 1;
                           const netUnitPrice = qty > 0 ? (qty * it.unit_price - (it.discount || 0) - (it.scrapDiscount || 0)) / qty : it.unit_price;
-                          const isRowBelowCost = (unitCostPrice > 0 && (Number(it.unit_price) < unitCostPrice || netUnitPrice < unitCostPrice)) || (it.product_id && Number(it.unit_price) <= 0);
+                          const isRowBelowCost = (unitCostPrice > 0 && (Number(it.unit_price || 0) < unitCostPrice || netUnitPrice < unitCostPrice)) || (it.product_id && Number(it.unit_price || 0) <= 0);
 
                           return (
                             <div className="space-y-1">
@@ -1294,10 +1301,10 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                                   inputMode="decimal"
                                   dir="ltr"
                                   lang="en"
-                                  value={it.unit_price === 0 ? '' : it.unit_price}
+                                  value={it.unit_price === 0 || (it.unit_price as any) === '' ? '' : it.unit_price}
                                   onChange={(e) => updateItem(idx, { unit_price: parseEnglishNumber(e.target.value, 0) })}
                                   placeholder={unitCostPrice > 0 ? String(unitCostPrice) : '0'}
-                                  className={`w-full bg-slate-800 border rounded-lg px-2 py-1.5 text-xs text-left font-mono focus:outline-none placeholder:text-slate-400/30 dark:placeholder:text-slate-500/30 placeholder:font-normal select-none ${
+                                  className={`w-full bg-slate-800 border rounded-lg px-2 py-1.5 text-xs text-left font-mono focus:outline-none placeholder:text-slate-400/35 select-none font-mono ${
                                     isRowBelowCost
                                       ? 'border-rose-500 bg-rose-500/10 text-rose-400 ring-1 ring-rose-500/40'
                                       : 'border-slate-700 text-white focus:border-blue-500'
@@ -1309,8 +1316,8 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                               {unitCostPrice > 0 && (
                                 <div className="flex items-center justify-between text-[10px]">
                                   <span
-                                    className="text-[10px] text-slate-400/25 hover:text-slate-400/75 transition-opacity cursor-help select-none group/cost inline-flex items-center"
-                                    title={`سعر الشراء الفعلي: ${unitCostPrice}`}
+                                    className="text-[10px] text-slate-400/25 hover:text-slate-300 transition-opacity cursor-help select-none group/cost inline-flex items-center"
+                                    title={`سعر التكلفة: ${unitCostPrice}`}
                                   >
                                     <span className="group-hover/cost:hidden">ك: ••••</span>
                                     <span className="hidden group-hover/cost:inline font-mono">ك: {unitCostPrice}</span>
@@ -1321,7 +1328,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                               {/* Real-Time Row Warning Badge */}
                               {isRowBelowCost && (
                                 <div className="text-[10px] text-rose-400 font-bold flex items-center gap-1 bg-rose-500/10 border border-rose-500/30 rounded-md px-1.5 py-0.5 leading-tight">
-                                  <span>⚠️ تحذير: سعر البيع أقل من سعر الشراء!</span>
+                                  <span>⚠️ أقل من التكلفة ({unitCostPrice})</span>
                                 </div>
                               )}
                             </div>
