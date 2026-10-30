@@ -8,7 +8,12 @@ edition = "2021"
 
 [lib]
 name = "wahas_erp_lib"
+path = "src/lib.rs"
 crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "wahas-erp"
+path = "src/main.rs"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
