@@ -11,6 +11,7 @@ import {
 } from '../../../lib/formatters';
 import { printInvoiceDocument } from '../../../lib/exportUtils';
 import { recordAutomaticTreasuryVoucher } from '../../../utils/treasuryVoucherHelper';
+import { enqueueOutboxTransaction } from '../../../services/transactionalOutbox';
 import {
   ArrowRight,
   Plus,
@@ -785,6 +786,12 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
           );
           localStorage.setItem('erp_invoices_v1', JSON.stringify([finalInvoice, ...filtered]));
           window.dispatchEvent(new CustomEvent('erp-invoices-updated'));
+
+          // Enqueue into persistent Transactional Outbox (CR-2026-TAURI-OFFLINE-SYNC-001)
+          enqueueOutboxTransaction('SALES_INVOICE_CREATE', finalInvoice, {
+            dependencyOrder: 20,
+            idempotencyKey: `inv_${finalInvoice.id}`,
+          }).catch((e) => console.warn('[OUTBOX_INVOICE_WARN]', e));
         } catch (e) {
           console.error('Failed to sync to erp_invoices_v1:', e);
         }

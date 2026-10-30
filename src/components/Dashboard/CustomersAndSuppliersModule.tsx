@@ -59,6 +59,7 @@ import {
 } from 'lucide-react';
 import { getAccountingRate, toBaseCurrencyAmount } from '../../lib/exchangeRates';
 import { recordAutomaticTreasuryVoucher } from '../../utils/treasuryVoucherHelper';
+import { enqueueOutboxTransaction } from '../../services/transactionalOutbox';
 
 export type MainTabFilter = 'ALL' | 'CUSTOMERS' | 'SUPPLIERS' | 'DEBIT' | 'CREDIT' | 'OVERDUE' | 'ACTIVE';
 
@@ -425,6 +426,20 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
         });
         setSuccess('تم تسجيل العميل الجديد وتثبيت الرصيد الافتتاحي والعملة بنجاح');
       }
+
+      // Enqueue Master Data change into Transactional Outbox (CR-2026-TAURI-OFFLINE-SYNC-001)
+      enqueueOutboxTransaction(
+        editingCustomer ? 'UPDATE_CUSTOMER_MASTER' : 'CREATE_CUSTOMER_MASTER',
+        {
+          id: editingCustomer?.id,
+          name: customerFormData.name,
+          phone: customerFormData.phone,
+          currency: customerFormData.currency,
+          opening_balance: opNum,
+        },
+        { dependencyOrder: 10 }
+      ).catch(() => {});
+
       setIsCustomerModalOpen(false);
       fetchAllData(searchQuery);
       setTimeout(() => setSuccess(null), 4000);
@@ -511,6 +526,20 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
         });
         setSuccess('تم تسجيل المورد الجديد وتثبيت الرصيد الافتتاحي والعملة بنجاح');
       }
+
+      // Enqueue Master Data change into Transactional Outbox (CR-2026-TAURI-OFFLINE-SYNC-001)
+      enqueueOutboxTransaction(
+        editingSupplier ? 'UPDATE_SUPPLIER_MASTER' : 'CREATE_SUPPLIER_MASTER',
+        {
+          id: editingSupplier?.id,
+          name: supplierFormData.name,
+          phone: supplierFormData.phone,
+          currency: supplierFormData.currency,
+          opening_balance: opNum,
+        },
+        { dependencyOrder: 10 }
+      ).catch(() => {});
+
       setIsSupplierModalOpen(false);
       fetchAllData(searchQuery);
       setTimeout(() => setSuccess(null), 4000);

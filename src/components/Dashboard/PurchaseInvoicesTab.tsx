@@ -5,6 +5,7 @@ import { getAccountingRate } from '../../lib/exchangeRates';
 import { ExportActions } from '../Common/ExportActions';
 import { TableExportConfig, printInvoiceDocument } from '../../lib/exportUtils';
 import { recordAutomaticTreasuryVoucher } from '../../utils/treasuryVoucherHelper';
+import { enqueueOutboxTransaction } from '../../services/transactionalOutbox';
 import { useAuth } from '../../context/AuthContext';
 import {
   ShoppingBag,
@@ -505,6 +506,12 @@ export const PurchaseInvoicesTab: React.FC = () => {
           JSON.stringify([purInvoiceObj, ...existingPur.filter((p) => p.id !== purInvoiceObj.id)])
         );
         window.dispatchEvent(new CustomEvent('erp-purchase-invoices-updated'));
+
+        // Enqueue into persistent Transactional Outbox (CR-2026-TAURI-OFFLINE-SYNC-001)
+        enqueueOutboxTransaction('PURCHASE_INVOICE_CREATE', purInvoiceObj, {
+          dependencyOrder: 20,
+          idempotencyKey: `pur_${purInvoiceObj.id}`,
+        }).catch((e) => console.warn('[OUTBOX_PURCHASE_WARN]', e));
       } catch (e) {}
 
       setSuccess('تم تسجيل فاتورة المشتريات وتوريد الكميات الفعلية شاملة البونص وتحديث تكلفة الصنف بنجاح');

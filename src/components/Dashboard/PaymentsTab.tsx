@@ -4,6 +4,7 @@ import { formatAmount, formatNumber, toEnglishDigits, formatDateOnly } from '../
 import { getAccountingRate } from '../../lib/exchangeRates';
 import { ExportActions } from '../Common/ExportActions';
 import { TableExportConfig, printPaymentReceipt } from '../../lib/exportUtils';
+import { enqueueOutboxTransaction } from '../../services/transactionalOutbox';
 import { useAuth } from '../../context/AuthContext';
 import {
   CreditCard,
@@ -318,6 +319,22 @@ export const PaymentsTab: React.FC = () => {
     try {
       setIsSubmitting(true);
       const res = await api.createPayment(payload);
+
+      // Enqueue into persistent Transactional Outbox (CR-2026-TAURI-OFFLINE-SYNC-001)
+      try {
+        const pmtRecord = res?.data || { ...payload, id: `pmt-${Date.now()}` };
+        enqueueOutboxTransaction(
+          paymentType === 'CUSTOMER_PAYMENT' ? 'MANUAL_RECEIPT_VOUCHER' : 'MANUAL_PAYMENT_VOUCHER',
+          pmtRecord,
+          {
+            dependencyOrder: 40,
+            idempotencyKey: `pmt_${pmtRecord.id || Date.now()}`,
+          }
+        ).catch((e) => console.warn('[OUTBOX_PAYMENTS_WARN]', e));
+      } catch (outboxErr) {
+        console.warn('[OUTBOX_PAYMENTS_ERR]', outboxErr);
+      }
+
       setIsModalOpen(false);
       setSuccess(
         paymentType === 'CUSTOMER_PAYMENT'

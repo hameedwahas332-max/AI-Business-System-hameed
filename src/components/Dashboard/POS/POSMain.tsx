@@ -52,6 +52,7 @@ import {
 } from '../../../lib/formatters';
 import { printInvoiceDocument } from '../../../lib/exportUtils';
 import { recordAutomaticTreasuryVoucher } from '../../../utils/treasuryVoucherHelper';
+import { enqueueOutboxTransaction } from '../../../services/transactionalOutbox';
 import { ModuleSettingsModal } from '../../Common/ModuleSettingsModal';
 import { POSQuickItemModal } from './POSQuickItemModal';
 import { POSCustomerSelector } from './POSCustomerSelector';
@@ -824,6 +825,12 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
             JSON.stringify([finalPosInvoice, ...existingList.filter((i) => i.id !== finalPosInvoice.id && i.invoice_number !== invNum)])
           );
           window.dispatchEvent(new CustomEvent('erp-invoices-updated'));
+
+          // Enqueue into persistent Transactional Outbox (CR-2026-TAURI-OFFLINE-SYNC-001)
+          enqueueOutboxTransaction('POS_SALE_CREATE', finalPosInvoice, {
+            dependencyOrder: 20,
+            idempotencyKey: `pos_${finalPosInvoice.id}`,
+          }).catch((e) => console.warn('[OUTBOX_POS_WARN]', e));
         } catch (e) {
           console.error('Failed to sync POS invoice to erp_invoices_v1:', e);
         }

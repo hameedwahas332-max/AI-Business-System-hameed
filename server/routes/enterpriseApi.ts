@@ -26,6 +26,13 @@ import {
   PayrollRecordItem,
   ExpenseItem,
 } from '../dataStore';
+import {
+  handleSyncPush,
+  handleSyncPull,
+  handleConflictResolution,
+  getTenantConflicts,
+  registerSseClient,
+} from '../services/syncEngineServer';
 
 export {
   mockCustomersList,
@@ -4195,6 +4202,112 @@ enterpriseRouter.delete('/expenses/:id', (req: Request, res: Response) => {
     success: true,
     message: 'تم حذف سند المصروف بنجاح',
   });
+});
+
+// ==========================================
+// 14. Real-Time Multi-Device Sync & Conflict Engine Routes (CR-2026-TAURI-OFFLINE-SYNC-001)
+// ==========================================
+
+enterpriseRouter.post('/sync/push', async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req.headers['x-tenant-id'] as string) || req.body.tenantId || resolveCompanyId(req) || 'comp_001';
+    const deviceId = (req.headers['x-device-id'] as string) || req.body.deviceId || 'dev_unknown';
+    const transactions = Array.isArray(req.body.transactions) ? req.body.transactions : [];
+
+    const result = await handleSyncPush({
+      tenantId,
+      deviceId,
+      transactions,
+    });
+
+    res.json(result);
+  } catch (err: any) {
+    console.error('[SYNC_PUSH_ERR]', err);
+    res.status(500).json({
+      success: false,
+      error: err?.message || 'Sync push failed',
+    });
+  }
+});
+
+enterpriseRouter.get('/sync/pull', (req: Request, res: Response) => {
+  try {
+    const tenantId = (req.headers['x-tenant-id'] as string) || (req.query.tenantId as string) || resolveCompanyId(req) || 'comp_001';
+    const sinceSeq = parseInt((req.query.sinceSeq as string) || '0', 10);
+
+    const result = handleSyncPull(tenantId, sinceSeq);
+    res.json({
+      success: true,
+      ...result,
+    });
+  } catch (err: any) {
+    console.error('[SYNC_PULL_ERR]', err);
+    res.status(500).json({
+      success: false,
+      error: err?.message || 'Sync pull failed',
+    });
+  }
+});
+
+enterpriseRouter.post('/sync/resolve-conflict', (req: Request, res: Response) => {
+  try {
+    const tenantId = (req.headers['x-tenant-id'] as string) || req.body.tenantId || resolveCompanyId(req) || 'comp_001';
+    const userId = (req.headers['x-user-id'] as string) || req.body.userId || 'usr_admin';
+    const { conflictId, resolutionStrategy, resolvedPayload } = req.body;
+
+    if (!conflictId || !resolutionStrategy) {
+      return res.status(400).json({ success: false, message: 'Missing conflictId or resolutionStrategy' });
+    }
+
+    const result = handleConflictResolution({
+      tenantId,
+      userId,
+      conflictId,
+      resolutionStrategy,
+      resolvedPayload,
+    });
+
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      error: err?.message || 'Conflict resolution failed',
+    });
+  }
+});
+
+enterpriseRouter.get('/sync/conflicts', (req: Request, res: Response) => {
+  try {
+    const tenantId = (req.headers['x-tenant-id'] as string) || (req.query.tenantId as string) || resolveCompanyId(req) || 'comp_001';
+    const conflicts = getTenantConflicts(tenantId);
+    res.json({
+      success: true,
+      data: conflicts,
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      error: err?.message || 'Failed to fetch conflicts',
+    });
+  }
+});
+
+enterpriseRouter.get('/sync/stream', (req: Request, res: Response) => {
+  try {
+    const tenantId = (req.query.tenantId as string) || (req.headers['x-tenant-id'] as string) || 'comp_001';
+    const deviceId = (req.query.deviceId as string) || (req.headers['x-device-id'] as string) || 'dev_unknown';
+
+    // Set headers for Server-Sent Events (SSE)
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders?.();
+
+    registerSseClient(tenantId, deviceId, res);
+  } catch (err: any) {
+    console.error('[SYNC_STREAM_ERR]', err);
+    res.status(500).end();
+  }
 });
 
 

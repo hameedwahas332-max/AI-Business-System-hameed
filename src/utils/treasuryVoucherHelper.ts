@@ -1,4 +1,5 @@
 import { getActiveCurrencyCode } from '../lib/formatters';
+import { enqueueOutboxTransaction } from '../services/transactionalOutbox';
 
 export interface AutomaticVoucherParams {
   type: 'CUSTOMER_PAYMENT' | 'SUPPLIER_PAYMENT';
@@ -119,7 +120,21 @@ export function recordAutomaticTreasuryVoucher(params: AutomaticVoucherParams): 
     console.warn('[RECORD_VOUCHER_LOCAL_WARN]', err);
   }
 
-  // Push to server asynchronously
+  // Enqueue into persistent Transactional Outbox (CR-2026-TAURI-OFFLINE-SYNC-001)
+  try {
+    enqueueOutboxTransaction(
+      isReceipt ? 'TREASURY_RECEIPT_VOUCHER' : 'TREASURY_PAYMENT_VOUCHER',
+      voucherObj,
+      {
+        dependencyOrder: 40,
+        idempotencyKey: `vouch_${voucherObj.id}`,
+      }
+    ).catch((e) => console.warn('[OUTBOX_VOUCHER_ENQUEUE_WARN]', e));
+  } catch (e) {
+    console.warn('[OUTBOX_VOUCHER_WARN]', e);
+  }
+
+  // Push to server asynchronously as optimistic fallback
   try {
     fetch('/api/v1/payments', {
       method: 'POST',
