@@ -248,7 +248,7 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
                   {/* Invoice Number & Battery/Tire Warranty Badge */}
                   <td className="py-3.5 px-4">
                     <div className="space-y-1">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <button
                           type="button"
                           onClick={() => onViewDetails(inv)}
@@ -268,6 +268,24 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
                             <Copy className="w-3 h-3" />
                           )}
                         </button>
+
+                        {/* Cloud Synchronization Status Indicator */}
+                        {inv.syncStatus === 'CONFLICT' ? (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.2 rounded-md bg-rose-500/10 text-rose-300 border border-rose-500/30 font-bold" title="يوجد تعارض في السيرفر">
+                            <span>⚠️</span>
+                            <span>تعارض</span>
+                          </span>
+                        ) : inv.serverSeq || inv.syncStatus === 'SYNCED' || inv.is_synced ? (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.2 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold" title={`تم التأكيد بالسيرفر #${inv.serverSeq || ''}`}>
+                            <span>☁️</span>
+                            <span>متزامن</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.2 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/30 font-bold" title="محفوظ محلياً بانتظار الإرسال">
+                            <span>⏳</span>
+                            <span>معلق محلياً</span>
+                          </span>
+                        )}
                       </div>
 
                       {hasWarranty && (

@@ -822,12 +822,32 @@ export const PaymentsTab: React.FC = () => {
                     >
                       {/* Voucher Number */}
                       <td className="py-3 px-4">
-                        <button
-                          onClick={() => handleOpenDetails(p.id)}
-                          className="font-mono font-bold text-emerald-400 hover:text-emerald-300 hover:underline flex items-center gap-1.5 cursor-pointer"
-                        >
-                          <span>{p.voucher_number || p.reference || `V-${p.id.slice(0, 6)}`}</span>
-                        </button>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <button
+                            onClick={() => handleOpenDetails(p.id)}
+                            className="font-mono font-bold text-emerald-400 hover:text-emerald-300 hover:underline flex items-center gap-1 cursor-pointer"
+                          >
+                            <span>{p.voucher_number || p.reference || `V-${p.id.slice(0, 6)}`}</span>
+                          </button>
+
+                          {/* Cloud Synchronization Status Indicator */}
+                          {p.syncStatus === 'CONFLICT' ? (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.2 rounded-md bg-rose-500/10 text-rose-300 border border-rose-500/30 font-bold" title="يوجد تعارض في السيرفر">
+                              <span>⚠️</span>
+                              <span>تعارض</span>
+                            </span>
+                          ) : p.serverSeq || p.syncStatus === 'SYNCED' || p.is_synced ? (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.2 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold" title={`تم التأكيد بالسيرفر #${p.serverSeq || ''}`}>
+                              <span>☁️</span>
+                              <span>متزامن</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.2 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/30 font-bold" title="محفوظ محلياً بانتظار الإرسال">
+                              <span>⏳</span>
+                              <span>معلق محلياً</span>
+                            </span>
+                          )}
+                        </div>
                         {p.operation_number && (
                           <div className="text-[10px] text-slate-400 font-mono">عملية: {p.operation_number}</div>
                         )}

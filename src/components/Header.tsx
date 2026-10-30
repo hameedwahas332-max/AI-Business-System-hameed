@@ -23,6 +23,8 @@ import { getStoredExchangeRates, EVENT_EXCHANGE_RATES_CHANGED, ExchangeRateConfi
 import { formatNumber } from '../lib/formatters';
 import { useModuleSettings, PRESET_DEFINITIONS, BusinessPresetKey } from '../context/ModuleSettingsContext';
 import { useAuth } from '../context/AuthContext';
+import { SyncCenterModal } from './Dashboard/SyncCenterModal';
+import { getAllRecords } from '../services/localSqliteDal';
 
 export type ThemeMode = 'dark' | 'light';
 export type AccentColor = 'indigo' | 'sapphire' | 'emerald' | 'amber';
@@ -64,6 +66,57 @@ export const Header: React.FC<HeaderProps> = ({
   ];
 
   const currentPresetObj = PRIMARY_PRESETS.find((p) => p.key === settings.activePreset) || PRIMARY_PRESETS[0];
+
+  const [isSyncCenterOpen, setIsSyncCenterOpen] = useState(false);
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
+  const [conflictCount, setConflictCount] = useState(0);
+
+  const refreshSyncStats = React.useCallback(async () => {
+    try {
+      const [outbox, confs] = await Promise.all([
+        getAllRecords('local_transactional_outbox'),
+        getAllRecords('sync_conflict_registry')
+      ]);
+      const pending = outbox.filter((i: any) => i.syncStatus === 'PENDING_SYNC' || i.syncStatus === 'SYNCING').length;
+      const unresolvedConflicts = confs.filter((c: any) => !c.resolvedAt).length;
+      setPendingSyncCount(pending);
+      setConflictCount(unresolvedConflicts);
+    } catch {
+      // fallback
+    }
+  }, []);
+
+  React.useEffect(() => {
+    refreshSyncStats();
+
+    const handleOnline = () => {
+      setIsOnline(true);
+      refreshSyncStats();
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      refreshSyncStats();
+    };
+    const handleUpdate = () => refreshSyncStats();
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('erp-outbox-updated', handleUpdate);
+    window.addEventListener('erp-sync-state-changed', handleUpdate);
+    window.addEventListener('erp-remote-data-updated', handleUpdate);
+
+    const interval = setInterval(refreshSyncStats, 10000);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('erp-outbox-updated', handleUpdate);
+      window.removeEventListener('erp-sync-state-changed', handleUpdate);
+      window.removeEventListener('erp-remote-data-updated', handleUpdate);
+      clearInterval(interval);
+    };
+  }, [refreshSyncStats]);
 
   React.useEffect(() => {
     const handleRatesChanged = () => {
@@ -228,8 +281,47 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div className="h-6 w-px bg-slate-800 mx-1 hidden sm:block" />
 
-        {/* CONTROL GROUP: Store & Account Badge, Lock System, Logout */}
+        {/* CONTROL GROUP: Synchronization Status, Store & Account Badge, Lock System, Logout */}
         <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Interactive Synchronization Status Pill (CR-2026-TAURI-OFFLINE-SYNC-001) */}
+          <button
+            type="button"
+            onClick={() => setIsSyncCenterOpen(true)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-sm ${
+              conflictCount > 0
+                ? 'bg-rose-500/10 border-rose-500/30 text-rose-300 hover:bg-rose-500/20'
+                : !isOnline || pendingSyncCount > 0
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20'
+                : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
+            }`}
+            title="مركز المزامنة السيادية وقاعدة البيانات المحلية (اضغط لفتح المركز)"
+          >
+            {conflictCount > 0 ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                <span className="hidden sm:inline">⚠️ تعارض يتطلب المراجعة:</span>
+                <span className="font-mono font-black text-rose-300">{conflictCount}</span>
+              </>
+            ) : !isOnline ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                <span className="hidden sm:inline">أوفلاين معلق:</span>
+                <span className="font-mono font-bold text-amber-300">{pendingSyncCount} حركة</span>
+              </>
+            ) : pendingSyncCount > 0 ? (
+              <>
+                <RefreshCw className="w-3 h-3 text-amber-400 animate-spin" />
+                <span className="hidden sm:inline">بانتظار المزامنة:</span>
+                <span className="font-mono font-bold text-amber-300">{pendingSyncCount} حركة</span>
+              </>
+            ) : (
+              <>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="hidden sm:inline">متصل - متزامن</span>
+              </>
+            )}
+          </button>
+
           {/* 1. Store Name & Account Badge / Login Button */}
           {isAuthenticated && user ? (
             <button
@@ -292,6 +384,14 @@ export const Header: React.FC<HeaderProps> = ({
     <DailyExchangeRateModal
       isOpen={isRatesOpen}
       onClose={() => setIsRatesOpen(false)}
+    />
+
+    <SyncCenterModal
+      isOpen={isSyncCenterOpen}
+      onClose={() => {
+        setIsSyncCenterOpen(false);
+        refreshSyncStats();
+      }}
     />
   </>
 );
