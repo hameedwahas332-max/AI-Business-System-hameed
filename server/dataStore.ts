@@ -1376,6 +1376,8 @@ export function recordSentWhatsAppMessage(companyId: string, payload: {
   return newMsg;
 }
 
+export const tenantSnapshotsMap: Map<string, any> = new Map();
+
 export function persistAllToDisk(): void {
   try {
     if (!fs.existsSync(STORE_DIR)) {
@@ -1403,6 +1405,7 @@ export function persistAllToDisk(): void {
       expenses: mockExpensesList,
       whatsappConfigs: Object.fromEntries(mockWhatsAppConfigsMap),
       whatsappStates: Object.fromEntries(mockWhatsAppStateMap),
+      tenantSnapshots: Object.fromEntries(tenantSnapshotsMap),
     };
     fs.writeFileSync(STORE_FILE, JSON.stringify(payload, null, 2), 'utf-8');
   } catch (err: any) {
@@ -1503,6 +1506,11 @@ export function initPermanentDiskStore(): void {
             mockWhatsAppStateMap.set(k, v);
           });
         }
+        if (data.tenantSnapshots && typeof data.tenantSnapshots === 'object') {
+          Object.entries(data.tenantSnapshots).forEach(([k, v]) => {
+            tenantSnapshotsMap.set(k, v);
+          });
+        }
         console.log('[PERMANENT_STORE_RESTORED] Loaded from disk successfully.');
       }
     }
@@ -1563,8 +1571,8 @@ export async function initPermanentPostgresTables(pool: any): Promise<void> {
       console.log(`[PG_USERS_LOADED] Loaded ${res.rows.length} permanent accounts from PostgreSQL.`);
     }
 
-    // Load WhatsApp configurations and states from database if present
-    const tenantDataRes = await pool.query("SELECT * FROM erp_permanent_tenant_data WHERE data_type IN ('whatsapp_config', 'whatsapp_state', 'clean_production_mode')");
+    // Load WhatsApp configurations, states, and tenant snapshots from database if present
+    const tenantDataRes = await pool.query("SELECT * FROM erp_permanent_tenant_data WHERE data_type IN ('whatsapp_config', 'whatsapp_state', 'clean_production_mode', 'tenant_snapshot')");
     if (tenantDataRes && tenantDataRes.rows && tenantDataRes.rows.length > 0) {
       for (const row of tenantDataRes.rows) {
         if (row.data_type === 'whatsapp_config' && row.company_id && row.payload) {
@@ -1576,6 +1584,8 @@ export async function initPermanentPostgresTables(pool: any): Promise<void> {
           if (row.payload.cleanProductionMode) {
             isSampleDataSeeded = false;
           }
+        } else if (row.data_type === 'tenant_snapshot' && row.company_id && row.payload) {
+          tenantSnapshotsMap.set(row.company_id, row.payload);
         }
       }
       console.log(`[PG_TENANT_DATA_LOADED] Loaded ${tenantDataRes.rows.length} permanent tenant records.`);
@@ -1640,6 +1650,40 @@ export async function saveCompanyToPermanentStore(company: any, pool?: any): Pro
       console.warn('[PG_COMPANY_PERSIST_WARN]', err?.message);
     }
   }
+}
+
+export async function saveTenantSnapshot(companyId: string, snapshot: any, userKey?: string, pool?: any): Promise<void> {
+  if (!companyId || !snapshot) return;
+  const payload = {
+    companyId,
+    userKey: userKey || companyId,
+    snapshot,
+    updated_at: new Date().toISOString(),
+  };
+  tenantSnapshotsMap.set(companyId, payload);
+  if (userKey && userKey !== companyId) {
+    tenantSnapshotsMap.set(userKey, payload);
+  }
+  persistAllToDisk();
+
+  if (pool) {
+    try {
+      await pool.query(
+        `INSERT INTO erp_permanent_tenant_data (company_id, data_type, payload, updated_at)
+         VALUES ($1, 'tenant_snapshot', $2, CURRENT_TIMESTAMP)
+         ON CONFLICT (company_id, data_type) DO UPDATE SET payload = EXCLUDED.payload, updated_at = CURRENT_TIMESTAMP`,
+        [companyId, JSON.stringify(payload)]
+      );
+    } catch (err: any) {
+      console.warn('[PG_SNAPSHOT_PERSIST_WARN]', err?.message);
+    }
+  }
+}
+
+export function getTenantSnapshot(companyOrUserKey: string): any {
+  if (!companyOrUserKey) return null;
+  const entry = tenantSnapshotsMap.get(companyOrUserKey);
+  return entry ? (entry.snapshot || entry) : null;
 }
 
 export async function rehydrateTenantData(payload: any, pool?: any): Promise<{ success: boolean; message: string }> {

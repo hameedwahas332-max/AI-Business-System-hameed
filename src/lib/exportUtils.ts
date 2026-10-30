@@ -436,9 +436,10 @@ export function printInvoiceDocument(inv?: any, options?: { title?: string; curr
   const invoiceNo = invoice.invoiceNumber || invoice.invoice_number || invoice.id || `INV-${Date.now().toString().slice(-6)}`;
   const dateStr = invoice.date || invoice.invoice_date || new Date().toLocaleDateString('ar-YE');
   const companyName = invoice.companyName || invoice.company_name || 'المؤسسة التجارية';
-  const partyName = invoice.partyName || invoice.customer_name || invoice.supplier_name || invoice.customer || 'العميل النقدي';
+  const partyName = invoice.partyName || invoice.customer_name || invoice.customerName || invoice.clientName || invoice.supplier_name || invoice.supplierName || invoice.customer || (isPurchase ? 'المورد التجاري' : 'العميل النقدي');
   const partyPhone = invoice.partyPhone || invoice.customer_phone || invoice.supplier_phone || '';
   const partyAddress = invoice.partyAddress || invoice.customer_address || '';
+  const salesperson = invoice.salesperson || invoice.salesperson_name || invoice.salespersonName || invoice.cashier_name || invoice.cashierName || invoice.created_by_name || invoice.createdBy || 'حميد وهاس';
   const paymentMethod = invoice.paymentMethod || invoice.payment_method || 'نقداً';
   const status = invoice.status || 'مدفوعة';
 
@@ -454,11 +455,41 @@ export function printInvoiceDocument(inv?: any, options?: { title?: string; curr
         },
       ];
 
-  const subtotal = Number(invoice.subtotal || invoice.total || invoice.amount || 0);
+  const computedItemsSum = items.reduce((acc: number, it: any) => {
+    const q = Number(it.quantity || it.qty || 1);
+    const p = Number(it.unitPrice || it.unit_price || it.price || 0);
+    const d = Number(it.discount || 0);
+    const s = Number(it.scrapDiscount || 0);
+    const tx = Number(it.tax || 0);
+    return acc + Math.max(0, q * p - d - s) + tx;
+  }, 0);
+
+  const subtotal = Number(invoice.subtotal ?? (computedItemsSum > 0 ? computedItemsSum : (invoice.total ?? invoice.amount ?? 0)));
   const tax = Number(invoice.tax || 0);
-  const total = Number(invoice.total || invoice.amount || (subtotal + tax));
-  const paidAmount = Number(invoice.paidAmount !== undefined ? invoice.paidAmount : (invoice.paid_amount !== undefined ? invoice.paid_amount : total));
-  const remaining = Number(invoice.remainingAmount !== undefined ? invoice.remainingAmount : (total - paidAmount));
+  const total = Number(
+    invoice.total ??
+    invoice.totalAmount ??
+    invoice.grandTotal ??
+    invoice.netTotal ??
+    invoice.total_amount ??
+    invoice.amount ??
+    (computedItemsSum > 0 ? computedItemsSum : (subtotal + tax))
+  );
+
+  const rawPaid = invoice.paidAmount ?? invoice.paid_amount ?? invoice.paid ?? invoice.amountPaid;
+  const rawRemaining = invoice.remainingAmount ?? invoice.remaining_amount ?? invoice.remaining ?? invoice.remainingBalance ?? invoice.balanceDue;
+
+  let paidAmount = total;
+  if (rawPaid !== undefined && rawPaid !== null && !isNaN(Number(rawPaid))) {
+    paidAmount = Number(rawPaid);
+  } else if (invoice.status === 'unpaid' || invoice.status === 'PENDING' || invoice.paymentMethod === 'CREDIT') {
+    paidAmount = 0;
+  }
+
+  let remaining = Math.max(0, total - paidAmount);
+  if (rawRemaining !== undefined && rawRemaining !== null && !isNaN(Number(rawRemaining))) {
+    remaining = Number(rawRemaining);
+  }
 
   const invoiceDiscount = Number(invoice.invoiceDiscount !== undefined ? invoice.invoiceDiscount : (invoice.invoice_discount || 0));
   const itemsDiscount = Number(invoice.itemsDiscount !== undefined ? invoice.itemsDiscount : (invoice.items_discount || 0));
@@ -548,6 +579,10 @@ export function printInvoiceDocument(inv?: any, options?: { title?: string; curr
           <div style="display: flex; justify-content: space-between;">
             <span>طريقة الدفع:</span>
             <span class="font-bold">${escapeHtml(paymentMethod)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>البائع / الكاشير:</span>
+            <span class="font-bold">${escapeHtml(salesperson)}</span>
           </div>
         </div>
 
@@ -700,6 +735,7 @@ export function printInvoiceDocument(inv?: any, options?: { title?: string; curr
         <span class="badge ${status === 'مدفوعة' || status === 'PAID' ? 'badge-success' : 'badge-amber'}">${escapeHtml(status)}</span>
         <div style="font-size: 11px; color: #475569; margin-top: 4px;">طريقة الدفع: <strong>${escapeHtml(paymentMethod)}</strong></div>
         <div style="font-size: 11px; color: #475569;">عملة المعاملة: <strong class="font-mono">${escapeHtml(currency)}</strong></div>
+        <div style="font-size: 11px; color: #475569;">مندوب المبيعات / الكاشير: <strong>${escapeHtml(salesperson)}</strong></div>
       </div>
     </div>
 

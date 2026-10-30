@@ -35,6 +35,8 @@ import {
   saveCompanyToPermanentStore,
   rehydrateTenantData,
   deletePermanentAccount,
+  saveTenantSnapshot,
+  getTenantSnapshot,
   PermanentUserRecord,
   getTenantWhatsAppConfig,
   saveTenantWhatsAppConfig,
@@ -590,29 +592,232 @@ app.post('/api/v1/auth/refresh', (req: Request, res: Response) => {
   });
 });
 
-app.get('/api/v1/auth/me', (req: Request, res: Response) => {
+// Session Restore Endpoint (Handles cold starts & background re-sync seamlessly)
+app.post(['/api/v1/auth/session-restore', '/api/auth/session-restore'], async (req: Request, res: Response) => {
+  const { user, company, token: clientToken } = req.body || {};
+  let normalizedEmail = (user?.email || '').trim().toLowerCase();
+
+  if (!normalizedEmail && clientToken) {
+    const existing = activeSessions.get(clientToken);
+    if (existing) {
+      normalizedEmail = existing.user.email.trim().toLowerCase();
+    }
+  }
+
+  let finalUser: PersistentTenantUser | null = null;
+  let finalCompany: PersistentTenantCompany | null = null;
+
+  if (normalizedEmail) {
+    const permUser = permanentUsersMap.get(normalizedEmail);
+    if (permUser) {
+      const compId = permUser.company_id || company?.id || 'comp_001';
+      finalCompany = permanentCompaniesMap.get(compId) || tenantCompaniesById.get(compId) || {
+        id: compId,
+        name: permUser.company_name || company?.name || 'المؤسسة التجارية',
+        currency: company?.currency || 'YER',
+        phone: company?.phone || permUser.phone || '',
+        email: normalizedEmail,
+        status: 'ACTIVE',
+        created_at: permUser.created_at || new Date().toISOString(),
+      };
+      finalUser = {
+        id: permUser.id,
+        username: permUser.email.split('@')[0] || 'admin',
+        full_name: permUser.name || user?.full_name || 'المدير العام',
+        email: normalizedEmail,
+        role: permUser.role || 'ADMIN',
+        company_id: compId,
+        is_active: true,
+        created_at: permUser.created_at,
+      };
+    }
+  }
+
+  if (!finalUser && user) {
+    const compId = company?.id || user.company_id || `comp_${(normalizedEmail.split('@')[0] || 'merchant').replace(/[^a-z0-9]/g, '_')}`;
+    finalCompany = company || {
+      id: compId,
+      name: 'المؤسسة التجارية',
+      currency: 'YER',
+      status: 'ACTIVE',
+      created_at: new Date().toISOString(),
+    };
+    finalUser = {
+      id: user.id || `usr_${Date.now()}`,
+      username: user.username || normalizedEmail.split('@')[0] || 'admin',
+      full_name: user.full_name || 'المدير العام',
+      email: normalizedEmail || 'admin@alsahabi.com',
+      role: user.role || 'ADMIN',
+      company_id: compId,
+      is_active: true,
+      created_at: user.created_at || new Date().toISOString(),
+    };
+    if (normalizedEmail) {
+      const permUser: PermanentUserRecord = {
+        id: finalUser.id,
+        email: normalizedEmail,
+        password_hash: 'admin123',
+        name: finalUser.full_name,
+        role: finalUser.role,
+        company_id: compId,
+        company_name: finalCompany.name,
+        created_at: finalUser.created_at,
+      };
+      permanentUsersMap.set(normalizedEmail, permUser);
+      saveUserToPermanentStore(permUser, dbPool).catch(() => {});
+    }
+  }
+
+  if (!finalUser) {
+    finalUser = tenantUsersByEmail.get('admin@alsahabi.com') || {
+      id: 'usr_001',
+      username: 'admin',
+      full_name: 'المدير العام',
+      email: 'admin@alsahabi.com',
+      role: 'ADMIN',
+      company_id: 'comp_001',
+      is_active: true,
+      created_at: new Date().toISOString(),
+    };
+    finalCompany = tenantCompaniesById.get('comp_001') || {
+      id: 'comp_001',
+      name: 'المؤسسة التجارية الذكية',
+      currency: 'SAR',
+      status: 'ACTIVE',
+      created_at: new Date().toISOString(),
+    };
+  }
+
+  const tokenToUse = clientToken || generatePermanentToken(finalUser.id, finalCompany!.id);
+  const oneYearMs = 365 * 24 * 60 * 60 * 1000;
+  activeSessions.set(tokenToUse, { user: finalUser, company: finalCompany!, expiresAt: Date.now() + oneYearMs });
+  tenantUsersByEmail.set(finalUser.email.trim().toLowerCase(), finalUser);
+  tenantCompaniesById.set(finalCompany!.id, finalCompany!);
+
+  res.status(200).json({
+    success: true,
+    token: tokenToUse,
+    user: finalUser,
+    company: finalCompany,
+    message: 'تمت استعادة جلسة المستخدم بنجاح',
+  });
+});
+
+// Tenant Snapshot Persistence Endpoints (Zero Data Loss Architecture)
+app.post(['/api/v1/tenant-snapshot/save', '/api/tenant-snapshot/save'], async (req: Request, res: Response) => {
+  try {
+    const { companyId, snapshot, userKey, email } = req.body || {};
+    const targetCompId = companyId || req.headers['x-company-id'] || 'comp_001';
+    await saveTenantSnapshot(String(targetCompId), snapshot, userKey || email, dbPool);
+    res.status(200).json({
+      success: true,
+      message: 'تم حفظ ومزامنة النسخة الاحتياطية للمنشأة بنجاح',
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err?.message || 'فشل حفظ النسخة الاحتياطية' });
+  }
+});
+
+app.get(['/api/v1/tenant-snapshot/:companyId', '/api/tenant-snapshot/:companyId'], async (req: Request, res: Response) => {
+  try {
+    const companyId = req.params.companyId;
+    const snapshot = getTenantSnapshot(companyId);
+    res.status(200).json({
+      success: true,
+      companyId,
+      snapshot: snapshot || null,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err?.message || 'فشل استرجاع النسخة الاحتياطية' });
+  }
+});
+
+// Sliding session renewal - Merchant stays logged in indefinitely
+app.post(['/api/v1/auth/refresh', '/api/auth/refresh'], (req: Request, res: Response) => {
   const authHeader = req.headers['authorization'] || '';
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-  const session = token ? activeSessions.get(token) : undefined;
 
-  const user = session?.user || tenantUsersByEmail.get('admin@alsahabi.com') || {
-    id: 'usr_001',
-    username: 'admin',
-    full_name: 'المدير العام',
-    email: 'admin@alsahabi.com',
-    role: 'ADMIN',
-    company_id: 'comp_001',
-    is_active: true,
-    created_at: new Date().toISOString(),
-  };
+  let session = token ? activeSessions.get(token) : undefined;
+  let user: PersistentTenantUser;
+  let company: PersistentTenantCompany;
 
-  const company = session?.company || tenantCompaniesById.get(user.company_id) || {
-    id: 'comp_001',
-    name: 'مؤسسة السحابي للتجارة والتقنية',
-    currency: 'SAR',
-    status: 'ACTIVE',
-    created_at: new Date().toISOString(),
-  };
+  if (session) {
+    user = session.user;
+    company = session.company;
+  } else {
+    user = tenantUsersByEmail.get('admin@alsahabi.com')!;
+    company = tenantCompaniesById.get('comp_001')!;
+  }
+
+  const newToken = generatePermanentToken(user.id, company.id);
+  const oneYearMs = 365 * 24 * 60 * 60 * 1000;
+  activeSessions.set(newToken, { user, company, expiresAt: Date.now() + oneYearMs });
+
+  res.status(200).json({
+    success: true,
+    token: newToken,
+    user,
+    company,
+    expiresIn: '365d',
+  });
+});
+
+app.get(['/api/v1/auth/me', '/api/auth/me'], (req: Request, res: Response) => {
+  const authHeader = req.headers['authorization'] || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  const headerEmail = (req.headers['x-user-email'] as string || '').trim().toLowerCase();
+  const headerCompId = (req.headers['x-company-id'] as string || '').trim();
+
+  let session = token ? activeSessions.get(token) : undefined;
+  let user: PersistentTenantUser | null = session ? session.user : null;
+  let company: PersistentTenantCompany | null = session ? session.company : null;
+
+  if (!user && headerEmail) {
+    const perm = permanentUsersMap.get(headerEmail);
+    if (perm) {
+      const compId = perm.company_id || headerCompId || 'comp_001';
+      user = {
+        id: perm.id,
+        username: perm.email.split('@')[0],
+        full_name: perm.name,
+        email: perm.email,
+        role: perm.role || 'ADMIN',
+        company_id: compId,
+        is_active: true,
+        created_at: perm.created_at,
+      };
+      company = permanentCompaniesMap.get(compId) || tenantCompaniesById.get(compId) || {
+        id: compId,
+        name: perm.company_name || 'المؤسسة التجارية',
+        currency: 'YER',
+        status: 'ACTIVE',
+        created_at: new Date().toISOString(),
+      };
+      if (token) {
+        activeSessions.set(token, { user, company, expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1000 });
+      }
+    }
+  }
+
+  if (!user) {
+    user = tenantUsersByEmail.get('admin@alsahabi.com') || {
+      id: 'usr_001',
+      username: 'admin',
+      full_name: 'المدير العام',
+      email: 'admin@alsahabi.com',
+      role: 'ADMIN',
+      company_id: 'comp_001',
+      is_active: true,
+      created_at: new Date().toISOString(),
+    };
+    company = tenantCompaniesById.get(user.company_id) || {
+      id: 'comp_001',
+      name: 'مؤسسة السحابي للتجارة والتقنية',
+      currency: 'SAR',
+      status: 'ACTIVE',
+      created_at: new Date().toISOString(),
+    };
+  }
 
   res.status(200).json({
     success: true,
@@ -622,7 +827,7 @@ app.get('/api/v1/auth/me', (req: Request, res: Response) => {
   });
 });
 
-app.post('/api/v1/auth/logout', (req: Request, res: Response) => {
+app.post(['/api/v1/auth/logout', '/api/auth/logout'], (req: Request, res: Response) => {
   const authHeader = req.headers['authorization'] || '';
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
   if (token) {
@@ -895,39 +1100,153 @@ app.get('/api/v1/invoices', (_req: Request, res: Response) => {
 
 app.post('/api/v1/invoices', (req: Request, res: Response) => {
   const inv = req.body || {};
-  const totalVal = Number(inv.total || inv.amount || 0);
-  const paidVal = Number(inv.paid_amount || (inv.status === 'مدفوعة' ? totalVal : 0));
+  const rawItems = Array.isArray(inv.items) ? inv.items : [];
+  const computedItemsTotal = rawItems.reduce((acc: number, it: any) => {
+    const q = Number(it.quantity || 1);
+    const p = Number(it.unit_price ?? it.price ?? 0);
+    const d = Number(it.discount || 0);
+    const scrap = Number(it.scrapDiscount || 0);
+    const tx = Number(it.tax || 0);
+    return acc + Math.max(0, q * p - d - scrap) + tx;
+  }, 0);
+
+  const invoiceDiscount = Number(inv.invoice_discount ?? inv.discount ?? 0);
+  const invoiceTax = Number(inv.tax ?? 0);
+  const calculatedGrandTotal = Math.max(0, computedItemsTotal - invoiceDiscount + invoiceTax);
+
+  const totalVal = Number(
+    inv.total ??
+    inv.totalAmount ??
+    inv.grandTotal ??
+    inv.netTotal ??
+    inv.total_amount ??
+    inv.amount ??
+    (calculatedGrandTotal > 0 ? calculatedGrandTotal : 0)
+  );
+
+  const paymentMethod = String(inv.payment_method || inv.paymentMethod || 'CASH').toUpperCase();
+  const rawPaid = inv.paid_amount ?? inv.paidAmount ?? inv.paid ?? inv.amountPaid;
+  
+  let paidVal = 0;
+  if (paymentMethod === 'CASH' || paymentMethod === 'BANK' || paymentMethod === 'WALLET') {
+    paidVal = rawPaid !== undefined ? Number(rawPaid) : totalVal;
+  } else if (paymentMethod === 'CREDIT') {
+    paidVal = rawPaid !== undefined ? Number(rawPaid) : 0;
+  } else {
+    // PARTIAL or other
+    paidVal = rawPaid !== undefined ? Number(rawPaid) : 0;
+  }
+
+  const remainingVal = Math.max(0, totalVal - paidVal);
+  let status = inv.status;
+  if (!status || status === 'PENDING' || status === 'DRAFT') {
+    status = remainingVal <= 0.01 && totalVal > 0 ? 'paid' : (paidVal > 0 ? 'partial' : 'unpaid');
+  }
+
   const rawDate = String(inv.date || inv.invoice_date || inv.created_at || '').trim();
   const invoiceDate = (rawDate ? rawDate.split('T')[0] : new Date().toISOString().split('T')[0]);
   const invoiceCreatedAt = rawDate ? `${invoiceDate}T12:00:00.000Z` : new Date().toISOString();
 
+  // Real customer name resolution
+  let customerName = String(
+    inv.customer_name ||
+    inv.customerName ||
+    inv.clientName ||
+    inv.customer ||
+    ''
+  ).trim();
+
+  let cust = mockCustomersList.find(
+    (c) => (inv.customer_id && c.id === inv.customer_id) || (customerName && c.name.toLowerCase() === customerName.toLowerCase())
+  );
+  if (cust && !customerName) {
+    customerName = cust.name;
+  }
+  if (!customerName) {
+    customerName = (paymentMethod === 'CASH' || paymentMethod === 'BANK' || paymentMethod === 'WALLET') ? 'عميل نقدي' : 'عميل غير محدد';
+  }
+
+  // Real salesperson name resolution
+  const salesperson = String(
+    inv.salesperson_name ||
+    inv.salespersonName ||
+    inv.salesperson ||
+    inv.cashier_name ||
+    inv.cashierName ||
+    inv.created_by_name ||
+    inv.createdBy ||
+    'حميد وهاس'
+  ).trim();
+
+  const invoiceNumber = inv.invoice_number || inv.invoiceNumber || `INV-${Date.now().toString().slice(-6)}`;
+
   const newInv = {
     ...inv,
     id: inv.id || `INV-${Date.now()}`,
-    invoice_number: inv.invoice_number || `INV-${Date.now()}`,
-    customer: inv.customer || inv.customer_name || 'عميل نقدي',
-    customer_name: inv.customer_name || inv.customer || 'عميل نقدي',
+    invoice_number: invoiceNumber,
+    invoiceNumber: invoiceNumber,
+    customer: customerName,
+    customer_name: customerName,
+    customerName: customerName,
+    clientName: customerName,
+    customer_id: cust ? cust.id : (inv.customer_id || null),
+    salesperson: salesperson,
+    salesperson_name: salesperson,
+    salespersonName: salesperson,
+    cashier_name: salesperson,
+    cashierName: salesperson,
+    createdBy: salesperson,
     date: invoiceDate,
+    invoice_date: invoiceDate,
+    subtotal: Number(inv.subtotal || computedItemsTotal || totalVal),
+    discount: invoiceDiscount,
+    tax: invoiceTax,
     total: totalVal,
+    totalAmount: totalVal,
+    grandTotal: totalVal,
+    netTotal: totalVal,
+    total_amount: totalVal,
     amount: totalVal,
     paid_amount: paidVal,
-    remaining_amount: Math.max(0, totalVal - paidVal),
-    status: inv.status || (paidVal >= totalVal ? 'مدفوعة' : 'آجلة'),
+    paidAmount: paidVal,
+    paid: paidVal,
+    amountPaid: paidVal,
+    remaining_amount: remainingVal,
+    remainingAmount: remainingVal,
+    remaining: remainingVal,
+    remainingBalance: remainingVal,
+    balanceDue: remainingVal,
+    payment_method: paymentMethod,
+    paymentMethod: paymentMethod,
+    status: status,
+    payment_status: status === 'paid' ? 'PAID' : (status === 'partial' ? 'PARTIAL' : 'PENDING'),
     created_at: invoiceCreatedAt,
   };
   mockInvoicesList.unshift(newInv);
 
   // Update customer balance & record in ledger if customer account matched
-  const cust = mockCustomersList.find(
-    (c) => (newInv.customer_id && c.id === newInv.customer_id) || c.name === newInv.customer || c.name === newInv.customer_name
-  );
-  if (cust) {
-    const remaining = Math.max(0, totalVal - paidVal);
-    if (remaining > 0) {
-      cust.current_balance = (cust.current_balance || 0) + remaining;
+  if (remainingVal > 0) {
+    if (!cust && customerName && customerName !== 'عميل نقدي' && customerName !== 'عميل غير محدد') {
+      cust = {
+        id: `cust-${Date.now()}`,
+        name: customerName,
+        phone: inv.customer_phone || '',
+        current_balance: remainingVal,
+        balance: remainingVal,
+        currency: newInv.currency || 'YER',
+        is_active: true,
+        created_at: invoiceCreatedAt,
+        updated_at: invoiceCreatedAt,
+      };
+      mockCustomersList.unshift(cust);
+    } else if (cust) {
+      cust.current_balance = (cust.current_balance || 0) + remainingVal;
       cust.balance = cust.current_balance;
       cust.updated_at = invoiceCreatedAt;
     }
+  }
+
+  if (cust) {
     mockAccountTransactions.unshift({
       id: `ctx-inv-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       party_id: cust.id,

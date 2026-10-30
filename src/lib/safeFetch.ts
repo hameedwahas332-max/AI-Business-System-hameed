@@ -3,10 +3,16 @@ export async function safeFetchJson<T = any>(
   options?: RequestInit
 ): Promise<{ success: boolean; ok: boolean; data?: T; error?: string; status: number }> {
   try {
-    const token = localStorage.getItem('erp_auth_token') || 'mock_token';
+    const token =
+      localStorage.getItem('erp_auth_token') ||
+      localStorage.getItem('erp_token') ||
+      localStorage.getItem('token') ||
+      'mock_token';
+    const companyId = localStorage.getItem('erp_company_id');
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
+      ...(companyId ? { 'x-company-id': companyId } : {}),
       ...(options?.headers as Record<string, string>),
     };
 

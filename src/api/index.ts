@@ -136,6 +136,67 @@ class APIClient {
         data = null;
       }
 
+      if (response.status === 401 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/session-restore')) {
+        try {
+          let parsedUser = null;
+          let parsedCompany = null;
+          const sessionRaw = localStorage.getItem('erp_active_session_v1');
+          if (sessionRaw) {
+            try {
+              const s = JSON.parse(sessionRaw);
+              parsedUser = s?.user;
+              parsedCompany = s?.company;
+            } catch {}
+          }
+          if (!parsedUser) {
+            const userRaw = localStorage.getItem('erp_user') || localStorage.getItem('erp_auth_user');
+            if (userRaw) {
+              try { parsedUser = JSON.parse(userRaw); } catch {}
+            }
+          }
+          if (!parsedCompany) {
+            const compRaw = localStorage.getItem('erp_auth_company') || localStorage.getItem('erp_current_company');
+            if (compRaw) {
+              try { parsedCompany = JSON.parse(compRaw); } catch {}
+            }
+          }
+
+          if (parsedUser) {
+            const restoreRes = await fetch(`${API_BASE_URL}/auth/session-restore`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+              body: JSON.stringify({
+                token: token || this.getToken(),
+                user: parsedUser,
+                company: parsedCompany,
+              }),
+            });
+
+            if (restoreRes.ok) {
+              const restoreData = await restoreRes.json();
+              const newToken = restoreData?.token || restoreData?.data?.token;
+              if (newToken) {
+                this.setToken(newToken);
+                headers['Authorization'] = `Bearer ${newToken}`;
+                const retryRes = await fetch(`${API_BASE_URL}${endpoint}`, { ...config, headers });
+                if (retryRes.ok) {
+                  const retryText = await retryRes.text();
+                  if (retryText && (retryText.trim().startsWith('{') || retryText.trim().startsWith('['))) {
+                    const retryJson = JSON.parse(retryText);
+                    return (typeof retryJson === 'object' && ('data' in retryJson || 'success' in retryJson)) ? retryJson : { success: true, data: retryJson };
+                  }
+                }
+              }
+            }
+          }
+        } catch {
+          // Never wipe active credentials on transient glitches
+        }
+      }
+
       if (!response.ok) {
         // Extract the exact error message safely without leaking secrets or falling back to generic network errors
         let serverErrorMessage = '';

@@ -722,10 +722,17 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
       setError(null);
 
       const exchangeRate = exchangeRates[currency] || 1.0;
+      const effectiveSalesperson = (user?.full_name || (user as any)?.name || 'حميد وهاس').trim();
+      const effectiveCustomer = (selectedCustomer?.name || 'عميل نقدي').trim();
 
       const payload = {
         customerId: selectedCustomer?.id || undefined,
-        customerName: selectedCustomer?.name || undefined,
+        customerName: effectiveCustomer,
+        customer: effectiveCustomer,
+        salesperson: effectiveSalesperson,
+        salespersonName: effectiveSalesperson,
+        cashierName: effectiveSalesperson,
+        createdBy: effectiveSalesperson,
         items: cart,
         subtotal,
         discount: cartDiscount,
@@ -752,20 +759,84 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
         applyStockMovementSync(cart, {
           type: 'pos_sale',
           referenceNumber: invNum,
-          customerName: payload.customerName || 'عميل نقدي',
+          customerName: effectiveCustomer,
           paymentMethod: paymentData.paymentMethod || 'MULTI',
           total: grandTotal,
           currency,
         });
 
-        // 2. Record to Central POS Sales Log
+        // 2. Record to Central Invoices and POS Sales Log
+        const finalPosInvoice = {
+          ...res.data,
+          id: res.data?.id || `pos-${Date.now()}`,
+          invoice_number: invNum,
+          customer_name: effectiveCustomer,
+          customer: effectiveCustomer,
+          customerName: effectiveCustomer,
+          clientName: effectiveCustomer,
+          salesperson_name: effectiveSalesperson,
+          salesperson: effectiveSalesperson,
+          cashier_name: effectiveSalesperson,
+          cashierName: effectiveSalesperson,
+          createdBy: effectiveSalesperson,
+          total: grandTotal,
+          totalAmount: grandTotal,
+          grandTotal: grandTotal,
+          netTotal: grandTotal,
+          paid_amount: paymentData.paidAmount,
+          paidAmount: paymentData.paidAmount,
+          remaining_amount: paymentData.remainingAmount || 0,
+          remainingAmount: paymentData.remainingAmount || 0,
+          currency,
+          payment_method: paymentData.paymentMethod || 'MULTI',
+          status: (paymentData.remainingAmount || 0) <= 0.01 ? 'PAID' : paymentData.paidAmount > 0 ? 'PARTIAL' : 'PENDING',
+          items: cart,
+          created_at: new Date().toISOString(),
+          invoice_date: new Date().toISOString().split('T')[0],
+        };
+
+        try {
+          const stored = localStorage.getItem('erp_invoices_v1');
+          const existingList: any[] = stored ? JSON.parse(stored) : [];
+          localStorage.setItem(
+            'erp_invoices_v1',
+            JSON.stringify([finalPosInvoice, ...existingList.filter((i) => i.id !== finalPosInvoice.id && i.invoice_number !== invNum)])
+          );
+          window.dispatchEvent(new CustomEvent('erp-invoices-updated'));
+        } catch (e) {
+          console.error('Failed to sync POS invoice to erp_invoices_v1:', e);
+        }
+
+        // If credit balance remaining, sync customer balance
+        if (paymentData.remainingAmount > 0 && selectedCustomer?.name) {
+          try {
+            const custStored = localStorage.getItem('erp_customers_v1');
+            const custList: any[] = custStored ? JSON.parse(custStored) : [];
+            const updatedCustList = custList.map((c) => {
+              if (c.id === selectedCustomer.id || c.name?.trim() === selectedCustomer.name.trim()) {
+                return {
+                  ...c,
+                  current_balance: Number(c.current_balance || 0) + Number(paymentData.remainingAmount),
+                  total_sales: Number(c.total_sales || 0) + grandTotal,
+                };
+              }
+              return c;
+            });
+            localStorage.setItem('erp_customers_v1', JSON.stringify(updatedCustList));
+            window.dispatchEvent(new CustomEvent('erp-customers-updated'));
+          } catch (e) {
+            console.error('Failed to update customer balance from POS:', e);
+          }
+        }
+
         const posLogRecord = {
           id: res.data?.id || `pos-${Date.now()}`,
           invoiceNumber: invNum,
           date: new Date().toISOString(),
           dateFormatted: new Date().toLocaleDateString('ar-YE'),
           timeFormatted: new Date().toLocaleTimeString('ar-YE', { hour: '2-digit', minute: '2-digit' }),
-          customerName: payload.customerName || 'عميل نقدي',
+          customerName: effectiveCustomer,
+          salespersonName: effectiveSalesperson,
           total: grandTotal,
           paidAmount: paymentData.paidAmount,
           currency,
@@ -794,7 +865,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
         } catch {}
         setPosSalesLog(updatedLogs);
 
-        setCompletedReceiptData(res.data);
+        setCompletedReceiptData(finalPosInvoice);
         setIsPaymentModalOpen(false);
         setIsReceiptModalOpen(true);
         handleClearCart();

@@ -41,6 +41,7 @@ import {
 import { ModuleSettingsModal } from '../../Common/ModuleSettingsModal';
 import { PriceTier, ProductActivityType } from '../../../types';
 import { getAccountingRate, getStoredExchangeRates } from '../../../lib/exchangeRates';
+import { useAuth } from '../../../context/AuthContext';
 
 export type PaymentMethodType = 'CASH' | 'BANK' | 'CREDIT' | 'WALLET';
 
@@ -131,17 +132,27 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
   const customerList = Array.isArray(customers) ? customers : [];
   const productList = Array.isArray(products) ? products : [];
 
+  const { user } = useAuth();
+  const loggedInSalesperson = (user?.full_name || (user as any)?.name || 'حميد وهاس').trim();
+
   // Form Header State
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
+  const [customerName, setCustomerName] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
   const [dueDate, setDueDate] = useState('');
   const [currency, setCurrency] = useState(getActiveCurrencyCode());
   const [exchangeRate, setExchangeRate] = useState<number>(1.0);
-  const [salespersonName, setSalespersonName] = useState('');
+  const [salespersonName, setSalespersonName] = useState(loggedInSalesperson);
   const [branchName, setBranchName] = useState('');
   const [notes, setNotes] = useState('');
   const [paidAmount, setPaidAmount] = useState<number>(0);
+
+  useEffect(() => {
+    if (loggedInSalesperson && (!salespersonName || salespersonName === 'الكاشير العام')) {
+      setSalespersonName(loggedInSalesperson);
+    }
+  }, [loggedInSalesperson]);
 
   // Payment Method State
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('CASH');
@@ -229,10 +240,16 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
     );
     if (cashCust) {
       setSelectedCustomerId(cashCust.id);
+      setCustomerName(cashCust.name || 'عميل نقدي');
       showNotice(`تم اختيار "${cashCust.name}" بنجاح`);
     } else if (customerList.length > 0) {
       setSelectedCustomerId(customerList[0].id);
+      setCustomerName(customerList[0].name || 'عميل نقدي');
       showNotice(`تم اختيار العميل "${customerList[0].name}"`);
+    } else {
+      setSelectedCustomerId('cust-cash');
+      setCustomerName('عميل نقدي');
+      showNotice('تم اختيار "عميل نقدي"');
     }
   };
 
@@ -591,8 +608,15 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
   const hasBelowCost = belowCostItems.length > 0;
 
   const handleSave = async (statusToSave: 'PENDING' | 'DRAFT', shouldPrint: boolean = false) => {
-    if (!selectedCustomerId) {
-      setError('يرجى اختيار العميل أولاً لإصدار الفاتورة');
+    const effectiveCustomerName = (customerName || selectedCustomer?.name || '').trim() || (paymentMethod === 'CREDIT' ? '' : 'عميل نقدي');
+
+    if (paymentMethod === 'CREDIT' && !effectiveCustomerName) {
+      setError('يرجى تحديد أو كتابة اسم العميل لإصدار فاتورة بيع آجل (ذمم)');
+      return;
+    }
+
+    if (!selectedCustomerId && !effectiveCustomerName) {
+      setError('يرجى اختيار أو كتابة اسم العميل أولاً لإصدار الفاتورة');
       return;
     }
 
@@ -612,6 +636,23 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
       setLoading(true);
       setError(null);
 
+      // Compute strict paid and remaining amounts according to payment method
+      let effectivePaid = 0;
+      let effectiveRemaining = 0;
+      if (paymentMethod === 'CASH' || paymentMethod === 'BANK' || paymentMethod === 'WALLET') {
+        effectivePaid = grandTotal;
+        effectiveRemaining = 0;
+      } else if (paymentMethod === 'CREDIT') {
+        effectivePaid = Math.max(0, Math.min(Number(paidAmount || 0), grandTotal));
+        effectiveRemaining = Math.max(0, Number((grandTotal - effectivePaid).toFixed(2)));
+      } else {
+        effectivePaid = Math.max(0, Math.min(Number(paidAmount || 0), grandTotal));
+        effectiveRemaining = Math.max(0, Number((grandTotal - effectivePaid).toFixed(2)));
+      }
+
+      const computedStatus = effectiveRemaining <= 0.01 && grandTotal > 0 ? 'paid' : effectivePaid > 0 ? 'partial' : 'unpaid';
+      const effectiveSalesperson = (salespersonName || loggedInSalesperson || 'حميد وهاس').trim();
+
       // Construct payment method notes / metadata
       let paymentNotes = '';
       if (paymentMethod === 'BANK') {
@@ -626,45 +667,161 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
           .filter(Boolean)
           .join(' - ');
       } else if (paymentMethod === 'CREDIT') {
-        paymentNotes = 'بيع بالآجل - قيدت كذمة على حساب العميل';
+        paymentNotes = `بيع بالآجل - قيدت كذمة على حساب العميل (${effectiveCustomerName})`;
       }
 
       const combinedNotes = [notes, paymentNotes].filter(Boolean).join(' | ');
 
       const payload = {
-        customer_id: selectedCustomerId,
+        customer_id: selectedCustomerId || 'cust-direct',
+        customer: effectiveCustomerName,
+        customer_name: effectiveCustomerName,
+        customerName: effectiveCustomerName,
+        clientName: effectiveCustomerName,
         invoice_number: invoiceNumber.trim() ? toEnglishDigits(invoiceNumber.trim()) : undefined,
         invoice_date: invoiceDate,
         due_date: dueDate || undefined,
         currency,
         exchange_rate: exchangeRate,
-        status: statusToSave,
+        status: statusToSave === 'DRAFT' ? 'draft' : computedStatus,
         notes: combinedNotes,
-        salesperson_name: salespersonName,
-        branch_name: branchName,
-        paid_amount: paidAmount,
+        salesperson: effectiveSalesperson,
+        salesperson_name: effectiveSalesperson,
+        salespersonName: effectiveSalesperson,
+        cashier_name: effectiveSalesperson,
+        cashierName: effectiveSalesperson,
+        createdBy: effectiveSalesperson,
+        branch_name: branchName || 'الفرع الرئيسي',
+        total: grandTotal,
+        totalAmount: grandTotal,
+        grandTotal: grandTotal,
+        netTotal: grandTotal,
+        total_amount: grandTotal,
+        amount: grandTotal,
+        paid_amount: effectivePaid,
+        paidAmount: effectivePaid,
+        amountPaid: effectivePaid,
+        paid: effectivePaid,
+        remaining_amount: effectiveRemaining,
+        remainingAmount: effectiveRemaining,
+        remainingBalance: effectiveRemaining,
+        remaining: effectiveRemaining,
+        balanceDue: effectiveRemaining,
         payment_method: paymentMethod,
         items: validItems.map((it) => ({
           product_id: it.product_id || null,
           name: it.name || 'صنف مبيعات',
+          sku: it.sku || '',
           unit: it.unit || 'حبة',
           unitFactor: it.unitFactor || 1,
           conversionFactor: it.unitFactor || 1,
           totalBaseQuantityDeducted: (it.quantity || 1) * (it.unitFactor || 1),
           quantity: it.quantity,
           unit_price: it.unit_price,
-          discount: it.discount,
+          discount: (it.discount || 0) + (it.scrapDiscount || 0),
           scrapDiscount: it.scrapDiscount || 0,
           serialNumber: it.serialNumber,
           warrantyEndDate: it.warrantyEndDate,
           warrantyMonths: it.warrantyMonths,
           tax: it.tax,
+          total: it.total,
         })),
       };
 
       const res = await api.createInvoice(payload);
 
       if (res.success && res.data) {
+        const finalInvoice = {
+          ...res.data,
+          id: res.data?.id || `inv-${Date.now()}`,
+          invoice_number: res.data?.invoice_number || invoiceNumber || `INV-${Date.now().toString().slice(-4)}`,
+          customer_id: selectedCustomerId || 'cust-direct',
+          customer: effectiveCustomerName,
+          customer_name: effectiveCustomerName,
+          customerName: effectiveCustomerName,
+          clientName: effectiveCustomerName,
+          salesperson: effectiveSalesperson,
+          salesperson_name: effectiveSalesperson,
+          salespersonName: effectiveSalesperson,
+          cashier_name: effectiveSalesperson,
+          cashierName: effectiveSalesperson,
+          createdBy: effectiveSalesperson,
+          total: grandTotal,
+          totalAmount: grandTotal,
+          grandTotal: grandTotal,
+          netTotal: grandTotal,
+          total_amount: grandTotal,
+          amount: grandTotal,
+          paidAmount: effectivePaid,
+          amountPaid: effectivePaid,
+          paid: effectivePaid,
+          paid_amount: effectivePaid,
+          remainingAmount: effectiveRemaining,
+          remainingBalance: effectiveRemaining,
+          remaining: effectiveRemaining,
+          balanceDue: effectiveRemaining,
+          remaining_amount: effectiveRemaining,
+          status: statusToSave === 'DRAFT' ? 'draft' : computedStatus,
+          payment_method: paymentMethod,
+          items: validItems.map((it) => ({
+            ...it,
+            total: it.total,
+          })),
+          subtotal,
+          discount: totalDiscount,
+          tax: totalTax,
+          invoice_date: invoiceDate,
+          due_date: dueDate,
+          notes: combinedNotes,
+        };
+
+        // Persist to erp_invoices_v1 in localStorage
+        try {
+          const stored = localStorage.getItem('erp_invoices_v1');
+          const existingList: any[] = stored ? JSON.parse(stored) : [];
+          const filtered = existingList.filter(
+            (inv) => inv.id !== finalInvoice.id && inv.invoice_number !== finalInvoice.invoice_number
+          );
+          localStorage.setItem('erp_invoices_v1', JSON.stringify([finalInvoice, ...filtered]));
+          window.dispatchEvent(new CustomEvent('erp-invoices-updated'));
+        } catch (e) {
+          console.error('Failed to sync to erp_invoices_v1:', e);
+        }
+
+        // If credit sale with remaining balance, sync customer balance in erp_customers_v1
+        if (effectiveRemaining > 0 && effectiveCustomerName) {
+          try {
+            const custStored = localStorage.getItem('erp_customers_v1');
+            const custList: any[] = custStored ? JSON.parse(custStored) : [];
+            let matched = false;
+            const updatedCustList = custList.map((c) => {
+              if (c.id === selectedCustomerId || c.name?.trim() === effectiveCustomerName) {
+                matched = true;
+                return {
+                  ...c,
+                  current_balance: Number(c.current_balance || 0) + effectiveRemaining,
+                  total_sales: Number(c.total_sales || 0) + grandTotal,
+                };
+              }
+              return c;
+            });
+            if (!matched && effectiveCustomerName !== 'عميل نقدي') {
+              updatedCustList.push({
+                id: selectedCustomerId || `cust-${Date.now()}`,
+                name: effectiveCustomerName,
+                current_balance: effectiveRemaining,
+                total_sales: grandTotal,
+                status: 'active',
+                currency: currency || 'YER',
+              });
+            }
+            localStorage.setItem('erp_customers_v1', JSON.stringify(updatedCustList));
+            window.dispatchEvent(new CustomEvent('erp-customers-updated'));
+          } catch (e) {
+            console.error('Failed to sync customer balance:', e);
+          }
+        }
+
         // Apply real-time inventory deduction and sales tracking sync
         try {
           applyStockMovementSync(
@@ -680,9 +837,9 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
             })),
             {
               type: 'sale',
-              referenceNumber: res.data.invoice_number || invoiceNumber,
-              referenceId: res.data.id,
-              customerOrSupplierName: selectedCustomer?.name || 'العميل',
+              referenceNumber: finalInvoice.invoice_number,
+              referenceId: finalInvoice.id,
+              customerOrSupplierName: effectiveCustomerName,
               date: invoiceDate,
               notes: combinedNotes,
             }
@@ -696,12 +853,15 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
           printInvoiceDocument({
             companyName: 'المؤسسة التجارية',
             invoiceType: 'SALES',
-            invoiceNumber: res.data.invoice_number || invoiceNumber,
+            invoiceNumber: finalInvoice.invoice_number,
             date: invoiceDate,
             currency: getActiveCurrencySymbol(currency),
             dueDate: dueDate || undefined,
-            status: paidAmount >= grandTotal ? 'PAID' : paidAmount > 0 ? 'PARTIAL' : 'PENDING',
-            partyName: selectedCustomer?.name || 'العميل',
+            status: effectiveRemaining <= 0.01 && grandTotal > 0 ? 'PAID' : effectivePaid > 0 ? 'PARTIAL' : 'PENDING',
+            partyName: effectiveCustomerName,
+            customer_name: effectiveCustomerName,
+            salesperson: effectiveSalesperson,
+            salesperson_name: effectiveSalesperson,
             partyPhone: selectedCustomer?.phone,
             partyAddress: selectedCustomer?.address,
             items: validItems.map((it) => {
@@ -723,12 +883,12 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
             discount: totalDiscount,
             tax: totalTax,
             total: grandTotal,
-            paidAmount,
-            remainingAmount: remainingDue,
+            paidAmount: effectivePaid,
+            remainingAmount: effectiveRemaining,
             notes: combinedNotes,
           });
         }
-        onSuccess(res.data);
+        onSuccess(finalInvoice);
       } else {
         setError(res.error?.message || 'فشل حفظ وإنشاء الفاتورة');
       }
@@ -879,23 +1039,44 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
             </button>
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">
+          <div className="space-y-2">
+            <label className="block text-xs font-medium text-slate-300">
               العميل <span className="text-rose-400">*</span>
             </label>
             <select
               value={selectedCustomerId}
-              onChange={(e) => setSelectedCustomerId(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
-              required
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedCustomerId(val);
+                const cust = customerList.find((c) => c.id === val);
+                if (cust) {
+                  setCustomerName(cust.name);
+                }
+              }}
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
             >
-              <option value="">-- اختر العميل --</option>
+              <option value="">-- اختر من قائمة العملاء المسجلين --</option>
               {customerList.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name} {c.phone ? `(${c.phone})` : ''}
                 </option>
               ))}
             </select>
+            <div className="relative">
+              <input
+                type="text"
+                value={customerName}
+                onChange={(e) => {
+                  setCustomerName(e.target.value);
+                  const matched = customerList.find((c) => c.name?.trim().toLowerCase() === e.target.value.trim().toLowerCase());
+                  if (matched) {
+                    setSelectedCustomerId(matched.id);
+                  }
+                }}
+                placeholder="أو اكتب اسم العميل يدوياً (عميل نقدي / مؤسسة...)"
+                className="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              />
+            </div>
           </div>
 
           {selectedCustomer && (

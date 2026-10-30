@@ -102,6 +102,35 @@ export const SalesInvoiceDetailView: React.FC<SalesInvoiceDetailViewProps> = ({
 
   const handlePrint = () => {
     if (invoice) {
+      const rawTotal = Number(invoice.total ?? invoice.totalAmount ?? invoice.grandTotal ?? invoice.netTotal ?? invoice.total_amount ?? invoice.amount ?? 0);
+      const invoiceItems = invoice.items || [];
+      const itemsSum = invoiceItems.length > 0
+        ? invoiceItems.reduce((acc: number, it: any) => acc + Number(it.total || (Number(it.quantity || 1) * Number(it.unit_price || it.price || 0) - Number(it.discount || 0))), 0)
+        : 0;
+      const printTotal = rawTotal > 0 ? rawTotal : itemsSum;
+      const printPaid = Number(
+        invoice.paid_amount ?? invoice.paidAmount ?? invoice.amountPaid ?? invoice.paid ?? (invoice.status === 'PAID' || invoice.status === 'paid' ? printTotal : 0)
+      );
+      const printRemaining = Math.max(
+        0,
+        Number(
+          invoice.remaining_amount ?? invoice.remainingAmount ?? invoice.remainingBalance ?? invoice.remaining ?? invoice.balanceDue ?? (printTotal - printPaid)
+        )
+      );
+      const partyName = (invoice.customer_name || invoice.customerName || invoice.clientName || invoice.customer || 'عميل نقدي').trim();
+      const salesperson = (
+        invoice.salesperson_name ||
+        invoice.salesperson ||
+        invoice.salespersonName ||
+        invoice.sales_rep_name ||
+        invoice.sales_rep ||
+        invoice.cashier_name ||
+        invoice.cashierName ||
+        invoice.created_by_name ||
+        invoice.createdBy ||
+        'حميد وهاس'
+      ).trim();
+
       printInvoiceDocument({
         companyName: invoice.company_name || 'المؤسسة التجارية',
         invoiceType: 'SALES',
@@ -111,10 +140,13 @@ export const SalesInvoiceDetailView: React.FC<SalesInvoiceDetailViewProps> = ({
         dueDate: invoice.due_date,
         status: invoice.status,
         paymentMethod: invoice.payment_method,
-        partyName: invoice.customer_name || 'العميل',
+        partyName,
+        customer_name: partyName,
+        salesperson,
+        salesperson_name: salesperson,
         partyPhone: invoice.customer_phone,
         partyAddress: invoice.customer_address,
-        items: items.map((it: any) => ({
+        items: invoiceItems.map((it: any) => ({
           name: it.product_name || it.name || 'صنف مبيعات',
           sku: it.product_sku || it.sku,
           unit: it.unit || it.product_unit || 'حبة',
@@ -124,12 +156,12 @@ export const SalesInvoiceDetailView: React.FC<SalesInvoiceDetailViewProps> = ({
           tax: parseFloat(it.tax || '0'),
           total: parseFloat(it.total || '0'),
         })),
-        subtotal: parseFloat(invoice.subtotal || '0'),
+        subtotal: parseFloat(invoice.subtotal || '0') || printTotal,
         discount: parseFloat(invoice.discount || '0'),
         tax: parseFloat(invoice.tax || '0'),
-        total: parseFloat(invoice.total || '0'),
-        paidAmount: parseFloat(invoice.paid_amount || '0'),
-        remainingAmount: parseFloat(invoice.remaining_amount || '0'),
+        total: printTotal,
+        paidAmount: printPaid,
+        remainingAmount: printRemaining,
         notes: invoice.notes,
       });
     }
@@ -160,10 +192,34 @@ export const SalesInvoiceDetailView: React.FC<SalesInvoiceDetailViewProps> = ({
     );
   }
 
-  const total = parseFloat(invoice.total || '0') || 0;
-  const paid = parseFloat(invoice.paid_amount || '0') || 0;
-  const remaining = Math.max(0, parseFloat(invoice.remaining_amount || `${total - paid}`) || 0);
   const items = invoice.items || [];
+  const rawTotal = Number(invoice.total ?? invoice.totalAmount ?? invoice.grandTotal ?? invoice.netTotal ?? invoice.total_amount ?? invoice.amount ?? 0);
+  const itemsSum = items.length > 0
+    ? items.reduce((acc: number, it: any) => acc + Number(it.total || (Number(it.quantity || 1) * Number(it.unit_price || it.price || 0) - Number(it.discount || 0))), 0)
+    : 0;
+  const total = rawTotal > 0 ? rawTotal : itemsSum;
+  const paid = Number(
+    invoice.paid_amount ?? invoice.paidAmount ?? invoice.amountPaid ?? invoice.paid ?? (invoice.status === 'PAID' || invoice.status === 'paid' ? total : 0)
+  );
+  const remaining = Math.max(
+    0,
+    Number(
+      invoice.remaining_amount ?? invoice.remainingAmount ?? invoice.remainingBalance ?? invoice.remaining ?? invoice.balanceDue ?? (total - paid)
+    )
+  );
+  const customerName = (invoice.customer_name || invoice.customerName || invoice.clientName || invoice.customer || 'عميل نقدي').trim();
+  const salesRep = (
+    invoice.salesperson_name ||
+    invoice.salesperson ||
+    invoice.salespersonName ||
+    invoice.sales_rep_name ||
+    invoice.sales_rep ||
+    invoice.cashier_name ||
+    invoice.cashierName ||
+    invoice.created_by_name ||
+    invoice.createdBy ||
+    'حميد وهاس'
+  ).trim();
   const payments = invoice.payments || [];
   const returns = invoice.returns || [];
   const ledgerEntries = invoice.ledger_entries || [];
@@ -359,7 +415,7 @@ export const SalesInvoiceDetailView: React.FC<SalesInvoiceDetailViewProps> = ({
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-slate-400 text-xs">اسم العميل:</span>
-              <span className="text-white font-medium">{invoice.customer_name || 'غير محدد'}</span>
+              <span className="text-white font-medium">{customerName}</span>
             </div>
             {invoice.customer_phone && (
               <div className="flex justify-between">

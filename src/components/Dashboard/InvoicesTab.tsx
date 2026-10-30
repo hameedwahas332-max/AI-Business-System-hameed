@@ -84,6 +84,24 @@ export const InvoicesTab: React.FC = () => {
 
       let loadedInvoices = Array.isArray(invRes?.data) ? invRes.data : [];
 
+      try {
+        const stored = localStorage.getItem('erp_invoices_v1');
+        if (stored) {
+          const localInvs: any[] = JSON.parse(stored);
+          if (Array.isArray(localInvs) && localInvs.length > 0) {
+            const serverIds = new Set(loadedInvoices.map((i: any) => i.id));
+            const newLocal = localInvs.filter((i: any) => !serverIds.has(i.id));
+            const localMap = new Map(localInvs.map((i: any) => [i.id, i]));
+            loadedInvoices = [
+              ...newLocal,
+              ...loadedInvoices.map((i: any) => localMap.get(i.id) || i),
+            ];
+          }
+        }
+      } catch (e) {
+        console.error('Failed to merge local invoices:', e);
+      }
+
       // Client-side fallback filter for price tier and itemCode/serial
       if (selectedPriceTier) {
         loadedInvoices = loadedInvoices.filter(
@@ -134,12 +152,14 @@ export const InvoicesTab: React.FC = () => {
       setSelectedIds([]);
       fetchData();
     };
-    window.addEventListener('erp-demo-data-wiped', handleWiped);
-    window.addEventListener('erp-inventory-updated', fetchData);
-    return () => {
-      window.removeEventListener('erp-demo-data-wiped', handleWiped);
-      window.removeEventListener('erp-inventory-updated', fetchData);
-    };
+      window.addEventListener('erp-demo-data-wiped', handleWiped);
+      window.addEventListener('erp-inventory-updated', fetchData);
+      window.addEventListener('erp-invoices-updated', fetchData);
+      return () => {
+        window.removeEventListener('erp-demo-data-wiped', handleWiped);
+        window.removeEventListener('erp-inventory-updated', fetchData);
+        window.removeEventListener('erp-invoices-updated', fetchData);
+      };
   }, [
     activeSubView,
     searchQuery,
@@ -247,29 +267,47 @@ export const InvoicesTab: React.FC = () => {
         'المبلغ المتبقي',
         'الحالة',
       ],
-      rows: listToExport.map((inv) => [
-        inv.invoice_number,
-        inv.customer_name || 'عميل نقدي',
-        inv.customer_phone || '-',
-        inv.invoice_date || inv.created_at?.split('T')[0] || '-',
-        inv.due_date || '-',
-        `${getActiveCurrencySymbol(inv.currency)} (${inv.currency || 'YER'})`,
-        formatAmount(inv.subtotal, inv.currency),
-        formatAmount(inv.discount, inv.currency),
-        formatAmount(inv.tax, inv.currency),
-        formatAmount(inv.total, inv.currency),
-        formatAmount(inv.paid_amount, inv.currency),
-        formatAmount(inv.remaining_amount, inv.currency),
-        inv.status === 'PAID'
-          ? 'مسددة بالكامل'
-          : inv.status === 'PARTIALLY_PAID'
-          ? 'مسددة جزئياً'
-          : inv.status === 'DRAFT'
-          ? 'مسودة'
-          : inv.status === 'CANCELLED'
-          ? 'ملغاة'
-          : 'معلقة (ذمة)',
-      ]),
+      rows: listToExport.map((inv) => {
+        const rawTotal = Number(inv.total ?? inv.totalAmount ?? inv.grandTotal ?? inv.netTotal ?? inv.total_amount ?? inv.amount ?? 0);
+        const itemsSum = Array.isArray(inv.items) && inv.items.length > 0
+          ? inv.items.reduce((acc: number, it: any) => acc + Number(it.total || (Number(it.quantity || 1) * Number(it.unit_price || it.price || 0) - Number(it.discount || 0))), 0)
+          : 0;
+        const total = rawTotal > 0 ? rawTotal : itemsSum;
+        const paid = Number(
+          inv.paid_amount ?? inv.paidAmount ?? inv.amountPaid ?? inv.paid ?? (inv.status === 'PAID' || inv.status === 'paid' ? total : 0)
+        );
+        const remaining = Math.max(
+          0,
+          Number(
+            inv.remaining_amount ?? inv.remainingAmount ?? inv.remainingBalance ?? inv.remaining ?? inv.balanceDue ?? (total - paid)
+          )
+        );
+        const customerDisplayName = (inv.customer_name || inv.customerName || inv.clientName || inv.customer || 'عميل نقدي').trim();
+
+        return [
+          inv.invoice_number,
+          customerDisplayName,
+          inv.customer_phone || '-',
+          inv.invoice_date || inv.created_at?.split('T')[0] || '-',
+          inv.due_date || '-',
+          `${getActiveCurrencySymbol(inv.currency)} (${inv.currency || 'YER'})`,
+          formatAmount(inv.subtotal || total, inv.currency),
+          formatAmount(inv.discount || 0, inv.currency),
+          formatAmount(inv.tax || 0, inv.currency),
+          formatAmount(total, inv.currency),
+          formatAmount(paid, inv.currency),
+          formatAmount(remaining, inv.currency),
+          remaining <= 0.01 && total > 0
+            ? 'مسددة بالكامل'
+            : paid > 0 && remaining > 0.01
+            ? 'مسددة جزئياً'
+            : inv.status === 'DRAFT'
+            ? 'مسودة'
+            : inv.status === 'CANCELLED'
+            ? 'ملغاة'
+            : 'معلقة (ذمة)',
+        ];
+      }),
     };
   };
 

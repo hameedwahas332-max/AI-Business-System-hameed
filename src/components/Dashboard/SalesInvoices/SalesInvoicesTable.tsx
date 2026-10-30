@@ -69,27 +69,16 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
   };
 
   const getStatusBadge = (invoice: any) => {
-    const status = invoice.status;
-    const total = parseFloat(invoice.total || '0');
-    const paid = parseFloat(invoice.paid_amount || '0');
-    const remaining = Math.max(0, parseFloat(invoice.remaining_amount || `${total - paid}`));
+    const rawTotal = Number(invoice.total ?? invoice.totalAmount ?? invoice.grandTotal ?? invoice.netTotal ?? invoice.total_amount ?? invoice.amount ?? 0);
+    const itemsSum = Array.isArray(invoice.items) && invoice.items.length > 0
+      ? invoice.items.reduce((acc: number, it: any) => acc + Number(it.total || (Number(it.quantity || 1) * Number(it.unit_price || it.price || 0) - Number(it.discount || 0))), 0)
+      : 0;
+    const total = rawTotal > 0 ? rawTotal : itemsSum;
+    const paid = Number(invoice.paid_amount ?? invoice.paidAmount ?? invoice.amountPaid ?? invoice.paid ?? 0);
+    const remaining = Math.max(0, Number(invoice.remaining_amount ?? invoice.remainingAmount ?? invoice.remainingBalance ?? invoice.remaining ?? invoice.balanceDue ?? (total - paid)));
 
-    if (status === 'PAID' || remaining <= 0.01) {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-          مسددة بالكامل
-        </span>
-      );
-    }
-    if (status === 'PARTIALLY_PAID' || (paid > 0 && remaining > 0.01)) {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/30">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-          مسددة جزئياً
-        </span>
-      );
-    }
+    const status = String(invoice.status || '').toUpperCase();
+
     if (status === 'DRAFT') {
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-300 border border-slate-500/30">
@@ -106,10 +95,26 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
         </span>
       );
     }
+    if (status === 'PAID' || remaining <= 0.01) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          مسددة بالكامل
+        </span>
+      );
+    }
+    if (status === 'PARTIALLY_PAID' || status === 'PARTIAL' || (paid > 0 && remaining > 0.01)) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/30">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+          مسددة جزئياً
+        </span>
+      );
+    }
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
         <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-        معلقة (PENDING)
+        آجلة / ذمم (غير مسددة)
       </span>
     );
   };
@@ -163,9 +168,38 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
           <tbody className="divide-y divide-slate-800">
             {invoiceList.map((inv) => {
               const isSelected = selectedList.includes(inv.id);
-              const total = parseFloat(inv.total || '0');
-              const paid = parseFloat(inv.paid_amount || '0');
-              const remaining = Math.max(0, parseFloat(inv.remaining_amount || `${total - paid}`));
+              const rawTotal = Number(inv.total ?? inv.totalAmount ?? inv.grandTotal ?? inv.netTotal ?? inv.total_amount ?? inv.amount ?? 0);
+              const itemsSum = Array.isArray(inv.items) && inv.items.length > 0
+                ? inv.items.reduce((acc: number, it: any) => acc + Number(it.total || (Number(it.quantity || 1) * Number(it.unit_price || it.price || 0) - Number(it.discount || 0))), 0)
+                : 0;
+              const total = rawTotal > 0 ? rawTotal : itemsSum;
+
+              const paid = Number(
+                inv.paid_amount ?? inv.paidAmount ?? inv.amountPaid ?? inv.paid ?? (inv.status === 'PAID' || inv.status === 'paid' ? total : 0)
+              );
+
+              const remaining = Math.max(
+                0,
+                Number(
+                  inv.remaining_amount ?? inv.remainingAmount ?? inv.remainingBalance ?? inv.remaining ?? inv.balanceDue ?? (total - paid)
+                )
+              );
+
+              const customerDisplayName = (inv.customer_name || inv.customerName || inv.clientName || inv.customer || 'عميل نقدي').trim();
+
+              const salesRep = (
+                inv.salesperson_name ||
+                inv.salesperson ||
+                inv.salespersonName ||
+                inv.sales_rep_name ||
+                inv.sales_rep ||
+                inv.cashier_name ||
+                inv.cashierName ||
+                inv.created_by_name ||
+                inv.createdBy ||
+                'حميد وهاس'
+              ).trim();
+
               const todayStr = new Date().toISOString().split('T')[0];
               const isOverdue = remaining > 0.01 && inv.due_date && inv.due_date < todayStr && inv.status !== 'DRAFT';
               const currency = inv.currency || 'YER';
@@ -182,8 +216,6 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
                 vip: { label: 'VIP خاص', color: 'bg-amber-950 text-amber-300 border-amber-800' },
               };
               const tierInfo = tierNameMap[priceTier] || tierNameMap.retail;
-
-              const salesRep = inv.sales_rep_name || inv.sales_rep || inv.cashier_name || inv.created_by_name || 'الكاشير العام';
 
               const hasWarranty = Boolean(
                 inv.has_warranty ||
@@ -253,7 +285,7 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
                   <td className="py-3.5 px-4">
                     <div className="space-y-1">
                       <p className="font-medium text-slate-100 truncate max-w-[180px]">
-                        {inv.customer_name || 'عميل نقدي / غير محدد'}
+                        {customerDisplayName}
                       </p>
                       <div className="flex items-center gap-2 flex-wrap">
                         {inv.customer_phone && (
@@ -349,7 +381,22 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
                       {/* Print */}
                       <button
                         type="button"
-                        onClick={() => printInvoiceDocument({ ...inv, currency: getActiveCurrencySymbol(inv.currency) })}
+                        onClick={() =>
+                          printInvoiceDocument({
+                            ...inv,
+                            invoiceNumber: inv.invoice_number,
+                            total,
+                            paidAmount: paid,
+                            paid_amount: paid,
+                            remainingAmount: remaining,
+                            remaining_amount: remaining,
+                            partyName: customerDisplayName,
+                            customer_name: customerDisplayName,
+                            salesperson: salesRep,
+                            salesperson_name: salesRep,
+                            currency: getActiveCurrencySymbol(inv.currency),
+                          })
+                        }
                         className="p-1.5 bg-slate-800 hover:bg-slate-700 text-blue-400 rounded-lg transition-colors"
                         title="طباعة"
                       >

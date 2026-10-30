@@ -28,9 +28,23 @@ export const SalesInvoicesKPIs: React.FC<SalesInvoicesKPIsProps> = ({ invoices, 
   const todayStr = new Date().toISOString().split('T')[0];
 
   invoices.forEach((inv) => {
-    const total = parseFloat(inv.total || '0') || 0;
-    const paid = parseFloat(inv.paid_amount || '0') || 0;
-    const remaining = parseFloat(inv.remaining_amount || `${total - paid}`) || 0;
+    const rawTotal = Number(inv.total ?? inv.totalAmount ?? inv.grandTotal ?? inv.netTotal ?? inv.total_amount ?? inv.amount ?? 0);
+    const itemsSum = Array.isArray(inv.items) && inv.items.length > 0
+      ? inv.items.reduce((acc: number, it: any) => acc + Number(it.total || (Number(it.quantity || 1) * Number(it.unit_price || it.price || 0) - Number(it.discount || 0))), 0)
+      : 0;
+    const total = rawTotal > 0 ? rawTotal : itemsSum;
+
+    const paid = Number(
+      inv.paid_amount ?? inv.paidAmount ?? inv.amountPaid ?? inv.paid ?? (inv.status === 'PAID' || inv.status === 'paid' ? total : 0)
+    );
+
+    const remaining = Math.max(
+      0,
+      Number(
+        inv.remaining_amount ?? inv.remainingAmount ?? inv.remainingBalance ?? inv.remaining ?? inv.balanceDue ?? (total - paid)
+      )
+    );
+
     const curr = inv.currency || 'YER';
 
     if (currencyTotals[curr]) {
@@ -39,21 +53,23 @@ export const SalesInvoicesKPIs: React.FC<SalesInvoicesKPIsProps> = ({ invoices, 
       currencyTotals[curr].remaining += remaining;
     }
 
-    if (inv.status !== 'CANCELLED') {
+    const st = String(inv.status || '').toUpperCase();
+
+    if (st !== 'CANCELLED') {
       totalSales += total;
       totalPaid += paid;
       totalRemaining += remaining;
 
-      if (remaining > 0.01 && inv.due_date && inv.due_date < todayStr && inv.status !== 'DRAFT') {
+      if (remaining > 0.01 && inv.due_date && inv.due_date < todayStr && st !== 'DRAFT') {
         overdueAmount += remaining;
         overdueCount++;
       }
 
-      if (inv.status === 'PAID' || remaining <= 0.01) {
+      if (st === 'PAID' || remaining <= 0.01) {
         paidCount++;
-      } else if (inv.status === 'PARTIALLY_PAID' || (paid > 0 && remaining > 0.01)) {
+      } else if (st === 'PARTIALLY_PAID' || st === 'PARTIAL' || (paid > 0 && remaining > 0.01)) {
         partialCount++;
-      } else if (inv.status === 'PENDING' || inv.status === 'DRAFT') {
+      } else {
         pendingCount++;
       }
     }

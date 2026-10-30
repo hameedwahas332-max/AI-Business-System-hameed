@@ -164,6 +164,221 @@ export function removeAccountFromVault(email: string): void {
   }
 }
 
+export const ALL_ERP_DATA_KEYS = [
+  'erp_products_v1',
+  'erp_invoices_v1',
+  'erp_purchase_invoices_v1',
+  'erp_pos_sales_log_v1',
+  'erp_inventory_movements_v1',
+  'erp_payments_v1',
+  'erp_customers_v1',
+  'erp_suppliers_v1',
+  'erp_employees_expenses_v1',
+  'erp_fuel_station_v1',
+  'erp_journal_entries_v1',
+  'erp_accounts_v1',
+  'erp_audit_logs_v1',
+  'erp_notifications_v1',
+  'erp_whatsapp_config_v1',
+  'erp_whatsapp_messages_v1',
+  'erp_module_settings_v1',
+  'erp_clean_production_mode_v1',
+] as const;
+
+export function resolveDeterministicCompanyId(email?: string, username?: string, customCompanyId?: string): string {
+  if (customCompanyId && customCompanyId.trim() && customCompanyId !== 'undefined' && customCompanyId !== 'null') {
+    return customCompanyId.trim();
+  }
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const cleanUser = (username || '').trim().toLowerCase();
+
+  if (cleanEmail === 'admin@alsahabi.com' || cleanUser === 'admin') return 'comp_001';
+  if (cleanEmail === 'admin@alamal-trade.com' || cleanUser === 'alamal_admin') return 'comp_alamal';
+  if (cleanEmail === 'admin@albaraka-store.com' || cleanUser === 'albaraka_admin') return 'comp_albaraka';
+
+  const rawIdent = cleanEmail ? cleanEmail.split('@')[0] : cleanUser;
+  const slug = (rawIdent || 'merchant').replace(/[^a-z0-9]/g, '_').slice(0, 30);
+  return `comp_${slug}`;
+}
+
+export function smartMergeKeyData(existingRaw: string | null, vaultRaw: string | null): string | null {
+  if (!vaultRaw) return existingRaw;
+  if (!existingRaw) return vaultRaw;
+
+  try {
+    const existingParsed = JSON.parse(existingRaw);
+    const vaultParsed = JSON.parse(vaultRaw);
+
+    if (Array.isArray(existingParsed) && Array.isArray(vaultParsed)) {
+      if (vaultParsed.length === 0) return existingRaw; // Never overwrite non-empty with empty array!
+      if (existingParsed.length === 0) return vaultRaw;
+
+      const itemMap = new Map<string, any>();
+      // First populate existing items
+      existingParsed.forEach((item: any) => {
+        const id = item?.id || item?.invoice_number || item?.voucher_number || item?.voucherNumber || item?.sku || item?.code || JSON.stringify(item);
+        itemMap.set(String(id), item);
+      });
+      // Merge vault items
+      vaultParsed.forEach((item: any) => {
+        const id = item?.id || item?.invoice_number || item?.voucher_number || item?.voucherNumber || item?.sku || item?.code || JSON.stringify(item);
+        const existingItem = itemMap.get(String(id));
+        if (existingItem) {
+          itemMap.set(String(id), { ...existingItem, ...item });
+        } else {
+          itemMap.set(String(id), item);
+        }
+      });
+      return JSON.stringify(Array.from(itemMap.values()));
+    }
+
+    if (
+      typeof existingParsed === 'object' &&
+      typeof vaultParsed === 'object' &&
+      existingParsed !== null &&
+      vaultParsed !== null
+    ) {
+      return JSON.stringify({ ...vaultParsed, ...existingParsed });
+    }
+  } catch {}
+
+  return existingRaw || vaultRaw;
+}
+
+export function saveCurrentTenantSnapshotToVault(
+  targetUser?: User | null,
+  targetCompany?: Company | null
+): void {
+  try {
+    const activeEmail = (
+      targetUser?.email ||
+      localStorage.getItem('erp_active_user_email') ||
+      ''
+    ).trim().toLowerCase();
+    const activeUsername = (targetUser?.username || '').trim().toLowerCase();
+    const activeCompanyId = targetCompany?.id || targetUser?.company_id || 'comp_001';
+
+    const vault = getVaultAccounts();
+    const userKey = activeEmail || activeUsername || activeCompanyId || 'admin@alsahabi.com';
+
+    const dataMap: Record<string, string> = {};
+    for (const key of ALL_ERP_DATA_KEYS) {
+      const baseVal = localStorage.getItem(key);
+      const scopedVal = activeCompanyId ? localStorage.getItem(`${key}_${activeCompanyId}`) : null;
+      const valToSave =
+        scopedVal && scopedVal !== '[]' && scopedVal !== '{}'
+          ? scopedVal
+          : (baseVal && baseVal !== '[]' && baseVal !== '{}')
+          ? baseVal
+          : (scopedVal || baseVal);
+      if (valToSave !== null && valToSave !== undefined) {
+        dataMap[key] = valToSave;
+      }
+    }
+
+    const existingEntry =
+      vault[userKey] ||
+      (activeEmail && vault[activeEmail]) ||
+      (activeCompanyId && vault[activeCompanyId]) ||
+      {};
+
+    const updatedEntry: EternalVaultAccount = {
+      ...existingEntry,
+      user: targetUser || existingEntry.user || defaultUser,
+      company: targetCompany || existingEntry.company || defaultCompany,
+      token: (existingEntry as any).token || localStorage.getItem('erp_auth_token') || 'jwt_permanent',
+      lastActive: new Date().toISOString(),
+      ...(existingEntry.passwordVerifier ? { passwordVerifier: existingEntry.passwordVerifier } : {}),
+      lastDataSnapshot: {
+        data: dataMap,
+        timestamp: new Date().toISOString(),
+      },
+    } as any;
+
+    if (activeEmail) vault[activeEmail] = updatedEntry;
+    if (activeUsername && activeUsername !== activeEmail) vault[activeUsername] = updatedEntry;
+    if (activeCompanyId) vault[activeCompanyId] = updatedEntry;
+
+    localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(vault));
+
+    if (activeCompanyId) {
+      fetch('/api/v1/tenant-snapshot/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-company-id': activeCompanyId,
+        },
+        body: JSON.stringify({
+          companyId: activeCompanyId,
+          userKey,
+          email: activeEmail,
+          snapshot: dataMap,
+        }),
+      }).catch(() => {});
+    }
+  } catch (err) {
+    console.warn('[VAULT_SNAPSHOT_WARN]', err);
+  }
+}
+
+export function snapshotErpDataToVault(userEmail?: string): void {
+  saveCurrentTenantSnapshotToVault(
+    userEmail ? ({ email: userEmail } as User) : null,
+    null
+  );
+}
+
+export async function restoreTenantSnapshotFromVault(
+  targetUser: User,
+  targetCompany: Company
+): Promise<void> {
+  try {
+    const emailKey = (targetUser.email || '').trim().toLowerCase();
+    const usernameKey = (targetUser.username || '').trim().toLowerCase();
+    const companyId = targetCompany.id || resolveDeterministicCompanyId(targetUser.email, targetUser.username);
+
+    const vault = getVaultAccounts();
+    const vaultEntry =
+      (emailKey ? vault[emailKey] : null) ||
+      (usernameKey ? vault[usernameKey] : null) ||
+      (companyId ? vault[companyId] : null);
+
+    let vaultDataMap: Record<string, string> = {};
+    if (vaultEntry && (vaultEntry as any).lastDataSnapshot?.data) {
+      vaultDataMap = { ...(vaultEntry as any).lastDataSnapshot.data };
+    }
+
+    try {
+      const snapRes = await fetch(`/api/v1/tenant-snapshot/${companyId}`);
+      if (snapRes.ok) {
+        const snapJson = await snapRes.json();
+        if (snapJson?.snapshot && typeof snapJson.snapshot === 'object') {
+          vaultDataMap = { ...vaultDataMap, ...snapJson.snapshot };
+        }
+      }
+    } catch {}
+
+    for (const key of ALL_ERP_DATA_KEYS) {
+      const baseVal = localStorage.getItem(key);
+      const scopedVal = localStorage.getItem(`${key}_${companyId}`);
+      const currentVal = (baseVal && baseVal !== '[]' && baseVal !== '{}') ? baseVal : (scopedVal || baseVal);
+      const vaultVal = vaultDataMap[key] || null;
+
+      const mergedVal = smartMergeKeyData(currentVal, vaultVal);
+      if (mergedVal !== null && mergedVal !== undefined) {
+        localStorage.setItem(key, mergedVal);
+        localStorage.setItem(`${key}_${companyId}`, mergedVal);
+      }
+    }
+
+    window.dispatchEvent(new Event('erp-inventory-updated'));
+    window.dispatchEvent(new Event('erp-invoices-updated'));
+    window.dispatchEvent(new Event('erp-data-updated'));
+  } catch (err) {
+    console.warn('[RESTORE_SNAPSHOT_WARN]', err);
+  }
+}
+
 const AuthContext = createContext<AuthContextType>({
   user: defaultUser,
   company: defaultCompany,
@@ -574,6 +789,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    try {
+      snapshotErpDataToVault(user?.email);
+    } catch {}
     setToken(null);
     setUser(null);
     setCompany(null);

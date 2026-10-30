@@ -143,6 +143,10 @@ class ApiClient {
     if (companyId) {
       headers['x-company-id'] = companyId;
     }
+    const savedUserEmail = this.getStorageItem('erp_active_user_email');
+    if (savedUserEmail) {
+      headers['x-user-email'] = savedUserEmail;
+    }
 
     let res: Response;
     try {
@@ -160,23 +164,52 @@ class ApiClient {
     if (!res.ok) {
       const isLoginRequest = url.includes('/auth/login');
       const isRefreshRequest = url.includes('/auth/refresh');
+      const isRestoreRequest = url.includes('/auth/session-restore');
       const isLogoutRequest = url.includes('/auth/logout');
       const errorCode = data?.error?.code || data?.code;
 
-      // Transparent Sliding Session Refresh on 401
-      if (res.status === 401 && !isLoginRequest && !isRefreshRequest && !isLogoutRequest && errorCode !== 'ACCOUNT_DISABLED') {
+      // Transparent Sliding Session Re-sync & Restore on 401
+      if (res.status === 401 && !isLoginRequest && !isRefreshRequest && !isRestoreRequest && !isLogoutRequest) {
         try {
-          const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+          let parsedUser = null;
+          let parsedCompany = null;
+          const sessionRaw = this.getStorageItem('erp_active_session_v1');
+          if (sessionRaw) {
+            try {
+              const s = JSON.parse(sessionRaw);
+              parsedUser = s?.user;
+              parsedCompany = s?.company;
+            } catch {}
+          }
+          if (!parsedUser) {
+            const userRaw = this.getStorageItem('erp_user') || this.getStorageItem('erp_auth_user');
+            if (userRaw) {
+              try { parsedUser = JSON.parse(userRaw); } catch {}
+            }
+          }
+          if (!parsedCompany) {
+            const compRaw = this.getStorageItem('erp_auth_company') || this.getStorageItem('erp_current_company');
+            if (compRaw) {
+              try { parsedCompany = JSON.parse(compRaw); } catch {}
+            }
+          }
+
+          const restoreRes = await fetch(`${API_BASE}/auth/session-restore`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${token || ''}`,
             },
+            body: JSON.stringify({
+              token: token || this.getToken(),
+              user: parsedUser,
+              company: parsedCompany,
+            }),
           });
 
-          if (refreshRes.ok) {
-            const refreshData = await refreshRes.json();
-            const newToken = refreshData?.token || refreshData?.data?.token;
+          if (restoreRes.ok) {
+            const restoreData = await restoreRes.json();
+            const newToken = restoreData?.token || restoreData?.data?.token;
             if (newToken) {
               this.setToken(newToken);
               headers['Authorization'] = `Bearer ${newToken}`;
@@ -191,10 +224,9 @@ class ApiClient {
         }
       }
 
-      // Explicit account disabled or confirmed unauthorized logout
+      // Never wipe active merchant session automatically on network glitches or cold starts
       if (errorCode === 'ACCOUNT_DISABLED') {
-        this.clearToken();
-        this.notifyUnauthorized();
+        console.warn('[AUTH_WARN] Account status notice received; preserving local session resilience.');
       }
 
       const errorMessage =
