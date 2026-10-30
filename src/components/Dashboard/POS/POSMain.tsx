@@ -51,6 +51,7 @@ import {
   applyStockMovementSync,
 } from '../../../lib/formatters';
 import { printInvoiceDocument } from '../../../lib/exportUtils';
+import { recordAutomaticTreasuryVoucher } from '../../../utils/treasuryVoucherHelper';
 import { ModuleSettingsModal } from '../../Common/ModuleSettingsModal';
 import { POSQuickItemModal } from './POSQuickItemModal';
 import { POSCustomerSelector } from './POSCustomerSelector';
@@ -341,8 +342,28 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
         customerName: payload.customerName,
         paymentMethod: 'CASH',
         total: grandTotal,
-        currency,
       });
+
+      // 1.1 Record Automatic Treasury Receipt Voucher (سند قبض)
+      try {
+        recordAutomaticTreasuryVoucher({
+          type: 'CUSTOMER_PAYMENT',
+          amount: grandTotal,
+          currency: currency || 'YER',
+          paymentMethod: 'CASH',
+          paymentDate: new Date().toISOString().split('T')[0],
+          partyId: selectedCustomer?.id || 'cust-direct',
+          partyName: payload.customerName,
+          partyPhone: selectedCustomer?.phone,
+          referenceId: receiptDataObj.id,
+          referenceNo: invoiceNum,
+          referenceType: 'SALES_INVOICE',
+          notes: `سند قبض نقدي سريع نقطة البيع (POS) رقم #${invoiceNum} (العميل: ${payload.customerName})`,
+          cashierName: (user?.full_name || (user as any)?.name || 'حميد وهاس').trim(),
+        });
+      } catch (err) {
+        console.warn('Treasury sync warn:', err);
+      }
 
       // 2. Record to Central POS Sales Log
       const posLogRecord = {
@@ -805,6 +826,29 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
           window.dispatchEvent(new CustomEvent('erp-invoices-updated'));
         } catch (e) {
           console.error('Failed to sync POS invoice to erp_invoices_v1:', e);
+        }
+
+        // Record automatic treasury receipt voucher (سند قبض) if paid amount > 0
+        if (Number(paymentData.paidAmount) > 0) {
+          try {
+            recordAutomaticTreasuryVoucher({
+              type: 'CUSTOMER_PAYMENT',
+              amount: Number(paymentData.paidAmount),
+              currency: currency || 'YER',
+              paymentMethod: paymentData.paymentMethod || 'CASH',
+              paymentDate: new Date().toISOString().split('T')[0],
+              partyId: selectedCustomer?.id || 'cust-direct',
+              partyName: effectiveCustomer,
+              partyPhone: selectedCustomer?.phone,
+              referenceId: finalPosInvoice.id,
+              referenceNo: invNum,
+              referenceType: 'SALES_INVOICE',
+              notes: `سند قبض آلي عن مبيعات نقطة البيع (POS) رقم #${invNum} (العميل: ${effectiveCustomer})`,
+              cashierName: effectiveSalesperson,
+            });
+          } catch (pmtErr) {
+            console.error('Failed to record automatic treasury voucher from POS:', pmtErr);
+          }
         }
 
         // If credit balance remaining, sync customer balance

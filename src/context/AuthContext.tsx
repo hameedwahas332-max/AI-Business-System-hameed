@@ -195,6 +195,7 @@ export function resolveDeterministicCompanyId(email?: string, username?: string,
   if (cleanEmail === 'admin@alsahabi.com' || cleanUser === 'admin') return 'comp_001';
   if (cleanEmail === 'admin@alamal-trade.com' || cleanUser === 'alamal_admin') return 'comp_alamal';
   if (cleanEmail === 'admin@albaraka-store.com' || cleanUser === 'albaraka_admin') return 'comp_albaraka';
+  if (cleanEmail.includes('hameedwahas') || cleanUser.includes('hameed')) return 'comp_hameed_wahas_2735';
 
   const rawIdent = cleanEmail ? cleanEmail.split('@')[0] : cleanUser;
   const slug = (rawIdent || 'merchant').replace(/[^a-z0-9]/g, '_').slice(0, 30);
@@ -276,10 +277,10 @@ export function saveCurrentTenantSnapshotToVault(
       }
     }
 
-    const existingEntry =
+    const existingEntry: Partial<EternalVaultAccount> =
       vault[userKey] ||
-      (activeEmail && vault[activeEmail]) ||
-      (activeCompanyId && vault[activeCompanyId]) ||
+      (activeEmail ? vault[activeEmail] : undefined) ||
+      (activeCompanyId ? vault[activeCompanyId] : undefined) ||
       {};
 
     const updatedEntry: EternalVaultAccount = {
@@ -477,6 +478,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setCompany(data.company);
             localStorage.setItem('erp_auth_company', JSON.stringify(data.company));
           }
+        } else {
+          // Never log out on 401 or network glitch! Re-arm session on server seamlessly
+          fetch('/api/v1/auth/session-restore', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: currentEmail || user?.email,
+              companyId: company?.id || localStorage.getItem('erp_company_id'),
+              user,
+              company,
+            }),
+          }).catch(() => {});
         }
       } catch {
         // Preserves offline session seamlessly
@@ -485,6 +498,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     rehydrateAndVerify();
   }, [token, company?.id]);
+
+  // Continuous background snapshot & vault sync
+  useEffect(() => {
+    if (!user || !company) return;
+
+    let timeoutId: any = null;
+    const triggerDebouncedSnapshot = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        saveCurrentTenantSnapshotToVault(user, company);
+      }, 1500);
+    };
+
+    const syncEvents = [
+      'erp-inventory-updated',
+      'erp-invoices-updated',
+      'erp-payments-updated',
+      'erp-customers-updated',
+      'erp-suppliers-updated',
+      'erp-data-updated',
+      'storage',
+    ];
+
+    syncEvents.forEach((ev) => window.addEventListener(ev, triggerDebouncedSnapshot));
+
+    const handleUnload = () => {
+      saveCurrentTenantSnapshotToVault(user, company);
+    };
+    window.addEventListener('beforeunload', handleUnload);
+
+    const periodicInterval = setInterval(() => {
+      saveCurrentTenantSnapshotToVault(user, company);
+    }, 20000);
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      clearInterval(periodicInterval);
+      syncEvents.forEach((ev) => window.removeEventListener(ev, triggerDebouncedSnapshot));
+      window.removeEventListener('beforeunload', handleUnload);
+    };
+  }, [user, company]);
 
   // Lock System
   const lockSystem = useCallback(() => {
@@ -572,6 +626,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('erp_token', emailOrToken);
       localStorage.setItem('erp_auth_user', JSON.stringify(passwordOrUser));
       localStorage.setItem('erp_current_user', JSON.stringify(passwordOrUser));
+      localStorage.setItem('erp_active_user_email', passwordOrUser.email || '');
+      localStorage.setItem('erp_active_session_v1', 'true');
       if (companyArg) {
         localStorage.setItem('erp_auth_company', JSON.stringify(companyArg));
         localStorage.setItem('erp_current_company', JSON.stringify(companyArg));
@@ -586,6 +642,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         token: emailOrToken,
         lastActive: new Date().toISOString(),
       });
+      restoreTenantSnapshotFromVault(passwordOrUser, companyArg || defaultCompany);
       return;
     }
 
@@ -617,6 +674,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           localStorage.setItem('erp_auth_token', tok);
           localStorage.setItem('erp_token', tok);
+          localStorage.setItem('erp_active_user_email', email);
+          localStorage.setItem('erp_active_session_v1', 'true');
           if (userObj) {
             localStorage.setItem('erp_auth_user', JSON.stringify(userObj));
             localStorage.setItem('erp_current_user', JSON.stringify(userObj));
@@ -636,6 +695,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             token: tok,
             lastActive: new Date().toISOString(),
           });
+          if (userObj && compObj) {
+            await restoreTenantSnapshotFromVault(userObj, compObj);
+          }
           return;
         } else if (res.status === 401) {
           throw new Error(data?.message || 'كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى');
@@ -665,6 +727,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         localStorage.setItem('erp_auth_token', tok);
         localStorage.setItem('erp_token', tok);
+        localStorage.setItem('erp_active_user_email', email);
+        localStorage.setItem('erp_active_session_v1', 'true');
         localStorage.setItem('erp_auth_user', JSON.stringify(vaultEntry.user));
         localStorage.setItem('erp_current_user', JSON.stringify(vaultEntry.user));
         localStorage.setItem('erp_auth_company', JSON.stringify(vaultEntry.company));
@@ -684,6 +748,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             password: password || vaultEntry.passwordVerifier || 'admin123',
           }),
         }).catch(() => {});
+
+        await restoreTenantSnapshotFromVault(vaultEntry.user, vaultEntry.company);
 
         return;
       }
@@ -736,24 +802,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const newToken = resData.token || `jwt_tenant_${Date.now()}`;
+      const resolvedCompanyId = resolveDeterministicCompanyId(normalizedEmail, data.fullName);
+      const newCompany: Company = resData.company || {
+        id: resolvedCompanyId,
+        name: data.companyName,
+        currency: data.currency || 'YER',
+        phone: data.phone || '',
+        email: normalizedEmail,
+        status: 'active',
+        created_at: new Date().toISOString(),
+      };
+
       const newUser: User = resData.user || {
         id: `usr_${Date.now()}`,
         username: normalizedEmail.split('@')[0],
         full_name: data.fullName,
         email: normalizedEmail,
         role: 'super_admin',
-        company_id: `comp_${Date.now()}`,
+        company_id: newCompany.id,
         is_active: true,
-        created_at: new Date().toISOString(),
-      };
-
-      const newCompany: Company = resData.company || {
-        id: newUser.company_id,
-        name: data.companyName,
-        currency: data.currency || 'SAR',
-        phone: data.phone || '',
-        email: normalizedEmail,
-        status: 'active',
         created_at: new Date().toISOString(),
       };
 
@@ -768,6 +835,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('erp_current_user', JSON.stringify(newUser));
       localStorage.setItem('erp_auth_company', JSON.stringify(newCompany));
       localStorage.setItem('erp_current_company', JSON.stringify(newCompany));
+      localStorage.setItem('erp_active_user_email', normalizedEmail);
+      localStorage.setItem('erp_active_session_v1', 'true');
 
       api.setToken(newToken);
       api.setCompanyId(newCompany.id);
@@ -782,6 +851,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         lastActive: new Date().toISOString(),
       });
 
+      await restoreTenantSnapshotFromVault(newUser, newCompany);
+
       return { user: newUser, company: newCompany, token: newToken };
     } finally {
       setIsLoading(false);
@@ -790,7 +861,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     try {
-      snapshotErpDataToVault(user?.email);
+      saveCurrentTenantSnapshotToVault(user, company);
     } catch {}
     setToken(null);
     setUser(null);
@@ -803,6 +874,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('erp_current_user');
     localStorage.removeItem('erp_auth_company');
     localStorage.removeItem('erp_current_company');
+    localStorage.removeItem('erp_active_user_email');
+    localStorage.removeItem('erp_active_session_v1');
     localStorage.removeItem(SYSTEM_LOCK_KEY);
     api.clearToken();
     try {

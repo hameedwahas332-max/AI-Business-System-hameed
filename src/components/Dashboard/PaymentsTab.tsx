@@ -133,7 +133,22 @@ export const PaymentsTab: React.FC = () => {
         api.getPurchaseInvoices({ status: 'PENDING' }),
       ]);
 
-      setPayments(payRes?.data || []);
+      let loadedPayments = payRes?.data || [];
+      try {
+        const stored = localStorage.getItem('erp_payments_v1');
+        if (stored) {
+          const localList: any[] = JSON.parse(stored);
+          if (Array.isArray(localList) && localList.length > 0) {
+            const serverIds = new Set(loadedPayments.map((p: any) => p.id || p.voucher_number));
+            const newLocal = localList.filter((p: any) => !serverIds.has(p.id) && !serverIds.has(p.voucher_number));
+            loadedPayments = [...newLocal, ...loadedPayments];
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to merge local payments:', e);
+      }
+
+      setPayments(loadedPayments);
       setStats(statsRes?.data || null);
       setCustomers(custRes?.data || []);
       setSuppliers(suppRes?.data || []);
@@ -158,8 +173,17 @@ export const PaymentsTab: React.FC = () => {
       setPurchaseInvoices([]);
       fetchPaymentsAndStats();
     };
+    const handleUpdated = () => {
+      fetchPaymentsAndStats();
+    };
     window.addEventListener('erp-demo-data-wiped', handleWiped);
-    return () => window.removeEventListener('erp-demo-data-wiped', handleWiped);
+    window.addEventListener('erp-payments-updated', handleUpdated);
+    window.addEventListener('erp-data-updated', handleUpdated);
+    return () => {
+      window.removeEventListener('erp-demo-data-wiped', handleWiped);
+      window.removeEventListener('erp-payments-updated', handleUpdated);
+      window.removeEventListener('erp-data-updated', handleUpdated);
+    };
   }, [activeTab, statusFilter, methodFilter, currencyFilter, startDate, endDate]);
 
   // Selected party object

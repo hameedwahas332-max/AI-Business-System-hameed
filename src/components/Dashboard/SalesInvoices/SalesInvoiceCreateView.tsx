@@ -10,6 +10,7 @@ import {
   applyStockMovementSync,
 } from '../../../lib/formatters';
 import { printInvoiceDocument } from '../../../lib/exportUtils';
+import { recordAutomaticTreasuryVoucher } from '../../../utils/treasuryVoucherHelper';
 import {
   ArrowRight,
   Plus,
@@ -263,7 +264,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
     if (tier === 'vip' && Number(prod.vipPrice) > 0) return Number(prod.vipPrice);
     if (tier === 'wholesale' && Number(prod.wholesalePrice) > 0) return Number(prod.wholesalePrice);
     if (tier === 'half_wholesale' && Number(prod.halfWholesalePrice) > 0) return Number(prod.halfWholesalePrice);
-    return Number(prod.retailPrice ?? prod.retail_price ?? prod.selling_price ?? prod.price ?? 0);
+    return Number(prod.retailPrice ?? prod.retail_price ?? prod.sellingPrice ?? prod.selling_price ?? prod.price ?? 0);
   };
 
   // Helper for Auto-Calculating Warranty End Date (Months from now)
@@ -822,7 +823,32 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
           }
         }
 
-        // Apply real-time inventory deduction and sales tracking sync
+        // Record automatic treasury receipt voucher (سند قبض) if paid amount > 0
+        if (effectivePaid > 0) {
+          try {
+            recordAutomaticTreasuryVoucher({
+              type: 'CUSTOMER_PAYMENT',
+              amount: effectivePaid,
+              currency: currency || 'YER',
+              paymentMethod,
+              paymentDate: invoiceDate,
+              partyId: selectedCustomerId || 'cust-direct',
+              partyName: effectiveCustomerName,
+              partyPhone: selectedCustomer?.phone,
+              referenceId: finalInvoice.id,
+              referenceNo: finalInvoice.invoice_number,
+              referenceType: 'SALES_INVOICE',
+              notes: `سند قبض آلي عن فاتورة مبيعات رقم #${finalInvoice.invoice_number} (العميل: ${effectiveCustomerName})`,
+              bankName: paymentMethod === 'BANK' ? bankName : undefined,
+              bankRefNo: paymentMethod === 'BANK' ? bankRefNo : undefined,
+              walletProvider: paymentMethod === 'WALLET' ? walletProvider : undefined,
+              walletTxNo: paymentMethod === 'WALLET' ? walletTxNo : undefined,
+              cashierName: effectiveSalesperson,
+            });
+          } catch (pmtErr) {
+            console.error('Failed to record automatic treasury voucher:', pmtErr);
+          }
+        }
         try {
           applyStockMovementSync(
             validItems.map((it) => ({

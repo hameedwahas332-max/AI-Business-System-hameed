@@ -58,6 +58,7 @@ import {
   Coins,
 } from 'lucide-react';
 import { getAccountingRate, toBaseCurrencyAmount } from '../../lib/exchangeRates';
+import { recordAutomaticTreasuryVoucher } from '../../utils/treasuryVoucherHelper';
 
 export type MainTabFilter = 'ALL' | 'CUSTOMERS' | 'SUPPLIERS' | 'DEBIT' | 'CREDIT' | 'OVERDUE' | 'ACTIVE';
 
@@ -620,6 +621,28 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
           description: txFormData.description?.trim() || undefined,
           referenceNo: txFormData.referenceNo?.trim() || undefined,
         });
+
+        // If customer payment (CREDIT transaction), record automatic receipt voucher
+        if (txFormData.type === 'CREDIT') {
+          try {
+            recordAutomaticTreasuryVoucher({
+              type: 'CUSTOMER_PAYMENT',
+              amount: numAmount,
+              currency: txFormData.currency || 'YER',
+              paymentMethod: 'CASH',
+              paymentDate: txFormData.date || new Date().toISOString().split('T')[0],
+              partyId: txTarget.party.id,
+              partyName: txTarget.party.name || txTarget.party._name,
+              partyPhone: txTarget.party.phone || txTarget.party._phone,
+              referenceNo: txFormData.referenceNo?.trim(),
+              referenceType: 'DEBT_COLLECTION',
+              notes: txFormData.description?.trim() || `سند تحصيل ذمة عميل (${txTarget.party.name || txTarget.party._name})`,
+            });
+          } catch (pmtErr) {
+            console.warn('Voucher sync warn:', pmtErr);
+          }
+        }
+
         setSuccess('تم تسجيل حركة حساب العميل وتحديث رصيد الذمم المدينة بنجاح');
       } else {
         await api.addSupplierTransaction(txTarget.party.id, {
@@ -631,6 +654,28 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
           description: txFormData.description?.trim() || undefined,
           referenceNo: txFormData.referenceNo?.trim() || undefined,
         });
+
+        // If supplier payment (DEBIT transaction), record automatic payment voucher
+        if (txFormData.type === 'DEBIT') {
+          try {
+            recordAutomaticTreasuryVoucher({
+              type: 'SUPPLIER_PAYMENT',
+              amount: numAmount,
+              currency: txFormData.currency || 'YER',
+              paymentMethod: 'CASH',
+              paymentDate: txFormData.date || new Date().toISOString().split('T')[0],
+              partyId: txTarget.party.id,
+              partyName: txTarget.party.name || txTarget.party._name,
+              partyPhone: txTarget.party.phone || txTarget.party._phone,
+              referenceNo: txFormData.referenceNo?.trim(),
+              referenceType: 'DEBT_PAYMENT',
+              notes: txFormData.description?.trim() || `سند صرف / سداد دفعة للمورد (${txTarget.party.name || txTarget.party._name})`,
+            });
+          } catch (pmtErr) {
+            console.warn('Voucher sync warn:', pmtErr);
+          }
+        }
+
         setSuccess('تم تسجيل حركة حساب المورد وتحديث رصيد الذمم الدائنة بنجاح');
       }
 

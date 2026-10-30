@@ -102,6 +102,59 @@ export const InvoicesTab: React.FC = () => {
         console.error('Failed to merge local invoices:', e);
       }
 
+      // Smart Auto-Repair for invoices with 0 total or missing fields but existing items
+      let hadRepairedInvoices = false;
+      loadedInvoices = loadedInvoices.map((inv: any) => {
+        const items = Array.isArray(inv.items) ? inv.items : [];
+        const itemsSum = items.reduce((acc: number, it: any) => {
+          const q = Number(it.quantity || it.qty || 1);
+          const p = Number(it.unit_price || it.unitPrice || it.price || 0);
+          const d = Number(it.discount || 0);
+          const s = Number(it.scrapDiscount || 0);
+          const tx = Number(it.tax || 0);
+          return acc + Math.max(0, q * p - d - s) + tx;
+        }, 0);
+
+        let total = Number(inv.total ?? inv.totalAmount ?? inv.grandTotal ?? inv.netTotal ?? inv.total_amount ?? inv.amount ?? 0);
+        if (total === 0 && itemsSum > 0) {
+          total = itemsSum;
+          hadRepairedInvoices = true;
+        }
+
+        const rawPaid = inv.paid_amount ?? inv.paidAmount ?? inv.amountPaid ?? inv.paid;
+        let paid = rawPaid !== undefined && rawPaid !== null ? Number(rawPaid) : (inv.status === 'PAID' || inv.status === 'paid' ? total : 0);
+        if (paid === 0 && (inv.payment_method === 'CASH' || inv.paymentMethod === 'CASH' || inv.status === 'PAID' || inv.status === 'paid')) {
+          paid = total;
+          hadRepairedInvoices = true;
+        }
+
+        const remaining = Math.max(0, total - paid);
+        const status = remaining <= 0.01 && total > 0 ? 'paid' : paid > 0 ? 'partial' : 'unpaid';
+
+        return {
+          ...inv,
+          total,
+          totalAmount: total,
+          grandTotal: total,
+          netTotal: total,
+          paid_amount: paid,
+          paidAmount: paid,
+          amountPaid: paid,
+          remaining_amount: remaining,
+          remainingAmount: remaining,
+          remainingBalance: remaining,
+          status: inv.status === 'DRAFT' || inv.status === 'draft' ? 'draft' : status,
+          customer_name: inv.customer_name || inv.customerName || inv.customer || inv.clientName || 'عميل نقدي',
+          salesperson_name: inv.salesperson_name || inv.salespersonName || inv.salesperson || inv.cashier_name || 'حميد وهاس',
+        };
+      });
+
+      if (hadRepairedInvoices) {
+        try {
+          localStorage.setItem('erp_invoices_v1', JSON.stringify(loadedInvoices));
+        } catch {}
+      }
+
       // Client-side fallback filter for price tier and itemCode/serial
       if (selectedPriceTier) {
         loadedInvoices = loadedInvoices.filter(

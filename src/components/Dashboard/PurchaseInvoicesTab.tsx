@@ -4,6 +4,7 @@ import { formatAmount, formatSupplierAmount, parseEnglishNumber, toEnglishDigits
 import { getAccountingRate } from '../../lib/exchangeRates';
 import { ExportActions } from '../Common/ExportActions';
 import { TableExportConfig, printInvoiceDocument } from '../../lib/exportUtils';
+import { recordAutomaticTreasuryVoucher } from '../../utils/treasuryVoucherHelper';
 import { useAuth } from '../../context/AuthContext';
 import {
   ShoppingBag,
@@ -435,6 +436,76 @@ export const PurchaseInvoicesTab: React.FC = () => {
       } catch (prodErr) {
         console.warn('Failed to update product cost price in storage:', prodErr);
       }
+
+      // 3. Record automatic payment voucher (سند صرف) if paid amount > 0
+      if (Number(paidAmount) > 0) {
+        try {
+          recordAutomaticTreasuryVoucher({
+            type: 'SUPPLIER_PAYMENT',
+            amount: Number(paidAmount),
+            currency: currency || 'YER',
+            paymentMethod: 'CASH',
+            paymentDate: invoiceDate,
+            partyId: selectedSupplierId,
+            partyName: supp?.name || 'مورد تجاري',
+            partyPhone: supp?.phone,
+            referenceId: res.data?.id,
+            referenceNo: res.data?.invoice_number || `PUR-${Date.now().toString().slice(-6)}`,
+            referenceType: 'PURCHASE_INVOICE',
+            notes: `سند صرف آلي عن فاتورة مشتريات وتوريد رقم #${res.data?.invoice_number || ''} (المورد: ${supp?.name || 'مورد تجاري'})`,
+          });
+        } catch (pmtErr) {
+          console.warn('Voucher sync warn for purchase:', pmtErr);
+        }
+      }
+
+      // 4. If credit remaining, update supplier payable balance in erp_suppliers_v1
+      if (remainingToSupplier > 0 && (selectedSupplierId || supp?.name)) {
+        try {
+          const rawSuppliers = localStorage.getItem('erp_suppliers_v1');
+          if (rawSuppliers) {
+            const suppList: any[] = JSON.parse(rawSuppliers);
+            const updatedSuppList = suppList.map((s) => {
+              if (s.id === selectedSupplierId || (supp?.name && s.name?.trim() === supp.name.trim())) {
+                return {
+                  ...s,
+                  current_balance: Number(s.current_balance || 0) + Number(remainingToSupplier),
+                  total_purchases: Number(s.total_purchases || 0) + calculatedTotal,
+                };
+              }
+              return s;
+            });
+            localStorage.setItem('erp_suppliers_v1', JSON.stringify(updatedSuppList));
+            window.dispatchEvent(new CustomEvent('erp-suppliers-updated'));
+          }
+        } catch (suppErr) {
+          console.warn('Failed to update supplier balance:', suppErr);
+        }
+      }
+
+      // 5. Sync to erp_purchase_invoices_v1 in localStorage
+      try {
+        const purStored = localStorage.getItem('erp_purchase_invoices_v1');
+        const existingPur: any[] = purStored ? JSON.parse(purStored) : [];
+        const purInvoiceObj = res.data || {
+          id: `pur-${Date.now()}`,
+          invoice_number: `PUR-${Date.now().toString().slice(-6)}`,
+          supplier_id: selectedSupplierId,
+          supplier_name: supp?.name || 'مورد تجاري',
+          total: calculatedTotal,
+          paid_amount: Number(paidAmount || 0),
+          remaining_amount: remainingToSupplier,
+          status: remainingToSupplier <= 0.01 ? 'PAID' : Number(paidAmount) > 0 ? 'PARTIALLY_PAID' : 'PENDING',
+          created_at: new Date().toISOString(),
+          invoice_date: invoiceDate,
+          items: processedItems,
+        };
+        localStorage.setItem(
+          'erp_purchase_invoices_v1',
+          JSON.stringify([purInvoiceObj, ...existingPur.filter((p) => p.id !== purInvoiceObj.id)])
+        );
+        window.dispatchEvent(new CustomEvent('erp-purchase-invoices-updated'));
+      } catch (e) {}
 
       setSuccess('تم تسجيل فاتورة المشتريات وتوريد الكميات الفعلية شاملة البونص وتحديث تكلفة الصنف بنجاح');
       setIsBuilderOpen(false);

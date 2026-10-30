@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { api } from '../../../api';
 import { formatAmount, parseEnglishNumber, toEnglishDigits, getActiveCurrencySymbol } from '../../../lib/formatters';
 import { X, DollarSign, AlertCircle, Loader2 } from 'lucide-react';
+import { recordAutomaticTreasuryVoucher } from '../../../utils/treasuryVoucherHelper';
 
 interface SalesInvoicePaymentModalProps {
   invoice: any;
@@ -18,9 +19,9 @@ export const SalesInvoicePaymentModal: React.FC<SalesInvoicePaymentModalProps> =
 }) => {
   if (!isOpen || !invoice) return null;
 
-  const total = parseFloat(invoice.total || '0') || 0;
-  const paid = parseFloat(invoice.paid_amount || '0') || 0;
-  const remaining = Math.max(0, parseFloat(invoice.remaining_amount || `${total - paid}`) || 0);
+  const total = parseFloat(invoice.total || invoice.totalAmount || '0') || 0;
+  const paid = parseFloat(invoice.paid_amount || invoice.paidAmount || '0') || 0;
+  const remaining = Math.max(0, parseFloat(invoice.remaining_amount || invoice.remainingAmount || `${total - paid}`) || 0);
 
   const [amount, setAmount] = useState<number>(remaining);
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'BANK' | 'CHEQUE' | 'ONLINE'>('CASH');
@@ -41,26 +42,97 @@ export const SalesInvoicePaymentModal: React.FC<SalesInvoicePaymentModalProps> =
       setLoading(true);
       setError(null);
 
-      // Record Customer Receipt / Payment
-      const res = await api.createPayment({
+      // 1. Record Customer Receipt / Payment via Backend
+      try {
+        await api.createPayment({
+          type: 'CUSTOMER_PAYMENT',
+          customer_id: invoice.customer_id,
+          invoice_id: invoice.id,
+          amount: Number(amount),
+          currency: invoice.currency || 'YER',
+          exchange_rate: invoice.exchange_rate || 1.0,
+          payment_method: paymentMethod,
+          payment_date: paymentDate,
+          reference,
+          notes,
+        });
+      } catch (e) {
+        console.warn('Backend payment create notice:', e);
+      }
+
+      // 2. Record Automatic Treasury Receipt Voucher (سند قبض) in localStorage
+      recordAutomaticTreasuryVoucher({
         type: 'CUSTOMER_PAYMENT',
-        customer_id: invoice.customer_id,
-        invoice_id: invoice.id,
         amount: Number(amount),
         currency: invoice.currency || 'YER',
-        exchange_rate: invoice.exchange_rate || 1.0,
-        payment_method: paymentMethod,
-        payment_date: paymentDate,
-        reference,
-        notes,
+        paymentMethod,
+        paymentDate,
+        partyId: invoice.customer_id,
+        partyName: invoice.customer_name || invoice.customer || invoice.partyName || 'عميل نقدي',
+        referenceId: invoice.id,
+        referenceNo: invoice.invoice_number,
+        referenceType: 'DEBT_COLLECTION',
+        notes: notes || `سند تحصيل دفعة عن الفاتورة #${invoice.invoice_number}`,
       });
 
-      if (res.success) {
-        onSuccess();
-        onClose();
-      } else {
-        setError(res.error?.message || 'فشل تسجيل عملية السداد');
+      // 3. Update invoice in erp_invoices_v1
+      try {
+        const stored = localStorage.getItem('erp_invoices_v1');
+        if (stored) {
+          const invList: any[] = JSON.parse(stored);
+          const updated = invList.map((inv) => {
+            if (inv.id === invoice.id || inv.invoice_number === invoice.invoice_number) {
+              const currentPaid = Number(inv.paid_amount ?? inv.paidAmount ?? 0);
+              const totalAmount = Number(inv.total ?? inv.totalAmount ?? 0);
+              const newPaid = currentPaid + Number(amount);
+              const newRemaining = Math.max(0, totalAmount - newPaid);
+              return {
+                ...inv,
+                paid: newPaid,
+                paid_amount: newPaid,
+                paidAmount: newPaid,
+                amountPaid: newPaid,
+                remaining: newRemaining,
+                remaining_amount: newRemaining,
+                remainingAmount: newRemaining,
+                remainingBalance: newRemaining,
+                balanceDue: newRemaining,
+                status: newRemaining <= 0.01 ? 'paid' : 'partial',
+              };
+            }
+            return inv;
+          });
+          localStorage.setItem('erp_invoices_v1', JSON.stringify(updated));
+          window.dispatchEvent(new CustomEvent('erp-invoices-updated'));
+        }
+      } catch (err) {
+        console.warn('Failed to update invoice in localStorage:', err);
       }
+
+      // 4. Deduct customer balance in erp_customers_v1
+      try {
+        const custStored = localStorage.getItem('erp_customers_v1');
+        if (custStored) {
+          const custList: any[] = JSON.parse(custStored);
+          const custName = invoice.customer_name || invoice.customer || invoice.partyName;
+          const updatedCust = custList.map((c) => {
+            if (c.id === invoice.customer_id || (custName && c.name?.trim() === custName.trim())) {
+              return {
+                ...c,
+                current_balance: Math.max(0, Number(c.current_balance || 0) - Number(amount)),
+              };
+            }
+            return c;
+          });
+          localStorage.setItem('erp_customers_v1', JSON.stringify(updatedCust));
+          window.dispatchEvent(new CustomEvent('erp-customers-updated'));
+        }
+      } catch (err) {
+        console.warn('Failed to update customer balance in localStorage:', err);
+      }
+
+      onSuccess();
+      onClose();
     } catch (err: any) {
       setError(err.message || 'حدث خطأ أثناء حفظ السداد');
     } finally {

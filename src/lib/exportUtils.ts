@@ -482,7 +482,10 @@ export function printInvoiceDocument(inv?: any, options?: { title?: string; curr
   let paidAmount = total;
   if (rawPaid !== undefined && rawPaid !== null && !isNaN(Number(rawPaid))) {
     paidAmount = Number(rawPaid);
-  } else if (invoice.status === 'unpaid' || invoice.status === 'PENDING' || invoice.paymentMethod === 'CREDIT') {
+    if (paidAmount === 0 && (invoice.paymentMethod === 'CASH' || invoice.payment_method === 'CASH' || invoice.status === 'PAID' || invoice.status === 'paid')) {
+      paidAmount = total;
+    }
+  } else if (invoice.status === 'unpaid' || invoice.status === 'PENDING' || invoice.paymentMethod === 'CREDIT' || invoice.payment_method === 'CREDIT') {
     paidAmount = 0;
   }
 
