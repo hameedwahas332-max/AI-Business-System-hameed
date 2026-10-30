@@ -1,0 +1,23 @@
+[package]
+name = "wahas-erp"
+version = "2.4.0"
+description = "نظام المحاسبي الذكي ERP - محلات وهاس للتجارة العامة"
+authors = ["Hameed Wahas <hameedwahas332@gmail.com>"]
+license = "Proprietary"
+edition = "2021"
+
+[lib]
+name = "wahas_erp_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-sql = { version = "2", features = ["sqlite"] }
+tauri-plugin-fs = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-shell = "2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

@@ -1,0 +1,54 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "AI Business System - Wahas ERP",
+  "version": "2.4.0",
+  "identifier": "com.wahas.aibusiness.erp",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:3000",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "نظام المحاسبي الذكي ERP - محلات وهاس للتجارة العامة",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 700,
+        "resizable": true,
+        "center": true,
+        "decorations": true,
+        "transparent": false,
+        "fullscreen": false,
+        "maximized": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' http://localhost:* ws://localhost:* https:; connect-src 'self' http://localhost:* ws://localhost:* https:; img-src 'self' asset: https: data: blob:; style-src 'self' 'unsafe-inline' https:; font-src 'self' https: data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:;"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "both",
+        "languages": ["Arabic", "English"],
+        "displayLanguageSelector": true
+      }
+    }
+  },
+  "plugins": {
+    "sql": {
+      "preload": ["sqlite:erp_local_vault.db"]
+    }
+  }
+}
