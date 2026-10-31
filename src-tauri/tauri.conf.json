@@ -34,6 +34,7 @@
   "bundle": {
     "active": true,
     "targets": ["nsis"],
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -56,6 +57,12 @@
       "preload": [
         "sqlite:erp_desktop_offline.db",
         "sqlite:erp_local_vault.db"
+      ]
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQyQjA5OEMzNjkzQTY3NzQKUldSMFp6cHB3NWl3UXNoOVkxbytrWmxtK3lYNDhWMitxeGlXdzZBVUpVYnVQRkFmemxTdURobFcK",
+      "endpoints": [
+        "https://github.com/hameedwahas332-max/AI-Business-System-hameed/releases/latest/download/latest.json"
       ]
     }
   }

@@ -75,6 +75,7 @@ pub fn run() {
                 .add_migrations("sqlite:erp_desktop_offline.db", build_migrations())
                 .build(),
         )
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())

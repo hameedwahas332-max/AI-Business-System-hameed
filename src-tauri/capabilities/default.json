@@ -19,6 +19,11 @@
     "sql:allow-execute",
     "sql:allow-select",
     "sql:allow-close",
+    "updater:default",
+    "updater:allow-check",
+    "updater:allow-download",
+    "updater:allow-install",
+    "updater:allow-download-and-install",
     "fs:default",
     "dialog:default",
     "shell:default"

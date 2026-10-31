@@ -1,12 +1,14 @@
 {
   "version": 2,
-  "saved_at": "2026-10-27T06:34:00.000Z",
+  "saved_at": "2026-10-31T18:19:03.598Z",
   "isSampleDataSeeded": false,
   "cleanProductionModes": {
-    "comp_001": true,
+    "comp_001": false,
     "comp_hameed_wahas_2735": true,
     "comp_alamal": true,
-    "comp_albaraka": true
+    "comp_albaraka": true,
+    "1792943842735": true,
+    "alamal": false
   },
   "users": [
     {
@@ -56,14 +58,14 @@
       "created_at": "2026-01-01T00:00:00Z"
     },
     {
-      "id": "usr_1792943842735",
+      "id": "usr_1793300173343",
       "email": "hameedwahas332@gmail.com",
       "password_hash": "ha12me34ed56",
       "name": "حميد وهاس",
       "role": "ADMIN",
-      "company_id": "comp_hameed_wahas_2735",
+      "company_id": "comp_hameed_wahas_3343",
       "company_name": "محلات وهاس لتجارة العامة",
-      "created_at": "2026-10-25T15:57:23.429Z",
+      "created_at": "2026-10-29T18:56:14.067Z",
       "metadata": {}
     }
   ],
@@ -121,37 +123,37 @@
   "whatsappConfigs": {
     "comp_001": {
       "id": "wcfg_comp_001",
+      "status": "CONNECTED",
+      "apiToken": "",
       "company_id": "comp_001",
-      "connectionMode": "gateway",
-      "senderPhoneNumber": "+967770123456",
-      "phoneNumberId": "",
-      "businessAccountId": "",
-      "accessToken": "",
       "gatewayUrl": "",
       "instanceId": "",
-      "apiToken": "",
-      "openExternalWhatsAppApp": false,
+      "updated_at": "2026-10-26T16:12:53.396Z",
+      "accessToken": "",
       "isConnected": true,
-      "status": "CONNECTED",
-      "lastTestedAt": "2026-10-26T13:20:22.837Z",
-      "updated_at": "2026-10-26T13:20:22.837Z"
+      "lastTestedAt": "2026-10-26T15:39:39.134Z",
+      "phoneNumberId": "",
+      "connectionMode": "cloud_api",
+      "businessAccountId": "",
+      "senderPhoneNumber": "777619222",
+      "openExternalWhatsAppApp": false
     },
     "comp_hameed_wahas_2735": {
       "id": "wcfg_comp_hameed_wahas_2735",
-      "company_id": "comp_hameed_wahas_2735",
-      "connectionMode": "gateway",
-      "senderPhoneNumber": "+967 770 000 000",
-      "phoneNumberId": "",
-      "businessAccountId": "",
-      "accessToken": "",
-      "gatewayUrl": "",
-      "instanceId": "",
-      "apiToken": "",
-      "openExternalWhatsAppApp": false,
-      "isConnected": true,
       "status": "CONNECTED",
-      "lastTestedAt": "2026-10-26T13:20:22.837Z",
-      "updated_at": "2026-10-26T13:20:22.837Z"
+      "apiToken": "6a5bb3d7c7cd4273889a80c0a7643bd5b5e41c0eb71f4b2a96",
+      "company_id": "comp_hameed_wahas_2735",
+      "gatewayUrl": "https://7107.api.greenapi.com",
+      "instanceId": "Instance 710722781408",
+      "updated_at": "2026-10-26T16:16:15.556Z",
+      "accessToken": "EAAvzB2GIzIYBS7C8qhlq5Kqdd7g9zKAQcAZBXYSnTE09iHpWZBz36vKhrOohwPY0u72gzxKMaPqutRqTTf8OdVf0j5IwZBKU2ZC1dTrdOsXlsEX9z2ZB9D5EGS7vQs4zrQQaPD4Qyko3eZCBZC49oUIvFZC3Jkw4sWf0OHAmOryYqPWjA2XRAwnJ0JMU7nRG3CTAigZDZD",
+      "isConnected": true,
+      "lastTestedAt": "2026-10-26T16:16:15.556Z",
+      "phoneNumberId": "1216412168228525",
+      "connectionMode": "gateway",
+      "businessAccountId": "28355809010709524",
+      "senderPhoneNumber": "+967771814750",
+      "openExternalWhatsAppApp": false
     }
   },
   "whatsappStates": {
@@ -225,6 +227,39 @@
         "deliveryRate": 100,
         "responseRatePercent": 100
       }
+    }
+  },
+  "tenantSnapshots": {
+    "comp_hameed_wahas_3343": {
+      "userKey": "hameedwahas332@gmail.com",
+      "snapshot": {
+        "erp_invoices_v1": "[{\"customer_id\":\"cust-1793304046409\",\"customer\":\"أشرف وهاس صالح وهاس\",\"customer_name\":\"أشرف وهاس صالح وهاس\",\"customerName\":\"أشرف وهاس صالح وهاس\",\"clientName\":\"أشرف وهاس صالح وهاس\",\"invoice_date\":\"2026-10-29\",\"currency\":\"YER\",\"exchange_rate\":1,\"status\":\"paid\",\"notes\":\"\",\"salesperson\":\"حميد وهاس\",\"salesperson_name\":\"حميد وهاس\",\"salespersonName\":\"حميد وهاس\",\"cashier_name\":\"حميد وهاس\",\"cashierName\":\"حميد وهاس\",\"createdBy\":\"حميد وهاس\",\"branch_name\":\"الفرع الرئيسي\",\"total\":9200,\"totalAmount\":9200,\"grandTotal\":9200,\"netTotal\":9200,\"total_amount\":9200,\"amount\":9200,\"paid_amount\":9200,\"paidAmount\":9200,\"amountPaid\":9200,\"paid\":9200,\"remaining_amount\":0,\"remainingAmount\":0,\"remainingBalance\":0,\"remaining\":0,\"balanceDue\":0,\"payment_method\":\"CASH\",\"items\":[{\"id\":\"item-1793304066512-drujo\",\"product_id\":\"prod-1793303988823\",\"name\":\"v. hgu/lhx \",\"sku\":\"SKU-3375\",\"itemCode\":\"SKU-3375\",\"unit\":\"قطمة\",\"baseUnitName\":\"قطمة\",\"subUnitName\":\"\",\"subUnitFactor\":1,\"subUnitPrice\":0,\"majorUnitName\":\"كرتون\",\"majorUnitFactor\":8,\"majorUnitPrice\":33881.76,\"selectedUnit\":\"base\",\"unitFactor\":1,\"quantity\":2,\"unit_price\":4600,\"discount\":0,\"tax_percent\":0,\"tax\":0,\"total\":9200,\"current_stock\":24,\"is_manual\":false,\"activityType\":\"food\",\"scrapDiscount\":0}],\"id\":\"INV-1793304102472\",\"invoice_number\":\"INV-102472\",\"invoiceNumber\":\"INV-102472\",\"date\":\"2026-10-29\",\"subtotal\":9200,\"discount\":0,\"tax\":0,\"paymentMethod\":\"CASH\",\"payment_status\":\"PAID\",\"created_at\":\"2026-10-29T12:00:00.000Z\",\"due_date\":\"\"}]",
+        "erp_products_v1": "[]",
+        "erp_pos_sales_log_v1": "[{\"id\":\"inv-pos-1793304503297\",\"invoiceNumber\":\"POS-503297\",\"date\":\"2026-10-29T20:08:29.360Z\",\"dateFormatted\":\"29/10/2026\",\"timeFormatted\":\"١١:٠٨ م\",\"customerName\":\"عميل نقدي سريع\",\"total\":13800,\"paidAmount\":13800,\"currency\":\"YER\",\"currencySymbol\":\"ر.ي\",\"paymentMethod\":\"CASH\",\"itemsCount\":3,\"items\":[{\"name\":\"v. hgu/lhx \",\"quantity\":3,\"unitPrice\":4600,\"total\":13800}],\"rawPayload\":{\"customerId\":null,\"customerName\":\"عميل نقدي سريع\",\"paymentMethod\":\"CASH\",\"currency\":\"YER\",\"exchangeRate\":1,\"items\":[{\"product_id\":\"prod-1793303988823\",\"name\":\"v. hgu/lhx \",\"quantity\":3,\"unit\":\"قطمة\",\"unit_price\":4600,\"discount\":0,\"scrapDiscount\":0,\"total\":13800}],\"subtotal\":13800,\"discount\":0,\"tax\":0,\"total\":13800,\"paidAmount\":13800,\"changeAmount\":0,\"id\":\"inv-pos-1793304503297\",\"invoiceNumber\":\"POS-503297\",\"invoiceDate\":\"29/10/2026\",\"receipt\":{\"date\":\"29/10/2026\",\"time\":\"١١:٠٨ م\"},\"customer\":{\"name\":\"عميل نقدي سريع\"}}},{\"id\":\"inv-pos-1793301904497\",\"invoiceNumber\":\"POS-904497\",\"date\":\"2026-10-29T19:25:12.699Z\",\"dateFormatted\":\"29/10/2026\",\"timeFormatted\":\"١٠:٢٥ م\",\"customerName\":\"عميل نقدي سريع\",\"total\":9200,\"paidAmount\":9200,\"currency\":\"YER\",\"currencySymbol\":\"ر.ي\",\"paymentMethod\":\"CASH\",\"itemsCount\":2,\"items\":[{\"name\":\"رز بسمتي العظماء\",\"quantity\":2,\"unitPrice\":4600,\"total\":9200}],\"rawPayload\":{\"customerId\":null,\"customerName\":\"عميل نقدي سريع\",\"paymentMethod\":\"CASH\",\"currency\":\"YER\",\"exchangeRate\":1,\"items\":[{\"product_id\":\"prod-1793300708751\",\"name\":\"رز بسمتي العظماء\",\"quantity\":2,\"unit\":\"قطمة\",\"unit_price\":4600,\"discount\":0,\"scrapDiscount\":0,\"total\":9200}],\"subtotal\":9200,\"discount\":0,\"tax\":0,\"total\":9200,\"paidAmount\":9200,\"changeAmount\":0,\"id\":\"inv-pos-1793301904497\",\"invoiceNumber\":\"POS-904497\",\"invoiceDate\":\"29/10/2026\",\"receipt\":{\"date\":\"29/10/2026\",\"time\":\"١٠:٢٥ م\"},\"customer\":{\"name\":\"عميل نقدي سريع\"}}}]",
+        "erp_module_settings_v1": "{\"activePreset\":\"multi_activity\",\"enableMultiUnits\":true,\"enableTieredPricing\":true,\"enableExpiryTracking\":true,\"enableSerialAndWarranty\":true,\"enableTiresAndSizes\":true,\"enableOilViscositySpec\":true,\"defaultCostingMethod\":\"weighted_average\",\"lowStockDefaultThreshold\":10,\"expiryWarningDays\":60,\"allowNegativeStockSale\":false,\"allowCashierPriceEdit\":true,\"enableLineDiscount\":true,\"enableTaxVat\":true,\"defaultTaxRate\":15,\"enableBatteryScrapTradeIn\":true,\"printWarrantyOnInvoice\":true,\"defaultPrintFormat\":\"A4\",\"enforceCreditLimit\":true,\"defaultCustomerPriceTier\":\"retail\",\"autoWhatsAppAfterVoucher\":true,\"defaultCurrency\":\"YER\",\"baseCurrency\":\"YER\",\"hiddenSidebarTabs\":[]}",
+        "erp_inventory_movements_v1": "[{\"id\":\"mov-1793304509360-ab3md\",\"date\":\"2026-10-29\",\"timestamp\":\"2026-10-29T20:08:29.360Z\",\"productId\":\"prod-1793303988823\",\"productCode\":\"\",\"productName\":\"صنف تجاري\",\"type\":\"pos_sale\",\"unitName\":\"قطمة\",\"quantity\":3,\"baseQuantity\":3,\"stockBefore\":0,\"stockAfter\":0,\"referenceNumber\":\"POS-503297\",\"customerOrSupplierName\":\"العميل النقدي\",\"totalAmount\":13800},{\"id\":\"mov-1793304108151-u33uv\",\"date\":\"2026-10-29\",\"timestamp\":\"2026-10-29T20:01:48.151Z\",\"productId\":\"prod-1793303988823\",\"productCode\":\"\",\"productName\":\"صنف تجاري\",\"type\":\"sale\",\"unitName\":\"حبة\",\"quantity\":2,\"baseQuantity\":2,\"stockBefore\":0,\"stockAfter\":0,\"referenceNumber\":\"INV-102472\",\"customerOrSupplierName\":\"أشرف وهاس صالح وهاس\",\"totalAmount\":9200},{\"id\":\"mov-1793301912699-rgesn\",\"date\":\"2026-10-29\",\"timestamp\":\"2026-10-29T19:25:12.699Z\",\"productId\":\"prod-1793300708751\",\"productCode\":\"\",\"productName\":\"صنف تجاري\",\"type\":\"pos_sale\",\"unitName\":\"قطمة\",\"quantity\":2,\"baseQuantity\":2,\"stockBefore\":0,\"stockAfter\":0,\"referenceNumber\":\"POS-904497\",\"customerOrSupplierName\":\"العميل النقدي\",\"totalAmount\":9200},{\"id\":\"mov-1793301251598-8ivcb\",\"date\":\"2026-10-29\",\"timestamp\":\"2026-10-29T19:14:11.598Z\",\"productId\":\"prod-1793300708751\",\"productCode\":\"\",\"productName\":\"صنف تجاري\",\"type\":\"sale\",\"unitName\":\"حبة\",\"quantity\":1,\"baseQuantity\":1,\"stockBefore\":0,\"stockAfter\":0,\"referenceNumber\":\"INV-1793301245858\",\"customerOrSupplierName\":\"أشرف وهاس صالح وهاس\",\"totalAmount\":4600}]",
+        "erp_clean_production_mode_v1": "true"
+      },
+      "companyId": "comp_hameed_wahas_3343",
+      "updated_at": "2026-10-30T18:41:59.112Z"
+    },
+    "comp_001": {
+      "companyId": "comp_001",
+      "userKey": "admin@alsahabi.com",
+      "snapshot": {
+        "erp_module_settings_v1": "{\"activePreset\":\"multi_activity\",\"enableMultiUnits\":true,\"enableTieredPricing\":true,\"enableExpiryTracking\":true,\"enableSerialAndWarranty\":true,\"enableTiresAndSizes\":true,\"enableOilViscositySpec\":true,\"defaultCostingMethod\":\"weighted_average\",\"lowStockDefaultThreshold\":10,\"expiryWarningDays\":60,\"allowNegativeStockSale\":false,\"allowCashierPriceEdit\":true,\"enableLineDiscount\":true,\"enableTaxVat\":true,\"defaultTaxRate\":15,\"enableBatteryScrapTradeIn\":true,\"printWarrantyOnInvoice\":true,\"defaultPrintFormat\":\"A4\",\"enforceCreditLimit\":true,\"defaultCustomerPriceTier\":\"retail\",\"autoWhatsAppAfterVoucher\":true,\"defaultCurrency\":\"YER\",\"baseCurrency\":\"YER\",\"hiddenSidebarTabs\":[]}",
+        "erp_clean_production_mode_v1": "false"
+      },
+      "updated_at": "2026-10-31T18:19:03.598Z"
+    },
+    "admin@alsahabi.com": {
+      "companyId": "comp_001",
+      "userKey": "admin@alsahabi.com",
+      "snapshot": {
+        "erp_module_settings_v1": "{\"activePreset\":\"multi_activity\",\"enableMultiUnits\":true,\"enableTieredPricing\":true,\"enableExpiryTracking\":true,\"enableSerialAndWarranty\":true,\"enableTiresAndSizes\":true,\"enableOilViscositySpec\":true,\"defaultCostingMethod\":\"weighted_average\",\"lowStockDefaultThreshold\":10,\"expiryWarningDays\":60,\"allowNegativeStockSale\":false,\"allowCashierPriceEdit\":true,\"enableLineDiscount\":true,\"enableTaxVat\":true,\"defaultTaxRate\":15,\"enableBatteryScrapTradeIn\":true,\"printWarrantyOnInvoice\":true,\"defaultPrintFormat\":\"A4\",\"enforceCreditLimit\":true,\"defaultCustomerPriceTier\":\"retail\",\"autoWhatsAppAfterVoucher\":true,\"defaultCurrency\":\"YER\",\"baseCurrency\":\"YER\",\"hiddenSidebarTabs\":[]}",
+        "erp_clean_production_mode_v1": "false"
+      },
+      "updated_at": "2026-10-31T18:19:03.598Z"
     }
   }
 }

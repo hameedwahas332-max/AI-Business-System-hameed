@@ -24,6 +24,7 @@ import { formatNumber } from '../lib/formatters';
 import { useModuleSettings, PRESET_DEFINITIONS, BusinessPresetKey } from '../context/ModuleSettingsContext';
 import { useAuth } from '../context/AuthContext';
 import { SyncCenterModal } from './Dashboard/SyncCenterModal';
+import { UpdateCenterModal } from './Dashboard/UpdateCenterModal';
 import { getAllRecords } from '../services/localSqliteDal';
 
 export type ThemeMode = 'dark' | 'light';
@@ -68,6 +69,7 @@ export const Header: React.FC<HeaderProps> = ({
   const currentPresetObj = PRIMARY_PRESETS.find((p) => p.key === settings.activePreset) || PRIMARY_PRESETS[0];
 
   const [isSyncCenterOpen, setIsSyncCenterOpen] = useState(false);
+  const [isUpdateCenterOpen, setIsUpdateCenterOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const [conflictCount, setConflictCount] = useState(0);
@@ -204,6 +206,18 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="font-mono text-[11px] text-amber-200">
               1 SAR = {formatNumber(exchangeConfig.rates.SAR.accountingRate)}
             </span>
+          </button>
+
+          {/* Automatic Enterprise Updater Button */}
+          <button
+            type="button"
+            onClick={() => setIsUpdateCenterOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
+            title="مركز التحديثات التلقائية المعتمدة (Tauri Auto-Updater)"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden xl:inline">التحديثات:</span>
+            <span className="font-mono text-[11px] text-blue-200">v2.4.0</span>
           </button>
         </div>
 
@@ -392,6 +406,11 @@ export const Header: React.FC<HeaderProps> = ({
         setIsSyncCenterOpen(false);
         refreshSyncStats();
       }}
+    />
+
+    <UpdateCenterModal
+      isOpen={isUpdateCenterOpen}
+      onClose={() => setIsUpdateCenterOpen(false)}
     />
   </>
 );

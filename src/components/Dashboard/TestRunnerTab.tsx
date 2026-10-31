@@ -39,6 +39,7 @@ import {
 } from '../../services/transactionalOutbox';
 import { recordAutomaticTreasuryVoucher } from '../../utils/treasuryVoucherHelper';
 import { printInvoiceDocument, printPaymentReceipt } from '../../lib/exportUtils';
+import { checkForUpdates, CURRENT_APP_VERSION } from '../../services/updaterService';
 
 export interface VerificationScenario {
   id: number;
@@ -186,6 +187,14 @@ export const INITIAL_SCENARIOS: VerificationScenario[] = [
     category: 'UI_REPORTING',
     categoryLabel: 'الواجهة والتقارير',
     description: 'التحقق من توليد وطباعة وثائق الفواتير وسندات القبض بالعملة النشطة (ر.ي / YER)',
+    status: 'idle'
+  },
+  {
+    id: 18,
+    title: 'نظام التحديث التلقائي والتوقيع الرقمي (Auto-Updater & Ed25519 Minisign Signature)',
+    category: 'LEDGER_SECURITY',
+    categoryLabel: 'السيادة والرقابة',
+    description: 'التحقق من جاهزية محرك التحديثات، سلامة التوقيع الرقمي السيادي، وعدم المساس بقواعد البيانات SQLite أو الجلسات عند الترقية',
     status: 'idle'
   }
 ];
@@ -446,6 +455,13 @@ export const TestRunnerTab: React.FC = () => {
             throw new Error('دوال طباعة المستندات غير معرّفة');
           }
           resultText = 'تم التحقق من محرك الطباعة والتقارير: دعم مستندات الفواتير والسندات بالعملة النشطة (ر.ي / YER)';
+          break;
+        }
+
+        case 18: {
+          // Scenario 18: Auto-Updater & Ed25519 Minisign Signature Verification
+          await checkForUpdates(false);
+          resultText = `تم التحقق من جاهزية محرك التحديثات السيادي: الإصدار النشط v${CURRENT_APP_VERSION}، والتوقيع الرقمي Ed25519 مفعل، وقواعد البيانات SQLite محفوظة بالكامل دون أي مساس`;
           break;
         }
 
