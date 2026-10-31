@@ -12,7 +12,9 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "نظام المحاسبي الذكي ERP - محلات وهاس للتجارة العامة",
+        "url": "index.html",
         "width": 1440,
         "height": 900,
         "minWidth": 1024,
@@ -43,12 +45,18 @@
         "installMode": "both",
         "languages": ["Arabic", "English"],
         "displayLanguageSelector": true
+      },
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
       }
     }
   },
   "plugins": {
     "sql": {
-      "preload": ["sqlite:erp_local_vault.db"]
+      "preload": [
+        "sqlite:erp_desktop_offline.db",
+        "sqlite:erp_local_vault.db"
+      ]
     }
   }
 }

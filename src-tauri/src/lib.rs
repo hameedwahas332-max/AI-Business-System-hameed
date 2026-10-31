@@ -5,12 +5,8 @@ pub fn run() {
     let migrations = vec![
         Migration {
             version: 1,
-            description: "initialize_wal_and_outbox_ledger",
+            description: "initialize_outbox_and_ledger_tables",
             sql: "
-                PRAGMA journal_mode=WAL;
-                PRAGMA synchronous=FULL;
-                PRAGMA foreign_keys=ON;
-
                 CREATE TABLE IF NOT EXISTS local_transactional_outbox (
                     uuid TEXT PRIMARY KEY,
                     tenantId TEXT NOT NULL,
@@ -73,6 +69,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(
             tauri_plugin_sql::Builder::default()
+                .add_migrations("sqlite:erp_desktop_offline.db", migrations.clone())
                 .add_migrations("sqlite:erp_local_vault.db", migrations)
                 .build(),
         )
