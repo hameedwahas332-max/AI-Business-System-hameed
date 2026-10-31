@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:3000",
-    "beforeBuildCommand": "node ../scripts/generate-tauri-icons.mjs && npm run build",
+    "beforeBuildCommand": "npm run icons:generate && npm run build",
     "frontendDist": "../dist"
   },
   "app": {
