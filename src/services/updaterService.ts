@@ -1,17 +1,11 @@
 /**
  * Enterprise Automatic Update & Sovereign Release Verifier
- * Architecture: Tauri 2 Official Updater Engine with Digital Signature Verification
+ * Architecture: Official Tauri 2 Updater & Process Engine with Ed25519 Cryptographic Verification
  */
 
-import { getDevicePlatform } from './deviceIdentity';
-
-export interface UpdateInfo {
-  version: string;
-  notes?: string;
-  pubDate?: string;
-  signature?: string;
-  downloadUrl?: string;
-}
+import { check, Update } from '@tauri-apps/plugin-updater';
+import { relaunch } from '@tauri-apps/plugin-process';
+import { getVersion } from '@tauri-apps/api/app';
 
 export interface UpdateCheckResult {
   hasUpdate: boolean;
@@ -19,11 +13,19 @@ export interface UpdateCheckResult {
   availableVersion?: string;
   notes?: string;
   pubDate?: string;
-  updateHandle?: any;
+  updateHandle?: Update | null;
   error?: string;
+  isWebPreview?: boolean;
 }
 
-export const CURRENT_APP_VERSION = '2.4.0';
+export const CURRENT_APP_VERSION = '2.4.1';
+
+/**
+ * Returns true if running within the Tauri desktop application runtime
+ */
+export function isTauriEnvironment(): boolean {
+  return typeof window !== 'undefined' && Boolean((window as any).__TAURI_INTERNALS__ || (window as any).__TAURI__);
+}
 
 /**
  * Compare two semver strings: returns 1 if v1 > v2, -1 if v1 < v2, 0 if equal
@@ -45,133 +47,140 @@ export function compareSemver(v1: string, v2: string): number {
 }
 
 /**
- * Check for updates against GitHub Releases latest.json or Tauri 2 plugin
+ * Fetch the actual installed application version from Tauri app metadata
+ */
+export async function getInstalledAppVersion(): Promise<string> {
+  if (isTauriEnvironment()) {
+    try {
+      const v = await getVersion();
+      if (v) return v;
+    } catch (err) {
+      console.warn('[UpdaterService] Could not read app version from Tauri, using authoritative version:', err);
+    }
+  }
+  return CURRENT_APP_VERSION;
+}
+
+/**
+ * Check for updates against GitHub Releases latest.json or the official Tauri 2 plugin
  */
 export async function checkForUpdates(isManualCheck = false): Promise<UpdateCheckResult> {
-  const isTauri = typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window);
+  const currentVer = await getInstalledAppVersion();
 
-  // 1. If running inside Tauri desktop, try official Tauri 2 Updater plugin first
-  if (isTauri) {
+  // 1. Production Tauri Desktop Mode: Use official signed updater plugin
+  if (isTauriEnvironment()) {
     try {
-      const updaterPlugin = await (Function('return import("@tauri-apps/plugin-updater")')() as Promise<any>);
-      if (updaterPlugin && typeof updaterPlugin.check === 'function') {
-        const update = await updaterPlugin.check();
-        if (update?.available) {
-          return {
-            hasUpdate: true,
-            currentVersion: CURRENT_APP_VERSION,
-            availableVersion: update.version,
-            notes: update.body || 'تحسينات في الأداء والمزامنة السيادية لقاعدة البيانات المحلية دون اتصال.',
-            pubDate: update.date,
-            updateHandle: update
-          };
-        } else {
-          return {
-            hasUpdate: false,
-            currentVersion: CURRENT_APP_VERSION,
-            availableVersion: CURRENT_APP_VERSION
-          };
-        }
+      const update = await check();
+      if (update && update.available) {
+        return {
+          hasUpdate: true,
+          currentVersion: currentVer,
+          availableVersion: update.version,
+          notes: update.body || 'تحديث أمني وسيادي معتمد لنظام المحاسبي الذكي ERP - محلات وهاس للتجارة العامة.',
+          pubDate: update.date,
+          updateHandle: update,
+          isWebPreview: false
+        };
+      } else {
+        return {
+          hasUpdate: false,
+          currentVersion: currentVer,
+          availableVersion: currentVer,
+          isWebPreview: false
+        };
       }
-    } catch (pluginErr) {
-      console.warn('[UpdaterService] Tauri updater plugin fallback to direct manifest query:', pluginErr);
+    } catch (pluginErr: any) {
+      console.error('[UpdaterService] Official Tauri updater check failed:', pluginErr);
+      return {
+        hasUpdate: false,
+        currentVersion: currentVer,
+        error: `خطأ أثناء التحقق من التحديث الرقمي: ${pluginErr?.message || 'فشل الاتصال بالخادم المرجعي'}`
+      };
     }
   }
 
-  // 2. Fallback to querying latest.json directly from GitHub Releases
+  // 2. Web Browser Preview Mode: Query manifest for read-only status (Never simulates install)
   try {
     const manifestUrl = 'https://raw.githubusercontent.com/hameedwahas332-max/AI-Business-System-hameed/main/latest.json';
     const res = await fetch(manifestUrl, { cache: 'no-store' });
     if (res.ok) {
       const data = await res.json();
       const latestVer = data.version || CURRENT_APP_VERSION;
-      const isNewer = compareSemver(latestVer, CURRENT_APP_VERSION) > 0;
+      const isNewer = compareSemver(latestVer, currentVer) > 0;
 
       return {
         hasUpdate: isNewer,
-        currentVersion: CURRENT_APP_VERSION,
+        currentVersion: currentVer,
         availableVersion: latestVer,
-        notes: data.notes || 'تحديث أمني وسيادي جديد متوافق مع كافة المعايير المحاسبية وقواعد البيانات المحلية.',
+        notes: data.notes || 'تحديث جديد معتمد لنظام المحاسبي الذكي ERP.',
         pubDate: data.pub_date,
-        updateHandle: data
+        updateHandle: null,
+        isWebPreview: true
       };
     }
   } catch (netErr: any) {
     if (isManualCheck) {
       return {
         hasUpdate: false,
-        currentVersion: CURRENT_APP_VERSION,
-        error: 'تعذر الاتصال بخادم التحديثات المركزية. يرجى التحقق من اتصال الإنترنت والمحاولة لاحقاً.'
+        currentVersion: currentVer,
+        error: 'تعذر الاتصال بخادم التحديثات المركزية. يرجى التحقق من اتصال الإنترنت والمحاولة لاحقاً.',
+        isWebPreview: true
       };
     }
   }
 
   return {
     hasUpdate: false,
-    currentVersion: CURRENT_APP_VERSION
+    currentVersion: currentVer,
+    isWebPreview: true
   };
 }
 
 /**
- * Download and install the update safely
+ * Download and install the update safely using the official Tauri updater.
+ * NO FAKE PROGRESS: Strictly executes actual download and cryptographic signature verification.
  */
 export async function downloadAndApplyUpdate(
-  updateHandle: any,
+  updateHandle: Update | null | undefined,
   onProgress?: (percent: number, downloadedBytes: number, totalBytes: number) => void
 ): Promise<boolean> {
-  const isTauri = typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window);
-
-  // If using Tauri 2 Update object handle
-  if (isTauri && updateHandle && typeof updateHandle.downloadAndInstall === 'function') {
-    let downloaded = 0;
-    let contentLength = 0;
-
-    await updateHandle.downloadAndInstall((event: any) => {
-      if (event.event === 'Started') {
-        contentLength = event.data?.contentLength || 0;
-      } else if (event.event === 'Progress') {
-        downloaded += event.data?.chunkLength || 0;
-        const percent = contentLength > 0 ? Math.round((downloaded / contentLength) * 100) : 50;
-        onProgress?.(percent, downloaded, contentLength);
-      } else if (event.event === 'Finished') {
-        onProgress?.(100, contentLength, contentLength);
-      }
-    });
-
-    return true;
+  if (!isTauriEnvironment() || !updateHandle || typeof updateHandle.downloadAndInstall !== 'function') {
+    throw new Error(
+      'التثبيت التلقائي للتحديثات متاح حصراً داخل تطبيق سطح المكتب لنظام ويندوز. في وضع المتصفح، يرجى تنزيل مثبت التحديث يدوياً.'
+    );
   }
 
-  // Simulated progress for preview or browser mode
-  for (let p = 10; p <= 100; p += 20) {
-    await new Promise(r => setTimeout(r, 200));
-    onProgress?.(p, p * 1024 * 1024, 100 * 1024 * 1024);
-  }
+  let downloaded = 0;
+  let contentLength = 0;
+
+  // Execute actual download and Ed25519 signature verification via Tauri 2 Rust engine
+  await updateHandle.downloadAndInstall((event: any) => {
+    if (event.event === 'Started') {
+      contentLength = event.data?.contentLength || 0;
+      onProgress?.(0, 0, contentLength);
+    } else if (event.event === 'Progress') {
+      downloaded += event.data?.chunkLength || 0;
+      const percent = contentLength > 0 ? Math.round((downloaded / contentLength) * 100) : 0;
+      onProgress?.(percent, downloaded, contentLength);
+    } else if (event.event === 'Finished') {
+      onProgress?.(100, contentLength, contentLength);
+    }
+  });
 
   return true;
 }
 
 /**
- * Relaunch the application after successful update
+ * Relaunch the application after successful update using official process plugin
  */
 export async function restartApplication(): Promise<void> {
-  const isTauri = typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window);
-
-  if (isTauri) {
+  if (isTauriEnvironment()) {
     try {
-      const processPlugin = await (Function('return import("@tauri-apps/plugin-process")')() as Promise<any>);
-      if (processPlugin && typeof processPlugin.relaunch === 'function') {
-        await processPlugin.relaunch();
-        return;
-      }
-    } catch {}
-
-    try {
-      const tauriCore = await (Function('return import("@tauri-apps/api/core")')() as Promise<any>);
-      if (tauriCore && typeof tauriCore.invoke === 'function') {
-        await tauriCore.invoke('plugin:process|relaunch');
-        return;
-      }
-    } catch {}
+      await relaunch();
+      return;
+    } catch (err) {
+      console.error('[UpdaterService] Failed to relaunch app via plugin-process:', err);
+    }
   }
 
   // Web fallback reload

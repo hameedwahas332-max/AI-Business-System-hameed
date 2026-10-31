@@ -1,6 +1,6 @@
 [package]
 name = "wahas-erp"
-version = "2.4.0"
+version = "2.4.1"
 description = "نظام المحاسبي الذكي ERP - محلات وهاس للتجارة العامة"
 authors = ["Hameed Wahas <hameedwahas332@gmail.com>"]
 license = "Proprietary"
@@ -22,6 +22,7 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-shell = "2"

@@ -13,14 +13,16 @@ import {
   Check,
   Sparkles,
   Zap,
-  Info
+  Info,
+  ExternalLink
 } from 'lucide-react';
 import {
   checkForUpdates,
   downloadAndApplyUpdate,
   restartApplication,
   CURRENT_APP_VERSION,
-  UpdateCheckResult
+  UpdateCheckResult,
+  isTauriEnvironment
 } from '../../services/updaterService';
 import { getDevicePlatform } from '../../services/deviceIdentity';
 
@@ -46,6 +48,14 @@ export const UpdateCenterModal: React.FC<UpdateCenterModalProps> = ({ isOpen, on
     }
   }, [isOpen]);
 
+  // Periodic background check every 30 minutes
+  useEffect(() => {
+    const timer = setInterval(() => {
+      handleCheck(false);
+    }, 30 * 60 * 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const handleCheck = async (manual = true) => {
     try {
       setIsChecking(true);
@@ -64,7 +74,10 @@ export const UpdateCenterModal: React.FC<UpdateCenterModalProps> = ({ isOpen, on
   };
 
   const handleInstall = async () => {
-    if (!updateResult?.updateHandle) return;
+    if (!updateResult?.updateHandle) {
+      setErrorMsg('حزمة التحديث الموقعة غير متاحة عبر المتصفح. يرجى استخدام تطبيق ويندوز المكتبي.');
+      return;
+    }
     try {
       setIsDownloading(true);
       setErrorMsg(null);
@@ -110,7 +123,7 @@ export const UpdateCenterModal: React.FC<UpdateCenterModalProps> = ({ isOpen, on
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                ترقية التطبيق المكتبي تلقائياً مع التحقق الرقمي وحماية قواعد البيانات المحلية
+                ترقية التطبيق المكتبي تلقائياً مع التحقق الرقمي المشفر وحماية قواعد البيانات المحلية
               </p>
             </div>
           </div>
@@ -130,7 +143,7 @@ export const UpdateCenterModal: React.FC<UpdateCenterModalProps> = ({ isOpen, on
             <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-2xl space-y-1">
               <span className="text-xs text-slate-400 font-bold">الإصدار المثبت حالياً:</span>
               <div className="text-xl font-black font-mono text-slate-200">
-                v{CURRENT_APP_VERSION}
+                v{updateResult?.currentVersion || CURRENT_APP_VERSION}
               </div>
               <p className="text-[10px] text-slate-500">{getDevicePlatform()}</p>
             </div>
@@ -191,7 +204,7 @@ export const UpdateCenterModal: React.FC<UpdateCenterModalProps> = ({ isOpen, on
                     <span>يتوفر إصدار سيادي جديد (v{updateResult.availableVersion})</span>
                   </span>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                    Ed25519 Signed
+                    Ed25519 Minisign Verified
                   </span>
                 </div>
 
@@ -201,11 +214,11 @@ export const UpdateCenterModal: React.FC<UpdateCenterModalProps> = ({ isOpen, on
                 </div>
               </div>
 
-              {/* Download Progress */}
+              {/* Download Progress (Only when actual download is running in Tauri) */}
               {isDownloading && (
                 <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-2xl space-y-2">
                   <div className="flex items-center justify-between text-xs font-bold text-slate-300">
-                    <span>جارِ تنزيل حزمة التحديث الموقعة رقمياً...</span>
+                    <span>جارِ تنزيل وتثبيت حزمة التحديث الموقعة رقمياً...</span>
                     <span className="font-mono text-emerald-400">{downloadProgress}%</span>
                   </div>
                   <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
@@ -217,15 +230,36 @@ export const UpdateCenterModal: React.FC<UpdateCenterModalProps> = ({ isOpen, on
                 </div>
               )}
 
-              {/* Install Button */}
+              {/* Action Buttons */}
               {!isDownloading && (
-                <button
-                  onClick={handleInstall}
-                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>تنزيل وتثبيت التحديث (v{updateResult.availableVersion})</span>
-                </button>
+                updateResult.isWebPreview ? (
+                  <div className="p-4 bg-slate-950/70 border border-amber-500/30 rounded-2xl space-y-2">
+                    <div className="flex items-center gap-2 text-xs text-amber-300 font-bold">
+                      <Info className="w-4 h-4 flex-shrink-0" />
+                      <span>أنت تتصفح النظام في بيئة الويب (معاينة).</span>
+                    </div>
+                    <p className="text-xs text-slate-400">
+                      التثبيت التلقائي الصامت متاح حصراً داخل تطبيق ويندوز المكتبي المثبت على الجهاز. لتحديث نسختك، يمكنك تنزيل ملف التثبيت المعتمد مباشرة:
+                    </p>
+                    <a
+                      href="https://github.com/hameedwahas332-max/AI-Business-System-hameed/releases/latest"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold transition"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      <span>تنزيل أحدث مثبت لويندوز من GitHub Releases</span>
+                    </a>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleInstall}
+                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>تنزيل وتثبيت التحديث (v{updateResult.availableVersion})</span>
+                  </button>
+                )
               )}
             </div>
           ) : (
@@ -233,7 +267,7 @@ export const UpdateCenterModal: React.FC<UpdateCenterModalProps> = ({ isOpen, on
               <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto" />
               <div className="text-sm font-bold text-white">نظامك محدّث إلى أحدث إصدار معتمد</div>
               <p className="text-xs text-slate-500">
-                أنت تعمل حالياً على الإصدار الرسمي v{CURRENT_APP_VERSION}. لا توجد تحديثات جديدة مطلوبة.
+                أنت تعمل حالياً على الإصدار الرسمي v{updateResult?.currentVersion || CURRENT_APP_VERSION}. لا توجد تحديثات جديدة مطلوبة.
               </p>
             </div>
           )}
@@ -243,7 +277,7 @@ export const UpdateCenterModal: React.FC<UpdateCenterModalProps> = ({ isOpen, on
             <Database className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
             <div className="text-xs text-blue-200 leading-relaxed">
               <p className="font-bold text-blue-300 mb-0.5">ضمان الحماية السيادية للبيانات التاريخية:</p>
-              عملية التحديث التلقائي تحفظ بصورة تامة ومطلقة قواعد بيانات SQLite المحلية، فواتير المبيعات، سندات الخزينة، أرصدة العملاء والموردين، وجلسة الدخول الدائمة دون أي إعادة تعيين أو مسح.
+              عملية التحديث التلقائي تحفظ بصورة تامة ومطلقة قواعد بيانات SQLite المحلية (`erp_desktop_offline.db` و `erp_local_vault.db`)، فواتير المبيعات، سندات الخزينة، أرصدة العملاء والموردين، وجلسة الدخول الدائمة دون أي إعادة تعيين أو مسح.
             </div>
           </div>
         </div>

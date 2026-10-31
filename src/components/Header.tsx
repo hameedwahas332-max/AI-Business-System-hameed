@@ -25,6 +25,7 @@ import { useModuleSettings, PRESET_DEFINITIONS, BusinessPresetKey } from '../con
 import { useAuth } from '../context/AuthContext';
 import { SyncCenterModal } from './Dashboard/SyncCenterModal';
 import { UpdateCenterModal } from './Dashboard/UpdateCenterModal';
+import { CURRENT_APP_VERSION } from '../services/updaterService';
 import { getAllRecords } from '../services/localSqliteDal';
 
 export type ThemeMode = 'dark' | 'light';
@@ -217,7 +218,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             <span className="hidden xl:inline">التحديثات:</span>
-            <span className="font-mono text-[11px] text-blue-200">v2.4.0</span>
+            <span className="font-mono text-[11px] text-blue-200">v{CURRENT_APP_VERSION}</span>
           </button>
         </div>
 

@@ -1,4 +1,4 @@
-name: Build Windows x64 NSIS Desktop Installer & Auto-Updater
+name: Build Windows x64 NSIS Desktop Installer & Signed Auto-Updater
 
 on:
   push:
@@ -25,6 +25,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+
+      - name: Extract Authoritative Semantic Version
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "AUTHORITATIVE_VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "RELEASE_TAG=v${VERSION}" >> $GITHUB_ENV
+          echo "Target Release Version: ${VERSION}"
 
       - name: Setup Rust Stable Toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -59,7 +67,18 @@ jobs:
         run: |
           npm run build
 
-      - name: Compile Tauri NSIS Installer & Updater Bundle
+      - name: Verify Signing Key Presence
+        shell: bash
+        env:
+          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -z "$SIGNING_KEY" ]; then
+            echo "::error ::Missing TAURI_SIGNING_PRIVATE_KEY secret in GitHub Actions. Auto-updater artifacts cannot be signed!"
+            exit 1
+          fi
+          echo "Tauri private signing key is verified in repository secrets."
+
+      - name: Compile Tauri NSIS Installer & Signed Updater Bundle
         shell: bash
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -70,14 +89,14 @@ jobs:
       - name: Generate Auto-Update Manifest (latest.json)
         shell: bash
         env:
-          RELEASE_TAG: v2.5.${{ github.run_number }}
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
         run: |
           node scripts/generate-update-manifest.mjs
 
       - name: Upload NSIS .exe Installer & Updater Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Wahas-ERP-Windows-x64-Package
+          name: Wahas-ERP-Windows-x64-Package-v${{ env.AUTHORITATIVE_VERSION }}
           path: |
             src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
             src-tauri/target/release/bundle/nsis/*.exe
@@ -87,21 +106,21 @@ jobs:
             src-tauri/target/release/bundle/nsis/*.sig
             latest.json
           retention-days: 30
-          if-no-files-found: warn
+          if-no-files-found: error
 
-      - name: Create Dynamic GitHub Release
+      - name: Publish Official GitHub Release
         uses: softprops/action-gh-release@v2
-        continue-on-error: true
         with:
-          tag_name: v2.5.${{ github.run_number }}
-          name: 'Wahas ERP Enterprise v2.5.${{ github.run_number }} (Windows Setup & Auto-Update)'
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: 'Wahas ERP Enterprise v${{ env.AUTHORITATIVE_VERSION }} (Windows Setup & Signed Auto-Update)'
           body: |
             ## Wahas ERP Enterprise Standalone Windows x64 Desktop Application
-            - **Build**: v2.5.${{ github.run_number }}
-            - **Architecture**: Windows x64 (NSIS Installer & Tauri 2 Signed Updater)
-            - **Offline Sync Engine**: SQLite WAL Durability + Transactional Outbox
+            - **Release Version**: v${{ env.AUTHORITATIVE_VERSION }}
+            - **Architecture**: Windows x64 (NSIS Standalone Installer & Signed Updater)
+            - **Security**: Cryptographically signed using Ed25519 Minisign
+            - **Data Preservation Guarantee**: SQLite local database & session permanence verified
             - **Commit**: ${{ github.sha }}
-            - **Updater Manifest**: `latest.json` included for in-app automatic seamless updates
+            - **In-App Auto-Update**: Run the installed app or check for updates in the Update Center
           draft: false
           prerelease: false
           files: |
