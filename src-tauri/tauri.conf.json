@@ -60,7 +60,7 @@
       ]
     },
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVCMTA0QkNCNkU4NzQ4OEMKUldTTVNJZHV5MHNRNjhSc3lrNGZ5T0lLTVl0L291NHEwbHF6N2ZZWXRjQks1VzFVWFRwU2o5dHkK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDg3NzU1REZEMkVDRkMzODQKUldTRXc4OHUvVjExaDdrUHpxTnpxb2lHRzZNNkNDWXU1Q2h0U1dCN3I2QWQ4SEx4R3FwNkVKcVUK",
       "endpoints": [
         "https://github.com/hameedwahas332-max/AI-Business-System-hameed/releases/latest/download/latest.json"
       ]

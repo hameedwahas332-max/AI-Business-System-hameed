@@ -81,10 +81,11 @@ jobs:
       - name: Compile Tauri NSIS Installer & Signed Updater Bundle
         shell: bash
         env:
+          CI: true
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD || 'WahasERP@2026' }}
         run: |
-          npx tauri build --target x86_64-pc-windows-msvc --bundles nsis
+          npx tauri build --target x86_64-pc-windows-msvc --bundles nsis --ci
 
       - name: Generate Auto-Update Manifest (latest.json)
         shell: bash
