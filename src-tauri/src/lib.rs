@@ -1,8 +1,7 @@
 use tauri_plugin_sql::{Migration, MigrationKind};
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
-    let migrations = vec![
+fn build_migrations() -> Vec<Migration> {
+    vec![
         Migration {
             version: 1,
             description: "initialize_outbox_and_ledger_tables",
@@ -64,13 +63,16 @@ pub fn run() {
             ",
             kind: MigrationKind::Up,
         }
-    ];
+    ]
+}
 
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
     tauri::Builder::default()
         .plugin(
             tauri_plugin_sql::Builder::default()
-                .add_migrations("sqlite:erp_desktop_offline.db", migrations.clone())
-                .add_migrations("sqlite:erp_local_vault.db", migrations)
+                .add_migrations("sqlite:erp_local_vault.db", build_migrations())
+                .add_migrations("sqlite:erp_desktop_offline.db", build_migrations())
                 .build(),
         )
         .plugin(tauri_plugin_fs::init())
