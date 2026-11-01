@@ -1,7 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { installGlobalDesktopFetchInterceptor } from './services/localDesktopApiFallback';
 import { App } from './App';
 import './index.css';
+
+// Initialize global desktop fetch and JSON interceptor immediately
+installGlobalDesktopFetchInterceptor();
 
 // =========================================================================
 // 1. GLOBAL ENGLISH NUMERALS (0123456789) ENFORCEMENT

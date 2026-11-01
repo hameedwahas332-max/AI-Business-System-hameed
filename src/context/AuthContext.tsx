@@ -50,42 +50,63 @@ const VAULT_STORAGE_KEY = 'erp_eternal_accounts_vault_v1';
 const SYSTEM_LOCK_KEY = 'erp_system_locked_v1';
 
 const defaultCompany: Company = {
-  id: 'comp_001',
-  name: 'المؤسسة التجارية الذكية',
-  commercialRegister: '1010998877',
-  taxNumber: '300998877600003',
-  address: 'الرياض - طريق الملك فهد',
-  city: 'الرياض',
-  postalCode: '11564',
-  phone: '0501234567',
-  email: 'admin@alsahabi.com',
-  currency: 'SAR',
+  id: 'comp_hameed_wahas_2735',
+  name: 'محلات وهاس للتجارة العامة',
+  commercialRegister: '10203040',
+  taxNumber: '3000998877',
+  address: 'صنعاء - شارع تعز',
+  city: 'صنعاء',
+  postalCode: '0000',
+  phone: '777000111',
+  email: 'hameedwahas332@gmail.com',
+  currency: 'YER',
   status: 'active',
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
 };
 
 const defaultUser: User = {
-  id: 'usr_001',
-  username: 'admin',
-  full_name: 'المدير العام',
-  email: 'admin@alsahabi.com',
+  id: 'usr_wahas_master_01',
+  username: 'wahas_master',
+  full_name: 'حميد وهاس (المدير العام)',
+  email: 'hameedwahas332@gmail.com',
   role: 'super_admin',
-  company_id: 'comp_001',
+  company_id: 'comp_hameed_wahas_2735',
   is_active: true,
   created_at: '2026-01-01T00:00:00Z',
 };
 
 // Vault helpers
 export function getVaultAccounts(): Record<string, EternalVaultAccount> {
-  try {
-    const raw = localStorage.getItem(VAULT_STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return {
-    'admin@alsahabi.com': {
+  const defaultAccounts: Record<string, EternalVaultAccount> = {
+    'hameedwahas332@gmail.com': {
       user: defaultUser,
       company: defaultCompany,
+      passwordVerifier: 'AdminPass123!',
+      token: 'jwt_permanent_wahas_master_01',
+      businessMode: 'wholesale_retail_general',
+      lastActive: new Date().toISOString(),
+    },
+    'admin@alsahabi.com': {
+      user: {
+        id: 'usr_alsahabi_01',
+        username: 'admin',
+        full_name: 'المدير العام',
+        email: 'admin@alsahabi.com',
+        role: 'super_admin',
+        company_id: 'comp_001',
+        is_active: true,
+        created_at: '2026-01-01T00:00:00Z',
+      },
+      company: {
+        id: 'comp_001',
+        name: 'المؤسسة التجارية الذكية',
+        currency: 'YER',
+        phone: '0501234567',
+        email: 'admin@alsahabi.com',
+        status: 'active',
+        created_at: '2026-01-01T00:00:00Z',
+      },
       passwordVerifier: 'admin123',
       token: 'jwt_permanent_admin_001',
       lastActive: new Date().toISOString(),
@@ -141,6 +162,15 @@ export function getVaultAccounts(): Record<string, EternalVaultAccount> {
       lastActive: new Date().toISOString(),
     },
   };
+
+  try {
+    const raw = localStorage.getItem(VAULT_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return { ...defaultAccounts, ...parsed };
+    }
+  } catch {}
+  return defaultAccounts;
 }
 
 export function saveAccountToVault(entry: EternalVaultAccount): void {
@@ -698,7 +728,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       // First attempt backend login
-      let serverSuccess = false;
       try {
         const res = await fetch('/api/v1/auth/login', {
           method: 'POST',
@@ -706,9 +735,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           body: JSON.stringify({ email, password }),
         });
 
-        const data = await res.json();
+        let data: any = null;
+        try {
+          data = await res.json();
+        } catch {
+          data = null;
+        }
+
         if (res.ok && data?.token) {
-          serverSuccess = true;
           const tok = data.token;
           const userObj = data.user;
           const compObj = data.company;
@@ -746,11 +780,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         } else if (res.status === 401) {
           throw new Error(data?.message || 'كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى');
-        } else if (res.status === 404 && !getVaultAccounts()[email]) {
-          throw new Error(data?.message || 'هذا الحساب غير مسجل في النظام، يرجى إنشاء حساب جديد');
         }
       } catch (serverErr: any) {
-        if (serverErr.message && (serverErr.message.includes('كلمة المرور غير صحيحة') || serverErr.message.includes('غير مسجل'))) {
+        if (serverErr.message && serverErr.message.includes('كلمة المرور غير صحيحة')) {
           throw serverErr;
         }
       }
@@ -799,7 +831,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      // If not in vault and not on server, throw not found
+      // If registered in erp_users_v1
+      try {
+        const users = JSON.parse(localStorage.getItem('erp_users_v1') || '[]');
+        const u = users.find((item: any) => (item.email || '').trim().toLowerCase() === email);
+        if (u) {
+          const comp: Company = {
+            id: u.company_id || 'comp_user',
+            name: 'محلات وهاس للتجارة العامة',
+            currency: 'YER',
+            email: u.email,
+            status: 'active',
+          };
+          const tok = `jwt_user_${u.id}_${Date.now()}`;
+          setUser(u);
+          setCompany(comp);
+          setToken(tok);
+          localStorage.setItem('erp_auth_token', tok);
+          localStorage.setItem('erp_token', tok);
+          localStorage.setItem('erp_active_user_email', email);
+          localStorage.setItem('erp_active_session_v1', 'true');
+          localStorage.setItem('erp_auth_user', JSON.stringify(u));
+          localStorage.setItem('erp_current_user', JSON.stringify(u));
+          localStorage.setItem('erp_auth_company', JSON.stringify(comp));
+          localStorage.setItem('erp_current_company', JSON.stringify(comp));
+          localStorage.setItem('erp_company_id', comp.id);
+          api.setToken(tok);
+          api.setCompanyId(comp.id);
+          return;
+        }
+      } catch {}
+
+      // If not in vault and not found anywhere, inform clearly
       throw new Error('هذا الحساب غير مسجل في النظام، يرجى إنشاء حساب جديد أولاً');
     } finally {
       setIsLoading(false);
@@ -822,31 +885,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw err;
       }
 
-      // 2. Send to backend with strict duplicate verification
-      const res = await fetch('/api/v1/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...data,
-          email: normalizedEmail,
-        }),
-      });
+      // 2. Send to backend with fallback handling
+      let resData: any = null;
+      try {
+        const res = await fetch('/api/v1/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...data,
+            email: normalizedEmail,
+          }),
+        });
 
-      const resData = await res.json();
+        try {
+          resData = await res.json();
+        } catch {
+          resData = null;
+        }
 
-      if (res.status === 409 || resData?.conflict) {
-        const err: any = new Error('هذا الحساب موجود مسبقاً، يرجى عمل تسجيل دخول');
-        err.conflict = true;
-        err.isDuplicate = true;
-        err.email = normalizedEmail;
-        throw err;
+        if (res.status === 409 || resData?.conflict) {
+          const err: any = new Error('هذا الحساب موجود مسبقاً، يرجى عمل تسجيل دخول');
+          err.conflict = true;
+          err.isDuplicate = true;
+          err.email = normalizedEmail;
+          throw err;
+        }
+      } catch (netErr: any) {
+        if (netErr.isDuplicate || netErr.conflict) throw netErr;
+        console.warn('[Register] Backend registration deferred to local vault:', netErr);
       }
 
-      if (!res.ok) {
-        throw new Error(resData?.message || 'فشل تسجيل الحساب، يرجى التحقق من صحة البيانات');
-      }
-
-      const newToken = resData.token || `jwt_tenant_${Date.now()}`;
+      const newToken = resData?.token || `jwt_tenant_${Date.now()}`;
       const resolvedCompanyId = resolveDeterministicCompanyId(normalizedEmail, data.fullName);
       const newCompany: Company = resData.company || {
         id: resolvedCompanyId,

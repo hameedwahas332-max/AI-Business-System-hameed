@@ -56,10 +56,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  const handleQuickDemoFill = (type: 'tenantA' | 'tenantB') => {
+  const handleQuickDemoFill = (type: 'wahas' | 'tenantA' | 'tenantB') => {
     setError(null);
     setDuplicateEmailError(false);
-    if (type === 'tenantA') {
+    if (type === 'wahas') {
+      setEmail('hameedwahas332@gmail.com');
+      setPassword('AdminPass123!');
+      setFullName('حميد وهاس (المدير العام)');
+      setCompanyName('محلات وهاس للتجارة العامة');
+      setCompanyCode('wahas-general');
+      setCurrency('YER');
+      setCountry('YE');
+    } else if (type === 'tenantA') {
       setEmail('admin@alamal-trade.com');
       setPassword('AdminPass123!');
       setFullName('محمد أحمد العبسي');
@@ -75,6 +83,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       setCompanyCode('albaraka-store');
       setCurrency('YER');
       setCountry('YE');
+    }
+  };
+
+  const handleQuickLogin = async (type: 'wahas' | 'tenantA' | 'tenantB') => {
+    setError(null);
+    setSuccess(null);
+    setDuplicateEmailError(false);
+    setIsSubmitting(true);
+    try {
+      if (type === 'wahas') {
+        await login('hameedwahas332@gmail.com', 'AdminPass123!');
+      } else if (type === 'tenantA') {
+        await login('admin@alamal-trade.com', 'AdminPass123!');
+      } else {
+        await login('admin@albaraka-store.com', 'AdminPass123!');
+      }
+      setSuccess('تم تسجيل الدخول واستعادة متجرك وبياناتك بنجاح!');
+      setTimeout(() => onClose(), 600);
+    } catch (err: any) {
+      setError(err?.message || 'تعذر تسجيل الدخول السريع');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -212,24 +242,43 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        {/* Quick Demo Pre-fill Banner */}
+        {/* Quick Demo Pre-fill & 1-Click Login Banner */}
         {mode !== 'forgot' && mode !== 'reset' && mode !== 'account' && (
-          <div className="px-6 py-3 bg-slate-950/60 border-b border-slate-800 flex items-center justify-between text-xs">
-            <span className="text-slate-400 font-medium">تعبئة سريعة لاختبار العزل:</span>
-            <div className="flex items-center gap-2">
+          <div className="px-6 py-3 bg-slate-950/80 border-b border-slate-800 space-y-2 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-amber-400 font-bold flex items-center gap-1.5 text-[11px]">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                دخول فوري بنقرة واحدة (1-Click Login):
+              </span>
+              <span className="text-[10px] text-slate-400">بدون إدخال يدوي</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
-                onClick={() => handleQuickDemoFill('tenantA')}
-                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-800/60 font-mono text-[11px] font-bold shadow-sm transition-colors"
+                disabled={isSubmitting}
+                onClick={() => handleQuickLogin('wahas')}
+                className="px-2 py-1.5 rounded-lg bg-gradient-to-r from-amber-950/70 to-amber-900/60 hover:from-amber-900/90 hover:to-amber-800/80 text-amber-200 border border-amber-600/60 font-semibold text-[11px] shadow-sm transition-all text-center flex flex-col items-center justify-center leading-tight active:scale-95"
               >
-                شركة الأمل (A)
+                <span className="font-bold text-amber-300">محلات وهاس</span>
+                <span className="text-[9px] text-amber-400/80">المالك الرئيسي</span>
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickDemoFill('tenantB')}
-                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-800/60 font-mono text-[11px] font-bold shadow-sm transition-colors"
+                disabled={isSubmitting}
+                onClick={() => handleQuickLogin('tenantA')}
+                className="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-800/60 font-semibold text-[11px] shadow-sm transition-all text-center flex flex-col items-center justify-center leading-tight active:scale-95"
               >
-                مؤسسة البركة (B)
+                <span className="font-bold text-emerald-300">شركة الأمل</span>
+                <span className="text-[9px] text-slate-400">متجر (A)</span>
+              </button>
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => handleQuickLogin('tenantB')}
+                className="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-800/60 font-semibold text-[11px] shadow-sm transition-all text-center flex flex-col items-center justify-center leading-tight active:scale-95"
+              >
+                <span className="font-bold text-cyan-300">مؤسسة البركة</span>
+                <span className="text-[9px] text-slate-400">متجر (B)</span>
               </button>
             </div>
           </div>
