@@ -510,6 +510,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [isLoading, setIsLoading] = useState(false);
 
+  // Automatically pre-seed default Master Admin account for "محلات وهاس للتجارة العامة" on first startup
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem('erp_auth_user')) {
+        localStorage.setItem('erp_auth_user', JSON.stringify(defaultUser));
+        localStorage.setItem('erp_current_user', JSON.stringify(defaultUser));
+        localStorage.setItem('erp_auth_company', JSON.stringify(defaultCompany));
+        localStorage.setItem('erp_current_company', JSON.stringify(defaultCompany));
+        localStorage.setItem('erp_company_id', defaultCompany.id);
+        localStorage.setItem('erp_active_user_email', defaultUser.email);
+        localStorage.setItem('erp_auth_token', 'jwt_permanent_wahas_master_01');
+        localStorage.setItem('erp_token', 'jwt_permanent_wahas_master_01');
+        localStorage.setItem('erp_active_session_v1', 'true');
+      }
+
+      // Ensure vault always has Master Admin account
+      const vault = getVaultAccounts();
+      if (!vault['hameedwahas332@gmail.com']) {
+        vault['hameedwahas332@gmail.com'] = {
+          user: defaultUser,
+          company: defaultCompany,
+          passwordVerifier: 'AdminPass123!',
+          token: 'jwt_permanent_wahas_master_01',
+          businessMode: 'wholesale_retail_general',
+          lastActive: new Date().toISOString(),
+        };
+      }
+      localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(vault));
+
+      // Ensure erp_users_v1 has defaultUser
+      const users = JSON.parse(localStorage.getItem('erp_users_v1') || '[]');
+      if (!users.some((u: any) => u.email === defaultUser.email)) {
+        users.push(defaultUser);
+        localStorage.setItem('erp_users_v1', JSON.stringify(users));
+      }
+
+      // Ensure erp_companies_v1 has defaultCompany
+      const comps = JSON.parse(localStorage.getItem('erp_companies_v1') || '[]');
+      if (!comps.some((c: any) => c.id === defaultCompany.id)) {
+        comps.push(defaultCompany);
+        localStorage.setItem('erp_companies_v1', JSON.stringify(comps));
+      }
+    } catch (e) {
+      console.warn('[AuthContext] Startup pre-seed warning:', e);
+    }
+  }, []);
+
   // Sync token and company ID to API client
   useEffect(() => {
     if (token) {

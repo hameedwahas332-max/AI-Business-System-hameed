@@ -24,7 +24,10 @@ export function generateUpdateManifest(baseDir = process.cwd()) {
     process.exit(1);
   }
 
-  const version = tauriConf.version;
+  let version = tauriConf.version;
+  if (process.env.DYNAMIC_VERSION && !process.env.DYNAMIC_VERSION.includes('undefined')) {
+    version = process.env.DYNAMIC_VERSION;
+  }
   if (!version || typeof version !== 'string' || !/^\d+\.\d+\.\d+/.test(version)) {
     console.error(`FATAL [updater-manifest]: Invalid semantic version in tauri.conf.json: "${version}"`);
     process.exit(1);

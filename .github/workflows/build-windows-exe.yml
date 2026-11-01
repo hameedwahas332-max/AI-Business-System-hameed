@@ -28,18 +28,29 @@ jobs:
 
       - name: Compute Dynamic Version & Inject Into Package Configs
         shell: bash
+        env:
+          RUN_NUM: ${{ github.run_number }}
+          COMMIT_SHA: ${{ github.sha }}
         run: |
-          DYNAMIC_VERSION="1.0.${{ github.run_number }}"
+          RUN_NUM="${RUN_NUM:-1}"
+          DYNAMIC_VERSION="1.0.${RUN_NUM}"
+          export DYNAMIC_VERSION
           echo "DYNAMIC_VERSION=${DYNAMIC_VERSION}" >> $GITHUB_ENV
           echo "AUTHORITATIVE_VERSION=${DYNAMIC_VERSION}" >> $GITHUB_ENV
           echo "RELEASE_TAG=v${DYNAMIC_VERSION}" >> $GITHUB_ENV
-          echo "VITE_BUILD_COMMIT_SHA=${{ github.sha }}" >> $GITHUB_ENV
+          echo "VITE_BUILD_COMMIT_SHA=${COMMIT_SHA}" >> $GITHUB_ENV
           echo "VITE_APP_VERSION=${DYNAMIC_VERSION}" >> $GITHUB_ENV
-          echo "Computed Dynamic Build Version: ${DYNAMIC_VERSION} (Commit: ${{ github.sha }})"
+          echo "Computed Dynamic Build Version: ${DYNAMIC_VERSION} (Commit: ${COMMIT_SHA})"
 
           node -e "
             const fs = require('fs');
-            const ver = process.env.DYNAMIC_VERSION;
+            const runNum = process.env.RUN_NUM || '1';
+            const ver = process.env.DYNAMIC_VERSION || ('1.0.' + runNum);
+
+            if (!ver || ver.includes('undefined')) {
+              console.error('FATAL: Invalid version string: ' + ver);
+              process.exit(1);
+            }
 
             // 1. Update package.json
             const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
@@ -65,6 +76,15 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-msvc
+
+      - name: Verify Cargo Metadata & Cargo.toml Syntax
+        shell: bash
+        run: |
+          echo "Verifying src-tauri Cargo.toml validity..."
+          cd src-tauri
+          cargo metadata --no-deps --format-version 1
+          cd ..
+          echo "Cargo.toml metadata verified successfully!"
 
       - name: Rust Cache
         uses: swatinem/rust-cache@v2

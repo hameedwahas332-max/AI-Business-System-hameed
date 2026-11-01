@@ -931,6 +931,41 @@ export async function executeLocalWipeDemoData(): Promise<LocalApiResponse> {
     console.warn('[LocalDesktopFallback] SQLite clean warning:', err);
   }
 
+  // Explicitly ensure user accounts, company profiles, and eternal vault are preserved and intact
+  try {
+    const vault = getVaultAccounts();
+    localStorage.setItem('erp_eternal_accounts_vault_v1', JSON.stringify(vault));
+    const currentUserRaw = localStorage.getItem('erp_auth_user');
+    if (!currentUserRaw) {
+      const defaultMaster = vault['hameedwahas332@gmail.com']?.user || {
+        id: 'usr_wahas_master_01',
+        username: 'wahas_master',
+        full_name: 'حميد وهاس (المدير العام)',
+        email: 'hameedwahas332@gmail.com',
+        role: 'super_admin',
+        company_id: 'comp_hameed_wahas_2735',
+        is_active: true,
+      };
+      const defaultComp = vault['hameedwahas332@gmail.com']?.company || {
+        id: 'comp_hameed_wahas_2735',
+        name: 'محلات وهاس للتجارة العامة',
+        currency: 'YER',
+        phone: '777000111',
+        email: 'hameedwahas332@gmail.com',
+        status: 'active',
+      };
+      localStorage.setItem('erp_auth_user', JSON.stringify(defaultMaster));
+      localStorage.setItem('erp_current_user', JSON.stringify(defaultMaster));
+      localStorage.setItem('erp_auth_company', JSON.stringify(defaultComp));
+      localStorage.setItem('erp_current_company', JSON.stringify(defaultComp));
+      localStorage.setItem('erp_company_id', defaultComp.id);
+      localStorage.setItem('erp_active_user_email', defaultMaster.email);
+      localStorage.setItem('erp_active_session_v1', 'true');
+    }
+  } catch (err) {
+    console.warn('[LocalDesktopFallback] Account preservation guard warning:', err);
+  }
+
   // Dispatch events to notify all 29 tabs
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('storage'));
