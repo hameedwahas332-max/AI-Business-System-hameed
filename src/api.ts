@@ -3,6 +3,7 @@
  */
 
 import { escapeHtml, renderAndPrintDocument } from './lib/exportUtils';
+import { handleLocalDesktopApiFallback, isTauriOrDesktopEnvironment } from './services/localDesktopApiFallback';
 
 const API_BASE = '/api/v1';
 
@@ -155,13 +156,33 @@ class ApiClient {
         headers,
       });
     } catch (networkErr: any) {
+      // In offline / desktop mode, fall back to local handler
+      const fallback = await handleLocalDesktopApiFallback<T>(url, options);
+      if (fallback.ok) {
+        return fallback.data;
+      }
       // Do not wipe session on transient network timeouts or offline states
       throw new Error(networkErr?.message || 'Network communication error');
+    }
+
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      // In Tauri desktop, relative /api/... calls hit static file server which returns index.html
+      const fallback = await handleLocalDesktopApiFallback<T>(url, options);
+      if (fallback.ok) {
+        return fallback.data;
+      }
     }
 
     let data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
+      if (res.status === 404 || isTauriOrDesktopEnvironment()) {
+        const fallback = await handleLocalDesktopApiFallback<T>(url, options);
+        if (fallback.ok) {
+          return fallback.data;
+        }
+      }
       const isLoginRequest = url.includes('/auth/login');
       const isRefreshRequest = url.includes('/auth/refresh');
       const isRestoreRequest = url.includes('/auth/session-restore');

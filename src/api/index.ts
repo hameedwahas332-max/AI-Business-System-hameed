@@ -1,4 +1,5 @@
 import { APIResponse, AuthResponse, Company, User, Role, Permission, AuditLog } from '../types';
+import { handleLocalDesktopApiFallback, isTauriOrDesktopEnvironment } from '../services/localDesktopApiFallback';
 
 const API_BASE_URL = '/api/v1';
 
@@ -118,22 +119,47 @@ class APIClient {
       try {
         response = await fetch(`${API_BASE_URL}${endpoint}`, config);
       } catch (fetchErr: any) {
+        if (isTauriOrDesktopEnvironment()) {
+          const fallback = await handleLocalDesktopApiFallback<T>(`${API_BASE_URL}${endpoint}`, config);
+          if (fallback.ok) {
+            return (typeof fallback.data === 'object' && ('data' in fallback.data || 'success' in fallback.data))
+              ? (fallback.data as any)
+              : ({ success: true, data: fallback.data } as any);
+          }
+        }
         // Retry once after a brief pause in case of a transient connection hiccup or server reload
         await new Promise((resolve) => setTimeout(resolve, 350));
         try {
           response = await fetch(`${API_BASE_URL}${endpoint}`, config);
         } catch {
+          const fallback = await handleLocalDesktopApiFallback<T>(`${API_BASE_URL}${endpoint}`, config);
+          if (fallback.ok) {
+            return (typeof fallback.data === 'object' && ('data' in fallback.data || 'success' in fallback.data))
+              ? (fallback.data as any)
+              : ({ success: true, data: fallback.data } as any);
+          }
           throw new Error('تعذر الاتصال بالخادم، يرجى التحقق من الاتصال والمحاولة مرة أخرى');
         }
       }
       let data: any = null;
+      let isJson = false;
       try {
         const text = await response.text();
         if (text && (text.trim().startsWith('{') || text.trim().startsWith('['))) {
           data = JSON.parse(text);
+          isJson = true;
         }
       } catch {
         data = null;
+      }
+
+      if (!isJson && (isTauriOrDesktopEnvironment() || response.headers.get('content-type')?.includes('text/html'))) {
+        const fallback = await handleLocalDesktopApiFallback<T>(`${API_BASE_URL}${endpoint}`, config);
+        if (fallback.ok) {
+          return (typeof fallback.data === 'object' && ('data' in fallback.data || 'success' in fallback.data))
+            ? (fallback.data as any)
+            : ({ success: true, data: fallback.data } as any);
+        }
       }
 
       if (response.status === 401 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/session-restore')) {
@@ -198,6 +224,14 @@ class APIClient {
       }
 
       if (!response.ok) {
+        if (response.status === 404 || isTauriOrDesktopEnvironment()) {
+          const fallback = await handleLocalDesktopApiFallback<T>(`${API_BASE_URL}${endpoint}`, config);
+          if (fallback.ok) {
+            return (typeof fallback.data === 'object' && ('data' in fallback.data || 'success' in fallback.data))
+              ? (fallback.data as any)
+              : ({ success: true, data: fallback.data } as any);
+          }
+        }
         // Extract the exact error message safely without leaking secrets or falling back to generic network errors
         let serverErrorMessage = '';
 

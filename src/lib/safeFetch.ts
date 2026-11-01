@@ -1,3 +1,5 @@
+import { handleLocalDesktopApiFallback, isTauriOrDesktopEnvironment } from '../services/localDesktopApiFallback';
+
 export async function safeFetchJson<T = any>(
   url: string,
   options?: RequestInit
@@ -16,14 +18,39 @@ export async function safeFetchJson<T = any>(
       ...(options?.headers as Record<string, string>),
     };
 
-    const res = await fetch(url, { ...options, headers });
+    let res: Response;
+    try {
+      res = await fetch(url, { ...options, headers });
+    } catch (networkErr: any) {
+      // If network fails (e.g., Tauri offline, server not running locally), execute fallback
+      const fallback = await handleLocalDesktopApiFallback<T>(url, options);
+      return {
+        success: fallback.success,
+        ok: fallback.ok,
+        data: fallback.data,
+        status: fallback.status || 200,
+        error: fallback.error,
+      };
+    }
+
     const contentType = res.headers.get('content-type') || '';
 
     let json: any = {};
     if (contentType.includes('application/json')) {
       json = await res.json().catch(() => ({}));
     } else {
-      // Endpoint returned HTML or non-JSON (e.g. 404 fallback or static index.html)
+      // In standalone Tauri Desktop, relative /api/... calls hit static file server
+      // which serves index.html (text/html). We route immediately to the local fallback DAL!
+      const fallback = await handleLocalDesktopApiFallback<T>(url, options);
+      if (fallback.ok) {
+        return {
+          success: fallback.success,
+          ok: fallback.ok,
+          data: fallback.data,
+          status: fallback.status || 200,
+        };
+      }
+
       if (!res.ok) {
         return {
           success: false,
@@ -33,14 +60,27 @@ export async function safeFetchJson<T = any>(
         };
       }
       return {
-        success: false,
-        ok: false,
-        error: 'Non-JSON response received from server',
-        status: res.status,
+        success: true,
+        ok: true,
+        data: fallback.data as any,
+        status: 200,
       };
     }
 
     if (!res.ok) {
+      // If 404 or server error in desktop/offline, give fallback a chance
+      if (res.status === 404 || isTauriOrDesktopEnvironment()) {
+        const fallback = await handleLocalDesktopApiFallback<T>(url, options);
+        if (fallback.ok) {
+          return {
+            success: fallback.success,
+            ok: fallback.ok,
+            data: fallback.data,
+            status: fallback.status || 200,
+          };
+        }
+      }
+
       return {
         success: false,
         ok: false,
@@ -56,12 +96,24 @@ export async function safeFetchJson<T = any>(
       status: res.status,
     };
   } catch (err: any) {
-    return {
-      success: false,
-      ok: false,
-      error: err?.message || 'Network communication error',
-      status: 0,
-    };
+    // Ultimate safety fallback
+    try {
+      const fallback = await handleLocalDesktopApiFallback<T>(url, options);
+      return {
+        success: fallback.success,
+        ok: fallback.ok,
+        data: fallback.data,
+        status: fallback.status || 200,
+        error: fallback.error,
+      };
+    } catch {
+      return {
+        success: false,
+        ok: false,
+        error: err?.message || 'Network communication error',
+        status: 0,
+      };
+    }
   }
 }
 

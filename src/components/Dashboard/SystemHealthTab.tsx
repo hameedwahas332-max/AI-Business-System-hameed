@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
+import { safeFetchJson } from '../../lib/safeFetch';
 import { EnterpriseObservabilityDashboard } from '../EnterpriseObservabilityDashboard';
 import { DataGovernanceDashboard } from '../DataGovernanceDashboard';
 import {
@@ -80,15 +81,15 @@ export const SystemHealthTab: React.FC = () => {
     try {
       // 1. Fetch live health probe from server
       const [healthRes, backupRes] = await Promise.all([
-        fetch('/api/health').catch(() => null),
-        fetch('/api/v1/backups').catch(() => null),
+        safeFetchJson('/api/health').catch(() => null),
+        safeFetchJson('/api/v1/backups').catch(() => null),
       ]);
 
       let isDbConnected = true;
       let b2Connectivity = 'HEALTHY';
 
       if (healthRes && healthRes.ok) {
-        const healthData = await healthRes.json().catch(() => null);
+        const healthData = healthRes.data;
         if (healthData) {
           isDbConnected = healthData.database?.connected ?? true;
           if (healthData.storageHealth?.connectivity === 'pass') {
@@ -100,7 +101,7 @@ export const SystemHealthTab: React.FC = () => {
       }
 
       if (backupRes && backupRes.ok) {
-        const backupData = await backupRes.json().catch(() => null);
+        const backupData = backupRes.data;
         if (backupData?.configured) {
           b2Connectivity = 'HEALTHY';
         }

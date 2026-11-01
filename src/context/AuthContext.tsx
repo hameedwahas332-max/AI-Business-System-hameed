@@ -22,6 +22,11 @@ export interface EternalVaultAccount {
   token: string;
   businessMode?: string;
   lastActive: string;
+  lastDataSnapshot?: {
+    data: Record<string, string>;
+    timestamp: string;
+  };
+  cleanProductionMode?: boolean;
 }
 
 export interface AuthContextType {
@@ -203,6 +208,9 @@ export function resolveDeterministicCompanyId(email?: string, username?: string,
 }
 
 export function smartMergeKeyData(existingRaw: string | null, vaultRaw: string | null): string | null {
+  if (typeof window !== 'undefined' && sessionStorage.getItem('erp_explicit_reset_in_progress') === 'true') {
+    return '[]';
+  }
   if (!vaultRaw) return existingRaw;
   if (!existingRaw) return vaultRaw;
 
@@ -211,7 +219,10 @@ export function smartMergeKeyData(existingRaw: string | null, vaultRaw: string |
     const vaultParsed = JSON.parse(vaultRaw);
 
     if (Array.isArray(existingParsed) && Array.isArray(vaultParsed)) {
-      if (vaultParsed.length === 0) return existingRaw; // Never overwrite non-empty with empty array!
+      if (typeof window !== 'undefined' && sessionStorage.getItem('erp_explicit_reset_in_progress') === 'true') {
+        return '[]';
+      }
+      if (vaultParsed.length === 0) return existingRaw; // Never overwrite non-empty with empty array unless explicit reset
       if (existingParsed.length === 0) return vaultRaw;
 
       const itemMap = new Map<string, any>();
@@ -248,9 +259,13 @@ export function smartMergeKeyData(existingRaw: string | null, vaultRaw: string |
 
 export function saveCurrentTenantSnapshotToVault(
   targetUser?: User | null,
-  targetCompany?: Company | null
+  targetCompany?: Company | null,
+  allowEmptyOverwrite: boolean = false
 ): void {
   try {
+    const isResetInProgress = typeof window !== 'undefined' && sessionStorage.getItem('erp_explicit_reset_in_progress') === 'true';
+    const allowEmpty = allowEmptyOverwrite || isResetInProgress;
+
     const activeEmail = (
       targetUser?.email ||
       localStorage.getItem('erp_active_user_email') ||
@@ -266,12 +281,17 @@ export function saveCurrentTenantSnapshotToVault(
     for (const key of ALL_ERP_DATA_KEYS) {
       const baseVal = localStorage.getItem(key);
       const scopedVal = activeCompanyId ? localStorage.getItem(`${key}_${activeCompanyId}`) : null;
-      const valToSave =
-        scopedVal && scopedVal !== '[]' && scopedVal !== '{}'
-          ? scopedVal
-          : (baseVal && baseVal !== '[]' && baseVal !== '{}')
-          ? baseVal
-          : (scopedVal || baseVal);
+      let valToSave: string | null = null;
+      if (allowEmpty) {
+        valToSave = scopedVal !== null ? scopedVal : baseVal !== null ? baseVal : '[]';
+      } else {
+        valToSave =
+          scopedVal && scopedVal !== '[]' && scopedVal !== '{}'
+            ? scopedVal
+            : (baseVal && baseVal !== '[]' && baseVal !== '{}')
+            ? baseVal
+            : (scopedVal || baseVal);
+      }
       if (valToSave !== null && valToSave !== undefined) {
         dataMap[key] = valToSave;
       }
@@ -327,6 +347,31 @@ export function snapshotErpDataToVault(userEmail?: string): void {
     userEmail ? ({ email: userEmail } as User) : null,
     null
   );
+}
+
+export function clearCurrentTenantVaultData(companyId?: string): void {
+  try {
+    const vault = getVaultAccounts();
+    const activeEmail = (localStorage.getItem('erp_active_user_email') || '').trim().toLowerCase();
+    const activeCompanyId = companyId || localStorage.getItem('erp_company_id') || 'comp_001';
+    const emptyMap: Record<string, string> = {};
+    for (const key of ALL_ERP_DATA_KEYS) {
+      emptyMap[key] = '[]';
+    }
+    const userKeys = [activeEmail, activeCompanyId].filter(Boolean);
+    for (const uKey of userKeys) {
+      if (vault[uKey]) {
+        vault[uKey].lastDataSnapshot = {
+          data: emptyMap,
+          timestamp: new Date().toISOString(),
+        };
+        (vault[uKey] as any).cleanProductionMode = true;
+      }
+    }
+    localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(vault));
+  } catch (err) {
+    console.warn('[VAULT_CLEAR_WARN]', err);
+  }
 }
 
 export async function restoreTenantSnapshotFromVault(

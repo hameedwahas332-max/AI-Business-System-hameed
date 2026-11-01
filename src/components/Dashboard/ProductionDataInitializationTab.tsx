@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { safeFetchJson } from '../../lib/safeFetch';
+import { executeLocalWipeDemoData, executeLocalSeedDemoData } from '../../services/localDesktopApiFallback';
 import {
   ShieldCheck,
   Server,
@@ -329,60 +330,42 @@ export const ProductionDataInitializationTab: React.FC<{ companyId?: string }> =
     }
   };
 
+  // Handle Seed Demo Data
+  const handleSeedDemoData = async () => {
+    setActionLoading('seed');
+    try {
+      const res = await executeLocalSeedDemoData();
+      if (res.ok) {
+        setFeedback({
+          type: 'success',
+          message: 'تم زرع حزمة البيانات التجريبية الشاملة بنجاح مع التوازن المحاسبي الكامل!',
+        });
+        await fetchReadiness();
+        setTimeout(() => {
+          window.location.reload();
+        }, 1200);
+      } else {
+        setFeedback({ type: 'error', message: res.error || 'فشل زرع البيانات التجريبية' });
+      }
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err?.message || 'فشل زرع البيانات التجريبية' });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   // Handle Clean Sandbox / Sample Data
   const handleCleanupSampleData = async () => {
     if (!window.confirm('هل أنت متأكد من رغبتك في حذف وتصفير كافة البيانات التجريبية لبدء العمل الفعلي النظيف؟ ستبقى بيانات حسابك واسم المنشأة وإعدادات الربط آمنة ومحفوظة.')) return;
     setActionLoading('cleanup');
     try {
-      const res = await safeFetchJson('/api/v1/system/wipe-demo-data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (res.ok && res.data?.success) {
-        const sampleStorageKeys = [
-          'erp_fuel_tanks_v1',
-          'erp_fuel_meter_records_v1',
-          'erp_fuel_tanks_state',
-          'erp_fuel_daily_records',
-          'erp_pos_held_sales',
-          'erp_pos_held_v1',
-          'erp_pos_shift_history',
-          'erp_pos_shift_history_v1',
-          'erp_custom_ledger_entries',
-          'erp_sales_reps_v1',
-          'erp_battery_warranty_records',
-          'erp_tire_dot_records',
-        ];
-        sampleStorageKeys.forEach((key) => {
-          try { localStorage.removeItem(key); } catch {}
-        });
-        localStorage.setItem('erp_clean_production_mode_v1', 'true');
-        localStorage.setItem('erp_sample_data_cleaned', 'true');
-
-        // Update vault snapshot with clean arrays
-        try {
-          const vaultRaw = localStorage.getItem('erp_eternal_accounts_vault_v1');
-          if (vaultRaw) {
-            const vault = JSON.parse(vaultRaw);
-            if (vault && vault.dataSnapshot) {
-              vault.dataSnapshot.products = [];
-              vault.dataSnapshot.customers = [];
-              vault.dataSnapshot.suppliers = [];
-              vault.dataSnapshot.invoices = [];
-              vault.dataSnapshot.purchaseInvoices = [];
-              vault.dataSnapshot.payments = [];
-              vault.dataSnapshot.accountTransactions = [];
-              vault.dataSnapshot.employees = [];
-              vault.dataSnapshot.expenses = [];
-              vault.cleanProductionMode = true;
-              localStorage.setItem('erp_eternal_accounts_vault_v1', JSON.stringify(vault));
-            }
-          }
-        } catch (e) {}
-
-        window.dispatchEvent(new Event('storage'));
-        window.dispatchEvent(new CustomEvent('erp:data-cleared'));
-        window.dispatchEvent(new Event('erp-demo-data-wiped'));
+      const res = await executeLocalWipeDemoData();
+      if (res.ok) {
+        // Also notify backend if reachable
+        safeFetchJson('/api/v1/system/wipe-demo-data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        }).catch(() => {});
 
         setFeedback({
           type: 'success',
@@ -393,10 +376,10 @@ export const ProductionDataInitializationTab: React.FC<{ companyId?: string }> =
           window.location.reload();
         }, 1000);
       } else {
-        setFeedback({ type: 'error', message: res.error || res.data?.error || 'فشل تنظيف البيانات التجريبية' });
+        setFeedback({ type: 'error', message: res.error || 'فشل تنظيف البيانات التجريبية' });
       }
     } catch (err: any) {
-      setFeedback({ type: 'error', message: 'حدث خطأ أثناء تنظيف البيانات التجريبية' });
+      setFeedback({ type: 'error', message: err?.message || 'حدث خطأ أثناء تنظيف البيانات التجريبية' });
     } finally {
       setActionLoading(null);
     }
@@ -466,6 +449,14 @@ export const ProductionDataInitializationTab: React.FC<{ companyId?: string }> =
           </div>
 
           <div className="flex items-center flex-wrap gap-3">
+            <button
+              onClick={handleSeedDemoData}
+              disabled={actionLoading === 'seed'}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-200 border border-emerald-800 text-xs sm:text-sm font-semibold rounded-xl transition cursor-pointer"
+            >
+              <Zap className="w-4 h-4 text-emerald-400" />
+              زرع بيانات تجريبية (Seed Demo)
+            </button>
             <button
               onClick={handleCleanupSampleData}
               disabled={actionLoading === 'cleanup'}
