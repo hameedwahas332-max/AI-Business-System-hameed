@@ -18,7 +18,7 @@ export interface UpdateCheckResult {
   isWebPreview?: boolean;
 }
 
-export const CURRENT_APP_VERSION = '2.4.1';
+export const CURRENT_APP_VERSION = '2.4.2';
 
 /**
  * Returns true if running within the Tauri desktop application runtime
