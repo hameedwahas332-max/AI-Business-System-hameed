@@ -1,11 +1,11 @@
 {
-  "version": "2.4.0",
-  "notes": "تحديث سيادي جديد لنظام المحاسبي الذكي ERP - محلات وهاس للتجارة العامة (الإصدار 2.4.0) يتضمن ترقيات الأداء، استقرار قاعدة البيانات المحلية والمزامنة اللحظية مع الحفاظ التام على سلامة السجلات التاريخية.",
-  "pub_date": "2026-10-31T18:23:46.963Z",
+  "version": "1.1.0",
+  "notes": "تحديث سيادي جديد لنظام المحاسبي الذكي ERP - محلات وهاس للتجارة العامة (الإصدار 1.1.0) مع ميزة التحديث التلقائي الفوري والتحقق الرقمي عند كل دفع على جيت هب.",
+  "pub_date": "2026-11-01T10:48:00.000Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkK...",
-      "url": "https://github.com/hameedwahas332-max/AI-Business-System-hameed/releases/download/v2.4.0/AI-Business-System-Wahas-ERP_2.4.0_x64-setup.nsis.zip"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDg3NzU1REZEMkVDRkMzODQKUldTRXc4OHUvVjExaDdrUHpxTnpxb2lHRzZNNkNDWXU1Q2h0U1dCN3I2QWQ4SEx4R3FwNkVKcVUK",
+      "url": "https://github.com/hameedwahas332-max/AI-Business-System-hameed/releases/latest/download/AI%20Business%20System%20-%20Wahas%20ERP_1.1.0_x64-setup.exe"
     }
   }
 }

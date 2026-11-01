@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, ShieldAlert, LogOut, KeyRound, Building2 } from 'lucide-react';
+import { Lock, ShieldAlert, LogOut, KeyRound, Building2, Sparkles, ArrowRight, X } from 'lucide-react';
 import { Header, ThemeMode, AccentColor } from './components/Header';
 import { Sidebar, TabType } from './components/Sidebar';
 import { AuthModal } from './components/Auth/AuthModal';
@@ -8,6 +8,7 @@ import { ErrorBoundary } from './components/Common/ErrorBoundary';
 import { AppIcon } from './components/Common/AppIcon';
 import { toEnglishDigits } from './lib/formatters';
 import { useAuth } from './context/AuthContext';
+import { checkForUpdates, UpdateCheckResult } from './services/updaterService';
 
 // 29 Real Enterprise ERP Dashboard Tabs
 import { OverviewTab } from './components/Dashboard/OverviewTab';
@@ -97,6 +98,38 @@ export function App() {
     document.documentElement.setAttribute('data-accent', accentColor);
     localStorage.setItem('erp_accent_color', accentColor);
   }, [accentColor]);
+
+  // Automatic Background Update Verification (Startup after 5s & every 15 minutes)
+  const [pendingUpdate, setPendingUpdate] = useState<UpdateCheckResult | null>(null);
+  const [showUpdateToast, setShowUpdateToast] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const executeBackgroundCheck = async () => {
+      try {
+        const res = await checkForUpdates(false);
+        if (isMounted && res.hasUpdate) {
+          setPendingUpdate(res);
+          setShowUpdateToast(true);
+          window.dispatchEvent(new CustomEvent('erp:update-available', { detail: res }));
+        }
+      } catch (err) {
+        console.warn('[App] Background update check warning:', err);
+      }
+    };
+
+    // Automatic check 5 seconds after startup
+    const initialTimer = setTimeout(executeBackgroundCheck, 5000);
+
+    // Periodic check every 15 minutes
+    const intervalTimer = setInterval(executeBackgroundCheck, 15 * 60 * 1000);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(initialTimer);
+      clearInterval(intervalTimer);
+    };
+  }, []);
 
   // Global Input & Keydown Listeners: Convert typed/pasted Arabic-Indic digits (٠-٩) and Persian digits (۰-۹) to English digits (0-9)
   useEffect(() => {
@@ -381,6 +414,52 @@ export function App() {
                 <span>تسجيل الخروج والانتقال لحساب آخر</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🚀 AUTOMATIC 1-CLICK UPDATE BANNER */}
+      {showUpdateToast && pendingUpdate && (
+        <div
+          dir="rtl"
+          className="fixed bottom-5 left-5 z-50 max-w-md bg-gradient-to-r from-slate-900 via-slate-900 to-emerald-950 border-2 border-emerald-500/80 rounded-2xl p-4 shadow-2xl shadow-emerald-950/60 flex items-center justify-between gap-4 animate-in slide-in-from-bottom-5 duration-300"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-400 shrink-0">
+              <Sparkles className="w-5 h-5 text-amber-400 animate-spin" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black text-white">يتوفر تحديث جديد للنظام!</span>
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-400 text-slate-950">
+                  v{pendingUpdate.availableVersion}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 mt-0.5 leading-tight">
+                تم بناء وتوقيع إصدار أحدث على GitHub. اضغط للتحديث فوراً.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                window.dispatchEvent(new Event('erp:open-updater-modal'));
+                setShowUpdateToast(false);
+              }}
+              className="px-3 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-black transition-all shadow-md active:scale-95 cursor-pointer flex items-center gap-1.5"
+            >
+              <span>تحديث الآن</span>
+              <ArrowRight className="w-3.5 h-3.5 rotate-180" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowUpdateToast(false)}
+              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+              title="تذكيري لاحقاً"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
       )}

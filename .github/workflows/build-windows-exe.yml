@@ -26,13 +26,40 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Extract Authoritative Semantic Version
+      - name: Compute Dynamic Version & Inject Into Package Configs
         shell: bash
         run: |
-          VERSION=$(node -p "require('./package.json').version")
-          echo "AUTHORITATIVE_VERSION=${VERSION}" >> $GITHUB_ENV
-          echo "RELEASE_TAG=v${VERSION}" >> $GITHUB_ENV
-          echo "Target Release Version: ${VERSION}"
+          DYNAMIC_VERSION="1.0.${{ github.run_number }}"
+          echo "DYNAMIC_VERSION=${DYNAMIC_VERSION}" >> $GITHUB_ENV
+          echo "AUTHORITATIVE_VERSION=${DYNAMIC_VERSION}" >> $GITHUB_ENV
+          echo "RELEASE_TAG=v${DYNAMIC_VERSION}" >> $GITHUB_ENV
+          echo "VITE_BUILD_COMMIT_SHA=${{ github.sha }}" >> $GITHUB_ENV
+          echo "VITE_APP_VERSION=${DYNAMIC_VERSION}" >> $GITHUB_ENV
+          echo "Computed Dynamic Build Version: ${DYNAMIC_VERSION} (Commit: ${{ github.sha }})"
+
+          node -e "
+            const fs = require('fs');
+            const ver = process.env.DYNAMIC_VERSION;
+
+            // 1. Update package.json
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.version = ver;
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+
+            // 2. Update src-tauri/tauri.conf.json
+            const tauri = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8'));
+            tauri.version = ver;
+            fs.writeFileSync('src-tauri/tauri.conf.json', JSON.stringify(tauri, null, 2) + '\n');
+
+            // 3. Update src-tauri/Cargo.toml
+            if (fs.existsSync('src-tauri/Cargo.toml')) {
+              let cargo = fs.readFileSync('src-tauri/Cargo.toml', 'utf8');
+              cargo = cargo.replace(/^version\s*=\s*\"[^\"]+\"/m, 'version = \"' + ver + '\"');
+              fs.writeFileSync('src-tauri/Cargo.toml', cargo);
+            }
+
+            console.log('Successfully injected dynamic version ' + ver + ' into package.json, tauri.conf.json, and Cargo.toml');
+          "
 
       - name: Setup Rust Stable Toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -64,6 +91,9 @@ jobs:
 
       - name: Build Frontend Production Distribution
         shell: bash
+        env:
+          VITE_BUILD_COMMIT_SHA: ${{ github.sha }}
+          VITE_APP_VERSION: ${{ env.DYNAMIC_VERSION }}
         run: |
           npm run build
 
@@ -91,6 +121,9 @@ jobs:
         shell: bash
         env:
           RELEASE_TAG: ${{ env.RELEASE_TAG }}
+          GITHUB_SHA: ${{ github.sha }}
+          COMMIT_SHA: ${{ github.sha }}
+          RELEASE_NOTES: "تحديث معتمد لنظام وهاس ERP (الإصدار v${{ env.AUTHORITATIVE_VERSION }}) - Commit: ${{ github.sha }}"
         run: |
           node scripts/generate-update-manifest.mjs
 

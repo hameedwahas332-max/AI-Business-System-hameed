@@ -74,8 +74,8 @@ export const UpdateCenterModal: React.FC<UpdateCenterModalProps> = ({ isOpen, on
   };
 
   const handleInstall = async () => {
-    if (!updateResult?.updateHandle) {
-      setErrorMsg('حزمة التحديث الموقعة غير متاحة عبر المتصفح. يرجى استخدام تطبيق ويندوز المكتبي.');
+    if (!updateResult) {
+      setErrorMsg('لا توجد بيانات تحديث متاحة حالياً.');
       return;
     }
     try {
@@ -83,7 +83,7 @@ export const UpdateCenterModal: React.FC<UpdateCenterModalProps> = ({ isOpen, on
       setErrorMsg(null);
       setDownloadProgress(0);
 
-      await downloadAndApplyUpdate(updateResult.updateHandle, (pct, dl, total) => {
+      await downloadAndApplyUpdate(updateResult, (pct, dl, total) => {
         setDownloadProgress(pct);
         setDownloadedBytes(dl);
         setTotalBytes(total);
@@ -253,34 +253,27 @@ export const UpdateCenterModal: React.FC<UpdateCenterModalProps> = ({ isOpen, on
 
               {/* Action Buttons */}
               {!isDownloading && (
-                updateResult.isWebPreview ? (
-                  <div className="p-4 bg-slate-950/70 border border-amber-500/30 rounded-2xl space-y-2">
-                    <div className="flex items-center gap-2 text-xs text-amber-300 font-bold">
-                      <Info className="w-4 h-4 flex-shrink-0" />
-                      <span>أنت تتصفح النظام في بيئة الويب (معاينة).</span>
-                    </div>
-                    <p className="text-xs text-slate-400">
-                      التثبيت التلقائي الصامت متاح حصراً داخل تطبيق ويندوز المكتبي المثبت على الجهاز. لتحديث نسختك، يمكنك تنزيل ملف التثبيت المعتمد مباشرة:
-                    </p>
-                    <a
-                      href="https://github.com/hameedwahas332-max/AI-Business-System-hameed/releases/latest"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-2 w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold transition"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      <span>تنزيل أحدث مثبت لويندوز من GitHub Releases</span>
-                    </a>
-                  </div>
-                ) : (
+                <div className="space-y-3">
                   <button
                     onClick={handleInstall}
-                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-black shadow-lg shadow-emerald-950/50 transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-98"
                   >
                     <Download className="w-4 h-4" />
-                    <span>تنزيل وتثبيت التحديث (v{updateResult.availableVersion})</span>
+                    <span>تنزيل وتثبيت التحديث الآن (v{updateResult.availableVersion})</span>
                   </button>
-                )
+
+                  {updateResult.downloadUrl && (
+                    <a
+                      href={updateResult.downloadUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 rounded-xl text-xs font-bold transition"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>تنزيل مثبت الإكسي مباشرة من GitHub Releases ({updateResult.installerFileName || '.exe'})</span>
+                    </a>
+                  )}
+                </div>
               )}
             </div>
           ) : (

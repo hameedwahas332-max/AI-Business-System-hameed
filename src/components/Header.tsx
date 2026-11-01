@@ -71,9 +71,30 @@ export const Header: React.FC<HeaderProps> = ({
 
   const [isSyncCenterOpen, setIsSyncCenterOpen] = useState(false);
   const [isUpdateCenterOpen, setIsUpdateCenterOpen] = useState(false);
+  const [hasUpdateAvailable, setHasUpdateAvailable] = useState(false);
+  const [availableVersion, setAvailableVersion] = useState('');
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const [conflictCount, setConflictCount] = useState(0);
+
+  React.useEffect(() => {
+    const handleUpdateFound = (e: any) => {
+      setHasUpdateAvailable(true);
+      if (e?.detail?.availableVersion) {
+        setAvailableVersion(e.detail.availableVersion);
+      }
+    };
+    const handleOpenUpdater = () => {
+      setIsUpdateCenterOpen(true);
+    };
+
+    window.addEventListener('erp:update-available', handleUpdateFound);
+    window.addEventListener('erp:open-updater-modal', handleOpenUpdater);
+    return () => {
+      window.removeEventListener('erp:update-available', handleUpdateFound);
+      window.removeEventListener('erp:open-updater-modal', handleOpenUpdater);
+    };
+  }, []);
 
   const refreshSyncStats = React.useCallback(async () => {
     try {
@@ -213,12 +234,21 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={() => setIsUpdateCenterOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm ${
+              hasUpdateAvailable
+                ? 'bg-gradient-to-r from-amber-500/20 to-emerald-500/20 text-amber-300 border-2 border-amber-400 shadow-amber-500/20'
+                : 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30'
+            }`}
             title="مركز التحديثات التلقائية المعتمدة (Tauri Auto-Updater)"
           >
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <Sparkles className={`w-3.5 h-3.5 ${hasUpdateAvailable ? 'text-amber-400 animate-spin' : 'text-amber-400'}`} />
             <span className="hidden xl:inline">التحديثات:</span>
             <span className="font-mono text-[11px] text-blue-200">v{CURRENT_APP_VERSION}</span>
+            {hasUpdateAvailable && (
+              <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-amber-400 text-slate-950 animate-pulse shadow">
+                تحديث {availableVersion ? `v${availableVersion}` : 'متاح'}!
+              </span>
+            )}
           </button>
         </div>
 

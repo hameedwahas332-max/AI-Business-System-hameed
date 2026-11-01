@@ -127,10 +127,14 @@ export function generateUpdateManifest(baseDir = process.cwd()) {
   const encodedInstallerFileName = encodeURIComponent(installerFileName);
   const downloadUrl = `https://github.com/${repo}/releases/download/${tag}/${encodedInstallerFileName}`;
 
+  const commitSha = process.env.GITHUB_SHA || process.env.COMMIT_SHA || '';
+  const notes = process.env.RELEASE_NOTES || process.env.COMMIT_MESSAGE || `Wahas ERP update (v${version})`;
+
   // Build manifest adhering strictly to Tauri 2 schema
   const manifest = {
     version: version,
-    notes: "Wahas ERP update",
+    commitSha: commitSha,
+    notes: notes,
     pub_date: new Date().toISOString(),
     platforms: {
       "windows-x86_64": {

@@ -95,6 +95,19 @@ export function installGlobalDesktopFetchInterceptor(): void {
     if (originalFetch) {
       const customFetch = async function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
         const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
+
+        // Directly bypass external GitHub requests (Releases API, raw manifests, releases download)
+        // so updaterService.ts receives untouched, live GitHub responses.
+        if (
+          urlStr.startsWith('https://api.github.com') ||
+          urlStr.startsWith('https://raw.githubusercontent.com') ||
+          urlStr.startsWith('https://github.com') ||
+          urlStr.includes('github.com') ||
+          urlStr.includes('githubusercontent.com')
+        ) {
+          return originalFetch(input, init);
+        }
+
         const isApiRequest = urlStr.includes('/api/') || urlStr.startsWith('/api') || urlStr.includes('/api/v1/');
 
         // In Tauri desktop environment, route all /api/... calls directly to local fallback handler

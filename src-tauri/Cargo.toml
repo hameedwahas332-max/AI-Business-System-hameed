@@ -1,6 +1,6 @@
 [package]
 name = "wahas-erp"
-version = "2.4.2"
+version = "1.1.0"
 description = "نظام المحاسبي الذكي ERP - محلات وهاس للتجارة العامة"
 authors = ["Hameed Wahas <hameedwahas332@gmail.com>"]
 license = "Proprietary"
