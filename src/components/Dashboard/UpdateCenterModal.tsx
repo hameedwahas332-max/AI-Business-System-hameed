@@ -91,7 +91,9 @@ export const UpdateCenterModal: React.FC<UpdateCenterModalProps> = ({ isOpen, on
 
       setIsInstalled(true);
     } catch (err: any) {
-      setErrorMsg(err.message || 'فشل تنزيل أو تثبيت حزمة التحديث');
+      console.error('[UpdateCenterModal] Install error:', err);
+      const rawError = typeof err === 'string' ? err : err?.message || JSON.stringify(err);
+      setErrorMsg(rawError || 'فشل تنزيل أو تثبيت حزمة التحديث');
     } finally {
       setIsDownloading(false);
     }
@@ -161,17 +163,36 @@ export const UpdateCenterModal: React.FC<UpdateCenterModalProps> = ({ isOpen, on
 
           {/* Error Notice */}
           {errorMsg && (
-            <div className="p-3.5 bg-rose-950/40 border border-rose-800/60 rounded-2xl flex items-center justify-between text-xs text-rose-300 font-bold">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
-                <span>{errorMsg}</span>
+            <div className="p-4 bg-rose-950/40 border border-rose-800/60 rounded-2xl space-y-3 text-xs text-rose-300">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 font-bold">
+                  <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                  <span>تنبيه أثناء معالجة التحديث التلقائي:</span>
+                </div>
+                <button
+                  onClick={() => handleCheck(true)}
+                  className="px-2.5 py-1 bg-rose-900/40 hover:bg-rose-900/60 text-white rounded-lg text-[11px] font-bold cursor-pointer"
+                >
+                  إعادة المحاولة
+                </button>
               </div>
-              <button
-                onClick={() => handleCheck(true)}
-                className="px-2.5 py-1 bg-rose-900/40 hover:bg-rose-900/60 rounded-lg text-[11px] cursor-pointer"
-              >
-                إعادة المحاولة
-              </button>
+              <p className="text-[11px] text-rose-200/90 font-mono bg-rose-950/60 p-2.5 rounded-xl border border-rose-900/50 leading-relaxed">
+                {errorMsg}
+              </p>
+              <div className="pt-2 border-t border-rose-900/40 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <span className="text-[11px] text-slate-300">
+                  يمكنك تنزيل وتثبيت التحديث مباشرة (يحفظ جميع بياناتك وقواعد البيانات 100%):
+                </span>
+                <a
+                  href="https://github.com/hameedwahas332-max/AI-Business-System-hameed/releases/latest"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-md shrink-0"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>تنزيل مثبت التحديث من GitHub</span>
+                </a>
+              </div>
             </div>
           )}
 
