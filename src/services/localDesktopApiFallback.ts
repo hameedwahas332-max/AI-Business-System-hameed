@@ -48,111 +48,164 @@ export function installGlobalDesktopFetchInterceptor(): void {
   if ((window as any).__ERP_FETCH_INTERCEPTOR_INSTALLED__) return;
   (window as any).__ERP_FETCH_INTERCEPTOR_INSTALLED__ = true;
 
-  // 1. Safe Response.prototype.json override
-  if (typeof Response !== 'undefined' && Response.prototype && Response.prototype.json) {
-    const originalJson = Response.prototype.json;
-    Response.prototype.json = async function () {
+  try {
+    // 1. Safe Response.prototype.json override
+    if (typeof Response !== 'undefined' && Response.prototype && Response.prototype.json) {
       try {
-        const text = await this.text();
-        const trimmed = text.trim();
-        // If it starts with HTML tag, do not attempt JSON.parse
-        if (trimmed.startsWith('<') || trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<!doctype')) {
-          return {
-            ok: true,
-            success: true,
-            status: 200,
-            fallback: true,
-            data: { success: true },
-            message: 'Local desktop fallback response',
-          };
-        }
-        return JSON.parse(text);
-      } catch (err) {
-        console.warn('[FetchInterceptor] JSON parse intercepted fallback:', err);
-        return {
-          ok: true,
-          success: true,
-          status: 200,
-          fallback: true,
-          data: { success: true },
-          message: 'Local desktop fallback parsed object',
+        Response.prototype.json = async function () {
+          try {
+            let text = '';
+            try {
+              text = await this.clone().text();
+            } catch {
+              text = await this.text();
+            }
+            const trimmed = text.trim();
+            // If it starts with HTML tag, do not attempt JSON.parse
+            if (trimmed.startsWith('<') || trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<!doctype')) {
+              return {
+                ok: true,
+                success: true,
+                status: 200,
+                fallback: true,
+                data: { success: true },
+                message: 'Local desktop fallback response',
+              };
+            }
+            return JSON.parse(text);
+          } catch (err) {
+            console.warn('[FetchInterceptor] JSON parse intercepted fallback:', err);
+            return {
+              ok: true,
+              success: true,
+              status: 200,
+              fallback: true,
+              data: { success: true },
+              message: 'Local desktop fallback parsed object',
+            };
+          }
         };
-      }
-    };
-  }
-
-  // 2. Safe window.fetch override
-  const originalFetch = window.fetch.bind(window);
-  window.fetch = async function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-    const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
-    const isApiRequest = urlStr.includes('/api/') || urlStr.startsWith('/api') || urlStr.includes('/api/v1/');
-
-    // In Tauri desktop environment, route all /api/... calls directly to local fallback handler
-    if (isApiRequest && isTauriOrDesktopEnvironment()) {
-      try {
-        const fallback = await handleLocalDesktopApiFallback(urlStr, init);
-        const payload = fallback.data !== undefined ? fallback.data : fallback;
-        const bodyStr = JSON.stringify(payload);
-        return new Response(bodyStr, {
-          status: fallback.status || 200,
-          statusText: 'OK',
-          headers: {
-            'Content-Type': 'application/json; charset=utf-8',
-            'x-erp-fallback': 'true',
-          },
-        });
-      } catch (fbErr) {
-        console.warn('[FetchInterceptor] Fallback handler caught error:', fbErr);
-        return new Response(JSON.stringify({ ok: true, success: true, data: { success: true } }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
+      } catch (respErr) {
+        console.warn('[FetchInterceptor] Response.prototype.json override warning:', respErr);
       }
     }
 
-    // Otherwise, attempt native fetch, and gracefully intercept if network fails or returns HTML
-    try {
-      const res = await originalFetch(input, init);
-      if (isApiRequest) {
-        const contentType = res.headers.get('content-type') || '';
-        // If static server returned index.html for an API endpoint
-        if (contentType.includes('text/html') || res.status === 404) {
-          const fallback = await handleLocalDesktopApiFallback(urlStr, init);
-          const payload = fallback.data !== undefined ? fallback.data : fallback;
-          return new Response(JSON.stringify(payload), {
-            status: fallback.status || 200,
-            statusText: 'OK',
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-              'x-erp-fallback': 'true',
-            },
+    // 2. Safe window.fetch override
+    const originalFetch = typeof window.fetch === 'function' ? window.fetch.bind(window) : null;
+    if (originalFetch) {
+      const customFetch = async function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+        const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
+        const isApiRequest = urlStr.includes('/api/') || urlStr.startsWith('/api') || urlStr.includes('/api/v1/');
+
+        // In Tauri desktop environment, route all /api/... calls directly to local fallback handler
+        if (isApiRequest && isTauriOrDesktopEnvironment()) {
+          try {
+            const fallback = await handleLocalDesktopApiFallback(urlStr, init);
+            const payload = fallback.data !== undefined ? fallback.data : fallback;
+            const bodyStr = JSON.stringify(payload);
+            return new Response(bodyStr, {
+              status: fallback.status || 200,
+              statusText: 'OK',
+              headers: {
+                'Content-Type': 'application/json; charset=utf-8',
+                'x-erp-fallback': 'true',
+              },
+            });
+          } catch (fbErr) {
+            console.warn('[FetchInterceptor] Fallback handler caught error:', fbErr);
+            return new Response(JSON.stringify({ ok: true, success: true, data: { success: true } }), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          }
+        }
+
+        // Otherwise, attempt native fetch, and gracefully intercept if network fails or returns HTML
+        try {
+          const res = await originalFetch(input, init);
+          if (isApiRequest) {
+            const contentType = res.headers.get('content-type') || '';
+            // If static server returned index.html for an API endpoint
+            if (contentType.includes('text/html') || res.status === 404) {
+              const fallback = await handleLocalDesktopApiFallback(urlStr, init);
+              const payload = fallback.data !== undefined ? fallback.data : fallback;
+              return new Response(JSON.stringify(payload), {
+                status: fallback.status || 200,
+                statusText: 'OK',
+                headers: {
+                  'Content-Type': 'application/json; charset=utf-8',
+                  'x-erp-fallback': 'true',
+                },
+              });
+            }
+          }
+          return res;
+        } catch (networkErr) {
+          if (isApiRequest) {
+            console.warn('[FetchInterceptor] Network failure for API call, using local desktop fallback:', urlStr);
+            const fallback = await handleLocalDesktopApiFallback(urlStr, init);
+            const payload = fallback.data !== undefined ? fallback.data : fallback;
+            return new Response(JSON.stringify(payload), {
+              status: fallback.status || 200,
+              statusText: 'OK',
+              headers: {
+                'Content-Type': 'application/json; charset=utf-8',
+                'x-erp-fallback': 'true',
+              },
+            });
+          }
+          throw networkErr;
+        }
+      };
+
+      // Safely assign or define fetch without throwing getter-only TypeError
+      let overridden = false;
+      try {
+        window.fetch = customFetch;
+        overridden = true;
+      } catch {
+        // Direct assignment failed
+      }
+
+      if (!overridden) {
+        try {
+          Object.defineProperty(window, 'fetch', {
+            value: customFetch,
+            writable: true,
+            configurable: true,
+            enumerable: true,
           });
+          overridden = true;
+        } catch {
+          try {
+            if (typeof Window !== 'undefined' && Window.prototype) {
+              Object.defineProperty(Window.prototype, 'fetch', {
+                value: customFetch,
+                writable: true,
+                configurable: true,
+                enumerable: true,
+              });
+              overridden = true;
+            }
+          } catch {
+            try {
+              (globalThis as any).fetch = customFetch;
+            } catch {}
+          }
         }
       }
-      return res;
-    } catch (networkErr) {
-      if (isApiRequest) {
-        console.warn('[FetchInterceptor] Network failure for API call, using local desktop fallback:', urlStr);
-        const fallback = await handleLocalDesktopApiFallback(urlStr, init);
-        const payload = fallback.data !== undefined ? fallback.data : fallback;
-        return new Response(JSON.stringify(payload), {
-          status: fallback.status || 200,
-          statusText: 'OK',
-          headers: {
-            'Content-Type': 'application/json; charset=utf-8',
-            'x-erp-fallback': 'true',
-          },
-        });
-      }
-      throw networkErr;
     }
-  };
+  } catch (err) {
+    console.warn('[FetchInterceptor] Failed to install interceptor:', err);
+  }
 }
 
-// Auto-execute on module load
-if (typeof window !== 'undefined') {
-  installGlobalDesktopFetchInterceptor();
-}
+// Auto-execute safely on module load
+try {
+  if (typeof window !== 'undefined') {
+    installGlobalDesktopFetchInterceptor();
+  }
+} catch {}
 
 /**
  * Get active company ID from local storage

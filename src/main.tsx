@@ -4,8 +4,10 @@ import { installGlobalDesktopFetchInterceptor } from './services/localDesktopApi
 import { App } from './App';
 import './index.css';
 
-// Initialize global desktop fetch and JSON interceptor immediately
-installGlobalDesktopFetchInterceptor();
+// Initialize global desktop fetch and JSON interceptor safely
+try {
+  installGlobalDesktopFetchInterceptor();
+} catch {}
 
 // =========================================================================
 // 1. GLOBAL ENGLISH NUMERALS (0123456789) ENFORCEMENT
