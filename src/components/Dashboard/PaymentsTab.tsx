@@ -134,7 +134,7 @@ export const PaymentsTab: React.FC = () => {
         api.getPurchaseInvoices({ status: 'PENDING' }),
       ]);
 
-      let loadedPayments = payRes?.data || [];
+      let loadedPayments = Array.isArray(payRes) ? payRes : (payRes?.data || payRes?.items || []);
       try {
         const stored = localStorage.getItem('erp_payments_v1');
         if (stored) {
@@ -151,10 +151,10 @@ export const PaymentsTab: React.FC = () => {
 
       setPayments(loadedPayments);
       setStats(statsRes?.data || null);
-      setCustomers(custRes?.data || []);
-      setSuppliers(suppRes?.data || []);
-      setInvoices(invRes?.data || []);
-      setPurchaseInvoices(purRes?.data || []);
+      setCustomers(Array.isArray(custRes) ? custRes : (custRes?.data || custRes?.items || []));
+      setSuppliers(Array.isArray(suppRes) ? suppRes : (suppRes?.data || suppRes?.items || []));
+      setInvoices(Array.isArray(invRes) ? invRes : (invRes?.data || invRes?.items || []));
+      setPurchaseInvoices(Array.isArray(purRes) ? purRes : (purRes?.data || purRes?.items || []));
     } catch (err: any) {
       setError(err.message || 'فشل تحميل بيانات السندات المالية والتحصيلات');
     } finally {
@@ -180,10 +180,12 @@ export const PaymentsTab: React.FC = () => {
     window.addEventListener('erp-demo-data-wiped', handleWiped);
     window.addEventListener('erp-payments-updated', handleUpdated);
     window.addEventListener('erp-data-updated', handleUpdated);
+    window.addEventListener('storage', handleUpdated);
     return () => {
       window.removeEventListener('erp-demo-data-wiped', handleWiped);
       window.removeEventListener('erp-payments-updated', handleUpdated);
       window.removeEventListener('erp-data-updated', handleUpdated);
+      window.removeEventListener('storage', handleUpdated);
     };
   }, [activeTab, statusFilter, methodFilter, currencyFilter, startDate, endDate]);
 

@@ -97,9 +97,12 @@ export const PurchaseInvoicesTab: React.FC = () => {
         api.getSuppliers(),
         api.getProducts(),
       ]);
-      setInvoices(invRes?.data || []);
-      setSuppliers(suppRes?.data || []);
-      setProducts(prodRes?.data || []);
+      const invs = Array.isArray(invRes) ? invRes : (invRes?.data || invRes?.items || []);
+      const supps = Array.isArray(suppRes) ? suppRes : (suppRes?.data || suppRes?.items || []);
+      const prods = Array.isArray(prodRes) ? prodRes : (prodRes?.data || prodRes?.items || []);
+      setInvoices(invs);
+      setSuppliers(supps);
+      setProducts(prods);
     } catch (err: any) {
       setError(err.message || 'فشل تحميل بيانات المشتريات');
     } finally {
@@ -115,8 +118,19 @@ export const PurchaseInvoicesTab: React.FC = () => {
       setProducts([]);
       fetchData();
     };
+    const handleUpdated = () => {
+      fetchData();
+    };
     window.addEventListener('erp-demo-data-wiped', handleWiped);
-    return () => window.removeEventListener('erp-demo-data-wiped', handleWiped);
+    window.addEventListener('erp-purchases-updated', handleUpdated);
+    window.addEventListener('erp-data-updated', handleUpdated);
+    window.addEventListener('storage', handleUpdated);
+    return () => {
+      window.removeEventListener('erp-demo-data-wiped', handleWiped);
+      window.removeEventListener('erp-purchases-updated', handleUpdated);
+      window.removeEventListener('erp-data-updated', handleUpdated);
+      window.removeEventListener('storage', handleUpdated);
+    };
   }, [searchQuery, statusFilter]);
 
   const handleOpenBuilder = () => {

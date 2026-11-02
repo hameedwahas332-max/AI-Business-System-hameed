@@ -144,18 +144,15 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
         api.getExpenses(),
       ]);
 
-      if (empRes?.success && Array.isArray(empRes.data)) {
-        setEmployees(empRes.data);
-      }
-      if (movRes?.success && Array.isArray(movRes.data)) {
-        setMovements(movRes.data);
-      }
-      if (payRes?.success && Array.isArray(payRes.data)) {
-        setPayrollRecords(payRes.data);
-      }
-      if (expRes?.success && Array.isArray(expRes.data)) {
-        setExpenses(expRes.data);
-      }
+      const emps = Array.isArray(empRes) ? empRes : ((empRes as any)?.data || (empRes as any)?.items || []);
+      const movs = Array.isArray(movRes) ? movRes : ((movRes as any)?.data || (movRes as any)?.items || []);
+      const pays = Array.isArray(payRes) ? payRes : ((payRes as any)?.data || (payRes as any)?.items || []);
+      const exps = Array.isArray(expRes) ? expRes : ((expRes as any)?.data || (expRes as any)?.items || []);
+
+      if (Array.isArray(emps)) setEmployees(emps);
+      if (Array.isArray(movs)) setMovements(movs);
+      if (Array.isArray(pays)) setPayrollRecords(pays);
+      if (Array.isArray(exps)) setExpenses(exps);
     } catch (err: any) {
       console.error('Error loading employee/expense data:', err);
     } finally {
@@ -172,8 +169,21 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
       setExpenses([]);
       loadData();
     };
+    const handleUpdated = () => {
+      loadData();
+    };
     window.addEventListener('erp-demo-data-wiped', handleWiped);
-    return () => window.removeEventListener('erp-demo-data-wiped', handleWiped);
+    window.addEventListener('erp-employees-updated', handleUpdated);
+    window.addEventListener('erp-expenses-updated', handleUpdated);
+    window.addEventListener('erp-data-updated', handleUpdated);
+    window.addEventListener('storage', handleUpdated);
+    return () => {
+      window.removeEventListener('erp-demo-data-wiped', handleWiped);
+      window.removeEventListener('erp-employees-updated', handleUpdated);
+      window.removeEventListener('erp-expenses-updated', handleUpdated);
+      window.removeEventListener('erp-data-updated', handleUpdated);
+      window.removeEventListener('storage', handleUpdated);
+    };
   }, []);
 
   const triggerAlert = (text: string, type: 'success' | 'error' = 'success') => {

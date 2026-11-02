@@ -164,13 +164,18 @@ export const ProductsTab: React.FC = () => {
       if (lowStockOnly) params.lowStock = 'true';
 
       const res = await api.getProducts(params);
-      const isClean =
-        typeof window !== 'undefined' &&
-        (localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
-          localStorage.getItem('erp_sample_data_cleaned') === 'true');
+      const items = Array.isArray(res)
+        ? res
+        : (res?.data || res?.items || res?.products || []);
 
-      const items = res?.data || [];
-      setProducts(isClean && items.length === 0 ? [] : items);
+      if (items.length > 0) {
+        try {
+          localStorage.removeItem('erp_clean_production_mode_v1');
+          localStorage.removeItem('erp_sample_data_cleaned');
+        } catch {}
+      }
+
+      setProducts(items);
     } catch (err: any) {
       setError(err.message || 'فشل جلب دليل المنتجات');
     } finally {
@@ -184,14 +189,18 @@ export const ProductsTab: React.FC = () => {
       setProducts([]);
       fetchProducts();
     };
-    const handleInvUpdated = () => {
+    const handleUpdated = () => {
       fetchProducts();
     };
     window.addEventListener('erp-demo-data-wiped', handleWiped);
-    window.addEventListener('erp-inventory-updated', handleInvUpdated);
+    window.addEventListener('erp-inventory-updated', handleUpdated);
+    window.addEventListener('erp-data-updated', handleUpdated);
+    window.addEventListener('storage', handleUpdated);
     return () => {
       window.removeEventListener('erp-demo-data-wiped', handleWiped);
-      window.removeEventListener('erp-inventory-updated', handleInvUpdated);
+      window.removeEventListener('erp-inventory-updated', handleUpdated);
+      window.removeEventListener('erp-data-updated', handleUpdated);
+      window.removeEventListener('storage', handleUpdated);
     };
   }, [searchQuery, selectedCategory, selectedActivity, lowStockOnly]);
 
@@ -418,13 +427,32 @@ export const ProductsTab: React.FC = () => {
         meterId: formData.meterId,
       };
 
+      let productRecord: any = null;
       if (editingProduct) {
-        await api.updateProduct(editingProduct.id, payload);
+        const updateRes: any = await api.updateProduct(editingProduct.id, payload);
+        productRecord = updateRes?.data || updateRes;
+        if (productRecord?.id) {
+          setProducts((prev) =>
+            prev.map((p) => (p.id === productRecord.id ? { ...p, ...productRecord } : p))
+          );
+        }
         setSuccess('تم تحديث بيانات المنتج بنجاح');
       } else {
-        await api.createProduct(payload);
+        const createRes: any = await api.createProduct(payload);
+        productRecord = createRes?.data || createRes;
+        if (productRecord && (productRecord.id || productRecord.name)) {
+          setProducts((prev) => [
+            productRecord,
+            ...prev.filter((p) => p.id !== productRecord.id),
+          ]);
+        }
         setSuccess('تمت إضافة المنتج الجديد إلى الدليل بنجاح');
       }
+
+      try {
+        localStorage.removeItem('erp_clean_production_mode_v1');
+        localStorage.removeItem('erp_sample_data_cleaned');
+      } catch {}
 
       setIsModalOpen(false);
       fetchProducts();

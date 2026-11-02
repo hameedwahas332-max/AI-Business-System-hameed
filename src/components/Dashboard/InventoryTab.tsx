@@ -274,7 +274,7 @@ export const InventoryTab: React.FC = () => {
         api.getProducts(),
       ]);
 
-      const prods = prodRes?.data || [];
+      const prods = Array.isArray(prodRes) ? prodRes : (prodRes?.data || prodRes?.items || []);
       const localMovs = (() => {
         try {
           return JSON.parse(localStorage.getItem('erp_inventory_movements_v1') || '[]');
@@ -282,7 +282,7 @@ export const InventoryTab: React.FC = () => {
           return [];
         }
       })();
-      const serverMovs = movRes?.data || [];
+      const serverMovs = Array.isArray(movRes) ? movRes : (movRes?.data || movRes?.items || []);
       const mergedMovs = [...localMovs];
       serverMovs.forEach((sm: any) => {
         if (!mergedMovs.some((m) => m.id === sm.id || (m.referenceNumber && m.referenceNumber === sm.reference_number))) {
@@ -319,9 +319,13 @@ export const InventoryTab: React.FC = () => {
     };
     window.addEventListener('erp-demo-data-wiped', handleWiped);
     window.addEventListener('erp-inventory-updated', handleInvUpdated);
+    window.addEventListener('erp-data-updated', handleInvUpdated);
+    window.addEventListener('storage', handleInvUpdated);
     return () => {
       window.removeEventListener('erp-demo-data-wiped', handleWiped);
       window.removeEventListener('erp-inventory-updated', handleInvUpdated);
+      window.removeEventListener('erp-data-updated', handleInvUpdated);
+      window.removeEventListener('storage', handleInvUpdated);
     };
   }, [typeFilter]);
 

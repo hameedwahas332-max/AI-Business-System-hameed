@@ -161,9 +161,10 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
         api.getExchangeRates().catch(() => ({ success: false, data: null })),
       ]);
 
-      const prods = prodRes?.data || [];
+      const prods = Array.isArray(prodRes) ? prodRes : (prodRes?.data || prodRes?.items || []);
+      const custs = Array.isArray(custRes) ? custRes : (custRes?.data || custRes?.items || []);
       setProducts(prods);
-      setCustomers(custRes?.data || []);
+      setCustomers(custs);
       setCurrentShift(shiftRes?.data || null);
       setHeldSales(heldRes?.data || []);
       setDailySummary(summaryRes?.data || null);
@@ -190,6 +191,19 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
 
   useEffect(() => {
     loadInitialData();
+    const handleUpdated = () => {
+      loadInitialData();
+    };
+    window.addEventListener('erp-data-updated', handleUpdated);
+    window.addEventListener('erp-inventory-updated', handleUpdated);
+    window.addEventListener('erp-customers-updated', handleUpdated);
+    window.addEventListener('storage', handleUpdated);
+    return () => {
+      window.removeEventListener('erp-data-updated', handleUpdated);
+      window.removeEventListener('erp-inventory-updated', handleUpdated);
+      window.removeEventListener('erp-customers-updated', handleUpdated);
+      window.removeEventListener('storage', handleUpdated);
+    };
   }, []);
 
   // Sync with live exchange rates

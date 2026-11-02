@@ -18,8 +18,11 @@ export interface LocalApiResponse<T = any> {
   success: boolean;
   status: number;
   data: T;
+  items?: any;
+  total?: number;
   error?: string;
   message?: string;
+  [key: string]: any;
 }
 
 /**
@@ -63,16 +66,34 @@ export function installGlobalDesktopFetchInterceptor(): void {
             const trimmed = text.trim();
             // If it starts with HTML tag, do not attempt JSON.parse
             if (trimmed.startsWith('<') || trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<!doctype')) {
-              return {
+              const fallbackObj: any = {
                 ok: true,
                 success: true,
                 status: 200,
                 fallback: true,
-                data: { success: true },
+                data: [],
+                items: [],
                 message: 'Local desktop fallback response',
               };
+              return fallbackObj;
             }
-            return JSON.parse(text);
+            const parsed = JSON.parse(text);
+
+            // DUAL COMPATIBILITY: If parsed is an Array, attach .data and .items and .success to it
+            if (Array.isArray(parsed)) {
+              try {
+                Object.defineProperty(parsed, 'data', { value: parsed, writable: true, configurable: true, enumerable: false });
+                Object.defineProperty(parsed, 'items', { value: parsed, writable: true, configurable: true, enumerable: false });
+                Object.defineProperty(parsed, 'success', { value: true, writable: true, configurable: true, enumerable: false });
+                Object.defineProperty(parsed, 'ok', { value: true, writable: true, configurable: true, enumerable: false });
+              } catch {}
+            } else if (parsed && typeof parsed === 'object') {
+              if (Array.isArray(parsed.data) && !('items' in parsed)) {
+                parsed.items = parsed.data;
+              }
+            }
+
+            return parsed;
           } catch (err) {
             console.warn('[FetchInterceptor] JSON parse intercepted fallback:', err);
             return {
@@ -80,7 +101,8 @@ export function installGlobalDesktopFetchInterceptor(): void {
               success: true,
               status: 200,
               fallback: true,
-              data: { success: true },
+              data: [],
+              items: [],
               message: 'Local desktop fallback parsed object',
             };
           }
@@ -89,6 +111,30 @@ export function installGlobalDesktopFetchInterceptor(): void {
         console.warn('[FetchInterceptor] Response.prototype.json override warning:', respErr);
       }
     }
+
+    // Helper to package local desktop fallback into standard Response
+    const createFallbackResponse = (fallback: any): Response => {
+      let payload: any;
+      if (fallback && typeof fallback === 'object' && ('data' in fallback || 'success' in fallback)) {
+        payload = fallback;
+      } else {
+        payload = {
+          ok: true,
+          success: true,
+          status: 200,
+          data: fallback,
+          items: fallback,
+        };
+      }
+      return new Response(JSON.stringify(payload), {
+        status: fallback?.status || 200,
+        statusText: 'OK',
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'x-erp-fallback': 'true',
+        },
+      });
+    };
 
     // 2. Safe window.fetch override
     const originalFetch = typeof window.fetch === 'function' ? window.fetch.bind(window) : null;
@@ -114,16 +160,7 @@ export function installGlobalDesktopFetchInterceptor(): void {
         if (isApiRequest && isTauriOrDesktopEnvironment()) {
           try {
             const fallback = await handleLocalDesktopApiFallback(urlStr, init);
-            const payload = fallback.data !== undefined ? fallback.data : fallback;
-            const bodyStr = JSON.stringify(payload);
-            return new Response(bodyStr, {
-              status: fallback.status || 200,
-              statusText: 'OK',
-              headers: {
-                'Content-Type': 'application/json; charset=utf-8',
-                'x-erp-fallback': 'true',
-              },
-            });
+            return createFallbackResponse(fallback);
           } catch (fbErr) {
             console.warn('[FetchInterceptor] Fallback handler caught error:', fbErr);
             return new Response(JSON.stringify({ ok: true, success: true, data: { success: true } }), {
@@ -141,15 +178,7 @@ export function installGlobalDesktopFetchInterceptor(): void {
             // If static server returned index.html for an API endpoint
             if (contentType.includes('text/html') || res.status === 404) {
               const fallback = await handleLocalDesktopApiFallback(urlStr, init);
-              const payload = fallback.data !== undefined ? fallback.data : fallback;
-              return new Response(JSON.stringify(payload), {
-                status: fallback.status || 200,
-                statusText: 'OK',
-                headers: {
-                  'Content-Type': 'application/json; charset=utf-8',
-                  'x-erp-fallback': 'true',
-                },
-              });
+              return createFallbackResponse(fallback);
             }
           }
           return res;
@@ -157,15 +186,7 @@ export function installGlobalDesktopFetchInterceptor(): void {
           if (isApiRequest) {
             console.warn('[FetchInterceptor] Network failure for API call, using local desktop fallback:', urlStr);
             const fallback = await handleLocalDesktopApiFallback(urlStr, init);
-            const payload = fallback.data !== undefined ? fallback.data : fallback;
-            return new Response(JSON.stringify(payload), {
-              status: fallback.status || 200,
-              statusText: 'OK',
-              headers: {
-                'Content-Type': 'application/json; charset=utf-8',
-                'x-erp-fallback': 'true',
-              },
-            });
+            return createFallbackResponse(fallback);
           }
           throw networkErr;
         }
@@ -822,6 +843,12 @@ export async function executeLocalSeedDemoData(): Promise<LocalApiResponse> {
     window.dispatchEvent(new Event('storage'));
     window.dispatchEvent(new Event('erp-inventory-updated'));
     window.dispatchEvent(new Event('erp-invoices-updated'));
+    window.dispatchEvent(new Event('erp-customers-updated'));
+    window.dispatchEvent(new Event('erp-suppliers-updated'));
+    window.dispatchEvent(new Event('erp-purchases-updated'));
+    window.dispatchEvent(new Event('erp-payments-updated'));
+    window.dispatchEvent(new Event('erp-employees-updated'));
+    window.dispatchEvent(new Event('erp-expenses-updated'));
     window.dispatchEvent(new Event('erp-data-updated'));
   }
 
@@ -973,6 +1000,12 @@ export async function executeLocalWipeDemoData(): Promise<LocalApiResponse> {
     window.dispatchEvent(new Event('erp-demo-data-wiped'));
     window.dispatchEvent(new Event('erp-inventory-updated'));
     window.dispatchEvent(new Event('erp-invoices-updated'));
+    window.dispatchEvent(new Event('erp-customers-updated'));
+    window.dispatchEvent(new Event('erp-suppliers-updated'));
+    window.dispatchEvent(new Event('erp-purchases-updated'));
+    window.dispatchEvent(new Event('erp-payments-updated'));
+    window.dispatchEvent(new Event('erp-employees-updated'));
+    window.dispatchEvent(new Event('erp-expenses-updated'));
     window.dispatchEvent(new Event('erp-data-updated'));
   }
 
@@ -1773,56 +1806,377 @@ async function internalHandleLocalDesktopApiFallback(
     };
   }
 
-  // 13. Entity CRUD Operations: products, invoices, customers, suppliers, payments, purchases
-  const entityStoreMap: Record<string, string> = {
-    products: 'erp_products_v1',
-    customers: 'erp_customers_v1',
-    suppliers: 'erp_suppliers_v1',
-    invoices: 'erp_invoices_v1',
-    purchases: 'erp_purchase_invoices_v1',
-    payments: 'erp_payments_v1',
-    expenses: 'erp_employees_expenses_v1',
-    users: 'erp_users_v1',
-    roles: 'erp_roles_v1',
+  // 13. Categories & POS Helper Endpoints
+  if (cleanUrl.includes('/products/categories')) {
+    const cats = ['زيوت ومحركات', 'فلاتر وسوائل', 'إطارات وبطاريات', 'قطع غيار عامة', 'بواجي وكهرباء', 'عام'];
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: cats,
+      items: cats,
+    };
+  }
+
+  if (cleanUrl.includes('/pos/shifts/current')) {
+    const activeShift = getLocalItem('erp_pos_current_shift', null) || {
+      id: 'shift_active_01',
+      cashier: 'الكاشير الرئيسي (حميد وهاس)',
+      cashierId: 'usr_wahas_master_01',
+      startTime: new Date().toISOString(),
+      startingCash: 50000,
+      status: 'OPEN',
+    };
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: activeShift,
+    };
+  }
+
+  if (cleanUrl.includes('/pos/daily-summary')) {
+    const invs = getLocalItem<any[]>('erp_invoices_v1', []);
+    const posInvs = getLocalItem<any[]>('erp_pos_sales_log_v1', []);
+    const totalSales = [...invs, ...posInvs].reduce((sum, i) => sum + Number(i.total || i.total_amount || i.amount || 0), 0);
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: {
+        totalSales,
+        invoiceCount: invs.length + posInvs.length,
+        cashTotal: totalSales,
+        currency: 'YER',
+      },
+    };
+  }
+
+  if (cleanUrl.includes('/pos/held-sales')) {
+    const held = getLocalItem('erp_pos_held_sales_v1', []);
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: held,
+      items: held,
+    };
+  }
+
+  if (cleanUrl.includes('/exchange-rates')) {
+    const rates = [
+      { target_currency: 'SAR', currency: 'SAR', rate: 0.26, sell_rate: 0.262, buy_rate: 0.258 },
+      { target_currency: 'USD', currency: 'USD', rate: 0.004, sell_rate: 0.00405, buy_rate: 0.00398 },
+      { target_currency: 'YER', currency: 'YER', rate: 1.0, sell_rate: 1.0, buy_rate: 1.0 },
+    ];
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: rates,
+      items: rates,
+    };
+  }
+
+  // Helper function: normalize Arabic-Indic digits to English digits
+  const normalizeDigits = (val: any): any => {
+    if (val === undefined || val === null) return val;
+    if (typeof val === 'number') return val;
+    const str = String(val);
+    const arabicIndic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    let res = '';
+    for (let i = 0; i < str.length; i++) {
+      const idx = arabicIndic.indexOf(str[i]);
+      res += idx !== -1 ? idx.toString() : str[i];
+    }
+    return res.trim();
   };
 
-  for (const [entity, storeKey] of Object.entries(entityStoreMap)) {
-    if (cleanUrl.includes(`/${entity}`)) {
-      if (method === 'GET') {
-        const items = getLocalItem(storeKey);
+  // Helper to sanitize numeric and code fields
+  const sanitizeEntityRecord = (record: any): any => {
+    if (!record || typeof record !== 'object') return record;
+    const s = { ...record };
+    if (s.phone) s.phone = normalizeDigits(s.phone);
+    if (s.barcode) s.barcode = normalizeDigits(s.barcode);
+    if (s.sku) s.sku = normalizeDigits(s.sku);
+    if (s.itemCode) s.itemCode = normalizeDigits(s.itemCode);
+
+    const numericFields = [
+      'openingBalance', 'opening_balance', 'current_balance', 'balance',
+      'sellingPrice', 'selling_price', 'sale_price', 'retailPrice', 'retail_price',
+      'purchasePrice', 'purchase_price', 'costPrice', 'cost_price',
+      'currentStock', 'current_stock', 'stock', 'minStockLevel', 'min_stock_level', 'min_stock',
+      'subUnitFactor', 'subUnitPrice', 'majorUnitFactor', 'majorUnitPrice',
+      'amount', 'total', 'subtotal', 'tax', 'grandTotal', 'paidAmount', 'paid_amount', 'remainingAmount', 'remaining_amount',
+      'baseSalary', 'netSalary', 'bonuses', 'allowances', 'deductions',
+    ];
+    for (const f of numericFields) {
+      if (s[f] !== undefined && s[f] !== null && s[f] !== '') {
+        const cleanVal = typeof s[f] === 'string' ? normalizeDigits(s[f]) : s[f];
+        const num = parseFloat(String(cleanVal));
+        if (!isNaN(num)) s[f] = num;
+      }
+    }
+    return s;
+  };
+
+  // 14. Comprehensive Entity CRUD Router
+  const ENTITY_CONFIG: Record<
+    string,
+    { storeKey: string; prefix: string; event: string; aliases: string[] }
+  > = {
+    customers: { storeKey: 'erp_customers_v1', prefix: 'cst', event: 'erp-customers-updated', aliases: ['customer'] },
+    suppliers: { storeKey: 'erp_suppliers_v1', prefix: 'sup', event: 'erp-suppliers-updated', aliases: ['supplier'] },
+    products: { storeKey: 'erp_products_v1', prefix: 'prd', event: 'erp-inventory-updated', aliases: ['items', 'product', 'item'] },
+    invoices: { storeKey: 'erp_invoices_v1', prefix: 'inv', event: 'erp-invoices-updated', aliases: ['invoice', 'sales-invoices', 'sales'] },
+    'purchase-invoices': { storeKey: 'erp_purchase_invoices_v1', prefix: 'pur', event: 'erp-purchases-updated', aliases: ['purchase_invoices', 'purchases', 'purchase'] },
+    payments: { storeKey: 'erp_payments_v1', prefix: 'pmt', event: 'erp-payments-updated', aliases: ['vouchers', 'payment', 'receipts'] },
+    expenses: { storeKey: 'erp_employees_expenses_v1', prefix: 'exp', event: 'erp-expenses-updated', aliases: ['expense'] },
+    employees: { storeKey: 'erp_employees_v1', prefix: 'emp', event: 'erp-employees-updated', aliases: ['employee'] },
+    'employee-movements': { storeKey: 'erp_employee_movements_v1', prefix: 'mov', event: 'erp-employees-updated', aliases: ['movements'] },
+    payroll: { storeKey: 'erp_payroll_records_v1', prefix: 'pay', event: 'erp-payroll-updated', aliases: ['salaries'] },
+    users: { storeKey: 'erp_users_v1', prefix: 'usr', event: 'erp-users-updated', aliases: ['user'] },
+    roles: { storeKey: 'erp_roles_v1', prefix: 'role', event: 'erp-roles-updated', aliases: ['role'] },
+    inventory: { storeKey: 'erp_inventory_movements_v1', prefix: 'mov', event: 'erp-inventory-updated', aliases: ['stock-movements'] },
+    ledger: { storeKey: 'erp_journal_entries_v1', prefix: 'je', event: 'erp-ledger-updated', aliases: ['journal'] },
+    'fuel-station': { storeKey: 'erp_fuel_tanks_v1', prefix: 'fuel', event: 'erp-fuel-updated', aliases: ['fuel', 'tanks'] },
+  };
+
+  // Find matching entity configuration
+  let matchedEntityKey: string | null = null;
+  let matchedCfg: { storeKey: string; prefix: string; event: string; aliases: string[] } | null = null;
+
+  for (const [key, cfg] of Object.entries(ENTITY_CONFIG)) {
+    if (cleanUrl.includes(`/${key}`)) {
+      matchedEntityKey = key;
+      matchedCfg = cfg;
+      break;
+    }
+    const matchedAlias = cfg.aliases.find((a) => cleanUrl.includes(`/${a}`));
+    if (matchedAlias) {
+      matchedEntityKey = key;
+      matchedCfg = cfg;
+      break;
+    }
+  }
+
+  if (matchedEntityKey && matchedCfg) {
+    const { storeKey, prefix, event } = matchedCfg;
+
+    // Extract potential ID parameter from URL: e.g. /api/v1/customers/cst-01 or /customers/cst-01
+    const parts = cleanUrl.split('/').filter(Boolean);
+    const keyIdx = parts.findIndex((p) => p === matchedEntityKey || matchedCfg!.aliases.includes(p));
+    const idParam = keyIdx !== -1 && parts[keyIdx + 1] ? parts[keyIdx + 1] : null;
+
+    // Special sub-path: Customer or Supplier Statement
+    if (cleanUrl.includes('/statement')) {
+      const items = getLocalItem<any[]>(storeKey, []);
+      const party = items.find((i) => String(i.id) === String(idParam)) || items[0] || null;
+      const statement = {
+        party,
+        openingBalance: Number(party?.opening_balance || party?.openingBalance || party?.balance || 0),
+        currentBalance: Number(party?.current_balance || party?.balance || 0),
+        currency: party?.currency || 'YER',
+        transactions: [],
+        totalDebit: 0,
+        totalCredit: 0,
+      };
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: statement,
+      };
+    }
+
+    // Special sub-path: Stock Adjustment
+    if (cleanUrl.includes('/adjust-stock') && method === 'POST') {
+      let bodyData: any = {};
+      try {
+        if (options?.body) bodyData = JSON.parse(options.body as string);
+      } catch {}
+      const products = getLocalItem<any[]>('erp_products_v1', []);
+      const idx = products.findIndex((p) => String(p.id) === String(idParam));
+      if (idx !== -1) {
+        const qty = parseFloat(bodyData.quantity || '0');
+        const current = Number(products[idx].current_stock ?? products[idx].stock ?? 0);
+        products[idx].current_stock = Math.max(0, current + qty);
+        products[idx].stock = products[idx].current_stock;
+        setLocalItem('erp_products_v1', products, companyId);
+        await saveRecord('erp_products_v1', products[idx]);
+      }
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: { success: true },
+        message: 'تم تعديل المخزون بنجاح',
+      };
+    }
+
+    // GET Request: List or Single Item
+    if (method === 'GET') {
+      const items = getLocalItem<any[]>(storeKey, []);
+      if (idParam && idParam !== 'current' && idParam !== 'categories' && idParam !== 'aging' && idParam !== 'stats') {
+        const found = items.find(
+          (i) => String(i.id) === String(idParam) || String(i.code) === String(idParam) || String(i.barcode) === String(idParam)
+        );
         return {
           ok: true,
           success: true,
           status: 200,
-          data: items,
+          data: found || null,
         };
       }
-      if (method === 'POST') {
-        let bodyData: any = {};
-        try {
-          if (options?.body) bodyData = JSON.parse(options.body as string);
-        } catch {}
-        const id = bodyData.id || `rec_${Date.now()}`;
-        const record = { ...bodyData, id };
-        const items = getLocalItem(storeKey);
-        items.push(record);
-        setLocalItem(storeKey, items, companyId);
-        await saveRecord(storeKey, record);
-        return {
-          ok: true,
-          success: true,
-          status: 200,
-          data: record,
-        };
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: items,
+        items: items,
+        total: items.length,
+        [matchedEntityKey]: items,
+      };
+    }
+
+    // POST Request: Create New Record
+    if (method === 'POST') {
+      let bodyData: any = {};
+      try {
+        if (options?.body) bodyData = JSON.parse(options.body as string);
+      } catch {}
+
+      const id = bodyData.id || `${prefix}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      const sanitized = sanitizeEntityRecord({
+        ...bodyData,
+        id,
+        created_at: bodyData.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+
+      const items = getLocalItem<any[]>(storeKey, []);
+      const existingIdx = items.findIndex((i) => String(i.id) === String(id));
+      if (existingIdx !== -1) {
+        items[existingIdx] = { ...items[existingIdx], ...sanitized };
+      } else {
+        // Unshift so new item appears immediately at the top of the table/list
+        items.unshift(sanitized);
       }
-      if (method === 'DELETE') {
-        return {
-          ok: true,
-          success: true,
-          status: 200,
-          data: { success: true },
-        };
+
+      setLocalItem(storeKey, items, companyId);
+      await saveRecord(storeKey, sanitized);
+
+      // Clear clean mode flags to ensure newly entered live production data is rendered
+      try {
+        localStorage.removeItem('erp_clean_production_mode_v1');
+        localStorage.removeItem('erp_sample_data_cleaned');
+      } catch {}
+
+      // Dispatch real-time events across UI
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('erp-data-updated', {
+            detail: { collection: matchedEntityKey, storeKey, action: 'CREATE', record: sanitized },
+          })
+        );
+        if (event) window.dispatchEvent(new Event(event));
+        window.dispatchEvent(new Event('storage'));
       }
+
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: sanitized,
+        items,
+        message: 'تمت الإضافة بنجاح',
+      };
+    }
+
+    // PUT Request: Update Existing Record
+    if (method === 'PUT') {
+      let bodyData: any = {};
+      try {
+        if (options?.body) bodyData = JSON.parse(options.body as string);
+      } catch {}
+
+      const targetId = idParam || bodyData.id;
+      const items = getLocalItem<any[]>(storeKey, []);
+      const idx = items.findIndex((i) => String(i.id) === String(targetId));
+
+      let updatedRecord: any;
+      if (idx !== -1) {
+        updatedRecord = sanitizeEntityRecord({
+          ...items[idx],
+          ...bodyData,
+          id: items[idx].id,
+          updated_at: new Date().toISOString(),
+        });
+        items[idx] = updatedRecord;
+      } else {
+        updatedRecord = sanitizeEntityRecord({
+          ...bodyData,
+          id: targetId || `${prefix}_${Date.now()}`,
+          updated_at: new Date().toISOString(),
+        });
+        items.unshift(updatedRecord);
+      }
+
+      setLocalItem(storeKey, items, companyId);
+      await saveRecord(storeKey, updatedRecord);
+
+      try {
+        localStorage.removeItem('erp_clean_production_mode_v1');
+        localStorage.removeItem('erp_sample_data_cleaned');
+      } catch {}
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('erp-data-updated', {
+            detail: { collection: matchedEntityKey, storeKey, action: 'UPDATE', record: updatedRecord },
+          })
+        );
+        if (event) window.dispatchEvent(new Event(event));
+        window.dispatchEvent(new Event('storage'));
+      }
+
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: updatedRecord,
+        items,
+        message: 'تم التعديل بنجاح',
+      };
+    }
+
+    // DELETE Request: Remove Record
+    if (method === 'DELETE') {
+      const items = getLocalItem<any[]>(storeKey, []);
+      const filtered = items.filter((i) => String(i.id) !== String(idParam));
+      setLocalItem(storeKey, filtered, companyId);
+
+      if (idParam) {
+        await deleteRecord(storeKey, idParam).catch(() => {});
+      }
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('erp-data-updated', {
+            detail: { collection: matchedEntityKey, storeKey, action: 'DELETE', id: idParam },
+          })
+        );
+        if (event) window.dispatchEvent(new Event(event));
+        window.dispatchEvent(new Event('storage'));
+      }
+
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: { success: true, id: idParam },
+        message: 'تم الحذف بنجاح',
+      };
     }
   }
 

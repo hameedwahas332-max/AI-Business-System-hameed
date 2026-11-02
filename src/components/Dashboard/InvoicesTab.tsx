@@ -184,8 +184,8 @@ export const InvoicesTab: React.FC = () => {
         (invRes as any)?.pagination?.total ??
         loadedInvoices.length
       );
-      setCustomers(Array.isArray(custRes?.data) ? custRes.data : []);
-      setProducts(Array.isArray(prodRes?.data) ? prodRes.data : []);
+      setCustomers(Array.isArray(custRes) ? custRes : (custRes?.data || custRes?.items || []));
+      setProducts(Array.isArray(prodRes) ? prodRes : (prodRes?.data || prodRes?.items || []));
     } catch (err: any) {
       setError(err.message || 'فشل تحميل بيانات فواتير المبيعات');
     } finally {
@@ -205,14 +205,23 @@ export const InvoicesTab: React.FC = () => {
       setSelectedIds([]);
       fetchData();
     };
-      window.addEventListener('erp-demo-data-wiped', handleWiped);
-      window.addEventListener('erp-inventory-updated', fetchData);
-      window.addEventListener('erp-invoices-updated', fetchData);
-      return () => {
-        window.removeEventListener('erp-demo-data-wiped', handleWiped);
-        window.removeEventListener('erp-inventory-updated', fetchData);
-        window.removeEventListener('erp-invoices-updated', fetchData);
-      };
+    const handleUpdated = () => {
+      fetchData();
+    };
+    window.addEventListener('erp-demo-data-wiped', handleWiped);
+    window.addEventListener('erp-inventory-updated', handleUpdated);
+    window.addEventListener('erp-invoices-updated', handleUpdated);
+    window.addEventListener('erp-customers-updated', handleUpdated);
+    window.addEventListener('erp-data-updated', handleUpdated);
+    window.addEventListener('storage', handleUpdated);
+    return () => {
+      window.removeEventListener('erp-demo-data-wiped', handleWiped);
+      window.removeEventListener('erp-inventory-updated', handleUpdated);
+      window.removeEventListener('erp-invoices-updated', handleUpdated);
+      window.removeEventListener('erp-customers-updated', handleUpdated);
+      window.removeEventListener('erp-data-updated', handleUpdated);
+      window.removeEventListener('storage', handleUpdated);
+    };
   }, [
     activeSubView,
     searchQuery,

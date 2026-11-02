@@ -176,16 +176,22 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
         api.getCustomers(q),
         api.getSuppliers(q),
       ]);
-      const isClean =
-        typeof window !== 'undefined' &&
-        (localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
-          localStorage.getItem('erp_sample_data_cleaned') === 'true');
+      const custData = Array.isArray(custRes)
+        ? custRes
+        : (custRes?.data || custRes?.items || custRes?.customers || []);
+      const suppData = Array.isArray(suppRes)
+        ? suppRes
+        : (suppRes?.data || suppRes?.items || suppRes?.suppliers || []);
 
-      const custData = custRes?.data || [];
-      const suppData = suppRes?.data || [];
+      if (custData.length > 0 || suppData.length > 0) {
+        try {
+          localStorage.removeItem('erp_clean_production_mode_v1');
+          localStorage.removeItem('erp_sample_data_cleaned');
+        } catch {}
+      }
 
-      setCustomers(isClean && custData.length === 0 ? [] : custData);
-      setSuppliers(isClean && suppData.length === 0 ? [] : suppData);
+      setCustomers(custData);
+      setSuppliers(suppData);
     } catch (err: any) {
       setError(err.message || 'فشل جلب بيانات الحسابات من الخادم');
     } finally {
@@ -201,8 +207,21 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
       setSelectedIds(new Set());
       fetchAllData(searchQuery);
     };
+    const handleUpdated = () => {
+      fetchAllData(searchQuery);
+    };
     window.addEventListener('erp-demo-data-wiped', handleWiped);
-    return () => window.removeEventListener('erp-demo-data-wiped', handleWiped);
+    window.addEventListener('erp-customers-updated', handleUpdated);
+    window.addEventListener('erp-suppliers-updated', handleUpdated);
+    window.addEventListener('erp-data-updated', handleUpdated);
+    window.addEventListener('storage', handleUpdated);
+    return () => {
+      window.removeEventListener('erp-demo-data-wiped', handleWiped);
+      window.removeEventListener('erp-customers-updated', handleUpdated);
+      window.removeEventListener('erp-suppliers-updated', handleUpdated);
+      window.removeEventListener('erp-data-updated', handleUpdated);
+      window.removeEventListener('storage', handleUpdated);
+    };
   }, [searchQuery]);
 
   // Combined List with Normalized Types
@@ -400,8 +419,9 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
     try {
       setError(null);
       const opNum = parseFloat(customerFormData.openingBalance || '0');
+      let customerRecord: any = null;
       if (editingCustomer) {
-        await api.updateCustomer(editingCustomer.id, {
+        const updateRes: any = await api.updateCustomer(editingCustomer.id, {
           name: customerFormData.name,
           phone: customerFormData.phone,
           email: customerFormData.email,
@@ -411,9 +431,15 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
           openingBalance: opNum,
           notes: customerFormData.notes,
         });
+        customerRecord = updateRes?.data || updateRes;
+        if (customerRecord?.id) {
+          setCustomers((prev) =>
+            prev.map((c) => (c.id === customerRecord.id ? { ...c, ...customerRecord } : c))
+          );
+        }
         setSuccess('تم تحديث بيانات حساب العميل والعملة بنجاح');
       } else {
-        await api.createCustomer({
+        const createRes: any = await api.createCustomer({
           name: customerFormData.name,
           phone: customerFormData.phone,
           email: customerFormData.email,
@@ -424,14 +450,26 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
           currency: customerFormData.currency,
           notes: customerFormData.notes,
         });
+        customerRecord = createRes?.data || createRes;
+        if (customerRecord && (customerRecord.id || customerRecord.name)) {
+          setCustomers((prev) => [
+            customerRecord,
+            ...prev.filter((c) => c.id !== customerRecord.id),
+          ]);
+        }
         setSuccess('تم تسجيل العميل الجديد وتثبيت الرصيد الافتتاحي والعملة بنجاح');
       }
+
+      try {
+        localStorage.removeItem('erp_clean_production_mode_v1');
+        localStorage.removeItem('erp_sample_data_cleaned');
+      } catch {}
 
       // Enqueue Master Data change into Transactional Outbox (CR-2026-TAURI-OFFLINE-SYNC-001)
       enqueueOutboxTransaction(
         editingCustomer ? 'UPDATE_CUSTOMER_MASTER' : 'CREATE_CUSTOMER_MASTER',
         {
-          id: editingCustomer?.id,
+          id: customerRecord?.id || editingCustomer?.id,
           name: customerFormData.name,
           phone: customerFormData.phone,
           currency: customerFormData.currency,
@@ -500,8 +538,9 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
     try {
       setError(null);
       const opNum = parseFloat(supplierFormData.openingBalance || '0');
+      let supplierRecord: any = null;
       if (editingSupplier) {
-        await api.updateSupplier(editingSupplier.id, {
+        const updateRes: any = await api.updateSupplier(editingSupplier.id, {
           name: supplierFormData.name,
           phone: supplierFormData.phone,
           email: supplierFormData.email,
@@ -511,9 +550,15 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
           openingBalance: opNum,
           notes: supplierFormData.notes,
         });
+        supplierRecord = updateRes?.data || updateRes;
+        if (supplierRecord?.id) {
+          setSuppliers((prev) =>
+            prev.map((s) => (s.id === supplierRecord.id ? { ...s, ...supplierRecord } : s))
+          );
+        }
         setSuccess('تم تحديث بيانات المورد والعملة بنجاح');
       } else {
-        await api.createSupplier({
+        const createRes: any = await api.createSupplier({
           name: supplierFormData.name,
           phone: supplierFormData.phone,
           email: supplierFormData.email,
@@ -524,14 +569,26 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
           currency: supplierFormData.currency,
           notes: supplierFormData.notes,
         });
+        supplierRecord = createRes?.data || createRes;
+        if (supplierRecord && (supplierRecord.id || supplierRecord.name)) {
+          setSuppliers((prev) => [
+            supplierRecord,
+            ...prev.filter((s) => s.id !== supplierRecord.id),
+          ]);
+        }
         setSuccess('تم تسجيل المورد الجديد وتثبيت الرصيد الافتتاحي والعملة بنجاح');
       }
+
+      try {
+        localStorage.removeItem('erp_clean_production_mode_v1');
+        localStorage.removeItem('erp_sample_data_cleaned');
+      } catch {}
 
       // Enqueue Master Data change into Transactional Outbox (CR-2026-TAURI-OFFLINE-SYNC-001)
       enqueueOutboxTransaction(
         editingSupplier ? 'UPDATE_SUPPLIER_MASTER' : 'CREATE_SUPPLIER_MASTER',
         {
-          id: editingSupplier?.id,
+          id: supplierRecord?.id || editingSupplier?.id,
           name: supplierFormData.name,
           phone: supplierFormData.phone,
           currency: supplierFormData.currency,

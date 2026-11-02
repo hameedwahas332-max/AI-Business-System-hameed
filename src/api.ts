@@ -159,7 +159,7 @@ class ApiClient {
       // In offline / desktop mode, fall back to local handler
       const fallback = await handleLocalDesktopApiFallback<T>(url, options);
       if (fallback.ok) {
-        return fallback.data;
+        return this.normalizeResponsePayload(fallback);
       }
       // Do not wipe session on transient network timeouts or offline states
       throw new Error(networkErr?.message || 'Network communication error');
@@ -170,7 +170,7 @@ class ApiClient {
       // In Tauri desktop, relative /api/... calls hit static file server which returns index.html
       const fallback = await handleLocalDesktopApiFallback<T>(url, options);
       if (fallback.ok) {
-        return fallback.data;
+        return this.normalizeResponsePayload(fallback);
       }
     }
 
@@ -180,7 +180,7 @@ class ApiClient {
       if (res.status === 404 || isTauriOrDesktopEnvironment()) {
         const fallback = await handleLocalDesktopApiFallback<T>(url, options);
         if (fallback.ok) {
-          return fallback.data;
+          return this.normalizeResponsePayload(fallback);
         }
       }
       const isLoginRequest = url.includes('/auth/login');
@@ -236,7 +236,8 @@ class ApiClient {
               headers['Authorization'] = `Bearer ${newToken}`;
               const retryRes = await fetch(url, { ...options, headers });
               if (retryRes.ok) {
-                return await retryRes.json();
+                const retryData = await retryRes.json();
+                return this.normalizeResponsePayload(retryData);
               }
             }
           }
@@ -263,7 +264,30 @@ class ApiClient {
       throw error;
     }
 
-    return data;
+    return this.normalizeResponsePayload(data);
+  }
+
+  private normalizeResponsePayload(raw: any): any {
+    if (raw === undefined || raw === null) return raw;
+    if (Array.isArray(raw)) {
+      try {
+        Object.defineProperty(raw, 'data', { value: raw, writable: true, configurable: true, enumerable: false });
+        Object.defineProperty(raw, 'items', { value: raw, writable: true, configurable: true, enumerable: false });
+        Object.defineProperty(raw, 'success', { value: true, writable: true, configurable: true, enumerable: false });
+        Object.defineProperty(raw, 'ok', { value: true, writable: true, configurable: true, enumerable: false });
+      } catch {}
+      return raw;
+    }
+    if (typeof raw === 'object') {
+      const arr = Array.isArray(raw.data) ? raw.data : Array.isArray(raw.items) ? raw.items : null;
+      if (arr) {
+        if (!('items' in raw)) raw.items = arr;
+        if (!('data' in raw)) raw.data = arr;
+        if (raw.success === undefined) raw.success = true;
+        if (raw.ok === undefined) raw.ok = true;
+      }
+    }
+    return raw;
   }
 
   public toQueryString(params?: any): string {
@@ -1480,6 +1504,15 @@ export interface Expense {
   description: string;
   notes?: string;
   created_at?: string;
+}
+
+export function normalizeListResponse<T = any>(res: any): T[] {
+  if (!res) return [];
+  if (Array.isArray(res)) return res;
+  if (Array.isArray(res.data)) return res.data;
+  if (Array.isArray(res.items)) return res.items;
+  if (Array.isArray(res.rows)) return res.rows;
+  return [];
 }
 
 export { ApiClient };
