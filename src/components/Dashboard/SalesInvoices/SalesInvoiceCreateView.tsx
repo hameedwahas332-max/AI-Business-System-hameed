@@ -11,6 +11,7 @@ import {
 } from '../../../lib/formatters';
 import { printInvoiceDocument } from '../../../lib/exportUtils';
 import { recordAutomaticTreasuryVoucher } from '../../../utils/treasuryVoucherHelper';
+import { normalizeScannedBarcode, playBarcodeBeep } from '../../../utils/barcodeUtils';
 import { enqueueOutboxTransaction } from '../../../services/transactionalOutbox';
 import {
   ArrowRight,
@@ -549,13 +550,18 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
   };
 
   // Filtered search results for barcode / quick search
-  const searchResults = searchQuery.trim()
+  const normalizedQuery = normalizeScannedBarcode(searchQuery);
+  const searchResults = normalizedQuery.trim()
     ? productList.filter((p) => {
-        const query = searchQuery.toLowerCase().trim();
+        const query = normalizedQuery.toLowerCase().trim();
         return (
           p.name?.toLowerCase().includes(query) ||
-          p.sku?.toLowerCase().includes(query) ||
-          p.barcode?.toLowerCase().includes(query)
+          (p.barcode && normalizeScannedBarcode(p.barcode).toLowerCase().includes(query)) ||
+          (p.subUnitBarcode && normalizeScannedBarcode(p.subUnitBarcode).toLowerCase().includes(query)) ||
+          (p.majorUnitBarcode && normalizeScannedBarcode(p.majorUnitBarcode).toLowerCase().includes(query)) ||
+          (p.sku && normalizeScannedBarcode(p.sku).toLowerCase().includes(query)) ||
+          (p.itemCode && normalizeScannedBarcode(p.itemCode).toLowerCase().includes(query)) ||
+          (p.partNumber && normalizeScannedBarcode(p.partNumber).toLowerCase().includes(query))
         );
       })
     : [];
@@ -563,16 +569,38 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
+      const norm = normalizeScannedBarcode(searchQuery).trim();
+      if (!norm) return;
+
+      // 1. Direct match on barcode/SKU/Code
+      const exactMatch = productList.find(
+        (p) =>
+          (p.barcode && normalizeScannedBarcode(p.barcode).toLowerCase() === norm.toLowerCase()) ||
+          (p.subUnitBarcode && normalizeScannedBarcode(p.subUnitBarcode).toLowerCase() === norm.toLowerCase()) ||
+          (p.majorUnitBarcode && normalizeScannedBarcode(p.majorUnitBarcode).toLowerCase() === norm.toLowerCase()) ||
+          (p.sku && normalizeScannedBarcode(p.sku).toLowerCase() === norm.toLowerCase()) ||
+          (p.itemCode && normalizeScannedBarcode(p.itemCode).toLowerCase() === norm.toLowerCase()) ||
+          (p.partNumber && normalizeScannedBarcode(p.partNumber).toLowerCase() === norm.toLowerCase())
+      );
+
+      if (exactMatch) {
+        playBarcodeBeep('success');
+        handleQuickAddProduct(exactMatch);
+        return;
+      }
+
       if (searchResults.length > 0) {
+        playBarcodeBeep('success');
         handleQuickAddProduct(searchResults[0]);
-      } else if (searchQuery.trim()) {
+      } else if (norm) {
+        playBarcodeBeep('warning');
         // Add as quick manual item
         setItems([
           ...items,
           {
             id: `item-${Date.now()}`,
             product_id: '',
-            name: searchQuery.trim(),
+            name: norm,
             unit: 'حبة',
             quantity: 1,
             unit_price: 0,

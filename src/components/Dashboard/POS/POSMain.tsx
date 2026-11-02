@@ -52,6 +52,7 @@ import {
 } from '../../../lib/formatters';
 import { printInvoiceDocument } from '../../../lib/exportUtils';
 import { recordAutomaticTreasuryVoucher } from '../../../utils/treasuryVoucherHelper';
+import { normalizeScannedBarcode, playBarcodeBeep } from '../../../utils/barcodeUtils';
 import { enqueueOutboxTransaction } from '../../../services/transactionalOutbox';
 import { ModuleSettingsModal } from '../../Common/ModuleSettingsModal';
 import { POSQuickItemModal } from './POSQuickItemModal';
@@ -122,6 +123,12 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
   const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
   const [completedReceiptData, setCompletedReceiptData] = useState<any | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+
+  // Barcode Scanner & Rapid Hardware Input State
+  const [scannedUnmatchedBarcode, setScannedUnmatchedBarcode] = useState<string | null>(null);
+  const [barcodeToast, setBarcodeToast] = useState<{ message: string; type: 'success' | 'warning' | 'error'; barcode?: string } | null>(null);
+  const barcodeBufferRef = useRef<string>('');
+  const lastKeyTimeRef = useRef<number>(0);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -481,14 +488,28 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
   }, [cart, selectedCustomer, selectedPriceTier, currency, subtotal, grandTotal, cartDiscount, taxAmount, checkoutLoading, hasBelowCostInCart, belowCostCartItems]);
 
   // Add Product to Cart with Multi-UOM, Tiered Price, & Battery Spec
-  const handleAddToCart = (product: any) => {
-    const price = getProductPriceForTier(product, selectedPriceTier);
+  const handleAddToCart = (product: any, targetUnit: 'base' | 'sub' | 'major' = 'base') => {
+    const basePrice = getProductPriceForTier(product, selectedPriceTier);
+    let price = basePrice;
+    let unitName = product.baseUnitName || product.unit || 'حبة';
+    let unitFactor = 1;
+
+    if (targetUnit === 'sub' && product.subUnitName) {
+      unitName = product.subUnitName;
+      unitFactor = Number(product.subUnitFactor || 1);
+      price = Number(product.subUnitPrice) > 0 ? Number(product.subUnitPrice) : basePrice * unitFactor;
+    } else if (targetUnit === 'major' && product.majorUnitName) {
+      unitName = product.majorUnitName;
+      unitFactor = Number(product.majorUnitFactor || 1);
+      price = Number(product.majorUnitPrice) > 0 ? Number(product.majorUnitPrice) : basePrice * unitFactor;
+    }
+
     const isBattery = product.activityType === 'battery';
     const isTire = product.activityType === 'tire';
     const warrantyMonths = Number(product.warrantyMonths || 12);
 
     setCart((prev) => {
-      const existingIndex = prev.findIndex((item) => item.productId === product.id && item.selectedUnit === 'base');
+      const existingIndex = prev.findIndex((item) => item.productId === product.id && item.selectedUnit === targetUnit);
       if (existingIndex > -1) {
         const updated = [...prev];
         const newQty = updated[existingIndex].quantity + 1;
@@ -510,13 +531,13 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
             sku: product.sku,
             itemCode: product.itemCode || product.sku,
             partNumber: product.partNumber,
-            barcode: product.barcode,
+            barcode: targetUnit === 'sub' ? product.subUnitBarcode : targetUnit === 'major' ? product.majorUnitBarcode : product.barcode,
             category: product.category,
             activityType: product.activityType,
-            unit: product.baseUnitName || product.unit || 'حبة',
-            unitName: product.baseUnitName || product.unit || 'حبة',
-            selectedUnit: 'base',
-            unitFactor: 1,
+            unit: unitName,
+            unitName: unitName,
+            selectedUnit: targetUnit,
+            unitFactor: unitFactor,
             baseUnitName: product.baseUnitName || product.unit || 'حبة',
             subUnitName: product.subUnitName,
             subUnitFactor: Number(product.subUnitFactor || 1),
@@ -606,31 +627,172 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
   // Add Quick Item to Cart
   const handleAddQuickItem = (quickItem: POSCartItem) => {
     setCart((prev) => [...prev, quickItem]);
+    setScannedUnmatchedBarcode(null);
   };
+
+  // Universal Barcode Lookup & Auto-Add Handler (Hardware & Soft Search)
+  const lookupAndAddProductByBarcode = (scannedRaw: string): boolean => {
+    const normalized = normalizeScannedBarcode(scannedRaw);
+    if (!normalized) return false;
+
+    const term = normalized.toLowerCase();
+
+    // 1. First priority: Exact match on barcode (Base, Sub-Unit, or Major-Unit)
+    let matchedProduct: any = null;
+    let matchedUnit: 'base' | 'sub' | 'major' = 'base';
+
+    for (const p of products) {
+      if (p.barcode && normalizeScannedBarcode(p.barcode).toLowerCase() === term) {
+        matchedProduct = p;
+        matchedUnit = 'base';
+        break;
+      }
+      if (p.subUnitBarcode && normalizeScannedBarcode(p.subUnitBarcode).toLowerCase() === term) {
+        matchedProduct = p;
+        matchedUnit = 'sub';
+        break;
+      }
+      if (p.majorUnitBarcode && normalizeScannedBarcode(p.majorUnitBarcode).toLowerCase() === term) {
+        matchedProduct = p;
+        matchedUnit = 'major';
+        break;
+      }
+    }
+
+    // 2. Second priority: Match on SKU, itemCode, partNumber
+    if (!matchedProduct) {
+      matchedProduct = products.find(
+        (p) =>
+          (p.sku && normalizeScannedBarcode(p.sku).toLowerCase() === term) ||
+          (p.itemCode && normalizeScannedBarcode(p.itemCode).toLowerCase() === term) ||
+          (p.partNumber && normalizeScannedBarcode(p.partNumber).toLowerCase() === term)
+      );
+    }
+
+    // 3. Third priority: exact or single name match
+    if (!matchedProduct) {
+      const nameMatches = products.filter((p) => p.name?.toLowerCase() === term);
+      if (nameMatches.length === 1) {
+        matchedProduct = nameMatches[0];
+      }
+    }
+
+    if (matchedProduct) {
+      playBarcodeBeep('success');
+      handleAddToCart(matchedProduct, matchedUnit);
+      setSearchQuery('');
+      setScannedUnmatchedBarcode(null);
+      setBarcodeToast({
+        message: `تم مسح وإضافة: ${matchedProduct.name} (${matchedUnit === 'sub' ? matchedProduct.subUnitName || 'وحدة فرعية' : matchedUnit === 'major' ? matchedProduct.majorUnitName || 'وحدة كبرى' : matchedProduct.unit || 'حبة'})`,
+        type: 'success',
+        barcode: normalized,
+      });
+      setTimeout(() => setBarcodeToast(null), 3500);
+      return true;
+    } else {
+      playBarcodeBeep('warning');
+      setScannedUnmatchedBarcode(normalized);
+      setBarcodeToast({
+        message: `⚠️ الباركود غير مسجل في المخزون: ${normalized}`,
+        type: 'warning',
+        barcode: normalized,
+      });
+      return false;
+    }
+  };
+
+  // Global Hardware Barcode Scanner Keydown Listener
+  // Intercepts rapid USB HID scanner strokes (<75ms intervals ending with Enter)
+  useEffect(() => {
+    const handleGlobalBarcodeKeyDown = (e: KeyboardEvent) => {
+      // Do not intercept if any modal is open
+      if (
+        isQuickItemOpen ||
+        isPaymentModalOpen ||
+        isReceiptModalOpen ||
+        isReturnsModalOpen ||
+        isShiftModalOpen ||
+        isPosDailySalesOpen ||
+        isHeldDrawerOpen ||
+        isAIAssistantOpen
+      ) {
+        return;
+      }
+
+      // Check active input
+      const activeEl = document.activeElement as HTMLElement | null;
+      const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
+      const isSearchInput = activeEl === searchInputRef.current;
+
+      // Ignore if user is manually editing an operational number/price/qty/note input
+      if (isInput && !isSearchInput) {
+        const inputType = (activeEl as HTMLInputElement).type;
+        const inputName = ((activeEl as HTMLInputElement).name || (activeEl as HTMLInputElement).id || '').toLowerCase();
+        if (
+          inputType === 'number' ||
+          inputName.includes('qty') ||
+          inputName.includes('quantity') ||
+          inputName.includes('price') ||
+          inputName.includes('disc') ||
+          inputName.includes('tax') ||
+          inputName.includes('note') ||
+          inputName.includes('serial')
+        ) {
+          return;
+        }
+      }
+
+      const now = Date.now();
+      const timeDiff = now - lastKeyTimeRef.current;
+
+      if (e.key === 'Enter') {
+        const buffer = barcodeBufferRef.current.trim();
+        if (buffer.length >= 2) {
+          e.preventDefault();
+          e.stopPropagation();
+          lookupAndAddProductByBarcode(buffer);
+          barcodeBufferRef.current = '';
+          lastKeyTimeRef.current = 0;
+          return;
+        }
+        barcodeBufferRef.current = '';
+        return;
+      }
+
+      // Record single printable character
+      if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        if (timeDiff > 75) {
+          // Normal human typing gap or beginning of a barcode scan
+          barcodeBufferRef.current = e.key;
+        } else {
+          // High-speed keystroke from physical barcode reader
+          barcodeBufferRef.current += e.key;
+        }
+        lastKeyTimeRef.current = now;
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalBarcodeKeyDown, true);
+    return () => window.removeEventListener('keydown', handleGlobalBarcodeKeyDown, true);
+  }, [
+    products,
+    isQuickItemOpen,
+    isPaymentModalOpen,
+    isReceiptModalOpen,
+    isReturnsModalOpen,
+    isShiftModalOpen,
+    isPosDailySalesOpen,
+    isHeldDrawerOpen,
+    isAIAssistantOpen,
+    selectedPriceTier,
+  ]);
 
   // Barcode / Fast Search handler
   const handleBarcodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
-
-    const term = searchQuery.trim().toLowerCase();
-    // Search exact barcode first
-    const exactBarcodeMatch = products.find(
-      (p) => (p.barcode && p.barcode.toLowerCase() === term) || (p.sku && p.sku.toLowerCase() === term)
-    );
-
-    if (exactBarcodeMatch) {
-      handleAddToCart(exactBarcodeMatch);
-      setSearchQuery('');
-      return;
-    }
-
-    // Search by name match
-    const nameMatches = products.filter((p) => p.name.toLowerCase().includes(term));
-    if (nameMatches.length === 1) {
-      handleAddToCart(nameMatches[0]);
-      setSearchQuery('');
-    }
+    const normalized = normalizeScannedBarcode(searchQuery);
+    lookupAndAddProductByBarcode(normalized);
   };
 
   // Update Cart Item Quantity
@@ -1128,6 +1290,48 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
               </button>
             )}
           </form>
+
+          {/* Barcode Scanner Unmatched Alert & 1-Click Quick Register */}
+          {scannedUnmatchedBarcode && (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3 flex items-center justify-between gap-3 text-xs animate-in fade-in">
+              <div className="flex items-center gap-2 text-amber-300">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>
+                  الباركود <strong className="font-mono text-amber-200">{scannedUnmatchedBarcode}</strong> غير مسجل في المخزون.
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsQuickItemOpen(true)}
+                  className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold rounded-xl text-xs hover:from-emerald-500 hover:to-teal-500 shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>تسجيل وبيع الصنف سريعاً (F3)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setScannedUnmatchedBarcode(null)}
+                  className="p-1 text-slate-400 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Barcode Scan Success Toast */}
+          {barcodeToast && barcodeToast.type === 'success' && (
+            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-2.5 flex items-center justify-between text-xs text-emerald-300 animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span className="font-medium">{barcodeToast.message}</span>
+              </div>
+              <span className="text-[10px] text-emerald-400 font-mono bg-emerald-500/20 px-2 py-0.5 rounded-full">
+                ⚡ HID Scanner Beep
+              </span>
+            </div>
+          )}
 
           {/* Category Filter Chips */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar shrink-0">
@@ -1661,9 +1865,13 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
       {/* Quick Item Modal */}
       <POSQuickItemModal
         isOpen={isQuickItemOpen}
-        onClose={() => setIsQuickItemOpen(false)}
+        onClose={() => {
+          setIsQuickItemOpen(false);
+          setScannedUnmatchedBarcode(null);
+        }}
         onAddItem={handleAddQuickItem}
         currency={currency}
+        initialBarcode={scannedUnmatchedBarcode || undefined}
       />
 
       {/* Payment & Checkout Modal */}

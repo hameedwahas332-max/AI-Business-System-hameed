@@ -7,6 +7,7 @@ import {
   toEnglishDigits,
   parseEnglishNumber,
 } from '../../lib/formatters';
+import { normalizeScannedBarcode } from '../../utils/barcodeUtils';
 import { ExportActions } from '../Common/ExportActions';
 import { ModuleSettingsModal } from '../Common/ModuleSettingsModal';
 import { TableExportConfig } from '../../lib/exportUtils';
@@ -724,7 +725,7 @@ export const ProductsTab: React.FC = () => {
               type="text"
               placeholder="البحث باسم المنتج، SKU، أو الباركود..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => setSearchQuery(normalizeScannedBarcode(e.target.value))}
               className="w-full pl-3 pr-9 py-2 text-xs bg-slate-950 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
             />
           </div>
@@ -1101,7 +1102,7 @@ export const ProductsTab: React.FC = () => {
                     placeholder={formData.activityType === 'oil' ? 'PRT-1001 / OEM Code' : 'ITM-1001'}
                     value={formData.activityType === 'oil' ? (formData.partNumber || formData.itemCode) : formData.itemCode}
                     onChange={(e) => {
-                      const val = e.target.value;
+                      const val = normalizeScannedBarcode(toEnglishDigits(e.target.value));
                       if (formData.activityType === 'oil') {
                         setFormData({ ...formData, partNumber: val, itemCode: val });
                       } else {
@@ -1118,18 +1119,21 @@ export const ProductsTab: React.FC = () => {
                     type="text"
                     placeholder="SKU-1001"
                     value={formData.sku}
-                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, sku: normalizeScannedBarcode(toEnglishDigits(e.target.value)) })}
                     className="w-full p-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono dir-ltr text-right"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">الباركود الأساسي (Barcode)</label>
+                  <label className="block text-slate-300 font-semibold mb-1 flex items-center justify-between">
+                    <span>الباركود الأساسي (Barcode)</span>
+                    <span className="text-[10px] text-emerald-400 font-mono">USB / HID Normalizer</span>
+                  </label>
                   <input
                     type="text"
                     placeholder="629100022112"
                     value={formData.barcode}
-                    onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, barcode: normalizeScannedBarcode(e.target.value) })}
                     className="w-full p-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono dir-ltr text-right"
                   />
                 </div>

@@ -5,6 +5,7 @@ import { getAccountingRate } from '../../lib/exchangeRates';
 import { ExportActions } from '../Common/ExportActions';
 import { TableExportConfig, printInvoiceDocument } from '../../lib/exportUtils';
 import { recordAutomaticTreasuryVoucher } from '../../utils/treasuryVoucherHelper';
+import { normalizeScannedBarcode, playBarcodeBeep } from '../../utils/barcodeUtils';
 import { enqueueOutboxTransaction } from '../../services/transactionalOutbox';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -22,6 +23,7 @@ import {
   Percent,
   Tag,
   Boxes,
+  Barcode,
 } from 'lucide-react';
 
 export const PurchaseInvoicesTab: React.FC = () => {
@@ -50,6 +52,8 @@ export const PurchaseInvoicesTab: React.FC = () => {
   const [paidAmount, setPaidAmount] = useState<any>(0);
   const [invoiceDiscountAmount, setInvoiceDiscountAmount] = useState<any>(0);
   const [invoiceDiscountPercent, setInvoiceDiscountPercent] = useState<any>(0);
+  const [scannerQuery, setScannerQuery] = useState('');
+  const [scannerNotice, setScannerNotice] = useState<string | null>(null);
   const [builderItems, setBuilderItems] = useState<
     Array<{
       product_id: string;
@@ -190,6 +194,67 @@ export const PurchaseInvoicesTab: React.FC = () => {
   const handleRemoveItem = (index: number) => {
     if (builderItems.length === 1) return;
     setBuilderItems(builderItems.filter((_, i) => i !== index));
+  };
+
+  const handleScanPurchaseItem = (rawBarcode: string) => {
+    const norm = normalizeScannedBarcode(rawBarcode).trim();
+    if (!norm) return;
+
+    const term = norm.toLowerCase();
+    const matched = products.find(
+      (p) =>
+        (p.barcode && normalizeScannedBarcode(p.barcode).toLowerCase() === term) ||
+        (p.subUnitBarcode && normalizeScannedBarcode(p.subUnitBarcode).toLowerCase() === term) ||
+        (p.majorUnitBarcode && normalizeScannedBarcode(p.majorUnitBarcode).toLowerCase() === term) ||
+        (p.sku && normalizeScannedBarcode(p.sku).toLowerCase() === term) ||
+        (p.itemCode && normalizeScannedBarcode(p.itemCode).toLowerCase() === term) ||
+        (p.partNumber && normalizeScannedBarcode(p.partNumber).toLowerCase() === term) ||
+        p.name?.toLowerCase() === term
+    );
+
+    if (matched) {
+      playBarcodeBeep('success');
+      const prodCost = Number(matched?.costPrice || matched?.purchasePrice || matched?.cost_price || matched?.purchase_price || 0);
+
+      // Check if item is already in builder items
+      const existingIdx = builderItems.findIndex((it) => it.product_id === matched.id);
+      if (existingIdx >= 0) {
+        const updated = [...builderItems];
+        const currentQty = parseFloat(updated[existingIdx].quantity) || 1;
+        updated[existingIdx].quantity = currentQty + 1;
+        setBuilderItems(updated);
+        setScannerNotice(`تمت زيادة كمية "${matched.name}" إلى ${currentQty + 1}`);
+      } else {
+        const isFirstEmpty = builderItems.length === 1 && (!builderItems[0].product_id || builderItems[0].product_id === '');
+        const newRow = {
+          product_id: matched.id,
+          quantity: 1,
+          bonusQuantity: 0,
+          freeQuantity: 0,
+          costPrice: prodCost,
+          unit_cost: prodCost,
+          unitFactor: 1,
+          unitName: matched.unit || 'حبة',
+          itemDiscountPercent: 0,
+          itemDiscountAmount: 0,
+          discount: 0,
+          discountType: 'amount' as const,
+          tax: 0,
+        };
+        if (isFirstEmpty) {
+          setBuilderItems([newRow]);
+        } else {
+          setBuilderItems([...builderItems, newRow]);
+        }
+        setScannerNotice(`تمت إضافة "${matched.name}" بنجاح عبر الباركود`);
+      }
+      setScannerQuery('');
+      setTimeout(() => setScannerNotice(null), 3000);
+    } else {
+      playBarcodeBeep('warning');
+      setScannerNotice(`⚠️ لم يتم العثور على صنف بالباركود الممسوح: ${norm}`);
+      setTimeout(() => setScannerNotice(null), 4000);
+    }
   };
 
   // Helper to compute individual line calculations with exact ERP logic
@@ -608,7 +673,7 @@ export const PurchaseInvoicesTab: React.FC = () => {
               type="text"
               placeholder="البحث برقم المشتريات، اسم المورد..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => setSearchQuery(normalizeScannedBarcode(e.target.value))}
               className="w-full pl-3 pr-9 py-2 text-xs bg-slate-950 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
             />
           </div>
@@ -840,6 +905,44 @@ export const PurchaseInvoicesTab: React.FC = () => {
                     <Plus className="w-3.5 h-3.5" />
                     <span>إضافة صنف</span>
                   </button>
+                </div>
+
+                {/* Barcode Quick Scan Bar for Purchasing */}
+                <div className="mb-3 p-3 bg-slate-950/80 border border-emerald-900/60 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-emerald-400 flex items-center gap-1.5">
+                      <Barcode className="w-4 h-4" />
+                      <span>مسح الباركود السريع لإضافة صنف تلقائياً لفاتورة المشتريات:</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">USB / HID Normalizer</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={scannerQuery}
+                      onChange={(e) => setScannerQuery(normalizeScannedBarcode(e.target.value))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleScanPurchaseItem(scannerQuery);
+                        }
+                      }}
+                      placeholder="امسح الباركود بجهاز المسح أو اكتب كود الصنف واضغط Enter..."
+                      className="flex-1 p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 text-xs focus:border-emerald-500 font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleScanPurchaseItem(scannerQuery)}
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all cursor-pointer"
+                    >
+                      إضافة
+                    </button>
+                  </div>
+                  {scannerNotice && (
+                    <div className="text-[11px] font-bold text-amber-300 animate-in fade-in">
+                      {scannerNotice}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2.5">

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { X, Plus, DollarSign, Tag, Hash, Percent, Layers, ShieldCheck, Calendar, Droplets, Fuel } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Plus, DollarSign, Tag, Hash, Percent, Layers, ShieldCheck, Calendar, Droplets, Fuel, Barcode } from 'lucide-react';
 import { POSCartItem } from '../../../types';
 import { toEnglishDigits, parseEnglishNumber } from '../../../lib/formatters';
+import { normalizeScannedBarcode } from '../../../utils/barcodeUtils';
 import { useModuleSettings } from '../../../context/ModuleSettingsContext';
 
 interface POSQuickItemModalProps {
@@ -9,6 +10,7 @@ interface POSQuickItemModalProps {
   onClose: () => void;
   onAddItem: (item: POSCartItem) => void;
   currency: string;
+  initialBarcode?: string;
 }
 
 export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
@@ -16,6 +18,7 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
   onClose,
   onAddItem,
   currency,
+  initialBarcode,
 }) => {
   const { settings } = useModuleSettings();
   const businessMode = settings?.activePreset || 'multi_activity';
@@ -32,13 +35,24 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
       : 'general';
 
   const [name, setName] = useState('');
-  const [itemCode, setItemCode] = useState(() => `ITM-${Math.floor(1000 + Math.random() * 9000)}`);
+  const [barcode, setBarcode] = useState(() => (initialBarcode ? normalizeScannedBarcode(initialBarcode) : ''));
+  const [itemCode, setItemCode] = useState(() =>
+    initialBarcode ? normalizeScannedBarcode(initialBarcode) : `ITM-${Math.floor(1000 + Math.random() * 9000)}`
+  );
   const [activityType, setActivityType] = useState<string>(defaultActivity);
   const [unit, setUnit] = useState(() => (defaultActivity === 'fuel' ? 'لتر' : 'حبة'));
   const [quantity, setQuantity] = useState<string>('1');
   const [unitPrice, setUnitPrice] = useState<string>('');
   const [discount, setDiscount] = useState<string>('0');
   const [tax, setTax] = useState<string>('0');
+
+  useEffect(() => {
+    if (isOpen && initialBarcode) {
+      const clean = normalizeScannedBarcode(initialBarcode);
+      setBarcode(clean);
+      setItemCode(clean);
+    }
+  }, [isOpen, initialBarcode]);
 
   // Dynamic spec fields
   const [expiryDate, setExpiryDate] = useState('');
@@ -80,7 +94,8 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
       id: 'quick_' + Date.now(),
       productId: null,
       name: name.trim(),
-      sku: itemCode.trim() || partNumber.trim(),
+      barcode: barcode.trim() || undefined,
+      sku: itemCode.trim() || barcode.trim() || partNumber.trim(),
       itemCode: itemCode.trim(),
       partNumber: partNumber.trim(),
       activityType: activityType as any,
@@ -90,7 +105,7 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
       discount: dNum,
       tax: tNum,
       total,
-      notes: `صنف يدوي / كود: ${itemCode || partNumber || '-'}`,
+      notes: `صنف يدوي / باركود: ${barcode || itemCode || '-'}`,
       batterySpec: activityType === 'battery' ? batterySpec : undefined,
       tireSize: activityType === 'tire' ? tireSize : undefined,
       tireProductionDot: activityType === 'tire' ? tireProductionDot : undefined,
@@ -103,6 +118,7 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
 
     // Reset & close
     setName('');
+    setBarcode('');
     setItemCode(`ITM-${Math.floor(1000 + Math.random() * 9000)}`);
     setQuantity('1');
     setUnitPrice('');
@@ -134,6 +150,16 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+          {barcode && (
+            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs flex items-center justify-between gap-2 animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <Barcode className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>تم التقاط باركود غير مسجل: <strong className="font-mono text-amber-200">{barcode}</strong></span>
+              </div>
+              <span className="text-[10px] bg-amber-400/20 px-2 py-0.5 rounded-full text-amber-200 font-bold shrink-0">تسجيل فوري</span>
+            </div>
+          )}
+
           {error && (
             <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-sm">
               {error}
@@ -162,6 +188,33 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
             </div>
 
             <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+                <span>الباركود الممسوح (Barcode)</span>
+                <span className="text-[10px] text-emerald-400 font-mono">HID Scanner</span>
+              </label>
+              <div className="relative">
+                <Barcode className="w-4 h-4 text-slate-500 absolute right-3 top-3" />
+                <input
+                  type="text"
+                  dir="ltr"
+                  lang="en"
+                  value={barcode}
+                  onChange={(e) => {
+                    const val = normalizeScannedBarcode(e.target.value);
+                    setBarcode(val);
+                    if (!itemCode || itemCode.startsWith('ITM-')) {
+                      setItemCode(val);
+                    }
+                  }}
+                  placeholder="6291000..."
+                  className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pr-10 pl-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-emerald-500 text-left"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
                 رقم الصنف / كود القطعة (Item Code)
               </label>
@@ -172,11 +225,26 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
                   dir="ltr"
                   lang="en"
                   value={itemCode}
-                  onChange={(e) => setItemCode(toEnglishDigits(e.target.value))}
+                  onChange={(e) => setItemCode(normalizeScannedBarcode(toEnglishDigits(e.target.value)))}
                   placeholder="ITM-1001"
                   className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pr-10 pl-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-emerald-500 text-left"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                رقم القطعة / OEM (اختياري)
+              </label>
+              <input
+                type="text"
+                dir="ltr"
+                lang="en"
+                value={partNumber}
+                onChange={(e) => setPartNumber(normalizeScannedBarcode(toEnglishDigits(e.target.value)))}
+                placeholder="PART-1001"
+                className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-emerald-500 text-left"
+              />
             </div>
           </div>
 
