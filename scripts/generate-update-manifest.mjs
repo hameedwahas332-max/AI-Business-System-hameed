@@ -126,9 +126,29 @@ export function generateUpdateManifest(baseDir = process.cwd()) {
     process.exit(1);
   }
 
-  // Construct URL properly encoding special characters (e.g. spaces -> %20)
-  const encodedInstallerFileName = encodeURIComponent(installerFileName);
-  const downloadUrl = `https://github.com/${repo}/releases/download/${tag}/${encodedInstallerFileName}`;
+  // GitHub Releases automatically replaces all spaces with dots (.) in uploaded asset names!
+  // To prevent 404 Not Found errors during download, sanitize spaces to dots and ensure matching artifacts exist.
+  const sanitizedFileName = installerFileName.replace(/\s+/g, '.');
+  const sanitizedSigFileName = `${sanitizedFileName}.sig`;
+
+  if (installerFileName !== sanitizedFileName) {
+    try {
+      const sanitizedFilePath = path.join(bundleDir, sanitizedFileName);
+      const sanitizedSigFilePath = path.join(bundleDir, sanitizedSigFileName);
+      if (!fs.existsSync(sanitizedFilePath)) {
+        fs.copyFileSync(installerFilePath, sanitizedFilePath);
+      }
+      if (!fs.existsSync(sanitizedSigFilePath)) {
+        fs.copyFileSync(signatureFilePath, sanitizedSigFilePath);
+      }
+      console.log(`[updater-manifest] Created GitHub-compliant dot-sanitized copies: ${sanitizedFileName}`);
+    } catch (copyErr) {
+      console.warn(`[updater-manifest] Note: Could not create dot-sanitized copy:`, copyErr.message);
+    }
+  }
+
+  // Construct URL using sanitized filename matching GitHub Release assets
+  const downloadUrl = `https://github.com/${repo}/releases/download/${tag}/${sanitizedFileName}`;
 
   const commitSha = process.env.GITHUB_SHA || process.env.COMMIT_SHA || '';
   const notes = process.env.RELEASE_NOTES || process.env.COMMIT_MESSAGE || `Wahas ERP update (v${version})`;

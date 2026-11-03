@@ -62,7 +62,8 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDg3NzU1REZEMkVDRkMzODQKUldTRXc4OHUvVjExaDdrUHpxTnpxb2lHRzZNNkNDWXU1Q2h0U1dCN3I2QWQ4SEx4R3FwNkVKcVUK",
       "endpoints": [
-        "https://github.com/hameedwahas332-max/AI-Business-System-hameed/releases/latest/download/latest.json"
+        "https://github.com/hameedwahas332-max/AI-Business-System-hameed/releases/latest/download/latest.json",
+        "https://raw.githubusercontent.com/hameedwahas332-max/AI-Business-System-hameed/main/latest.json"
       ]
     }
   }

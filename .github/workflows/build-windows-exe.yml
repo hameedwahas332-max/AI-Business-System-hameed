@@ -137,6 +137,34 @@ jobs:
         run: |
           npx tauri build --target x86_64-pc-windows-msvc --bundles nsis --ci
 
+      - name: Normalize & Mirror Space-Free Windows Installer Artifacts
+        shell: bash
+        run: |
+          echo "Ensuring dot-sanitized and space-free installer artifacts exist..."
+          for bundle_dir in src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis src-tauri/target/release/bundle/nsis; do
+            if [ -d "$bundle_dir" ]; then
+              cd "$bundle_dir"
+              for f in *.exe *.sig; do
+                if [ -f "$f" ]; then
+                  dot_name=$(echo "$f" | tr ' ' '.')
+                  if [ "$f" != "$dot_name" ]; then
+                    cp -f "$f" "$dot_name"
+                    echo "Mirrored '$f' -> '$dot_name'"
+                  fi
+                  if [[ "$f" == *"_x64-setup.exe" ]]; then
+                    cp -f "$f" "AI-Business-System-Setup.exe"
+                    echo "Mirrored '$f' -> 'AI-Business-System-Setup.exe'"
+                  fi
+                  if [[ "$f" == *"_x64-setup.exe.sig" ]]; then
+                    cp -f "$f" "AI-Business-System-Setup.exe.sig"
+                    echo "Mirrored '$f' -> 'AI-Business-System-Setup.exe.sig'"
+                  fi
+                fi
+              done
+              cd - > /dev/null
+            fi
+          done
+
       - name: Generate Auto-Update Manifest (latest.json)
         shell: bash
         env:

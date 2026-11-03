@@ -73,6 +73,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [isUpdateCenterOpen, setIsUpdateCenterOpen] = useState(false);
   const [hasUpdateAvailable, setHasUpdateAvailable] = useState(false);
   const [availableVersion, setAvailableVersion] = useState('');
+  const [currentAppVersion, setCurrentAppVersion] = useState(CURRENT_APP_VERSION);
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const [conflictCount, setConflictCount] = useState(0);
@@ -83,15 +84,27 @@ export const Header: React.FC<HeaderProps> = ({
       if (e?.detail?.availableVersion) {
         setAvailableVersion(e.detail.availableVersion);
       }
+      if (e?.detail?.currentVersion) {
+        setCurrentAppVersion(e.detail.currentVersion);
+      }
+    };
+    const handleStatusChanged = (e: any) => {
+      if (e?.detail) {
+        setHasUpdateAvailable(Boolean(e.detail.hasUpdate));
+        if (e.detail.availableVersion) setAvailableVersion(e.detail.availableVersion);
+        if (e.detail.currentVersion) setCurrentAppVersion(e.detail.currentVersion);
+      }
     };
     const handleOpenUpdater = () => {
       setIsUpdateCenterOpen(true);
     };
 
     window.addEventListener('erp:update-available', handleUpdateFound);
+    window.addEventListener('erp-update-status-changed', handleStatusChanged);
     window.addEventListener('erp:open-updater-modal', handleOpenUpdater);
     return () => {
       window.removeEventListener('erp:update-available', handleUpdateFound);
+      window.removeEventListener('erp-update-status-changed', handleStatusChanged);
       window.removeEventListener('erp:open-updater-modal', handleOpenUpdater);
     };
   }, []);
@@ -238,16 +251,16 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => setIsUpdateCenterOpen(true)}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm ${
               hasUpdateAvailable
-                ? 'bg-gradient-to-r from-amber-500/20 to-emerald-500/20 text-amber-300 border-2 border-amber-400 shadow-amber-500/20'
+                ? 'bg-gradient-to-r from-amber-500/20 to-emerald-500/20 text-amber-300 border-2 border-amber-400 shadow-amber-500/20 animate-pulse'
                 : 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30'
             }`}
             title="مركز التحديثات التلقائية المعتمدة (Tauri Auto-Updater)"
           >
-            <Sparkles className={`w-3.5 h-3.5 ${hasUpdateAvailable ? 'text-amber-400 animate-spin' : 'text-amber-400'}`} />
+            <Sparkles className={`w-3.5 h-3.5 ${hasUpdateAvailable ? 'text-amber-400' : 'text-blue-400'}`} />
             <span className="hidden xl:inline">التحديثات:</span>
-            <span className="font-mono text-[11px] text-blue-200">v{CURRENT_APP_VERSION}</span>
+            <span className="font-mono text-[11px] text-blue-200">v{currentAppVersion}</span>
             {hasUpdateAvailable && (
-              <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-amber-400 text-slate-950 animate-pulse shadow">
+              <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-amber-400 text-slate-950 shadow">
                 تحديث {availableVersion ? `v${availableVersion}` : 'متاح'}!
               </span>
             )}

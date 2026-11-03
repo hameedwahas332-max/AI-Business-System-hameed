@@ -22,7 +22,9 @@ import {
   restartApplication,
   CURRENT_APP_VERSION,
   UpdateCheckResult,
-  isTauriEnvironment
+  isTauriEnvironment,
+  normalizeVersionString,
+  resolveWorkingReleaseAsset
 } from '../../services/updaterService';
 import { getDevicePlatform } from '../../services/deviceIdentity';
 
@@ -93,7 +95,19 @@ export const UpdateCenterModal: React.FC<UpdateCenterModalProps> = ({ isOpen, on
     } catch (err: any) {
       console.error('[UpdateCenterModal] Install error:', err);
       const rawError = typeof err === 'string' ? err : err?.message || JSON.stringify(err);
-      setErrorMsg(rawError || 'فشل تنزيل أو تثبيت حزمة التحديث');
+      if (rawError.includes('404') || rawError.includes('Not Found')) {
+        setErrorMsg('تم كشف عدم تطابق في اسم الحزمة وتم التحويل التلقائي للرابط المعتمد. يمكنك الضغط على زر التنزيل المباشر أدناه لتثبيت التحديث مع الحفاظ التام على جميع البيانات.');
+        try {
+          const resolved = await resolveWorkingReleaseAsset(updateResult.availableVersion);
+          if (resolved?.downloadUrl) {
+            setUpdateResult((prev) =>
+              prev ? { ...prev, downloadUrl: resolved.downloadUrl, installerFileName: resolved.fileName } : prev
+            );
+          }
+        } catch {}
+      } else {
+        setErrorMsg(rawError || 'فشل تنزيل أو تثبيت حزمة التحديث');
+      }
     } finally {
       setIsDownloading(false);
     }
@@ -145,7 +159,7 @@ export const UpdateCenterModal: React.FC<UpdateCenterModalProps> = ({ isOpen, on
             <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-2xl space-y-1">
               <span className="text-xs text-slate-400 font-bold">الإصدار المثبت حالياً:</span>
               <div className="text-xl font-black font-mono text-slate-200">
-                v{updateResult?.currentVersion || CURRENT_APP_VERSION}
+                v{normalizeVersionString(updateResult?.currentVersion || CURRENT_APP_VERSION)}
               </div>
               <p className="text-[10px] text-slate-500">{getDevicePlatform()}</p>
             </div>
@@ -153,7 +167,7 @@ export const UpdateCenterModal: React.FC<UpdateCenterModalProps> = ({ isOpen, on
             <div className="p-4 bg-slate-950/60 border border-emerald-900/30 rounded-2xl space-y-1">
               <span className="text-xs text-emerald-400 font-bold">أحدث إصدار متاح بالسيرفر:</span>
               <div className="text-xl font-black font-mono text-emerald-400">
-                {updateResult?.availableVersion ? `v${updateResult.availableVersion}` : 'جارِ الفحص...'}
+                {updateResult?.availableVersion ? `v${normalizeVersionString(updateResult.availableVersion)}` : 'جارِ الفحص...'}
               </div>
               <p className="text-[10px] text-slate-500">
                 {lastCheckTime ? `آخر فحص: ${lastCheckTime}` : 'فحص آلي نشط'}
@@ -184,13 +198,13 @@ export const UpdateCenterModal: React.FC<UpdateCenterModalProps> = ({ isOpen, on
                   يمكنك تنزيل وتثبيت التحديث مباشرة (يحفظ جميع بياناتك وقواعد البيانات 100%):
                 </span>
                 <a
-                  href="https://github.com/hameedwahas332-max/AI-Business-System-hameed/releases/latest"
+                  href={updateResult?.downloadUrl || "https://github.com/hameedwahas332-max/AI-Business-System-hameed/releases/latest"}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-md shrink-0"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
-                  <span>تنزيل مثبت التحديث من GitHub</span>
+                  <span>تنزيل مثبت التحديث مباشرة ({updateResult?.availableVersion ? `v${normalizeVersionString(updateResult.availableVersion)}` : 'GitHub'})</span>
                 </a>
               </div>
             </div>
@@ -222,7 +236,7 @@ export const UpdateCenterModal: React.FC<UpdateCenterModalProps> = ({ isOpen, on
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-black text-emerald-400 flex items-center gap-1.5">
                     <Sparkles className="w-4 h-4 text-amber-400" />
-                    <span>يتوفر إصدار سيادي جديد (v{updateResult.availableVersion})</span>
+                    <span>يتوفر إصدار سيادي جديد (v{normalizeVersionString(updateResult.availableVersion)})</span>
                   </span>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                     Ed25519 Minisign Verified
@@ -259,7 +273,7 @@ export const UpdateCenterModal: React.FC<UpdateCenterModalProps> = ({ isOpen, on
                     className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-black shadow-lg shadow-emerald-950/50 transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-98"
                   >
                     <Download className="w-4 h-4" />
-                    <span>تنزيل وتثبيت التحديث الآن (v{updateResult.availableVersion})</span>
+                    <span>تنزيل وتثبيت التحديث الآن (v{normalizeVersionString(updateResult.availableVersion)})</span>
                   </button>
 
                   {updateResult.downloadUrl && (

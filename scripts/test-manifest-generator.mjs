@@ -79,12 +79,12 @@ if (manifest.platforms['windows-x86_64'].signature !== validSig) {
   console.error('FAIL: Signature altered in manifest!');
   process.exit(1);
 }
-const expectedUrl = 'https://github.com/hameedwahas332-max/AI-Business-System-hameed/releases/download/v2.4.1/AI%20Business%20System%20-%20Wahas%20ERP_2.4.1_x64-setup.exe';
+const expectedUrl = 'https://github.com/hameedwahas332-max/AI-Business-System-hameed/releases/download/v2.4.1/AI.Business.System.-.Wahas.ERP_2.4.1_x64-setup.exe';
 if (manifest.platforms['windows-x86_64'].url !== expectedUrl) {
   console.error('FAIL: URL encoding mismatch. Got:', manifest.platforms['windows-x86_64'].url, 'Expected:', expectedUrl);
   process.exit(1);
 }
-console.log('PASS: Correctly parsed installer, preserved full signature, and built encoded URL.');
+console.log('PASS: Correctly parsed installer, preserved full signature, and built dot-sanitized URL.');
 
 // TEST 2: Missing installer
 console.log('\n[Test 2] Missing installer file:');

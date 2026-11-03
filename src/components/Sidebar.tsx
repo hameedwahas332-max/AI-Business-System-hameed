@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { AppIcon } from './Common/AppIcon';
 import { useModuleSettings } from '../context/ModuleSettingsContext';
+import { CURRENT_APP_VERSION, normalizeVersionString } from '../services/updaterService';
 
 export type TabType =
   | 'overview'
@@ -125,6 +126,33 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
       return next;
     });
   };
+
+  // 3. Updater state & events
+  const [appVersion, setAppVersion] = useState<string>(() => normalizeVersionString(CURRENT_APP_VERSION));
+  const [hasUpdate, setHasUpdate] = useState<boolean>(false);
+  const [availableVersion, setAvailableVersion] = useState<string>('');
+
+  useEffect(() => {
+    const handleStatusChanged = (e: any) => {
+      if (e?.detail) {
+        setHasUpdate(Boolean(e.detail.hasUpdate));
+        if (e.detail.availableVersion) setAvailableVersion(normalizeVersionString(e.detail.availableVersion));
+        if (e.detail.currentVersion) setAppVersion(normalizeVersionString(e.detail.currentVersion));
+      }
+    };
+    const handleUpdateAvailable = (e: any) => {
+      setHasUpdate(true);
+      if (e?.detail?.availableVersion) setAvailableVersion(normalizeVersionString(e.detail.availableVersion));
+      if (e?.detail?.currentVersion) setAppVersion(normalizeVersionString(e.detail.currentVersion));
+    };
+
+    window.addEventListener('erp-update-status-changed', handleStatusChanged);
+    window.addEventListener('erp:update-available', handleUpdateAvailable);
+    return () => {
+      window.removeEventListener('erp-update-status-changed', handleStatusChanged);
+      window.removeEventListener('erp:update-available', handleUpdateAvailable);
+    };
+  }, []);
 
   const sections: NavSection[] = [
     {
@@ -330,22 +358,56 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
         })}
       </nav>
 
-      {/* Footer status */}
-      <div className="p-2.5 border-t border-slate-800 bg-slate-900/60">
+      {/* Footer status & Updates */}
+      <div className="p-2.5 border-t border-slate-800 bg-slate-900/60 space-y-1.5">
         {!isCollapsed ? (
-          <div className="flex items-center justify-between text-xs px-2.5 py-1.5 bg-slate-800/50 rounded-xl">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-slate-300 font-medium">PostgreSQL: نشط</span>
+          <>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('erp:open-updater-modal'))}
+              className={`w-full flex items-center justify-between text-xs px-2.5 py-1.5 rounded-xl transition cursor-pointer select-none ${
+                hasUpdate
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 font-bold animate-pulse'
+                  : 'bg-slate-800/40 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-700/40'
+              }`}
+              title="فتح مركز التحديثات التلقائية المعتمدة"
+            >
+              <div className="flex items-center gap-1.5">
+                <Sparkles className={`w-3.5 h-3.5 ${hasUpdate ? 'text-amber-400' : 'text-blue-400'}`} />
+                <span className="font-bold text-[11px]">{hasUpdate ? `تحديث جديد v${availableVersion}` : 'إصدار النظام'}</span>
+              </div>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-900/80 text-blue-300 border border-slate-700/60">
+                v{appVersion}
+              </span>
+            </button>
+
+            <div className="flex items-center justify-between text-xs px-2.5 py-1.5 bg-slate-800/50 rounded-xl">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-slate-300 font-medium">PostgreSQL: نشط</span>
+              </div>
+              <span className="text-[10px] text-slate-400 font-mono">B2 DR Ready</span>
             </div>
-            <span className="text-[10px] text-slate-400 font-mono">B2 DR Ready</span>
-          </div>
+          </>
         ) : (
-          <div
-            className="flex items-center justify-center p-2 bg-slate-800/50 rounded-xl text-center"
-            title="PostgreSQL متصل • النسخ B2 جاهز"
-          >
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+          <div className="space-y-1.5 flex flex-col items-center">
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('erp:open-updater-modal'))}
+              className="w-full flex items-center justify-center p-2 bg-slate-800/50 hover:bg-slate-800 rounded-xl text-center relative cursor-pointer"
+              title={hasUpdate ? `تحديث جديد v${availableVersion} متاح - اضغط للترقية` : `الإصدار المثبت v${appVersion}`}
+            >
+              <Sparkles className={`w-4 h-4 ${hasUpdate ? 'text-amber-400 animate-spin' : 'text-slate-400'}`} />
+              {hasUpdate && (
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-slate-900 animate-ping" />
+              )}
+            </button>
+            <div
+              className="w-full flex items-center justify-center p-2 bg-slate-800/50 rounded-xl text-center"
+              title="PostgreSQL متصل • النسخ B2 جاهز"
+            >
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            </div>
           </div>
         )}
       </div>
