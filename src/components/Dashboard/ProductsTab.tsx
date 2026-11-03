@@ -7,7 +7,7 @@ import {
   toEnglishDigits,
   parseEnglishNumber,
 } from '../../lib/formatters';
-import { normalizeScannedBarcode } from '../../utils/barcodeUtils';
+import { normalizeScannedBarcode, playBarcodeBeep, findProductByBarcode, attachGlobalBarcodeScannerListener } from '../../utils/barcodeUtils';
 import { ExportActions } from '../Common/ExportActions';
 import { ModuleSettingsModal } from '../Common/ModuleSettingsModal';
 import { TableExportConfig } from '../../lib/exportUtils';
@@ -203,6 +203,59 @@ export const ProductsTab: React.FC = () => {
       window.removeEventListener('storage', handleUpdated);
     };
   }, [searchQuery, selectedCategory, selectedActivity, lowStockOnly]);
+
+  // 70ms Instant exact-match sound & notification when typing or scanning into the search input
+  useEffect(() => {
+    if (!searchQuery || searchQuery.trim().length < 4) return;
+    const timer = setTimeout(() => {
+      const match = findProductByBarcode(products, searchQuery);
+      if (match) {
+        playBarcodeBeep('success');
+      }
+    }, 70);
+    return () => clearTimeout(timer);
+  }, [searchQuery, products]);
+
+  // Global Hardware Barcode Scanner Listener for Products Catalog
+  // Automatically detects scanner burst (<65ms + 80ms debounce) without Enter, highlights/searches the product, and plays success beep!
+  useEffect(() => {
+    if (isModalOpen) return;
+    const cleanup = attachGlobalBarcodeScannerListener({
+      minBarcodeLength: 2,
+      burstMaxIntervalMs: 65,
+      endDebounceMs: 80,
+      onScan: (scanned) => {
+        const match = findProductByBarcode(products, scanned);
+        if (match) {
+          playBarcodeBeep('success');
+          setSearchQuery(match.product.barcode || match.product.sku || match.product.name);
+          setSuccess(`تم العثور على الصنف الممسوح: ${match.product.name}`);
+          setTimeout(() => setSuccess(null), 3500);
+        } else {
+          playBarcodeBeep('warning');
+          setError(`⚠️ لم يتم العثور على صنف بالباركود الممسوح: ${scanned}`);
+          setTimeout(() => setError(null), 3500);
+        }
+      },
+      shouldIgnore: () => {
+        if (isModalOpen) return true;
+        const activeEl = document.activeElement as HTMLElement | null;
+        const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
+        if (isInput) {
+          const inputType = (activeEl as HTMLInputElement).type;
+          const inputName = ((activeEl as HTMLInputElement).name || (activeEl as HTMLInputElement).id || '').toLowerCase();
+          if (inputType === 'number' || inputName.includes('price') || inputName.includes('qty')) {
+            return true;
+          }
+        }
+        return false;
+      },
+    });
+
+    return () => {
+      cleanup();
+    };
+  }, [isModalOpen, products]);
 
   const handleOpenCreate = () => {
     setEditingProduct(null);

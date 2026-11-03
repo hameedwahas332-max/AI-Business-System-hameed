@@ -11,7 +11,7 @@ import {
 } from '../../../lib/formatters';
 import { printInvoiceDocument } from '../../../lib/exportUtils';
 import { recordAutomaticTreasuryVoucher } from '../../../utils/treasuryVoucherHelper';
-import { normalizeScannedBarcode, playBarcodeBeep } from '../../../utils/barcodeUtils';
+import { normalizeScannedBarcode, playBarcodeBeep, findProductByBarcode, attachGlobalBarcodeScannerListener } from '../../../utils/barcodeUtils';
 import { enqueueOutboxTransaction } from '../../../services/transactionalOutbox';
 import {
   ArrowRight,
@@ -430,17 +430,31 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
   };
 
   // Quick Barcode / Instant Search Add Product
-  const handleQuickAddProduct = (prod: any) => {
+  const handleQuickAddProduct = (prod: any, targetUnit: 'base' | 'sub' | 'major' = 'base') => {
     if (!prod) return;
 
-    // Check if product is already in the list
-    const existingIndex = items.findIndex((it) => it.product_id === prod.id && it.selectedUnit === 'base');
+    // Check if product is already in the list with same unit
+    const existingIndex = items.findIndex((it) => it.product_id === prod.id && (it.selectedUnit || 'base') === targetUnit);
     if (existingIndex >= 0) {
       const currentQty = items[existingIndex].quantity || 1;
       updateItem(existingIndex, { quantity: currentQty + 1 });
       showNotice(`تمت زيادة كمية "${prod.name}" إلى ${currentQty + 1} ${items[existingIndex].unit}`);
     } else {
-      const price = getProductPriceForTier(prod, selectedPriceTier);
+      const basePrice = getProductPriceForTier(prod, selectedPriceTier);
+      let price = basePrice;
+      let unitName = prod.baseUnitName || prod.unit || 'حبة';
+      let unitFactor = 1;
+
+      if (targetUnit === 'sub' && prod.subUnitName) {
+        unitName = prod.subUnitName;
+        unitFactor = Number(prod.subUnitFactor || 1);
+        price = prod.subUnitPrice && prod.subUnitPrice > 0 ? prod.subUnitPrice : basePrice * unitFactor;
+      } else if (targetUnit === 'major' && prod.majorUnitName) {
+        unitName = prod.majorUnitName;
+        unitFactor = Number(prod.majorUnitFactor || 1);
+        price = prod.majorUnitPrice && prod.majorUnitPrice > 0 ? prod.majorUnitPrice : basePrice * unitFactor;
+      }
+
       const isBattery = prod.activityType === 'battery';
       const isTire = prod.activityType === 'tire';
       const warrantyMonths = Number(prod.warrantyMonths || 12);
@@ -453,7 +467,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
         sku: prod.sku || '',
         itemCode: prod.itemCode || prod.sku,
         partNumber: prod.partNumber,
-        unit: prod.baseUnitName || prod.unit || 'حبة',
+        unit: unitName,
         baseUnitName: prod.baseUnitName || prod.unit || 'حبة',
         subUnitName: prod.subUnitName,
         subUnitFactor: Number(prod.subUnitFactor || 1),
@@ -461,8 +475,8 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
         majorUnitName: prod.majorUnitName,
         majorUnitFactor: Number(prod.majorUnitFactor || 1),
         majorUnitPrice: Number(prod.majorUnitPrice || 0),
-        selectedUnit: 'base',
-        unitFactor: 1,
+        selectedUnit: targetUnit,
+        unitFactor: unitFactor,
         quantity: 1,
         unit_price: price,
         discount: 0,
@@ -495,6 +509,68 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
       searchInputRef.current.focus();
     }
   };
+
+  // 70ms Instant exact-match auto-add when typing or scanning into the search input
+  // Automatically adds item to invoice without requiring Enter when exact barcode/code match is found
+  useEffect(() => {
+    if (!searchQuery || searchQuery.trim().length < 4) return;
+    const timer = setTimeout(() => {
+      const match = findProductByBarcode(productList, searchQuery);
+      if (match) {
+        playBarcodeBeep('success');
+        handleQuickAddProduct(match.product, match.unit);
+      }
+    }, 70);
+    return () => clearTimeout(timer);
+  }, [searchQuery, productList, selectedPriceTier, items]);
+
+  // Global Hardware Barcode Scanner Listener
+  // Intercepts rapid USB HID / Bluetooth scanner bursts and auto-submits on burst completion (<65ms + 80ms debounce) without requiring Enter!
+  useEffect(() => {
+    const cleanup = attachGlobalBarcodeScannerListener({
+      minBarcodeLength: 2,
+      burstMaxIntervalMs: 65,
+      endDebounceMs: 80,
+      onScan: (scanned) => {
+        const match = findProductByBarcode(productList, scanned);
+        if (match) {
+          playBarcodeBeep('success');
+          handleQuickAddProduct(match.product, match.unit);
+        } else {
+          playBarcodeBeep('warning');
+          showNotice(`⚠️ الباركود غير مسجل في المخزون: ${scanned}`);
+        }
+      },
+      shouldIgnore: () => {
+        const activeEl = document.activeElement as HTMLElement | null;
+        const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
+        const isSearchInput = activeEl === searchInputRef.current;
+
+        // Ignore if user is manually editing an operational number/price/qty/note input
+        if (isInput && !isSearchInput) {
+          const inputType = (activeEl as HTMLInputElement).type;
+          const inputName = ((activeEl as HTMLInputElement).name || (activeEl as HTMLInputElement).id || '').toLowerCase();
+          if (
+            inputType === 'number' ||
+            inputName.includes('qty') ||
+            inputName.includes('quantity') ||
+            inputName.includes('price') ||
+            inputName.includes('disc') ||
+            inputName.includes('tax') ||
+            inputName.includes('note') ||
+            inputName.includes('serial')
+          ) {
+            return true;
+          }
+        }
+        return false;
+      },
+    });
+
+    return () => {
+      cleanup();
+    };
+  }, [productList, selectedPriceTier, items]);
 
   const addItemRow = () => {
     setItems([
@@ -572,20 +648,11 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
       const norm = normalizeScannedBarcode(searchQuery).trim();
       if (!norm) return;
 
-      // 1. Direct match on barcode/SKU/Code
-      const exactMatch = productList.find(
-        (p) =>
-          (p.barcode && normalizeScannedBarcode(p.barcode).toLowerCase() === norm.toLowerCase()) ||
-          (p.subUnitBarcode && normalizeScannedBarcode(p.subUnitBarcode).toLowerCase() === norm.toLowerCase()) ||
-          (p.majorUnitBarcode && normalizeScannedBarcode(p.majorUnitBarcode).toLowerCase() === norm.toLowerCase()) ||
-          (p.sku && normalizeScannedBarcode(p.sku).toLowerCase() === norm.toLowerCase()) ||
-          (p.itemCode && normalizeScannedBarcode(p.itemCode).toLowerCase() === norm.toLowerCase()) ||
-          (p.partNumber && normalizeScannedBarcode(p.partNumber).toLowerCase() === norm.toLowerCase())
-      );
-
-      if (exactMatch) {
+      // 1. Direct match on barcode/SKU/Code via findProductByBarcode
+      const match = findProductByBarcode(productList, norm);
+      if (match) {
         playBarcodeBeep('success');
-        handleQuickAddProduct(exactMatch);
+        handleQuickAddProduct(match.product, match.unit);
         return;
       }
 

@@ -5,7 +5,7 @@ import { getAccountingRate } from '../../lib/exchangeRates';
 import { ExportActions } from '../Common/ExportActions';
 import { TableExportConfig, printInvoiceDocument } from '../../lib/exportUtils';
 import { recordAutomaticTreasuryVoucher } from '../../utils/treasuryVoucherHelper';
-import { normalizeScannedBarcode, playBarcodeBeep } from '../../utils/barcodeUtils';
+import { normalizeScannedBarcode, playBarcodeBeep, findProductByBarcode, attachGlobalBarcodeScannerListener } from '../../utils/barcodeUtils';
 import { enqueueOutboxTransaction } from '../../services/transactionalOutbox';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -210,28 +210,41 @@ export const PurchaseInvoicesTab: React.FC = () => {
     setBuilderItems(builderItems.filter((_, i) => i !== index));
   };
 
-  const handleScanPurchaseItem = (rawBarcode: string) => {
+  const handleScanPurchaseItem = (rawBarcode: string, targetUnit?: 'base' | 'sub' | 'major') => {
     const norm = normalizeScannedBarcode(rawBarcode).trim();
     if (!norm) return;
 
-    const term = norm.toLowerCase();
-    const matched = products.find(
-      (p) =>
-        (p.barcode && normalizeScannedBarcode(p.barcode).toLowerCase() === term) ||
-        (p.subUnitBarcode && normalizeScannedBarcode(p.subUnitBarcode).toLowerCase() === term) ||
-        (p.majorUnitBarcode && normalizeScannedBarcode(p.majorUnitBarcode).toLowerCase() === term) ||
-        (p.sku && normalizeScannedBarcode(p.sku).toLowerCase() === term) ||
-        (p.itemCode && normalizeScannedBarcode(p.itemCode).toLowerCase() === term) ||
-        (p.partNumber && normalizeScannedBarcode(p.partNumber).toLowerCase() === term) ||
-        p.name?.toLowerCase() === term
-    );
+    const match = findProductByBarcode(products, norm);
 
-    if (matched) {
+    if (match) {
       playBarcodeBeep('success');
-      const prodCost = Number(matched?.costPrice || matched?.purchasePrice || matched?.cost_price || matched?.purchase_price || 0);
+      const matched = match.product;
+      const unitType = targetUnit || match.unit || 'base';
+
+      let prodCost = Number(matched?.costPrice || matched?.purchasePrice || matched?.cost_price || (matched as any)?.purchase_price || 0);
+      let unitName = matched.baseUnitName || matched.unit || 'حبة';
+      let unitFactor = 1;
+
+      if (unitType === 'sub' && matched.subUnitName) {
+        unitName = matched.subUnitName;
+        unitFactor = Number(matched.subUnitFactor || 1);
+        if (Number(matched.subUnitPrice) > 0) {
+          prodCost = Number(matched.subUnitPrice);
+        } else {
+          prodCost = prodCost * unitFactor;
+        }
+      } else if (unitType === 'major' && matched.majorUnitName) {
+        unitName = matched.majorUnitName;
+        unitFactor = Number(matched.majorUnitFactor || 1);
+        if (Number(matched.majorUnitPrice) > 0) {
+          prodCost = Number(matched.majorUnitPrice);
+        } else {
+          prodCost = prodCost * unitFactor;
+        }
+      }
 
       // Check if item is already in builder items
-      const existingIdx = builderItems.findIndex((it) => it.product_id === matched.id);
+      const existingIdx = builderItems.findIndex((it) => it.product_id === matched.id && (it.unitName === unitName || it.unitFactor === unitFactor));
       if (existingIdx >= 0) {
         const updated = [...builderItems];
         const currentQty = parseFloat(updated[existingIdx].quantity) || 1;
@@ -247,8 +260,8 @@ export const PurchaseInvoicesTab: React.FC = () => {
           freeQuantity: 0,
           costPrice: prodCost,
           unit_cost: prodCost,
-          unitFactor: 1,
-          unitName: matched.unit || 'حبة',
+          unitFactor: unitFactor,
+          unitName: unitName,
           itemDiscountPercent: 0,
           itemDiscountAmount: 0,
           discount: 0,
@@ -260,7 +273,7 @@ export const PurchaseInvoicesTab: React.FC = () => {
         } else {
           setBuilderItems([...builderItems, newRow]);
         }
-        setScannerNotice(`تمت إضافة "${matched.name}" بنجاح عبر الباركود`);
+        setScannerNotice(`تمت إضافة "${matched.name}" بنجاح عبر الباركود (${unitName})`);
       }
       setScannerQuery('');
       setTimeout(() => setScannerNotice(null), 3000);
@@ -270,6 +283,57 @@ export const PurchaseInvoicesTab: React.FC = () => {
       setTimeout(() => setScannerNotice(null), 4000);
     }
   };
+
+  // 70ms Instant exact-match auto-add when typing or scanning into the scanner input
+  // Automatically adds item to purchase invoice without requiring Enter
+  useEffect(() => {
+    if (!scannerQuery || scannerQuery.trim().length < 4) return;
+    const timer = setTimeout(() => {
+      const match = findProductByBarcode(products, scannerQuery);
+      if (match) {
+        handleScanPurchaseItem(scannerQuery, match.unit);
+      }
+    }, 70);
+    return () => clearTimeout(timer);
+  }, [scannerQuery, products, builderItems]);
+
+  // Global Hardware Barcode Scanner Listener for Purchase Builder
+  // Intercepts rapid USB HID / Bluetooth scanner bursts and auto-submits on completion (<65ms + 80ms debounce) without requiring Enter!
+  useEffect(() => {
+    if (!isBuilderOpen) return;
+    const cleanup = attachGlobalBarcodeScannerListener({
+      minBarcodeLength: 2,
+      burstMaxIntervalMs: 65,
+      endDebounceMs: 80,
+      onScan: (scanned) => {
+        handleScanPurchaseItem(scanned);
+      },
+      shouldIgnore: () => {
+        const activeEl = document.activeElement as HTMLElement | null;
+        const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
+        if (isInput) {
+          const inputType = (activeEl as HTMLInputElement).type;
+          const inputName = ((activeEl as HTMLInputElement).name || (activeEl as HTMLInputElement).id || '').toLowerCase();
+          if (
+            inputType === 'number' ||
+            inputName.includes('qty') ||
+            inputName.includes('quantity') ||
+            inputName.includes('price') ||
+            inputName.includes('disc') ||
+            inputName.includes('tax') ||
+            inputName.includes('note')
+          ) {
+            return true;
+          }
+        }
+        return false;
+      },
+    });
+
+    return () => {
+      cleanup();
+    };
+  }, [isBuilderOpen, products, builderItems]);
 
   // Helper to compute individual line calculations with exact ERP logic
   const getItemCalculations = (item: any) => {

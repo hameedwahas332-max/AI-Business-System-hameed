@@ -52,7 +52,7 @@ import {
 } from '../../../lib/formatters';
 import { printInvoiceDocument } from '../../../lib/exportUtils';
 import { recordAutomaticTreasuryVoucher } from '../../../utils/treasuryVoucherHelper';
-import { normalizeScannedBarcode, playBarcodeBeep } from '../../../utils/barcodeUtils';
+import { normalizeScannedBarcode, playBarcodeBeep, findProductByBarcode, attachGlobalBarcodeScannerListener } from '../../../utils/barcodeUtils';
 import { enqueueOutboxTransaction } from '../../../services/transactionalOutbox';
 import { ModuleSettingsModal } from '../../Common/ModuleSettingsModal';
 import { POSQuickItemModal } from './POSQuickItemModal';
@@ -649,55 +649,21 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
     const normalized = normalizeScannedBarcode(scannedRaw);
     if (!normalized) return false;
 
-    const term = normalized.toLowerCase();
+    const match = findProductByBarcode(products, normalized);
 
-    // 1. First priority: Exact match on barcode (Base, Sub-Unit, or Major-Unit)
-    let matchedProduct: any = null;
-    let matchedUnit: 'base' | 'sub' | 'major' = 'base';
-
-    for (const p of products) {
-      if (p.barcode && normalizeScannedBarcode(p.barcode).toLowerCase() === term) {
-        matchedProduct = p;
-        matchedUnit = 'base';
-        break;
-      }
-      if (p.subUnitBarcode && normalizeScannedBarcode(p.subUnitBarcode).toLowerCase() === term) {
-        matchedProduct = p;
-        matchedUnit = 'sub';
-        break;
-      }
-      if (p.majorUnitBarcode && normalizeScannedBarcode(p.majorUnitBarcode).toLowerCase() === term) {
-        matchedProduct = p;
-        matchedUnit = 'major';
-        break;
-      }
-    }
-
-    // 2. Second priority: Match on SKU, itemCode, partNumber
-    if (!matchedProduct) {
-      matchedProduct = products.find(
-        (p) =>
-          (p.sku && normalizeScannedBarcode(p.sku).toLowerCase() === term) ||
-          (p.itemCode && normalizeScannedBarcode(p.itemCode).toLowerCase() === term) ||
-          (p.partNumber && normalizeScannedBarcode(p.partNumber).toLowerCase() === term)
-      );
-    }
-
-    // 3. Third priority: exact or single name match
-    if (!matchedProduct) {
-      const nameMatches = products.filter((p) => p.name?.toLowerCase() === term);
-      if (nameMatches.length === 1) {
-        matchedProduct = nameMatches[0];
-      }
-    }
-
-    if (matchedProduct) {
+    if (match) {
       playBarcodeBeep('success');
-      handleAddToCart(matchedProduct, matchedUnit);
+      handleAddToCart(match.product, match.unit);
       setSearchQuery('');
       setScannedUnmatchedBarcode(null);
       setBarcodeToast({
-        message: `تم مسح وإضافة: ${matchedProduct.name} (${matchedUnit === 'sub' ? matchedProduct.subUnitName || 'وحدة فرعية' : matchedUnit === 'major' ? matchedProduct.majorUnitName || 'وحدة كبرى' : matchedProduct.unit || 'حبة'})`,
+        message: `تم مسح وإضافة: ${match.product.name} (${
+          match.unit === 'sub'
+            ? match.product.subUnitName || 'وحدة فرعية'
+            : match.unit === 'major'
+            ? match.product.majorUnitName || 'وحدة كبرى'
+            : match.product.unit || 'حبة'
+        })`,
         type: 'success',
         barcode: normalized,
       });
@@ -715,79 +681,89 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
     }
   };
 
-  // Global Hardware Barcode Scanner Keydown Listener
-  // Intercepts rapid USB HID scanner strokes (<75ms intervals ending with Enter)
+  // 70ms Instant exact-match auto-add when typing or scanning into the search input
+  // Automatically adds item to cart without requiring Enter when exact barcode/code match is found
   useEffect(() => {
-    const handleGlobalBarcodeKeyDown = (e: KeyboardEvent) => {
-      // Do not intercept if any modal is open
-      if (
-        isQuickItemOpen ||
-        isPaymentModalOpen ||
-        isReceiptModalOpen ||
-        isReturnsModalOpen ||
-        isShiftModalOpen ||
-        isPosDailySalesOpen ||
-        isHeldDrawerOpen ||
-        isAIAssistantOpen
-      ) {
-        return;
+    if (!searchQuery || searchQuery.trim().length < 4) return;
+    const timer = setTimeout(() => {
+      const match = findProductByBarcode(products, searchQuery);
+      if (match) {
+        playBarcodeBeep('success');
+        handleAddToCart(match.product, match.unit);
+        setSearchQuery('');
+        setScannedUnmatchedBarcode(null);
+        setBarcodeToast({
+          message: `تم مسح وإضافة: ${match.product.name} (${
+            match.unit === 'sub'
+              ? match.product.subUnitName || 'وحدة فرعية'
+              : match.unit === 'major'
+              ? match.product.majorUnitName || 'وحدة كبرى'
+              : match.product.unit || 'حبة'
+          })`,
+          type: 'success',
+          barcode: normalizeScannedBarcode(searchQuery),
+        });
+        setTimeout(() => setBarcodeToast(null), 3500);
+        searchInputRef.current?.focus();
       }
+    }, 70);
+    return () => clearTimeout(timer);
+  }, [searchQuery, products, selectedPriceTier]);
 
-      // Check active input
-      const activeEl = document.activeElement as HTMLElement | null;
-      const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
-      const isSearchInput = activeEl === searchInputRef.current;
-
-      // Ignore if user is manually editing an operational number/price/qty/note input
-      if (isInput && !isSearchInput) {
-        const inputType = (activeEl as HTMLInputElement).type;
-        const inputName = ((activeEl as HTMLInputElement).name || (activeEl as HTMLInputElement).id || '').toLowerCase();
+  // Global Hardware Barcode Scanner Listener
+  // Intercepts rapid USB HID / Bluetooth scanner bursts and auto-submits on burst completion (<65ms + 80ms debounce) without requiring Enter!
+  useEffect(() => {
+    const cleanup = attachGlobalBarcodeScannerListener({
+      minBarcodeLength: 2,
+      burstMaxIntervalMs: 65,
+      endDebounceMs: 80,
+      onScan: (scanned) => {
+        lookupAndAddProductByBarcode(scanned);
+      },
+      shouldIgnore: () => {
+        // Do not intercept if any modal is open
         if (
-          inputType === 'number' ||
-          inputName.includes('qty') ||
-          inputName.includes('quantity') ||
-          inputName.includes('price') ||
-          inputName.includes('disc') ||
-          inputName.includes('tax') ||
-          inputName.includes('note') ||
-          inputName.includes('serial')
+          isQuickItemOpen ||
+          isPaymentModalOpen ||
+          isReceiptModalOpen ||
+          isReturnsModalOpen ||
+          isShiftModalOpen ||
+          isPosDailySalesOpen ||
+          isHeldDrawerOpen ||
+          isAIAssistantOpen
         ) {
-          return;
+          return true;
         }
-      }
 
-      const now = Date.now();
-      const timeDiff = now - lastKeyTimeRef.current;
+        // Check active input
+        const activeEl = document.activeElement as HTMLElement | null;
+        const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
+        const isSearchInput = activeEl === searchInputRef.current;
 
-      if (e.key === 'Enter') {
-        const buffer = barcodeBufferRef.current.trim();
-        if (buffer.length >= 2) {
-          e.preventDefault();
-          e.stopPropagation();
-          lookupAndAddProductByBarcode(buffer);
-          barcodeBufferRef.current = '';
-          lastKeyTimeRef.current = 0;
-          return;
+        // Ignore if user is manually editing an operational number/price/qty/note input
+        if (isInput && !isSearchInput) {
+          const inputType = (activeEl as HTMLInputElement).type;
+          const inputName = ((activeEl as HTMLInputElement).name || (activeEl as HTMLInputElement).id || '').toLowerCase();
+          if (
+            inputType === 'number' ||
+            inputName.includes('qty') ||
+            inputName.includes('quantity') ||
+            inputName.includes('price') ||
+            inputName.includes('disc') ||
+            inputName.includes('tax') ||
+            inputName.includes('note') ||
+            inputName.includes('serial')
+          ) {
+            return true;
+          }
         }
-        barcodeBufferRef.current = '';
-        return;
-      }
+        return false;
+      },
+    });
 
-      // Record single printable character
-      if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
-        if (timeDiff > 75) {
-          // Normal human typing gap or beginning of a barcode scan
-          barcodeBufferRef.current = e.key;
-        } else {
-          // High-speed keystroke from physical barcode reader
-          barcodeBufferRef.current += e.key;
-        }
-        lastKeyTimeRef.current = now;
-      }
+    return () => {
+      cleanup();
     };
-
-    window.addEventListener('keydown', handleGlobalBarcodeKeyDown, true);
-    return () => window.removeEventListener('keydown', handleGlobalBarcodeKeyDown, true);
   }, [
     products,
     isQuickItemOpen,
