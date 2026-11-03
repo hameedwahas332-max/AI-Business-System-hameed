@@ -19,10 +19,16 @@ export async function safeFetchJson<T = any>(
     };
 
     let res: Response;
+    const controller = !options?.signal && typeof AbortController !== 'undefined' ? new AbortController() : null;
+    let timeoutId: any = null;
+    if (controller) {
+      timeoutId = setTimeout(() => controller.abort(), 8000);
+    }
     try {
-      res = await fetch(url, { ...options, headers });
+      res = await fetch(url, { ...options, headers, signal: options?.signal || controller?.signal });
     } catch (networkErr: any) {
-      // If network fails (e.g., Tauri offline, server not running locally), execute fallback
+      if (timeoutId) clearTimeout(timeoutId);
+      // If network fails (e.g., Tauri offline, server not running locally, timeout), execute fallback
       const fallback = await handleLocalDesktopApiFallback<T>(url, options);
       return {
         success: fallback.success,
@@ -31,6 +37,8 @@ export async function safeFetchJson<T = any>(
         status: fallback.status || 200,
         error: fallback.error,
       };
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
     }
 
     const contentType = res.headers.get('content-type') || '';

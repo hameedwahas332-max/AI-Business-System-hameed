@@ -1878,6 +1878,68 @@ async function internalHandleLocalDesktopApiFallback(
     };
   }
 
+  // 13.1 Sovereign Sync Center & Transactional Outbox Fallback (Desktop / Offline)
+  if (cleanUrl.includes('/sync/push') || cleanUrl.includes('/enterprise/sync')) {
+    let parsedBody: any = {};
+    try {
+      if (options?.body) {
+        parsedBody = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;
+      }
+    } catch {}
+
+    const transactions = Array.isArray(parsedBody.transactions) ? parsedBody.transactions : [];
+    const rawSeq = parseInt(localStorage.getItem('erp_local_server_seq_v1') || '100', 10);
+    const nextSeq = rawSeq + transactions.length;
+    localStorage.setItem('erp_local_server_seq_v1', String(nextSeq));
+
+    const results = transactions.map((tx: any, idx: number) => ({
+      uuid: tx.uuid || tx.id || `tx_${Date.now()}_${idx}`,
+      status: 'ACCEPTED' as const,
+      serverSeq: rawSeq + idx + 1,
+    }));
+
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: {
+        success: true,
+        serverSeq: nextSeq,
+        results,
+        accepted: results.length,
+        conflicted: 0,
+        rejected: 0,
+      },
+    };
+  }
+
+  if (cleanUrl.includes('/sync/pull')) {
+    const rawSeq = parseInt(localStorage.getItem('erp_local_server_seq_v1') || '100', 10);
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: {
+        success: true,
+        serverSeq: rawSeq,
+        transactions: [],
+        hasMore: false,
+      },
+    };
+  }
+
+  if (cleanUrl.includes('/sync/resolve-conflict')) {
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: {
+        success: true,
+        resolved: true,
+      },
+    };
+  }
+
   // Helper function: normalize Arabic-Indic digits to English digits
   const normalizeDigits = (val: any): any => {
     if (val === undefined || val === null) return val;

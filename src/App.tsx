@@ -9,6 +9,7 @@ import { AppIcon } from './components/Common/AppIcon';
 import { toEnglishDigits } from './lib/formatters';
 import { useAuth } from './context/AuthContext';
 import { checkForUpdates, UpdateCheckResult } from './services/updaterService';
+import { triggerSyncImmediate, isAutoSyncEnabled } from './services/transactionalOutbox';
 
 // 29 Real Enterprise ERP Dashboard Tabs
 import { OverviewTab } from './components/Dashboard/OverviewTab';
@@ -128,6 +129,25 @@ export function App() {
       isMounted = false;
       clearTimeout(initialTimer);
       clearInterval(intervalTimer);
+    };
+  }, []);
+
+  // Instant Automatic Synchronization on Internet Connection Re-establishment
+  useEffect(() => {
+    let onlineTimer: any = null;
+    const handleImmediateAutoSync = () => {
+      if (!isAutoSyncEnabled()) return;
+      if (onlineTimer) clearTimeout(onlineTimer);
+      onlineTimer = setTimeout(() => {
+        console.log('[App] Online detected, initiating instant auto-sync');
+        triggerSyncImmediate();
+      }, 500);
+    };
+
+    window.addEventListener('online', handleImmediateAutoSync);
+    return () => {
+      window.removeEventListener('online', handleImmediateAutoSync);
+      if (onlineTimer) clearTimeout(onlineTimer);
     };
   }, []);
 

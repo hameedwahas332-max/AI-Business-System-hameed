@@ -474,3 +474,56 @@ export async function runIntegrityCheck(): Promise<{
     };
   }
 }
+
+/**
+ * Purge old synced transactions from outbox to prevent localStorage/IndexedDB storage bloat
+ */
+export async function purgeSyncedOutboxRecords(keepLatestCount: number = 50): Promise<number> {
+  try {
+    const all = await getAllRecords<TransactionEnvelope>('local_transactional_outbox');
+    const synced = all.filter((i) => i.syncStatus === 'SYNCED');
+    if (synced.length <= keepLatestCount) return 0;
+
+    // Sort newest first
+    synced.sort((a, b) => new Date(b.createdAtClient).getTime() - new Date(a.createdAtClient).getTime());
+    const toDelete = synced.slice(keepLatestCount);
+    let deletedCount = 0;
+
+    for (const item of toDelete) {
+      await deleteRecord('local_transactional_outbox', item.uuid);
+      deletedCount++;
+    }
+
+    return deletedCount;
+  } catch (err) {
+    console.warn('[LocalSqliteDal] Purge synced outbox error:', err);
+    return 0;
+  }
+}
+
+/**
+ * Reset any outbox items stuck in SYNCING or FAILED back to PENDING_SYNC for retry
+ */
+export async function resetStuckOutboxTransactions(includeFailed: boolean = true): Promise<number> {
+  try {
+    const all = await getAllRecords<TransactionEnvelope>('local_transactional_outbox');
+    let resetCount = 0;
+
+    for (const item of all) {
+      const isStuck = item.syncStatus === 'SYNCING';
+      const isFailed = includeFailed && (item.syncStatus === 'REJECTED' || (item as any).syncStatus === 'FAILED');
+
+      if (isStuck || isFailed) {
+        item.syncStatus = 'PENDING_SYNC';
+        item.errorReason = undefined;
+        await saveRecord('local_transactional_outbox', item);
+        resetCount++;
+      }
+    }
+
+    return resetCount;
+  } catch (err) {
+    console.warn('[LocalSqliteDal] Reset stuck outbox error:', err);
+    return 0;
+  }
+}

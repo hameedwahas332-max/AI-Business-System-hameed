@@ -35,7 +35,10 @@ import {
 import {
   processOutboxSync,
   getPendingOutboxCount,
-  triggerSyncImmediate
+  triggerSyncImmediate,
+  isAutoSyncEnabled,
+  setAutoSyncEnabled,
+  forceResetAndResendOutbox
 } from '../../services/transactionalOutbox';
 import { formatAmount } from '../../lib/formatters';
 
@@ -46,10 +49,13 @@ interface SyncCenterModalProps {
 
 export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClose }) => {
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [autoSync, setAutoSync] = useState<boolean>(() => isAutoSyncEnabled());
   const [deviceId, setDeviceId] = useState<string>('');
   const [platform, setPlatform] = useState<string>('');
   const [syncState, setSyncState] = useState<'IDLE' | 'SYNCING' | 'ERROR'>('IDLE');
   const [isManualSyncing, setIsManualSyncing] = useState<boolean>(false);
+  const [isResetting, setIsResetting] = useState<boolean>(false);
+  const [manualSyncProgress, setManualSyncProgress] = useState<{ active: boolean; sent: number; total: number }>({ active: false, sent: 0, total: 0 });
   const [activeSubTab, setActiveSubTab] = useState<'METRICS' | 'CONFLICTS' | 'DATABASE' | 'AUDIT'>('METRICS');
 
   // Metrics states
@@ -161,11 +167,17 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
     };
   }, [outboxItems, conflicts]);
 
-  // Handle Manual Sync Now
+  // Handle Manual Sync Now with progress tracking
   const handleManualSync = async () => {
     try {
       setIsManualSyncing(true);
+      const pendingCount = outboxItems.filter((i) => i.syncStatus === 'PENDING_SYNC' || i.syncStatus === 'SYNCING').length;
+      setManualSyncProgress({ active: true, sent: 0, total: pendingCount || 1 });
+
       const result = await processOutboxSync();
+
+      const accepted = result?.accepted || 0;
+      setManualSyncProgress({ active: true, sent: accepted, total: pendingCount || accepted || 1 });
 
       // Pull latest state from server
       const tenantId = localStorage.getItem('erp_company_id') || 'comp_001';
@@ -176,7 +188,7 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
         id: `log-${Date.now()}`,
         timestamp: new Date().toISOString(),
         event: 'MANUAL_USER_SYNC',
-        details: result ? `مزامنة يدوية: قُبلت ${result.accepted} حركة، تعارض: ${result.conflicted}` : 'فشلت المزامنة لعدم توفر إنترنت',
+        details: result ? `مزامنة يدوية: قُبلت ${result.accepted} حركة، تعارض: ${result.conflicted}، مرفوضة: ${result.rejected}` : 'فشلت المزامنة لعدم توفر إنترنت أو انتهاء المهلة',
         status: result ? 'CONFIRMED' : 'FAILED'
       };
       const updatedLogs = [newAudit, ...auditLogs.slice(0, 49)];
@@ -191,11 +203,48 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
       setOutboxItems(outbox);
       setConflicts(confs);
       setLastSyncTime(new Date().toISOString());
+      setTimeout(() => setManualSyncProgress({ active: false, sent: 0, total: 0 }), 3500);
     } catch (err: any) {
       console.warn('[SyncCenterModal] Manual sync error:', err);
     } finally {
       setIsManualSyncing(false);
     }
+  };
+
+  // Reset any hung or failed outbox transactions, release sync lock, and resend immediately
+  const handleResetAndForceResend = async () => {
+    try {
+      setIsResetting(true);
+      const result = await forceResetAndResendOutbox();
+      const [outbox, confs] = await Promise.all([
+        getAllRecords('local_transactional_outbox'),
+        getAllRecords<SyncConflictRecord>('sync_conflict_registry')
+      ]);
+      setOutboxItems(outbox);
+      setConflicts(confs);
+      setLastSyncTime(new Date().toISOString());
+
+      const newAudit = {
+        id: `log-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        event: 'FORCE_UNLOCK_RESEND',
+        details: result ? `فك التعليق بنجاح: تم ترحيل ${result.accepted} حركة` : 'تم فك التعليق وإعادة ضبط الطابور',
+        status: 'CONFIRMED'
+      };
+      const updatedLogs = [newAudit, ...auditLogs.slice(0, 49)];
+      setAuditLogs(updatedLogs);
+      localStorage.setItem('erp_sync_audit_logs_v1', JSON.stringify(updatedLogs));
+    } catch (err) {
+      console.warn('[SyncCenterModal] Reset & force resend error:', err);
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  const handleToggleAutoSync = () => {
+    const nextState = !autoSync;
+    setAutoSync(nextState);
+    setAutoSyncEnabled(nextState);
   };
 
   // Handle Conflict Resolution
@@ -315,18 +364,51 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Auto-Sync Toggle */}
             <button
+              type="button"
+              onClick={handleToggleAutoSync}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-sm ${
+                autoSync
+                  ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25'
+                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700/60'
+              }`}
+              title="تفعيل أو تعطيل المزامنة التلقائية الفورية عند توفر اتصال بالإنترنت"
+            >
+              <Zap className={`w-3.5 h-3.5 ${autoSync ? 'text-emerald-400 fill-emerald-400' : 'text-slate-500'}`} />
+              <span>المزامنة التلقائية:</span>
+              <span className={autoSync ? 'text-emerald-300 font-black' : 'text-slate-400'}>
+                {autoSync ? 'مفعلة' : 'معطلة'}
+              </span>
+            </button>
+
+            {/* Force Reset & Resend */}
+            <button
+              type="button"
+              onClick={handleResetAndForceResend}
+              disabled={isResetting || isManualSyncing}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm disabled:opacity-50"
+              title="فك أي قفل معلق وإعادة جدولة كافة العمليات الفاشلة أو المتوقفة وإرسالها فوراً"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isResetting ? 'animate-spin' : ''}`} />
+              <span>{isResetting ? 'جارِ فك التعليق...' : 'فك التعليق وإعادة الإرسال'}</span>
+            </button>
+
+            {/* Manual Sync Now */}
+            <button
+              type="button"
               onClick={handleManualSync}
               disabled={isManualSyncing || !isOnline}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black shadow-md transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-black shadow-md transition-all cursor-pointer ${
                 isOnline
                   ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
                   : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
               }`}
+              title="إرسال دفعة العمليات المعلقة فوراً دون انتظار"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isManualSyncing ? 'animate-spin' : ''}`} />
-              <span>{isManualSyncing ? 'جارِ المزامنة...' : '🔄 مزامنة يدوية الآن'}</span>
+              <span>{isManualSyncing ? 'جارِ الإرسال...' : 'إرسال الآن (يدوي)'}</span>
             </button>
 
             <button
@@ -447,6 +529,32 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
             <div className="p-3 bg-emerald-950/60 border border-emerald-500/40 rounded-2xl flex items-center gap-2 text-emerald-300 text-xs font-bold animate-in fade-in">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
               <span>{backupSuccess}</span>
+            </div>
+          )}
+
+          {/* Live Batch Progress Indicator */}
+          {manualSyncProgress.active && (
+            <div className="p-4 bg-emerald-950/70 border border-emerald-500/40 rounded-2xl space-y-2 animate-in fade-in shadow-lg">
+              <div className="flex items-center justify-between text-xs font-bold text-emerald-200">
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4 text-emerald-400 animate-spin" />
+                  <span>جارِ ترحيل المعاملات المعلقة في دفعة واحدة (Batch Push)...</span>
+                </div>
+                <div className="font-mono text-emerald-300 flex items-center gap-1.5">
+                  <span>تم قبول:</span>
+                  <span className="font-black text-white">{manualSyncProgress.sent}</span>
+                  <span>/</span>
+                  <span>{manualSyncProgress.total} حركة</span>
+                </div>
+              </div>
+              <div className="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-l from-emerald-400 to-teal-300 transition-all duration-300"
+                  style={{
+                    width: `${Math.min(100, Math.round((manualSyncProgress.sent / Math.max(1, manualSyncProgress.total)) * 100))}%`
+                  }}
+                />
+              </div>
             </div>
           )}
 

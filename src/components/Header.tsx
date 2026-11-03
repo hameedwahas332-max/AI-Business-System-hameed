@@ -128,6 +128,7 @@ export const Header: React.FC<HeaderProps> = ({
     window.addEventListener('offline', handleOffline);
     window.addEventListener('erp-outbox-updated', handleUpdate);
     window.addEventListener('erp-sync-state-changed', handleUpdate);
+    window.addEventListener('erp-sync-status-changed', handleUpdate);
     window.addEventListener('erp-remote-data-updated', handleUpdate);
 
     const interval = setInterval(refreshSyncStats, 10000);
@@ -137,6 +138,7 @@ export const Header: React.FC<HeaderProps> = ({
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('erp-outbox-updated', handleUpdate);
       window.removeEventListener('erp-sync-state-changed', handleUpdate);
+      window.removeEventListener('erp-sync-status-changed', handleUpdate);
       window.removeEventListener('erp-remote-data-updated', handleUpdate);
       clearInterval(interval);
     };

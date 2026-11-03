@@ -211,7 +211,8 @@ export async function handleSyncPush(params: {
   let acceptedCount = 0;
 
   for (const tx of transactions) {
-    // 1. Idempotency Check
+    try {
+      // 1. Idempotency Check
     if (idempotencyRegistry.has(tx.idempotencyKey)) {
       const cached = idempotencyRegistry.get(tx.idempotencyKey)!;
       results.push({
@@ -436,6 +437,14 @@ export async function handleSyncPush(params: {
     });
 
     acceptedCount++;
+    } catch (txErr: any) {
+      console.warn(`[SyncEngineServer] Fault isolated on transaction ${tx?.uuid}:`, txErr);
+      results.push({
+        uuid: tx?.uuid || 'unknown',
+        status: 'REJECTED',
+        reason: txErr?.message || 'Transaction processing failed'
+      });
+    }
   }
 
   // Persist memory changes to data store
