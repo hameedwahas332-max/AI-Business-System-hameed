@@ -153,6 +153,53 @@ export interface BarcodeMatchResult {
 }
 
 /**
+ * Shared singleton deduplication guard:
+ * Blocks duplicate barcode scan triggers arriving within `cooldownMs` (default 450ms).
+ * Returns true if this scan should be processed; false if it is a duplicate second call.
+ */
+interface BarcodeScanLock {
+  lastBarcode: string;
+  lastTimestamp: number;
+}
+
+let globalBarcodeLock: BarcodeScanLock = {
+  lastBarcode: '',
+  lastTimestamp: 0,
+};
+
+export function shouldProcessBarcodeScan(barcode: string | null | undefined, cooldownMs = 450): boolean {
+  if (!barcode) return false;
+  const normalized = normalizeScannedBarcode(barcode).toLowerCase().trim();
+  if (!normalized) return false;
+
+  const now = Date.now();
+  if (
+    globalBarcodeLock.lastBarcode === normalized &&
+    now - globalBarcodeLock.lastTimestamp < cooldownMs
+  ) {
+    // Duplicate detected within cooldown window
+    return false;
+  }
+
+  // Record this scan
+  globalBarcodeLock = {
+    lastBarcode: normalized,
+    lastTimestamp: now,
+  };
+  return true;
+}
+
+/**
+ * Resets the scan lock (useful when switching screens or manually resetting)
+ */
+export function resetBarcodeScanLock(): void {
+  globalBarcodeLock = {
+    lastBarcode: '',
+    lastTimestamp: 0,
+  };
+}
+
+/**
  * Searches a product catalog by scanned barcode or item code with prioritized exact matching.
  * Checks:
  * 1. Base barcode
@@ -244,7 +291,18 @@ export function attachGlobalBarcodeScannerListener(options: BarcodeScannerListen
   let buffer = '';
   let lastKeyTime = 0;
   let burstCharCount = 0;
+  let lastScanSubmittedTime = 0;
   let debounceTimer: any = null;
+
+  const clearActiveInputElement = () => {
+    try {
+      const activeEl = document.activeElement;
+      if (activeEl && (activeEl instanceof HTMLInputElement || activeEl instanceof HTMLTextAreaElement)) {
+        activeEl.value = '';
+        activeEl.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    } catch {}
+  };
 
   const finalizeBuffer = () => {
     if (debounceTimer) {
@@ -255,10 +313,16 @@ export function attachGlobalBarcodeScannerListener(options: BarcodeScannerListen
     buffer = '';
     burstCharCount = 0;
     lastKeyTime = 0;
+    lastScanSubmittedTime = Date.now();
 
     const normalized = normalizeScannedBarcode(current);
     if (normalized.length >= minLength) {
-      options.onScan(normalized);
+      // Clear any focused search input immediately so its onChange/Enter does not re-add the product
+      clearActiveInputElement();
+
+      if (shouldProcessBarcodeScan(normalized, 450)) {
+        options.onScan(normalized);
+      }
     }
   };
 
@@ -279,14 +343,32 @@ export function attachGlobalBarcodeScannerListener(options: BarcodeScannerListen
       return;
     }
 
-    // If Enter or Tab arrives, immediately finalize the buffer
+    // If Enter or Tab arrives:
+    // 1. If a scan was submitted recently (<500ms), this is a trailing Enter from the hardware scanner:
+    //    SUPPRESS IT completely and clear any input value so it cannot fire a second addition!
+    // 2. Otherwise if buffer has a burst, finalize it immediately.
     if (e.key === 'Enter' || e.key === 'Tab') {
+      const timeSinceLastScan = Date.now() - lastScanSubmittedTime;
+      if (timeSinceLastScan < 500) {
+        e.preventDefault();
+        e.stopPropagation();
+        clearActiveInputElement();
+        buffer = '';
+        burstCharCount = 0;
+        if (debounceTimer) {
+          clearTimeout(debounceTimer);
+          debounceTimer = null;
+        }
+        return;
+      }
+
       if (buffer.length >= minLength && burstCharCount >= 2) {
         e.preventDefault();
         e.stopPropagation();
         finalizeBuffer();
         return;
       }
+
       // If buffer is too short, simply clear
       buffer = '';
       burstCharCount = 0;
@@ -349,7 +431,12 @@ export function attachGlobalBarcodeScannerListener(options: BarcodeScannerListen
         }
         buffer = '';
         burstCharCount = 0;
-        options.onScan(normalized);
+        lastScanSubmittedTime = Date.now();
+        clearActiveInputElement();
+
+        if (shouldProcessBarcodeScan(normalized, 450)) {
+          options.onScan(normalized);
+        }
       }
     } catch {}
   };
@@ -368,7 +455,12 @@ export function attachGlobalBarcodeScannerListener(options: BarcodeScannerListen
         }
         buffer = '';
         burstCharCount = 0;
-        options.onScan(normalized);
+        lastScanSubmittedTime = Date.now();
+        clearActiveInputElement();
+
+        if (shouldProcessBarcodeScan(normalized, 450)) {
+          options.onScan(normalized);
+        }
       }
     }
   };

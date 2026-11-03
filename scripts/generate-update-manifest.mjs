@@ -118,13 +118,6 @@ export function generateUpdateManifest(baseDir = process.cwd()) {
     console.log(`[updater-manifest] Mirrored source variant '${sourceVariant}' -> '${canonicalFileName}'`);
   }
 
-  // Verify that the canonical installer is a valid non-empty file
-  const installerStat = fs.statSync(canonicalFilePath);
-  if (installerStat.size === 0) {
-    console.error(`FATAL [updater-manifest]: Installer file is empty (0 bytes): ${canonicalFilePath}`);
-    process.exit(1);
-  }
-
   // Ensure matching signature file exists for the canonical dot-named installer
   if (!fs.existsSync(canonicalSigFilePath)) {
     // Check if any of the variants has a matching signature file (e.g. space-named file + .sig)
@@ -148,6 +141,36 @@ export function generateUpdateManifest(baseDir = process.cwd()) {
       console.error(`Ensure TAURI_SIGNING_PRIVATE_KEY is set in GitHub Secrets.`);
       process.exit(1);
     }
+  }
+
+  // CLEAN SINGLE-CANONICAL-FILE ENFORCEMENT:
+  // Remove space-named original variants and their .sig files so ONLY the single dot-sanitized
+  // installer and its matching .exe.sig remain in the bundle directory.
+  // This prevents GitHub Releases from mapping both to the same asset name and crashing with 404.
+  for (const v of variants) {
+    if (v !== canonicalFileName) {
+      const variantFilePath = path.join(bundleDir, v);
+      const variantSigPath = path.join(bundleDir, `${v}.sig`);
+      try {
+        if (fs.existsSync(variantFilePath)) {
+          fs.unlinkSync(variantFilePath);
+          console.log(`[updater-manifest] Removed space-named duplicate installer: '${v}'`);
+        }
+        if (fs.existsSync(variantSigPath)) {
+          fs.unlinkSync(variantSigPath);
+          console.log(`[updater-manifest] Removed space-named duplicate signature: '${v}.sig'`);
+        }
+      } catch (cleanErr) {
+        console.warn(`[updater-manifest] Warning removing space-named duplicate '${v}':`, cleanErr.message);
+      }
+    }
+  }
+
+  // Verify that the canonical installer is a valid non-empty file
+  const installerStat = fs.statSync(canonicalFilePath);
+  if (installerStat.size === 0) {
+    console.error(`FATAL [updater-manifest]: Installer file is empty (0 bytes): ${canonicalFilePath}`);
+    process.exit(1);
   }
 
   // Read entire signature file as UTF-8 and preserve exact contents

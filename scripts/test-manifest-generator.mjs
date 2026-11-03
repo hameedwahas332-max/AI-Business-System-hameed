@@ -169,7 +169,23 @@ if (manifest6.platforms['windows-x86_64'].url !== expectedUrl6) {
   console.error('FAIL: Test 6 URL mismatch. Got:', manifest6.platforms['windows-x86_64'].url, 'Expected:', expectedUrl6);
   process.exit(1);
 }
-console.log('PASS: Successfully deduplicated space and dot-named variants, selecting dot-sanitized asset URL.');
+
+// Verify that the space-named variant was deleted and ONLY dot-sanitized files remain
+const nsisDir6 = path.join(testDir, 'src-tauri', 'target', 'x86_64-pc-windows-msvc', 'release', 'bundle', 'nsis');
+if (fs.existsSync(path.join(nsisDir6, spaceNamed6))) {
+  console.error('FAIL: Space-named installer variant was not removed from bundle directory!');
+  process.exit(1);
+}
+if (fs.existsSync(path.join(nsisDir6, `${spaceNamed6}.sig`))) {
+  console.error('FAIL: Space-named signature variant was not removed from bundle directory!');
+  process.exit(1);
+}
+if (!fs.existsSync(path.join(nsisDir6, dotNamed6)) || !fs.existsSync(path.join(nsisDir6, `${dotNamed6}.sig`))) {
+  console.error('FAIL: Dot-sanitized installer or signature is missing!');
+  process.exit(1);
+}
+
+console.log('PASS: Successfully deduplicated space and dot-named variants, cleaned up duplicates, and verified dot-sanitized asset URL.');
 
 cleanup();
 console.log('\n=== ALL 6 MANIFEST GENERATION TESTS PASSED WITH 100% SUCCESS ===');

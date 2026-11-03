@@ -11,7 +11,7 @@ import {
 } from '../../../lib/formatters';
 import { printInvoiceDocument } from '../../../lib/exportUtils';
 import { recordAutomaticTreasuryVoucher } from '../../../utils/treasuryVoucherHelper';
-import { normalizeScannedBarcode, playBarcodeBeep, findProductByBarcode, attachGlobalBarcodeScannerListener } from '../../../utils/barcodeUtils';
+import { normalizeScannedBarcode, playBarcodeBeep, findProductByBarcode, attachGlobalBarcodeScannerListener, shouldProcessBarcodeScan } from '../../../utils/barcodeUtils';
 import { enqueueOutboxTransaction } from '../../../services/transactionalOutbox';
 import {
   ArrowRight,
@@ -433,6 +433,15 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
   const handleQuickAddProduct = (prod: any, targetUnit: 'base' | 'sub' | 'major' = 'base') => {
     if (!prod) return;
 
+    // Deduplication lock: prevent duplicate scan within 450ms
+    const scanKey = prod.barcode || prod.subUnitBarcode || prod.majorUnitBarcode || prod.sku || prod.itemCode || prod.id;
+    if (scanKey && !shouldProcessBarcodeScan(scanKey, 450)) {
+      setSearchQuery('');
+      if (searchInputRef.current) searchInputRef.current.value = '';
+      setIsSearchOpen(false);
+      return;
+    }
+
     // Check if product is already in the list with same unit
     const existingIndex = items.findIndex((it) => it.product_id === prod.id && (it.selectedUnit || 'base') === targetUnit);
     if (existingIndex >= 0) {
@@ -506,6 +515,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
     setSearchQuery('');
     setIsSearchOpen(false);
     if (searchInputRef.current) {
+      searchInputRef.current.value = '';
       searchInputRef.current.focus();
     }
   };
@@ -517,6 +527,13 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
     const timer = setTimeout(() => {
       const match = findProductByBarcode(productList, searchQuery);
       if (match) {
+        const norm = normalizeScannedBarcode(searchQuery);
+        if (!shouldProcessBarcodeScan(norm, 450)) {
+          setSearchQuery('');
+          if (searchInputRef.current) searchInputRef.current.value = '';
+          setIsSearchOpen(false);
+          return;
+        }
         playBarcodeBeep('success');
         handleQuickAddProduct(match.product, match.unit);
       }

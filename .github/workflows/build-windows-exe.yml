@@ -147,45 +147,105 @@ jobs:
         run: |
           node scripts/generate-update-manifest.mjs
 
-      - name: Mirror Fixed Alias Windows Installer Artifacts
-        shell: bash
+      - name: Stage Deduplicated Release Assets
+        shell: pwsh
         run: |
-          echo "Mirroring fixed alias installer for direct release downloads..."
-          for bundle_dir in src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis src-tauri/target/release/bundle/nsis; do
-            if [ -d "$bundle_dir" ]; then
-              cd "$bundle_dir"
-              for f in *_x64-setup.exe; do
-                if [ -f "$f" ] && [ "$f" != "AI-Business-System-Setup.exe" ]; then
-                  cp -f "$f" "AI-Business-System-Setup.exe"
-                  echo "Created alias: AI-Business-System-Setup.exe from $f"
-                  break
-                fi
-              done
-              for s in *_x64-setup.exe.sig; do
-                if [ -f "$s" ] && [ "$s" != "AI-Business-System-Setup.exe.sig" ]; then
-                  cp -f "$s" "AI-Business-System-Setup.exe.sig"
-                  echo "Created alias: AI-Business-System-Setup.exe.sig from $s"
-                  break
-                fi
-              done
-              cd - > /dev/null
-            fi
-          done
+          Write-Host "Creating clean release staging directory 'release-assets/'..."
+          if (Test-Path "release-assets") {
+            Remove-Item -Recurse -Force "release-assets"
+          }
+          New-Item -ItemType Directory -Path "release-assets" | Out-Null
+
+          # 1. Locate NSIS bundle folder
+          $candidateDirs = @(
+            "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis",
+            "src-tauri/target/release/bundle/nsis"
+          )
+          $nsisDir = $null
+          foreach ($dir in $candidateDirs) {
+            if (Test-Path $dir) {
+              $nsisDir = $dir
+              break
+            }
+          }
+
+          if (-not $nsisDir) {
+            Write-Error "FATAL: Could not locate NSIS bundle directory in candidates: $($candidateDirs -join ', ')"
+            exit 1
+          }
+          Write-Host "Located NSIS bundle directory: $nsisDir"
+
+          # 2. Find canonical dot-sanitized installer and signature
+          $versionedInstaller = Get-ChildItem -Path $nsisDir -Filter "AI.Business.System*_x64-setup.exe" | Select-Object -First 1
+          if (-not $versionedInstaller) {
+            $versionedInstaller = Get-ChildItem -Path $nsisDir -Filter "*_x64-setup.exe" | Where-Object { $_.Name -notlike "*Setup.exe" } | Select-Object -First 1
+          }
+
+          if (-not $versionedInstaller) {
+            Write-Error "FATAL: No versioned installer found in $nsisDir"
+            exit 1
+          }
+
+          $destInstallerName = $versionedInstaller.Name.Replace(" ", ".")
+          Copy-Item -Path $versionedInstaller.FullName -Destination "release-assets/$destInstallerName" -Force
+          Write-Host "Staged canonical installer: $destInstallerName"
+
+          # Find and copy matching signature
+          $sigFile = Get-ChildItem -Path $nsisDir -Filter "$($versionedInstaller.Name).sig" | Select-Object -First 1
+          if (-not $sigFile) {
+            $sigFile = Get-ChildItem -Path $nsisDir -Filter "$destInstallerName.sig" | Select-Object -First 1
+          }
+          if ($sigFile) {
+            Copy-Item -Path $sigFile.FullName -Destination "release-assets/$destInstallerName.sig" -Force
+            Write-Host "Staged signature: $destInstallerName.sig"
+          } else {
+            Write-Warning "Signature file for $($versionedInstaller.Name) was not found."
+          }
+
+          # 3. Create fixed-name installer copy (and signature copy)
+          Copy-Item -Path "release-assets/$destInstallerName" -Destination "release-assets/AI-Business-System-Setup.exe" -Force
+          Write-Host "Staged fixed-name installer alias: AI-Business-System-Setup.exe"
+
+          if (Test-Path "release-assets/$destInstallerName.sig") {
+            Copy-Item -Path "release-assets/$destInstallerName.sig" -Destination "release-assets/AI-Business-System-Setup.exe.sig" -Force
+            Write-Host "Staged fixed-name signature alias: AI-Business-System-Setup.exe.sig"
+          }
+
+          # 4. Copy latest.json from repository root
+          if (Test-Path "latest.json") {
+            Copy-Item -Path "latest.json" -Destination "release-assets/latest.json" -Force
+            Write-Host "Staged updater manifest: latest.json"
+          } else {
+            Write-Error "FATAL: latest.json not found in repository root!"
+            exit 1
+          }
+
+          # 5. Explicit space-free validation & deduplication
+          $stagedFiles = Get-ChildItem -Path "release-assets"
+          foreach ($file in $stagedFiles) {
+            if ($file.Name.Contains(" ")) {
+              $cleanName = $file.Name.Replace(" ", ".")
+              $cleanPath = Join-Path "release-assets" $cleanName
+              if (Test-Path $cleanPath) {
+                Remove-Item -Force $file.FullName
+              } else {
+                Rename-Item -Path $file.FullName -NewName $cleanName -Force
+              }
+              Write-Host "Sanitized spaced file: $($file.Name) -> $cleanName"
+            }
+          }
+
+          Write-Host "`n=== FINAL STAGED RELEASE ASSETS ==="
+          Get-ChildItem -Path "release-assets" | ForEach-Object {
+            Write-Host "  - $($_.Name) ($($_.Length) bytes)"
+          }
 
       - name: Upload NSIS .exe Installer & Updater Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Wahas-ERP-Windows-x64-Package-v${{ env.AUTHORITATIVE_VERSION }}
           path: |
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe.sig
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.sig
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.zip
-            src-tauri/target/release/bundle/nsis/*.exe
-            src-tauri/target/release/bundle/nsis/*.exe.sig
-            src-tauri/target/release/bundle/nsis/*.sig
-            src-tauri/target/release/bundle/nsis/*.zip
-            latest.json
+            release-assets/*
           retention-days: 30
           if-no-files-found: error
 
@@ -205,14 +265,6 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe.sig
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.sig
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.zip
-            src-tauri/target/release/bundle/nsis/*.exe
-            src-tauri/target/release/bundle/nsis/*.exe.sig
-            src-tauri/target/release/bundle/nsis/*.sig
-            src-tauri/target/release/bundle/nsis/*.zip
-            latest.json
+            release-assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -7,7 +7,7 @@ import {
   toEnglishDigits,
   parseEnglishNumber,
 } from '../../lib/formatters';
-import { normalizeScannedBarcode, playBarcodeBeep, findProductByBarcode, attachGlobalBarcodeScannerListener } from '../../utils/barcodeUtils';
+import { normalizeScannedBarcode, playBarcodeBeep, findProductByBarcode, attachGlobalBarcodeScannerListener, shouldProcessBarcodeScan } from '../../utils/barcodeUtils';
 import { ExportActions } from '../Common/ExportActions';
 import { ModuleSettingsModal } from '../Common/ModuleSettingsModal';
 import { TableExportConfig } from '../../lib/exportUtils';
@@ -210,6 +210,7 @@ export const ProductsTab: React.FC = () => {
     const timer = setTimeout(() => {
       const match = findProductByBarcode(products, searchQuery);
       if (match) {
+        if (!shouldProcessBarcodeScan(match.product.barcode || searchQuery, 450)) return;
         playBarcodeBeep('success');
       }
     }, 70);

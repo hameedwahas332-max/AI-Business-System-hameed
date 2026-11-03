@@ -5,7 +5,7 @@ import { getAccountingRate } from '../../lib/exchangeRates';
 import { ExportActions } from '../Common/ExportActions';
 import { TableExportConfig, printInvoiceDocument } from '../../lib/exportUtils';
 import { recordAutomaticTreasuryVoucher } from '../../utils/treasuryVoucherHelper';
-import { normalizeScannedBarcode, playBarcodeBeep, findProductByBarcode, attachGlobalBarcodeScannerListener } from '../../utils/barcodeUtils';
+import { normalizeScannedBarcode, playBarcodeBeep, findProductByBarcode, attachGlobalBarcodeScannerListener, shouldProcessBarcodeScan } from '../../utils/barcodeUtils';
 import { enqueueOutboxTransaction } from '../../services/transactionalOutbox';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -213,6 +213,12 @@ export const PurchaseInvoicesTab: React.FC = () => {
   const handleScanPurchaseItem = (rawBarcode: string, targetUnit?: 'base' | 'sub' | 'major') => {
     const norm = normalizeScannedBarcode(rawBarcode).trim();
     if (!norm) return;
+
+    // Deduplication lock: prevent duplicate scan within 450ms
+    if (!shouldProcessBarcodeScan(norm, 450)) {
+      setScannerQuery('');
+      return;
+    }
 
     const match = findProductByBarcode(products, norm);
 

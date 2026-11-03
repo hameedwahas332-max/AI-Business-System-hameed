@@ -52,7 +52,7 @@ import {
 } from '../../../lib/formatters';
 import { printInvoiceDocument } from '../../../lib/exportUtils';
 import { recordAutomaticTreasuryVoucher } from '../../../utils/treasuryVoucherHelper';
-import { normalizeScannedBarcode, playBarcodeBeep, findProductByBarcode, attachGlobalBarcodeScannerListener } from '../../../utils/barcodeUtils';
+import { normalizeScannedBarcode, playBarcodeBeep, findProductByBarcode, attachGlobalBarcodeScannerListener, shouldProcessBarcodeScan } from '../../../utils/barcodeUtils';
 import { enqueueOutboxTransaction } from '../../../services/transactionalOutbox';
 import { ModuleSettingsModal } from '../../Common/ModuleSettingsModal';
 import { POSQuickItemModal } from './POSQuickItemModal';
@@ -649,12 +649,20 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
     const normalized = normalizeScannedBarcode(scannedRaw);
     if (!normalized) return false;
 
+    // Global scan deduplication lock (prevents duplicate add when scanner fires enter or both input+burst trigger)
+    if (!shouldProcessBarcodeScan(normalized, 450)) {
+      setSearchQuery('');
+      if (searchInputRef.current) searchInputRef.current.value = '';
+      return false;
+    }
+
     const match = findProductByBarcode(products, normalized);
 
     if (match) {
       playBarcodeBeep('success');
       handleAddToCart(match.product, match.unit);
       setSearchQuery('');
+      if (searchInputRef.current) searchInputRef.current.value = '';
       setScannedUnmatchedBarcode(null);
       setBarcodeToast({
         message: `تم مسح وإضافة: ${match.product.name} (${
@@ -688,9 +696,16 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
     const timer = setTimeout(() => {
       const match = findProductByBarcode(products, searchQuery);
       if (match) {
+        const norm = normalizeScannedBarcode(searchQuery);
+        if (!shouldProcessBarcodeScan(norm, 450)) {
+          setSearchQuery('');
+          if (searchInputRef.current) searchInputRef.current.value = '';
+          return;
+        }
         playBarcodeBeep('success');
         handleAddToCart(match.product, match.unit);
         setSearchQuery('');
+        if (searchInputRef.current) searchInputRef.current.value = '';
         setScannedUnmatchedBarcode(null);
         setBarcodeToast({
           message: `تم مسح وإضافة: ${match.product.name} (${
@@ -701,7 +716,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
               : match.product.unit || 'حبة'
           })`,
           type: 'success',
-          barcode: normalizeScannedBarcode(searchQuery),
+          barcode: norm,
         });
         setTimeout(() => setBarcodeToast(null), 3500);
         searchInputRef.current?.focus();
@@ -1266,6 +1281,14 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (searchQuery.trim()) {
+                      handleBarcodeSubmit(e);
+                    }
+                  }
+                }}
                 placeholder="امسح الباركود بجهاز المسح، أو ابحث بالاسم والرمز (SKU)... [ / للتركيز ]"
                 className="w-full bg-slate-900 border border-slate-700/80 rounded-2xl pr-11 pl-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-inner"
               />
