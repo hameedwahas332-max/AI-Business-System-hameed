@@ -137,34 +137,6 @@ jobs:
         run: |
           npx tauri build --target x86_64-pc-windows-msvc --bundles nsis --ci
 
-      - name: Normalize & Mirror Space-Free Windows Installer Artifacts
-        shell: bash
-        run: |
-          echo "Ensuring dot-sanitized and space-free installer artifacts exist..."
-          for bundle_dir in src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis src-tauri/target/release/bundle/nsis; do
-            if [ -d "$bundle_dir" ]; then
-              cd "$bundle_dir"
-              for f in *.exe *.sig; do
-                if [ -f "$f" ]; then
-                  dot_name=$(echo "$f" | tr ' ' '.')
-                  if [ "$f" != "$dot_name" ]; then
-                    cp -f "$f" "$dot_name"
-                    echo "Mirrored '$f' -> '$dot_name'"
-                  fi
-                  if [[ "$f" == *"_x64-setup.exe" ]]; then
-                    cp -f "$f" "AI-Business-System-Setup.exe"
-                    echo "Mirrored '$f' -> 'AI-Business-System-Setup.exe'"
-                  fi
-                  if [[ "$f" == *"_x64-setup.exe.sig" ]]; then
-                    cp -f "$f" "AI-Business-System-Setup.exe.sig"
-                    echo "Mirrored '$f' -> 'AI-Business-System-Setup.exe.sig'"
-                  fi
-                fi
-              done
-              cd - > /dev/null
-            fi
-          done
-
       - name: Generate Auto-Update Manifest (latest.json)
         shell: bash
         env:
@@ -174,6 +146,31 @@ jobs:
           RELEASE_NOTES: "تحديث معتمد لنظام وهاس ERP (الإصدار v${{ env.AUTHORITATIVE_VERSION }}) - Commit: ${{ github.sha }}"
         run: |
           node scripts/generate-update-manifest.mjs
+
+      - name: Mirror Fixed Alias Windows Installer Artifacts
+        shell: bash
+        run: |
+          echo "Mirroring fixed alias installer for direct release downloads..."
+          for bundle_dir in src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis src-tauri/target/release/bundle/nsis; do
+            if [ -d "$bundle_dir" ]; then
+              cd "$bundle_dir"
+              for f in *_x64-setup.exe; do
+                if [ -f "$f" ] && [ "$f" != "AI-Business-System-Setup.exe" ]; then
+                  cp -f "$f" "AI-Business-System-Setup.exe"
+                  echo "Created alias: AI-Business-System-Setup.exe from $f"
+                  break
+                fi
+              done
+              for s in *_x64-setup.exe.sig; do
+                if [ -f "$s" ] && [ "$s" != "AI-Business-System-Setup.exe.sig" ]; then
+                  cp -f "$s" "AI-Business-System-Setup.exe.sig"
+                  echo "Created alias: AI-Business-System-Setup.exe.sig from $s"
+                  break
+                fi
+              done
+              cd - > /dev/null
+            fi
+          done
 
       - name: Upload NSIS .exe Installer & Updater Artifacts
         uses: actions/upload-artifact@v4

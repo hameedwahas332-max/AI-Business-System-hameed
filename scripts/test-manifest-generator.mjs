@@ -138,5 +138,38 @@ if (res5.success) {
 }
 console.log('PASS: Script strictly rejected placeholder signature.');
 
+// TEST 6: Smart deduplication of co-existing space-named and dot-named variants of the same installer
+console.log('\n[Test 6] Co-existing space-named and dot-named variants (deduplication):');
+const spaceNamed6 = 'AI Business System - Wahas ERP_1.0.25_x64-setup.exe';
+const dotNamed6 = 'AI.Business.System.-.Wahas.ERP_1.0.25_x64-setup.exe';
+setupFixture('1.0.25', {
+  [spaceNamed6]: 'DUMMY_BINARY_INSTALLER_CONTENT',
+  [`${spaceNamed6}.sig`]: validSig,
+  [dotNamed6]: 'DUMMY_BINARY_INSTALLER_CONTENT',
+  [`${dotNamed6}.sig`]: validSig
+});
+
+const res6 = runManifestScript(testDir, {
+  RELEASE_TAG: 'v1.0.25',
+  GITHUB_REPOSITORY: 'hameedwahas332-max/AI-Business-System-hameed'
+});
+
+if (!res6.success) {
+  console.error('FAIL: Test 6 exited with error:', res6.stderr);
+  process.exit(1);
+}
+
+const manifest6 = JSON.parse(fs.readFileSync(path.join(testDir, 'latest.json'), 'utf8'));
+if (manifest6.version !== '1.0.25') {
+  console.error('FAIL: Incorrect manifest version in Test 6:', manifest6.version);
+  process.exit(1);
+}
+const expectedUrl6 = `https://github.com/hameedwahas332-max/AI-Business-System-hameed/releases/download/v1.0.25/${dotNamed6}`;
+if (manifest6.platforms['windows-x86_64'].url !== expectedUrl6) {
+  console.error('FAIL: Test 6 URL mismatch. Got:', manifest6.platforms['windows-x86_64'].url, 'Expected:', expectedUrl6);
+  process.exit(1);
+}
+console.log('PASS: Successfully deduplicated space and dot-named variants, selecting dot-sanitized asset URL.');
+
 cleanup();
-console.log('\n=== ALL 5 MANIFEST GENERATION TESTS PASSED WITH 100% SUCCESS ===');
+console.log('\n=== ALL 6 MANIFEST GENERATION TESTS PASSED WITH 100% SUCCESS ===');

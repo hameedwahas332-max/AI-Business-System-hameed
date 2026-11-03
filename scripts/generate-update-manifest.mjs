@@ -65,55 +65,97 @@ export function generateUpdateManifest(baseDir = process.cwd()) {
   // - Must end with .exe (case-insensitive)
   // - Must NOT be a signature file (.sig)
   // - Must contain the authoritative version string
-  const matchingInstallers = dirEntries.filter((file) => {
+  const rawMatchingInstallers = dirEntries.filter((file) => {
     const lower = file.toLowerCase();
     const isExe = lower.endsWith('.exe') && !lower.endsWith('.sig');
     const matchesVersion = file.includes(version);
     return isExe && matchesVersion;
   });
 
-  // Strict fail-closed policy: exactly one matching installer is required
-  if (matchingInstallers.length === 0) {
+  // Group candidate installers by their canonical dot-separated name (spaces replaced with dots)
+  const canonicalGroups = new Map();
+  for (const file of rawMatchingInstallers) {
+    const canonical = file.replace(/\s+/g, '.');
+    if (!canonicalGroups.has(canonical)) {
+      canonicalGroups.set(canonical, []);
+    }
+    canonicalGroups.get(canonical).push(file);
+  }
+
+  // Strict fail-closed policy: at least one installer family is required
+  if (canonicalGroups.size === 0) {
     console.error(`FATAL [updater-manifest]: No Windows installer .exe matching version "${version}" found in ${bundleDir}.`);
     console.error(`Available files in directory:\n  - ${dirEntries.length > 0 ? dirEntries.join('\n  - ') : '(empty directory)'}`);
     process.exit(1);
   }
 
-  if (matchingInstallers.length > 1) {
+  // If there are multiple genuinely distinct canonical installers for the same version, fail closed
+  if (canonicalGroups.size > 1) {
     console.error(`FATAL [updater-manifest]: Ambiguous installer artifacts found for version "${version}" in ${bundleDir}:`);
-    matchingInstallers.forEach(f => console.error(`  - ${f}`));
-    console.error(`Expected exactly one matching Windows installer .exe.`);
+    canonicalGroups.forEach((variants, canonical) => {
+      console.error(`  - Canonical: ${canonical} (Variants: ${variants.join(', ')})`);
+    });
+    console.error(`Expected exactly one matching Windows installer .exe family.`);
     process.exit(1);
   }
 
-  const installerFileName = matchingInstallers[0];
-  const installerFilePath = path.join(bundleDir, installerFileName);
+  // Exactly one canonical installer family found!
+  const [canonicalFileName, variants] = Array.from(canonicalGroups.entries())[0];
+  console.log(`[updater-manifest] Resolved canonical installer: ${canonicalFileName} (Variants: ${variants.join(', ')})`);
 
-  // Verify that the installer is a valid non-empty file
-  const installerStat = fs.statSync(installerFilePath);
+  const canonicalFilePath = path.join(bundleDir, canonicalFileName);
+  const canonicalSigFilePath = path.join(bundleDir, `${canonicalFileName}.sig`);
+
+  // Ensure the dot-sanitized file exists on disk (if only space-named variant exists, copy it)
+  if (!fs.existsSync(canonicalFilePath)) {
+    const sourceVariant = variants.find((v) => fs.existsSync(path.join(bundleDir, v)));
+    if (!sourceVariant) {
+      console.error(`FATAL [updater-manifest]: Source installer file variant not found for ${canonicalFileName}`);
+      process.exit(1);
+    }
+    const sourceVariantPath = path.join(bundleDir, sourceVariant);
+    fs.copyFileSync(sourceVariantPath, canonicalFilePath);
+    console.log(`[updater-manifest] Mirrored source variant '${sourceVariant}' -> '${canonicalFileName}'`);
+  }
+
+  // Verify that the canonical installer is a valid non-empty file
+  const installerStat = fs.statSync(canonicalFilePath);
   if (installerStat.size === 0) {
-    console.error(`FATAL [updater-manifest]: Installer file is empty (0 bytes): ${installerFilePath}`);
+    console.error(`FATAL [updater-manifest]: Installer file is empty (0 bytes): ${canonicalFilePath}`);
     process.exit(1);
   }
 
-  // Exact matching signature file: append .sig to the complete installer filename
-  const signatureFileName = `${installerFileName}.sig`;
-  const signatureFilePath = path.join(bundleDir, signatureFileName);
+  // Ensure matching signature file exists for the canonical dot-named installer
+  if (!fs.existsSync(canonicalSigFilePath)) {
+    // Check if any of the variants has a matching signature file (e.g. space-named file + .sig)
+    let foundSigVariantPath = null;
+    for (const v of variants) {
+      const candidateSig = path.join(bundleDir, `${v}.sig`);
+      if (fs.existsSync(candidateSig)) {
+        foundSigVariantPath = candidateSig;
+        break;
+      }
+    }
 
-  if (!fs.existsSync(signatureFilePath)) {
-    console.error(`FATAL [updater-manifest]: Missing signature file for installer.`);
-    console.error(`Expected: ${signatureFilePath}`);
-    console.error(`The installer was generated but no cryptographic signature (.sig) was created.`);
-    console.error(`Ensure TAURI_SIGNING_PRIVATE_KEY is set in GitHub Secrets.`);
-    process.exit(1);
+    if (foundSigVariantPath) {
+      fs.copyFileSync(foundSigVariantPath, canonicalSigFilePath);
+      console.log(`[updater-manifest] Mirrored signature from '${path.basename(foundSigVariantPath)}' -> '${canonicalFileName}.sig'`);
+    } else {
+      console.error(`FATAL [updater-manifest]: Missing signature file for installer.`);
+      console.error(`Expected: ${canonicalSigFilePath}`);
+      console.error(`Checked variants for signatures:\n  - ${variants.map((v) => `${v}.sig`).join('\n  - ')}`);
+      console.error(`The installer was generated but no cryptographic signature (.sig) was created.`);
+      console.error(`Ensure TAURI_SIGNING_PRIVATE_KEY is set in GitHub Secrets.`);
+      process.exit(1);
+    }
   }
 
   // Read entire signature file as UTF-8 and preserve exact contents
-  const signatureContent = fs.readFileSync(signatureFilePath, 'utf8').trim();
+  const signatureContent = fs.readFileSync(canonicalSigFilePath, 'utf8').trim();
 
   // Strict validation: non-empty, not a placeholder
   if (!signatureContent || signatureContent.length === 0) {
-    console.error(`FATAL [updater-manifest]: Signature file is empty: ${signatureFilePath}`);
+    console.error(`FATAL [updater-manifest]: Signature file is empty: ${canonicalSigFilePath}`);
     process.exit(1);
   }
 
@@ -122,33 +164,12 @@ export function generateUpdateManifest(baseDir = process.cwd()) {
     signatureContent.includes('...') ||
     signatureContent.length < 32
   ) {
-    console.error(`FATAL [updater-manifest]: Signature in ${signatureFileName} failed validation (detected invalid/placeholder).`);
+    console.error(`FATAL [updater-manifest]: Signature in ${canonicalFileName}.sig failed validation (detected invalid/placeholder).`);
     process.exit(1);
   }
 
-  // GitHub Releases automatically replaces all spaces with dots (.) in uploaded asset names!
-  // To prevent 404 Not Found errors during download, sanitize spaces to dots and ensure matching artifacts exist.
-  const sanitizedFileName = installerFileName.replace(/\s+/g, '.');
-  const sanitizedSigFileName = `${sanitizedFileName}.sig`;
-
-  if (installerFileName !== sanitizedFileName) {
-    try {
-      const sanitizedFilePath = path.join(bundleDir, sanitizedFileName);
-      const sanitizedSigFilePath = path.join(bundleDir, sanitizedSigFileName);
-      if (!fs.existsSync(sanitizedFilePath)) {
-        fs.copyFileSync(installerFilePath, sanitizedFilePath);
-      }
-      if (!fs.existsSync(sanitizedSigFilePath)) {
-        fs.copyFileSync(signatureFilePath, sanitizedSigFilePath);
-      }
-      console.log(`[updater-manifest] Created GitHub-compliant dot-sanitized copies: ${sanitizedFileName}`);
-    } catch (copyErr) {
-      console.warn(`[updater-manifest] Note: Could not create dot-sanitized copy:`, copyErr.message);
-    }
-  }
-
   // Construct URL using sanitized filename matching GitHub Release assets
-  const downloadUrl = `https://github.com/${repo}/releases/download/${tag}/${sanitizedFileName}`;
+  const downloadUrl = `https://github.com/${repo}/releases/download/${tag}/${canonicalFileName}`;
 
   const commitSha = process.env.GITHUB_SHA || process.env.COMMIT_SHA || '';
   const notes = process.env.RELEASE_NOTES || process.env.COMMIT_MESSAGE || `Wahas ERP update (v${version})`;
@@ -181,8 +202,8 @@ export function generateUpdateManifest(baseDir = process.cwd()) {
   }
 
   console.log(`[updater-manifest] Successfully generated latest.json:`);
-  console.log(`  - Installer: ${installerFileName} (${installerStat.size} bytes)`);
-  console.log(`  - Signature: ${signatureFileName} (${signatureContent.length} chars)`);
+  console.log(`  - Installer: ${canonicalFileName} (${installerStat.size} bytes)`);
+  console.log(`  - Signature: ${canonicalFileName}.sig (${signatureContent.length} chars)`);
   console.log(`  - Download URL: ${downloadUrl}`);
   console.log(`  - Manifest locations:`);
   outputPaths.forEach(p => console.log(`      * ${p}`));
