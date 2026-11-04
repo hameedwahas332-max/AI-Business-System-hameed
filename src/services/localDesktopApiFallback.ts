@@ -1852,14 +1852,165 @@ async function internalHandleLocalDesktopApiFallback(
     };
   }
 
-  if (cleanUrl.includes('/pos/held-sales')) {
-    const held = getLocalItem('erp_pos_held_sales_v1', []);
+  // POS Held Orders (Normal & Credit) - Persistent Unified Storage
+  if (cleanUrl.includes('/pos/held-sales') || cleanUrl.includes('/pos/held') || cleanUrl.includes('/held_orders')) {
+    const HELD_ORDERS_KEY = 'erp_pos_held_orders_v1';
+    const LEGACY_HELD_KEY = 'erp_pos_held_sales_v1';
+
+    const getUnifiedHeldOrders = (): any[] => {
+      try {
+        const raw = localStorage.getItem(HELD_ORDERS_KEY) || localStorage.getItem(LEGACY_HELD_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      } catch {}
+      return getLocalItem(HELD_ORDERS_KEY, getLocalItem(LEGACY_HELD_KEY, []));
+    };
+
+    const saveUnifiedHeldOrders = (list: any[]) => {
+      try {
+        localStorage.setItem(HELD_ORDERS_KEY, JSON.stringify(list));
+        localStorage.setItem(LEGACY_HELD_KEY, JSON.stringify(list));
+      } catch {}
+      setLocalItem(HELD_ORDERS_KEY, list, companyId);
+      setLocalItem(LEGACY_HELD_KEY, list, companyId);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('erp-pos-held-updated'));
+        window.dispatchEvent(new Event('storage'));
+      }
+    };
+
+    if (method === 'POST') {
+      let bodyData: any = {};
+      try {
+        if (options?.body) {
+          bodyData = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;
+        }
+      } catch {}
+
+      const existingHeld = getUnifiedHeldOrders();
+      const heldId = bodyData.id || `held_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+      const newHeldItem = {
+        ...bodyData,
+        id: heldId,
+        company_id: companyId || 'comp_hameed_wahas_2735',
+        customer: bodyData.customer || (bodyData.customerId ? { id: bodyData.customerId, name: bodyData.customerName, phone: bodyData.customerPhone } : null),
+        customer_id: bodyData.customerId || bodyData.customer_id || null,
+        customer_name: bodyData.customerName || bodyData.customer_name || 'عميل نقدي',
+        customerPhone: bodyData.customerPhone || bodyData.customer_phone || '',
+        items: bodyData.cartData || bodyData.items || [],
+        cart_data: bodyData.cartData || bodyData.items || [],
+        total: Number(bodyData.totalAmount || bodyData.total || 0),
+        totalAmount: Number(bodyData.totalAmount || bodyData.total || 0),
+        currency: bodyData.currency || 'YER',
+        held_at: bodyData.held_at || bodyData.heldAt || new Date().toISOString(),
+        heldAt: bodyData.heldAt || bodyData.held_at || new Date().toISOString(),
+        holdType: bodyData.holdType || (bodyData.paymentMethod === 'CREDIT' ? 'CREDIT' : 'NORMAL'),
+        paymentMethod: bodyData.paymentMethod || (bodyData.holdType === 'CREDIT' ? 'CREDIT' : 'CASH'),
+        note: bodyData.note || bodyData.referenceLabel || (bodyData.holdType === 'CREDIT' ? `تعليق آجل - ${bodyData.customerName}` : 'تعليق عادي'),
+        reference_no: bodyData.reference_no || bodyData.referenceLabel || `HOLD-${Date.now().toString().slice(-6)}`,
+      };
+
+      const updated = [newHeldItem, ...existingHeld.filter((h: any) => h.id !== heldId)];
+      saveUnifiedHeldOrders(updated);
+
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: newHeldItem,
+        message: 'تم تعليق الفاتورة بنجاح',
+      };
+    }
+
+    if (method === 'DELETE') {
+      const parts = cleanUrl.split('/');
+      const targetId = parts[parts.length - 1];
+      const existingHeld = getUnifiedHeldOrders();
+      const updated = existingHeld.filter((h: any) => h.id !== targetId && h.reference_no !== targetId);
+      saveUnifiedHeldOrders(updated);
+
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: { success: true, deleted: true, id: targetId },
+      };
+    }
+
+    // GET - Return all held orders without filtering by shiftId or companyId mismatches
+    const held = getUnifiedHeldOrders();
     return {
       ok: true,
       success: true,
       status: 200,
       data: held,
       items: held,
+    };
+  }
+
+  // POS & Sales Invoice Returns Handling
+  if (cleanUrl.includes('/pos/return') || cleanUrl.includes('/invoices/returns') || cleanUrl.includes('/sales-returns')) {
+    let bodyData: any = {};
+    try {
+      if (options?.body) {
+        bodyData = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;
+      }
+    } catch {}
+
+    const returnId = `ret_${Date.now()}`;
+    const returnNumber = `RET-${Date.now().toString().slice(-6)}`;
+    const returnRecord = {
+      id: returnId,
+      return_number: returnNumber,
+      returnNumber,
+      invoice_id: bodyData.originalInvoiceId || bodyData.invoice_id || null,
+      items: bodyData.items || [],
+      total: Number(bodyData.totalRefund || bodyData.refundAmount || bodyData.total || 0),
+      totalRefund: Number(bodyData.totalRefund || bodyData.refundAmount || bodyData.total || 0),
+      refund_method: bodyData.refundMethod || bodyData.refund_method || 'CASH',
+      refundMethod: bodyData.refundMethod || bodyData.refund_method || 'CASH',
+      reason: bodyData.reason || 'مرتجع مبيعات',
+      date: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+    };
+
+    // Store in return logs
+    const existingReturns = getLocalItem('erp_sales_returns_v1', []);
+    setLocalItem('erp_sales_returns_v1', [returnRecord, ...existingReturns], companyId);
+
+    // If refund was CUSTOMER_CREDIT, update customer balance in erp_customers_v1
+    if ((returnRecord.refundMethod === 'CUSTOMER_CREDIT' || returnRecord.refund_method === 'CREDIT_NOTE') && bodyData.customerId) {
+      const custs = getLocalItem('erp_customers_v1', []);
+      const updatedCusts = custs.map((c: any) => {
+        if (c.id === bodyData.customerId) {
+          return {
+            ...c,
+            balance: Math.max(0, Number(c.balance || 0) - returnRecord.totalRefund),
+            current_balance: Math.max(0, Number(c.current_balance || c.balance || 0) - returnRecord.totalRefund),
+          };
+        }
+        return c;
+      });
+      setLocalItem('erp_customers_v1', updatedCusts, companyId);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('erp-customers-updated'));
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('erp-invoices-updated'));
+      window.dispatchEvent(new Event('erp-inventory-updated'));
+      window.dispatchEvent(new Event('erp-data-updated'));
+    }
+
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: returnRecord,
+      message: 'تم تسجيل مرتجع المبيعات بنجاح',
     };
   }
 

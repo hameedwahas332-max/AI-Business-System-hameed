@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../../api';
 import { formatAmount, applyStockMovementSync, getActiveCurrencySymbol } from '../../../lib/formatters';
+import { normalizeScannedBarcode } from '../../../utils/barcodeUtils';
 import {
   X,
   RotateCcw,
@@ -261,7 +262,7 @@ export const SalesInvoiceReturnModal: React.FC<SalesInvoiceReturnModalProps> = (
               {returnItems
                 .filter((it) => {
                   if (!itemSearch.trim()) return true;
-                  const q = itemSearch.trim().toLowerCase();
+                  const q = normalizeScannedBarcode(itemSearch.trim()).toLowerCase();
                   return (
                     it.product_name.toLowerCase().includes(q) ||
                     (it.item_code || '').toLowerCase().includes(q) ||

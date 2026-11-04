@@ -29,6 +29,7 @@ import {
   Printer,
   X,
   Calendar,
+  Clock,
 } from 'lucide-react';
 import { api } from '../../../api';
 import { useAuth } from '../../../context/AuthContext';
@@ -107,6 +108,12 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
   // Held Sales State
   const [heldSales, setHeldSales] = useState<POSHeldSale[]>([]);
   const [isHeldDrawerOpen, setIsHeldDrawerOpen] = useState(false);
+  const [isCreditHoldPickerOpen, setIsCreditHoldPickerOpen] = useState(false);
+  const [creditHoldCustomerName, setCreditHoldCustomerName] = useState('');
+  const [creditHoldCustomerPhone, setCreditHoldCustomerPhone] = useState('');
+  const [creditHoldNote, setCreditHoldNote] = useState('');
+  const [creditHoldSelectedId, setCreditHoldSelectedId] = useState('');
+  const [creditCustomerSearch, setCreditCustomerSearch] = useState('');
 
   // Active Sale State (Cart)
   const [cart, setCart] = useState<POSCartItem[]>([]);
@@ -163,10 +170,22 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
 
       const prods = Array.isArray(prodRes) ? prodRes : (prodRes?.data || prodRes?.items || []);
       const custs = Array.isArray(custRes) ? custRes : (custRes?.data || custRes?.items || []);
+      // Load held sales from unified key erp_pos_held_orders_v1 first, then api
+      const localHeld = (() => {
+        try {
+          const raw = localStorage.getItem('erp_pos_held_orders_v1') || localStorage.getItem('erp_pos_held_sales_v1');
+          return raw ? JSON.parse(raw) : [];
+        } catch {
+          return [];
+        }
+      })();
+      const remoteHeld = Array.isArray(heldRes?.data) ? heldRes.data : Array.isArray(heldRes) ? heldRes : [];
+      const mergedHeld = remoteHeld.length > 0 ? remoteHeld : localHeld;
+
       setProducts(prods);
       setCustomers(custs);
       setCurrentShift(shiftRes?.data || null);
-      setHeldSales(heldRes?.data || []);
+      setHeldSales(mergedHeld);
       setDailySummary(summaryRes?.data || null);
 
       if (ratesRes?.data && typeof ratesRes.data === 'object') {
@@ -197,11 +216,13 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
     window.addEventListener('erp-data-updated', handleUpdated);
     window.addEventListener('erp-inventory-updated', handleUpdated);
     window.addEventListener('erp-customers-updated', handleUpdated);
+    window.addEventListener('erp-pos-held-updated', handleUpdated);
     window.addEventListener('storage', handleUpdated);
     return () => {
       window.removeEventListener('erp-data-updated', handleUpdated);
       window.removeEventListener('erp-inventory-updated', handleUpdated);
       window.removeEventListener('erp-customers-updated', handleUpdated);
+      window.removeEventListener('erp-pos-held-updated', handleUpdated);
       window.removeEventListener('storage', handleUpdated);
     };
   }, []);
@@ -306,6 +327,51 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
     setIsPaymentModalOpen(true);
   };
 
+  // Helper to embed full rich product identifiers in line items
+  const enrichCartItemsWithIdentifiers = (cartItems: POSCartItem[]) => {
+    return cartItems.map((it) => {
+      const prod = products.find((p) => p.id === it.productId || p.id === it.product_id);
+      const barcode = it.barcode || (it.selectedUnit === 'sub' ? prod?.subUnitBarcode : it.selectedUnit === 'major' ? prod?.majorUnitBarcode : prod?.barcode) || prod?.barcode || '';
+      const sku = it.sku || prod?.sku || '';
+      const itemCode = it.itemCode || it.code || prod?.itemCode || sku;
+      const partNumber = it.partNumber || prod?.partNumber || '';
+      const serialNumber = it.serialNumber || it.battery_serial_number || '';
+      const tireSize = it.tireSize || it.tire_size || prod?.tireSize || '';
+      const warranty = it.warrantyMonths || prod?.warrantyMonths || 12;
+
+      return {
+        ...it,
+        productId: it.productId || it.product_id || prod?.id || null,
+        product_id: it.productId || it.product_id || prod?.id || null,
+        name: it.name || prod?.name || 'صنف مبيعات',
+        item_name: it.name || prod?.name || 'صنف مبيعات',
+        product_name: it.name || prod?.name || 'صنف مبيعات',
+        barcode,
+        sku,
+        code: itemCode,
+        itemCode,
+        item_code: itemCode,
+        itemNumber: itemCode,
+        partNumber,
+        part_number: partNumber,
+        serialNumber,
+        serial_number: serialNumber,
+        battery_serial_number: serialNumber,
+        tireSize,
+        tire_size: tireSize,
+        tireProductionDot: it.tireProductionDot || it.tire_production_dot || prod?.tireProductionDot || '',
+        tire_production_dot: it.tireProductionDot || it.tire_production_dot || prod?.tireProductionDot || '',
+        warranty,
+        warranty_months: warranty,
+        warrantyMonths: warranty,
+        price: it.unitPrice || it.price,
+        unit_price: it.unitPrice || it.price,
+        quantity: it.quantity,
+        total: it.total || (it.quantity * (it.unitPrice || it.price)),
+      };
+    });
+  };
+
   const handleQuickCashCheckout = async () => {
     if (cart.length === 0 || checkoutLoading) return;
     if (hasBelowCostInCart) {
@@ -316,25 +382,15 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
     try {
       setCheckoutLoading(true);
       const accountingRate = getAccountingRate(currency);
+      const enrichedCartItems = enrichCartItemsWithIdentifiers(cart);
+
       const payload = {
         customerId: selectedCustomer?.id || null,
         customerName: selectedCustomer?.name || 'عميل نقدي سريع',
         paymentMethod: 'CASH',
         currency,
         exchangeRate: accountingRate,
-        items: cart.map((it) => ({
-          product_id: it.productId,
-          name: it.name,
-          quantity: it.quantity,
-          unit: it.unitName || it.unit || 'حبة',
-          unit_price: it.unitPrice,
-          discount: it.discount || 0,
-          scrapDiscount: it.scrapDiscount || 0,
-          serialNumber: it.serialNumber,
-          warrantyEndDate: it.warrantyEndDate,
-          warrantyMonths: it.warrantyMonths,
-          total: Math.max(0, it.quantity * it.unitPrice - (it.discount || 0) - (it.scrapDiscount || 0)),
-        })),
+        items: enrichedCartItems,
         subtotal,
         discount: cartDiscount,
         tax: taxAmount,
@@ -349,6 +405,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
         ...payload,
         id: res.data?.id || `sale-${Date.now()}`,
         invoiceNumber: invoiceNum,
+        invoice_number: invoiceNum,
         invoiceDate: new Date().toLocaleDateString('ar-YE'),
         receipt: {
           date: new Date().toLocaleDateString('ar-YE'),
@@ -358,7 +415,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
       };
 
       // 1. Sync Central Stock Deduction and Movements
-      applyStockMovementSync(cart, {
+      applyStockMovementSync(enrichedCartItems, {
         type: 'pos_sale',
         referenceNumber: invoiceNum,
         customerName: payload.customerName,
@@ -391,22 +448,20 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
       const posLogRecord = {
         id: res.data?.id || `pos-${Date.now()}`,
         invoiceNumber: invoiceNum,
+        invoice_number: invoiceNum,
         date: new Date().toISOString(),
         dateFormatted: new Date().toLocaleDateString('ar-YE'),
         timeFormatted: new Date().toLocaleTimeString('ar-YE', { hour: '2-digit', minute: '2-digit' }),
         customerName: payload.customerName,
+        customer_name: payload.customerName,
         total: grandTotal,
         paidAmount: grandTotal,
         currency,
         currencySymbol: getActiveCurrencySymbol(currency),
         paymentMethod: 'CASH',
-        itemsCount: cart.reduce((acc, it) => acc + Number(it.quantity || 1), 0),
-        items: cart.map((it) => ({
-          name: it.name,
-          quantity: it.quantity,
-          unitPrice: it.unitPrice,
-          total: it.quantity * it.unitPrice - (it.discount || 0),
-        })),
+        payment_method: 'CASH',
+        itemsCount: enrichedCartItems.reduce((acc, it) => acc + Number(it.quantity || 1), 0),
+        items: enrichedCartItems,
         rawPayload: receiptDataObj,
       };
 
@@ -422,6 +477,27 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
         localStorage.setItem('erp_pos_sales_log_v1', JSON.stringify(updatedLogs));
       } catch {}
       setPosSalesLog(updatedLogs);
+
+      // 2.1 Also mirror into erp_invoices_v1 for universal returns & accounting
+      try {
+        const storedInvs = localStorage.getItem('erp_invoices_v1');
+        const invList: any[] = storedInvs ? JSON.parse(storedInvs) : [];
+        const fullPosInv = {
+          ...posLogRecord,
+          id: posLogRecord.id,
+          invoice_number: invoiceNum,
+          customer_id: selectedCustomer?.id || 'cust-direct',
+          customer_name: payload.customerName,
+          status: 'PAID',
+          invoice_date: new Date().toISOString().split('T')[0],
+          created_at: new Date().toISOString(),
+          items: enrichedCartItems,
+        };
+        localStorage.setItem('erp_invoices_v1', JSON.stringify([fullPosInv, ...invList.filter((i: any) => i.id !== fullPosInv.id && i.invoice_number !== invoiceNum)]));
+        window.dispatchEvent(new Event('erp-invoices-updated'));
+      } catch (invErr) {
+        console.warn('Sync to erp_invoices_v1 warn:', invErr);
+      }
 
       // 3. Immediately refresh local products to reflect deducted stock
       api.getProducts().then((pRes) => setProducts(pRes.data || [])).catch(() => {});
@@ -848,46 +924,152 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
     setError(null);
   };
 
-  // Hold Current Sale
+  // Hold Current Sale (Normal Cash Hold)
   const handleHoldSale = async () => {
     if (cart.length === 0) return;
     try {
-      const res = await api.posHoldSale({
-        customerId: selectedCustomer?.id || null,
-        customerName: selectedCustomer?.name || 'عميل نقدي',
-        cartData: cart,
+      const effectiveCustName = selectedCustomer?.name || 'عميل نقدي';
+      const effectiveCustId = selectedCustomer?.id || null;
+      const refLabel = `طلب ${effectiveCustName} - ${new Date().toLocaleTimeString('ar-YE', { hour: '2-digit', minute: '2-digit' })}`;
+      const heldId = `held_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+      const enrichedCart = enrichCartItemsWithIdentifiers(cart);
+
+      const newHeldRecord: POSHeldSale = {
+        id: heldId,
+        reference_no: `HLD-${Date.now().toString().slice(-5)}`,
+        holdType: 'NORMAL',
+        customer: selectedCustomer || null,
+        customer_id: effectiveCustId,
+        customer_name: effectiveCustName,
+        customerPhone: selectedCustomer?.phone || '',
+        items: enrichedCart,
+        cart_data: enrichedCart,
+        cartData: enrichedCart,
+        held_at: new Date().toISOString(),
+        heldAt: new Date().toISOString(),
+        total: grandTotal,
         totalAmount: grandTotal,
         currency,
-        referenceLabel: `طلب ${selectedCustomer?.name || 'نقدي'} - ${new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}`,
-      });
+        note: refLabel,
+      };
 
-      if (res.success) {
-        setSuccess('تم تعليق الفاتورة بنجاح في قائمة الطلبات المعلقة (F7)');
-        handleClearCart();
-        // Refresh held sales
-        const heldRes = await api.posGetHeldSales();
-        setHeldSales(heldRes.data || []);
-      }
+      // 1. Immediately store in unified localStorage key
+      const stored = localStorage.getItem('erp_pos_held_orders_v1') || localStorage.getItem('erp_pos_held_sales_v1');
+      const list: any[] = stored ? JSON.parse(stored) : [];
+      const updated = [newHeldRecord, ...list.filter((h: any) => h.id !== heldId)];
+      localStorage.setItem('erp_pos_held_orders_v1', JSON.stringify(updated));
+      localStorage.setItem('erp_pos_held_sales_v1', JSON.stringify(updated));
+      setHeldSales(updated);
+      window.dispatchEvent(new Event('erp-pos-held-updated'));
+
+      // 2. Mirror to API / localDesktopApiFallback
+      api.posHoldSale({
+        ...newHeldRecord,
+        customerId: effectiveCustId,
+        customerName: effectiveCustName,
+        cartData: enrichedCart,
+        totalAmount: grandTotal,
+        currency,
+        referenceLabel: refLabel,
+      }).catch(console.warn);
+
+      setSuccess('تم تعليق الفاتورة بنجاح في قائمة الطلبات المعلقة (F7)');
+      handleClearCart();
+      setTimeout(() => setSuccess(null), 3500);
     } catch (err: any) {
       setError(err.message || 'فشل تعليق الفاتورة');
     }
   };
 
+  // Hold Credit Sale (تعليق آجل لحساب العميل)
+  const handleHoldCreditSale = async (overrideCustomer?: { id?: string; name: string; phone?: string; note?: string }) => {
+    if (cart.length === 0) return;
+
+    const targetCustomer = overrideCustomer || selectedCustomer;
+    if (!targetCustomer || !targetCustomer.name?.trim()) {
+      // Open quick customer picker
+      setIsCreditHoldPickerOpen(true);
+      return;
+    }
+
+    const effectiveCustName = targetCustomer.name.trim();
+    const effectiveCustId = targetCustomer.id || null;
+    const effectivePhone = targetCustomer.phone || '';
+    const effectiveNote = overrideCustomer?.note || `تعليق آجل - لحساب العميل: ${effectiveCustName}`;
+    const heldId = `held_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+    const enrichedCart = enrichCartItemsWithIdentifiers(cart);
+
+    const newCreditHeld: POSHeldSale = {
+      id: heldId,
+      reference_no: `CR-HLD-${Date.now().toString().slice(-5)}`,
+      holdType: 'CREDIT',
+      paymentMethod: 'CREDIT',
+      customer: { id: effectiveCustId, name: effectiveCustName, phone: effectivePhone },
+      customer_id: effectiveCustId,
+      customer_name: effectiveCustName,
+      customerPhone: effectivePhone,
+      items: enrichedCart,
+      cart_data: enrichedCart,
+      cartData: enrichedCart,
+      held_at: new Date().toISOString(),
+      heldAt: new Date().toISOString(),
+      total: grandTotal,
+      totalAmount: grandTotal,
+      currency,
+      note: effectiveNote,
+    };
+
+    // 1. Save locally
+    try {
+      const stored = localStorage.getItem('erp_pos_held_orders_v1') || localStorage.getItem('erp_pos_held_sales_v1');
+      const list: any[] = stored ? JSON.parse(stored) : [];
+      const updated = [newCreditHeld, ...list.filter((h: any) => h.id !== heldId)];
+      localStorage.setItem('erp_pos_held_orders_v1', JSON.stringify(updated));
+      localStorage.setItem('erp_pos_held_sales_v1', JSON.stringify(updated));
+      setHeldSales(updated);
+      window.dispatchEvent(new Event('erp-pos-held-updated'));
+    } catch (e) {
+      console.warn('Failed to save credit held order locally:', e);
+    }
+
+    // 2. Mirror to API / localDesktopApiFallback
+    try {
+      await api.posHoldSale({
+        ...newCreditHeld,
+        customerId: effectiveCustId,
+        customerName: effectiveCustName,
+        customerPhone: effectivePhone,
+        cartData: enrichedCart,
+        totalAmount: grandTotal,
+        currency,
+        referenceLabel: effectiveNote,
+      });
+    } catch (apiErr) {
+      console.warn('api.posHoldSale warning:', apiErr);
+    }
+
+    setIsCreditHoldPickerOpen(false);
+    handleClearCart();
+    setSuccess(`تم تعليق الفاتورة الآجلة باسم العميل: ${effectiveCustName}`);
+    setTimeout(() => setSuccess(null), 4000);
+  };
+
   // Resume Held Sale into Active Cart
   const handleResumeHeldSale = async (held: POSHeldSale) => {
     try {
-      setCart(held.cart_data || []);
-      if (held.customer_id) {
-        const cust = customers.find((c) => c.id === held.customer_id);
-        setSelectedCustomer(cust || { id: held.customer_id, name: held.customer_name });
+      const itemsList = held.items || held.cart_data || held.cartData || [];
+      setCart(itemsList);
+      const custName = held.customer_name || held.customer?.name;
+      const custId = held.customer_id || held.customer?.id;
+      if (custId || custName) {
+        const cust = customers.find((c) => c.id === custId || c.name === custName);
+        setSelectedCustomer(cust || { id: custId || `cust-${Date.now()}`, name: custName, phone: held.customerPhone });
       } else {
         setSelectedCustomer(null);
       }
-      // Delete held sale from backend
-      await api.posDeleteHeldSale(held.id);
-      const heldRes = await api.posGetHeldSales();
-      setHeldSales(heldRes.data || []);
-      setSuccess('تم استرجاع الفاتورة المعلقة إلى السلة بنجاح');
+      await handleDeleteHeldSale(held.id);
+      setSuccess(`تم استرجاع الفاتورة المعلقة (${custName || 'نقدي'}) إلى السلة بنجاح`);
+      setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
       setError(err.message || 'فشل استرجاع الفاتورة');
     }
@@ -896,11 +1078,131 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
   // Delete Held Sale
   const handleDeleteHeldSale = async (heldId: string) => {
     try {
-      await api.posDeleteHeldSale(heldId);
-      const heldRes = await api.posGetHeldSales();
-      setHeldSales(heldRes.data || []);
+      const stored = localStorage.getItem('erp_pos_held_orders_v1') || localStorage.getItem('erp_pos_held_sales_v1');
+      if (stored) {
+        try {
+          const list: any[] = stored ? JSON.parse(stored) : [];
+          const filtered = list.filter((h: any) => h.id !== heldId && h.reference_no !== heldId);
+          localStorage.setItem('erp_pos_held_orders_v1', JSON.stringify(filtered));
+          localStorage.setItem('erp_pos_held_sales_v1', JSON.stringify(filtered));
+          setHeldSales(filtered);
+        } catch {}
+      }
+      await api.posDeleteHeldSale(heldId).catch(console.warn);
+      window.dispatchEvent(new Event('erp-pos-held-updated'));
     } catch (err: any) {
       setError(err.message || 'فشل حذف الفاتورة المعلقة');
+    }
+  };
+
+  // Direct Credit Posting for Held Sale (اعتماد آجل لحساب العميل)
+  const handlePostCreditHeldSale = async (heldSale: POSHeldSale) => {
+    try {
+      const invNum = `INV-CR-${Date.now().toString().slice(-6)}`;
+      const effectiveSalesperson = (user?.full_name || (user as any)?.name || 'حميد وهاس').trim();
+      const rawCustomer = heldSale.customer || (heldSale.customer_id ? customers.find((c) => c.id === heldSale.customer_id) : null);
+      const effectiveCustName = heldSale.customer_name || rawCustomer?.name || 'عميل آجل';
+      const effectiveCustId = heldSale.customer_id || rawCustomer?.id || `cust-${Date.now()}`;
+      const itemsList = heldSale.items || heldSale.cart_data || heldSale.cartData || [];
+      const saleTotal = Number(heldSale.total || heldSale.totalAmount || 0);
+
+      const enrichedItems = enrichCartItemsWithIdentifiers(itemsList);
+
+      // 1. Deduct stock via applyStockMovementSync
+      applyStockMovementSync(enrichedItems, {
+        type: 'sale',
+        referenceNumber: invNum,
+        customerName: effectiveCustName,
+        paymentMethod: 'CREDIT',
+        total: saleTotal,
+        currency,
+        notes: `فاتورة مبيعات آجلة مرحلة من الفواتير المعلقة #${heldSale.reference_no || heldSale.id}`,
+      });
+
+      // 2. Build Credit Invoice object
+      const creditInvoice = {
+        id: `inv-${Date.now()}`,
+        invoice_number: invNum,
+        customer_id: effectiveCustId,
+        customer: effectiveCustName,
+        customer_name: effectiveCustName,
+        customerName: effectiveCustName,
+        salesperson: effectiveSalesperson,
+        salesperson_name: effectiveSalesperson,
+        total: saleTotal,
+        totalAmount: saleTotal,
+        grandTotal: saleTotal,
+        paid_amount: 0,
+        paidAmount: 0,
+        remaining_amount: saleTotal,
+        remainingAmount: saleTotal,
+        currency,
+        payment_method: 'CREDIT',
+        status: 'UNPAID',
+        items: enrichedItems,
+        created_at: new Date().toISOString(),
+        invoice_date: new Date().toISOString().split('T')[0],
+        notes: `فاتورة مبيعات آجلة مرحلة لحساب العميل: ${effectiveCustName}`,
+      };
+
+      // 3. Save to erp_invoices_v1
+      try {
+        const storedInvs = localStorage.getItem('erp_invoices_v1');
+        const list: any[] = storedInvs ? JSON.parse(storedInvs) : [];
+        localStorage.setItem('erp_invoices_v1', JSON.stringify([creditInvoice, ...list.filter((i) => i.id !== creditInvoice.id)]));
+      } catch (e) {
+        console.warn('Failed to save credit invoice to storage:', e);
+      }
+
+      // 4. Update customer balance in erp_customers_v1
+      try {
+        const storedCusts = localStorage.getItem('erp_customers_v1');
+        const custList: any[] = storedCusts ? JSON.parse(storedCusts) : [];
+        let found = false;
+        const updatedCustList = custList.map((c) => {
+          if (c.id === effectiveCustId || c.name?.trim() === effectiveCustName.trim()) {
+            found = true;
+            const newBal = Number(c.balance || c.current_balance || 0) + saleTotal;
+            return {
+              ...c,
+              balance: newBal,
+              current_balance: newBal,
+              total_sales: Number(c.total_sales || 0) + saleTotal,
+            };
+          }
+          return c;
+        });
+        if (!found) {
+          updatedCustList.push({
+            id: effectiveCustId,
+            name: effectiveCustName,
+            phone: heldSale.customerPhone || '',
+            balance: saleTotal,
+            current_balance: saleTotal,
+            total_sales: saleTotal,
+            currency,
+            status: 'active',
+          });
+        }
+        localStorage.setItem('erp_customers_v1', JSON.stringify(updatedCustList));
+        setCustomers(updatedCustList);
+        window.dispatchEvent(new Event('erp-customers-updated'));
+      } catch (e) {
+        console.warn('Failed to update customer balance:', e);
+      }
+
+      // 5. Delete from held orders
+      await handleDeleteHeldSale(heldSale.id);
+
+      // 6. Broadcast updates
+      window.dispatchEvent(new Event('erp-invoices-updated'));
+      window.dispatchEvent(new Event('erp-inventory-updated'));
+      window.dispatchEvent(new Event('erp-data-updated'));
+
+      setSuccess(`تم اعتماد وترحيل الفاتورة الآجلة بقيمة ${formatAmount(saleTotal, currency)} لحساب العميل "${effectiveCustName}" بنجاح!`);
+      setTimeout(() => setSuccess(null), 4500);
+    } catch (err: any) {
+      setError(err.message || 'فشل ترحيل الفاتورة الآجلة لحساب العميل');
     }
   };
 
@@ -913,6 +1215,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
       const exchangeRate = exchangeRates[currency] || 1.0;
       const effectiveSalesperson = (user?.full_name || (user as any)?.name || 'حميد وهاس').trim();
       const effectiveCustomer = (selectedCustomer?.name || 'عميل نقدي').trim();
+      const enrichedCartItems = enrichCartItemsWithIdentifiers(cart);
 
       const payload = {
         customerId: selectedCustomer?.id || undefined,
@@ -922,7 +1225,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
         salespersonName: effectiveSalesperson,
         cashierName: effectiveSalesperson,
         createdBy: effectiveSalesperson,
-        items: cart,
+        items: enrichedCartItems,
         subtotal,
         discount: cartDiscount,
         tax: taxAmount,
@@ -945,7 +1248,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
         const invNum = res.data?.invoice_number || res.data?.invoiceNumber || `POS-${Date.now().toString().slice(-6)}`;
 
         // 1. Sync Central Stock Deduction and Movements
-        applyStockMovementSync(cart, {
+        applyStockMovementSync(enrichedCartItems, {
           type: 'pos_sale',
           referenceNumber: invNum,
           customerName: effectiveCustomer,
@@ -979,7 +1282,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
           currency,
           payment_method: paymentData.paymentMethod || 'MULTI',
           status: (paymentData.remainingAmount || 0) <= 0.01 ? 'PAID' : paymentData.paidAmount > 0 ? 'PARTIAL' : 'PENDING',
-          items: cart,
+          items: enrichedCartItems,
           created_at: new Date().toISOString(),
           invoice_date: new Date().toISOString().split('T')[0],
         };
@@ -1753,8 +2056,8 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
               )}
             </div>
 
-            {/* Action Buttons: Clear, Hold, Quick Cash, and Multi-Pay */}
-            <div className="grid grid-cols-4 gap-2 pt-1">
+            {/* Action Buttons: Clear, Hold, Credit Hold, Quick Cash, and Multi-Pay */}
+            <div className="grid grid-cols-5 gap-1.5 pt-1">
               <button
                 onClick={handleClearCart}
                 disabled={cart.length === 0}
@@ -1776,13 +2079,23 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
               </button>
 
               <button
+                onClick={handleHoldCreditSale}
+                disabled={cart.length === 0}
+                className="py-2.5 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/40 rounded-xl text-xs font-bold disabled:opacity-40 transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer shadow-sm hover:border-orange-500"
+                title="تعليق فاتورة آجل باسم العميل لمتابعتها أو ترحيلها لحسابه لاحقاً"
+              >
+                <Clock className="w-3.5 h-3.5 text-orange-400 animate-pulse" />
+                <span className="text-[10px] font-black">تعليق آجل</span>
+              </button>
+
+              <button
                 onClick={handleQuickCashCheckout}
                 disabled={cart.length === 0 || checkoutLoading || hasBelowCostInCart}
                 className="py-2.5 bg-emerald-700/30 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-bold disabled:opacity-40 transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer shadow-sm disabled:cursor-not-allowed"
                 title={hasBelowCostInCart ? 'لا يمكن البيع بسعر أقل من سعر الشراء' : 'دفع نقدي فوري وإصدار الفاتورة فوراً (F9)'}
               >
                 <Banknote className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-[10px] font-black">نقدي سريع (F9)</span>
+                <span className="text-[10px] font-black">نقدي (F9)</span>
               </button>
 
               <button
@@ -1792,7 +2105,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                 title={hasBelowCostInCart ? 'لا يمكن البيع بسعر أقل من سعر الشراء' : 'سداد ودفع متعدد / آجل / محافظ (F10)'}
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span className="text-[10px]">دفع متعدد (F10)</span>
+                <span className="text-[10px]">دفع (F10)</span>
               </button>
             </div>
           </div>
@@ -1856,24 +2169,168 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
             className="flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 transition-colors disabled:opacity-40 cursor-pointer"
             title="دفع نقدي سريع وإصدار الفاتورة فوراً (F9)"
           >
-            <kbd className="px-1.5 py-0.5 bg-emerald-700 border border-emerald-500 rounded text-[10px] font-mono text-white font-bold">F9</kbd>
-            <span className="font-semibold">دفع نقدي سريع</span>
+            <kbd className="px-1.5 py-0.5 bg-slate-700/80 border border-slate-600 rounded text-[10px] font-mono text-emerald-400 font-bold">F9</kbd>
+            <span>نقدي سريع</span>
           </button>
 
           <button
             type="button"
-            onClick={() => {
-              if (cart.length > 0) setIsPaymentModalOpen(true);
-            }}
+            onClick={handleOpenPaymentModal}
             disabled={cart.length === 0}
             className="flex items-center gap-1 px-2 py-0.5 rounded bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 transition-colors disabled:opacity-40 cursor-pointer"
-            title="فتح نافذة الدفع المتعدد / الآجل / المحافظ (F10)"
+            title="دفع متعدد وسداد آجل (F10)"
           >
-            <kbd className="px-1.5 py-0.5 bg-blue-700 border border-blue-500 rounded text-[10px] font-mono text-white font-bold">F10</kbd>
-            <span className="font-semibold">دفع متعدد / آجل</span>
+            <kbd className="px-1.5 py-0.5 bg-slate-700/80 border border-slate-600 rounded text-[10px] font-mono text-blue-400 font-bold">F10</kbd>
+            <span>دفع متعدد</span>
           </button>
         </div>
       </footer>
+
+      {/* Held Orders Drawer */}
+      <POSHeldDrawer
+        isOpen={isHeldDrawerOpen}
+        onClose={() => setIsHeldDrawerOpen(false)}
+        heldSales={heldSales}
+        onResumeSale={handleResumeHeldSale}
+        onDeleteHeldSale={handleDeleteHeldSale}
+        onPostCreditHeldSale={handlePostCreditHeldSale}
+        currency={currency}
+      />
+
+      {/* Credit Hold Quick Customer Picker Modal */}
+      {isCreditHoldPickerOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" dir="rtl">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-lg flex flex-col shadow-2xl overflow-hidden animate-scale-up">
+            <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-gradient-to-r from-orange-950/30 to-slate-900">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-orange-500/20 border border-orange-500/30 rounded-2xl text-orange-400">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">تعليق فاتورة آجل باسم العميل</h3>
+                  <p className="text-xs text-slate-400">حدد العميل لتعليق الفاتورة باسمه تمهيداً لترحيلها لحسابه لاحقاً</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCreditHoldPickerOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                  اسم العميل <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={creditHoldCustomerName}
+                  onChange={(e) => setCreditHoldCustomerName(e.target.value)}
+                  placeholder="ابحث أو أدخل اسم العميل..."
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500"
+                  autoFocus
+                />
+                {/* Quick select matching customers */}
+                {creditHoldCustomerName.trim().length > 0 && (
+                  <div className="mt-2 max-h-36 overflow-y-auto space-y-1 bg-slate-950/80 border border-slate-800 rounded-xl p-1.5">
+                    {customers
+                      .filter((c) =>
+                        (c.name || '').toLowerCase().includes(creditHoldCustomerName.toLowerCase()) ||
+                        (c.phone || '').includes(creditHoldCustomerName)
+                      )
+                      .slice(0, 5)
+                      .map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => {
+                            setCreditHoldCustomerName(c.name);
+                            if (c.phone) setCreditHoldCustomerPhone(c.phone);
+                          }}
+                          className="w-full text-right px-3 py-1.5 rounded-lg text-xs hover:bg-orange-500/20 hover:text-orange-300 text-slate-300 flex items-center justify-between transition-colors"
+                        >
+                          <span className="font-bold">{c.name}</span>
+                          <span className="text-[11px] text-slate-400 font-mono">{c.phone || 'بدون هاتف'}</span>
+                        </button>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                  رقم الهاتف (اختياري)
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={creditHoldCustomerPhone}
+                  onChange={(e) => setCreditHoldCustomerPhone(e.target.value)}
+                  placeholder="مثال: 777000111"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white text-right font-mono focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                  ملاحظة على التعليق الآجل (اختياري)
+                </label>
+                <input
+                  type="text"
+                  value={creditHoldNote}
+                  onChange={(e) => setCreditHoldNote(e.target.value)}
+                  placeholder="مثال: بانتظار استلام السائق / طلب هاتفي"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div className="p-3 bg-orange-500/10 border border-orange-500/20 rounded-xl text-xs text-orange-300 flex items-center justify-between">
+                <span>إجمالي الفاتورة المعلقة:</span>
+                <span className="font-mono font-black text-sm text-white">
+                  {formatNumber(grandTotal)} {currency}
+                </span>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-950/60 border-t border-slate-800 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsCreditHoldPickerOpen(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const custName = creditHoldCustomerName.trim() || 'عميل آجل';
+                  const matched = customers.find(
+                    (c) => (c.name || '').toLowerCase() === custName.toLowerCase()
+                  );
+                  const custToUse = matched || {
+                    id: `cust-temp-${Date.now()}`,
+                    name: custName,
+                    phone: creditHoldCustomerPhone.trim(),
+                  };
+                  handleHoldCreditSale({
+                    id: custToUse.id,
+                    name: custToUse.name,
+                    phone: custToUse.phone,
+                    note: creditHoldNote.trim() || undefined,
+                  });
+                }}
+                className="px-5 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-black shadow-lg shadow-orange-950/50 transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Clock className="w-4 h-4" />
+                <span>تأكيد التعليق الآجل</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Quick Item Modal */}
       <POSQuickItemModal
@@ -1933,16 +2390,6 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
           setDailySummary(summaryRes.data || null);
           setProducts(prodRes.data || []);
         }}
-      />
-
-      {/* Held Orders Drawer */}
-      <POSHeldDrawer
-        isOpen={isHeldDrawerOpen}
-        onClose={() => setIsHeldDrawerOpen(false)}
-        heldSales={heldSales}
-        onResumeSale={handleResumeHeldSale}
-        onDeleteHeldSale={handleDeleteHeldSale}
-        currency={currency}
       />
 
       {/* AI Assistant Drawer */}
