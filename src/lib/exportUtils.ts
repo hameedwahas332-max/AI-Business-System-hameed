@@ -499,6 +499,16 @@ export function printInvoiceDocument(inv?: any, options?: { title?: string; curr
   const totalDiscount = Number(invoice.discount !== undefined ? invoice.discount : (invoiceDiscount + itemsDiscount));
   const totalReceivedQuantity = Number(invoice.totalReceivedQuantity !== undefined ? invoice.totalReceivedQuantity : (invoice.total_received_quantity || 0));
 
+  const receivedBy = invoice.receivedBy || invoice.received_by || invoice.recipient || '';
+  const isCredit = invoice.paymentMethod === 'CREDIT' || invoice.payment_method === 'CREDIT' || String(paymentMethod).includes('آجل') || (remaining > 0);
+  const previousBalance = invoice.previousBalance !== undefined 
+    ? Number(invoice.previousBalance) 
+    : (invoice.previous_balance !== undefined ? Number(invoice.previous_balance) : undefined);
+  const currentInvoiceAmount = total;
+  const newTotalBalance = previousBalance !== undefined 
+    ? Number((previousBalance + (remaining > 0 ? remaining : total)).toFixed(2))
+    : (invoice.newBalance !== undefined ? Number(invoice.newBalance) : (invoice.new_balance !== undefined ? Number(invoice.new_balance) : undefined));
+
   // --- 80MM COMPACT THERMAL LAYOUT ---
   if (isThermal) {
     const thermalItemsHtml = items
@@ -579,6 +589,12 @@ export function printInvoiceDocument(inv?: any, options?: { title?: string; curr
             <span>${isPurchase ? 'المورد:' : 'العميل:'}</span>
             <span class="font-bold">${escapeHtml(partyName)}</span>
           </div>
+          ${receivedBy ? `
+            <div style="display: flex; justify-content: space-between; color: #0284c7;">
+              <span>المستلم:</span>
+              <span class="font-bold">${escapeHtml(receivedBy)}</span>
+            </div>
+          ` : ''}
           <div style="display: flex; justify-content: space-between;">
             <span>طريقة الدفع:</span>
             <span class="font-bold">${escapeHtml(paymentMethod)}</span>
@@ -636,6 +652,28 @@ export function printInvoiceDocument(inv?: any, options?: { title?: string; curr
             <div style="display: flex; justify-content: space-between; font-size: 9.5px; color: #b91c1c; font-weight: bold;">
               <span>${isPurchase ? 'المتبقي للمورد (دين):' : 'المتبقي ذمة:'}</span>
               <span class="font-mono">${remaining.toLocaleString()} ${currency}</span>
+            </div>
+          ` : ''}
+
+          <!-- Credit Balance & Statement Overview -->
+          ${(previousBalance !== undefined || (isCredit && newTotalBalance !== undefined)) ? `
+            <div style="border-top: 1px dotted #000; margin-top: 5px; padding-top: 5px; font-size: 9.5px; line-height: 1.5;">
+              ${previousBalance !== undefined ? `
+                <div style="display: flex; justify-content: space-between; color: #334155;">
+                  <span>الرصيد السابق:</span>
+                  <span class="font-mono font-bold">${previousBalance.toLocaleString('en-US')} ${currency}</span>
+                </div>
+              ` : ''}
+              <div style="display: flex; justify-content: space-between; color: #334155;">
+                <span>مبلغ الفاتورة الحالية:</span>
+                <span class="font-mono font-bold">${currentInvoiceAmount.toLocaleString('en-US')} ${currency}</span>
+              </div>
+              ${newTotalBalance !== undefined ? `
+                <div style="display: flex; justify-content: space-between; font-weight: 900; color: #b91c1c; font-size: 10.5px; border-top: 1px solid #000; padding-top: 3px; margin-top: 2px;">
+                  <span>إجمالي الرصيد المستحق:</span>
+                  <span class="font-mono">${newTotalBalance.toLocaleString('en-US')} ${currency}</span>
+                </div>
+              ` : ''}
             </div>
           ` : ''}
         </div>
@@ -730,6 +768,7 @@ export function printInvoiceDocument(inv?: any, options?: { title?: string; curr
       <div>
         <span style="font-size: 11px; color: #64748b; display: block;">${isPurchase ? 'بيانات المورد التجاري:' : 'بيانات العميل / الطرف الآخر:'}</span>
         <span style="font-size: 14px; font-weight: 800; color: #0f172a;">${escapeHtml(partyName)}</span>
+        ${receivedBy ? `<div style="font-size: 11px; color: #0284c7; font-weight: 700; margin-top: 3px;">المستلم (المسحوب بواسطة): <span>${escapeHtml(receivedBy)}</span></div>` : ''}
         ${partyPhone ? `<div style="font-size: 11px; color: #475569;">الهاتف: <span class="font-mono">${escapeHtml(partyPhone)}</span></div>` : ''}
         ${partyAddress ? `<div style="font-size: 11px; color: #475569;">العنوان: ${escapeHtml(partyAddress)}</div>` : ''}
       </div>
@@ -841,6 +880,28 @@ export function printInvoiceDocument(inv?: any, options?: { title?: string; curr
           <div style="display: flex; justify-content: space-between; margin-top: 4px; color: #b91c1c; font-size: 12px;">
             <span>${isPurchase ? 'المتبقي ذمة للمورد:' : 'المتبقي ذمة قائمة:'}</span>
             <span class="font-mono font-bold">${remaining.toLocaleString()} ${currency}</span>
+          </div>
+        ` : ''}
+
+        <!-- Credit Invoice Statement Context -->
+        ${(previousBalance !== undefined || (isCredit && newTotalBalance !== undefined)) ? `
+          <div style="border-top: 1px dashed #cbd5e1; margin-top: 8px; padding-top: 6px; font-size: 11.5px; line-height: 1.6;">
+            ${previousBalance !== undefined ? `
+              <div style="display: flex; justify-content: space-between; color: #475569;">
+                <span>الرصيد السابق للعميل:</span>
+                <span class="font-mono font-bold">${previousBalance.toLocaleString('en-US')} ${currency}</span>
+              </div>
+            ` : ''}
+            <div style="display: flex; justify-content: space-between; color: #475569;">
+              <span>مبلغ الفاتورة الحالية:</span>
+              <span class="font-mono font-bold">${currentInvoiceAmount.toLocaleString('en-US')} ${currency}</span>
+            </div>
+            ${newTotalBalance !== undefined ? `
+              <div style="display: flex; justify-content: space-between; font-weight: 900; color: #b91c1c; font-size: 13px; border-top: 1px solid #cbd5e1; padding-top: 4px; margin-top: 4px;">
+                <span>إجمالي الرصيد المستحق:</span>
+                <span class="font-mono">${newTotalBalance.toLocaleString('en-US')} ${currency}</span>
+              </div>
+            ` : ''}
           </div>
         ` : ''}
       </div>
@@ -1004,6 +1065,7 @@ export function printAccountStatement(statement?: AccountStatementPrintConfig): 
           const rawDate = tx.date || tx.created_at || tx.payment_date;
           const cleanDate = formatDateOnly(rawDate) || '-';
           const ref = tx.referenceNo || tx.reference_no || tx.reference || tx.voucher_number || tx.invoice_number || tx.id || '-';
+          const recBy = tx.receivedBy || tx.received_by;
           const desc = tx.description || tx.notes || (isSupplier ? 'حركة توريد / صرف' : 'حركة مبيعات / قبض');
           
           let d = 0;
@@ -1034,7 +1096,10 @@ export function printAccountStatement(statement?: AccountStatementPrintConfig): 
             <td class="text-center font-mono">${idx + 1}</td>
             <td class="text-center font-mono">${escapeHtml(cleanDate)}</td>
             <td class="text-center font-mono font-bold" style="color: #1e293b;">${escapeHtml(ref)}</td>
-            <td>${escapeHtml(desc)}</td>
+            <td>
+              ${escapeHtml(desc)}
+              ${recBy ? `<br><span style="font-size: 10px; color: #0284c7; font-weight: bold;">👤 المستلم: ${escapeHtml(recBy)}</span>` : ''}
+            </td>
             <td class="text-left font-mono ${d > 0 ? 'font-bold' : ''}" style="color: #b45309;">${d > 0 ? formatNumber(d) : '—'}</td>
             <td class="text-left font-mono ${c > 0 ? 'font-bold' : ''}" style="color: #15803d;">${c > 0 ? formatNumber(c) : '—'}</td>
             <td class="text-left font-mono font-black" style="color: #0f172a;">${formatNumber(rBal)}</td>

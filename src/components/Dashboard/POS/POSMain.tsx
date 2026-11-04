@@ -112,6 +112,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
   const [creditHoldCustomerName, setCreditHoldCustomerName] = useState('');
   const [creditHoldCustomerPhone, setCreditHoldCustomerPhone] = useState('');
   const [creditHoldNote, setCreditHoldNote] = useState('');
+  const [creditHoldReceivedBy, setCreditHoldReceivedBy] = useState('');
   const [creditHoldSelectedId, setCreditHoldSelectedId] = useState('');
   const [creditCustomerSearch, setCreditCustomerSearch] = useState('');
 
@@ -982,7 +983,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
   };
 
   // Hold Credit Sale (تعليق آجل لحساب العميل)
-  const handleHoldCreditSale = async (overrideCustomer?: { id?: string; name: string; phone?: string; note?: string }) => {
+  const handleHoldCreditSale = async (overrideCustomer?: { id?: string; name: string; phone?: string; note?: string; receivedBy?: string }) => {
     if (cart.length === 0) return;
 
     const targetCustomer = overrideCustomer || selectedCustomer;
@@ -996,6 +997,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
     const effectiveCustId = targetCustomer.id || null;
     const effectivePhone = targetCustomer.phone || '';
     const effectiveNote = overrideCustomer?.note || `تعليق آجل - لحساب العميل: ${effectiveCustName}`;
+    const effectiveReceivedBy = overrideCustomer?.receivedBy || creditHoldReceivedBy.trim() || undefined;
     const heldId = `held_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
     const enrichedCart = enrichCartItemsWithIdentifiers(cart);
 
@@ -1008,6 +1010,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
       customer_id: effectiveCustId,
       customer_name: effectiveCustName,
       customerPhone: effectivePhone,
+      receivedBy: effectiveReceivedBy,
       items: enrichedCart,
       cart_data: enrichedCart,
       cartData: enrichedCart,
@@ -1120,6 +1123,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
       });
 
       // 2. Build Credit Invoice object
+      const effectiveRecBy = heldSale.receivedBy || (heldSale as any).received_by || undefined;
       const creditInvoice = {
         id: `inv-${Date.now()}`,
         invoice_number: invNum,
@@ -1129,6 +1133,8 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
         customerName: effectiveCustName,
         salesperson: effectiveSalesperson,
         salesperson_name: effectiveSalesperson,
+        receivedBy: effectiveRecBy,
+        received_by: effectiveRecBy,
         total: saleTotal,
         totalAmount: saleTotal,
         grandTotal: saleTotal,
@@ -1142,8 +1148,20 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
         items: enrichedItems,
         created_at: new Date().toISOString(),
         invoice_date: new Date().toISOString().split('T')[0],
-        notes: `فاتورة مبيعات آجلة مرحلة لحساب العميل: ${effectiveCustName}`,
+        notes: `فاتورة مبيعات آجلة مرحلة لحساب العميل: ${effectiveCustName}${effectiveRecBy ? ` - المستلم: ${effectiveRecBy}` : ''}`,
       };
+
+      if (effectiveCustId) {
+        api.addCustomerTransaction(effectiveCustId, {
+          type: 'DEBIT',
+          amount: saleTotal,
+          currency,
+          description: `فاتورة مبيعات آجلة رقم ${invNum}${effectiveRecBy ? ` - المستلم: ${effectiveRecBy}` : ''}`,
+          referenceNo: invNum,
+          receivedBy: effectiveRecBy,
+          received_by: effectiveRecBy,
+        }).catch(console.warn);
+      }
 
       // 3. Save to erp_invoices_v1
       try {
@@ -1240,12 +1258,16 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
         shiftId: currentShift?.id || undefined,
         notes: paymentData.notes,
         overrideCreditLimit: paymentData.overrideCreditLimit,
+        receivedBy: (paymentData as any).receivedBy,
+        received_by: (paymentData as any).receivedBy,
       };
 
       const res = await api.posCheckout(payload);
 
       if (res.success && res.data) {
         const invNum = res.data?.invoice_number || res.data?.invoiceNumber || `POS-${Date.now().toString().slice(-6)}`;
+        const prevBal = selectedCustomer ? Number(selectedCustomer.current_balance || selectedCustomer.balance || 0) : undefined;
+        const newBal = prevBal !== undefined ? (prevBal + (paymentData.remainingAmount || 0)) : undefined;
 
         // 1. Sync Central Stock Deduction and Movements
         applyStockMovementSync(enrichedCartItems, {
@@ -1271,6 +1293,12 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
           cashier_name: effectiveSalesperson,
           cashierName: effectiveSalesperson,
           createdBy: effectiveSalesperson,
+          receivedBy: (paymentData as any).receivedBy,
+          received_by: (paymentData as any).receivedBy,
+          previousBalance: prevBal,
+          previous_balance: prevBal,
+          newBalance: newBal,
+          new_balance: newBal,
           total: grandTotal,
           totalAmount: grandTotal,
           grandTotal: grandTotal,
@@ -1328,8 +1356,20 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
           }
         }
 
-        // If credit balance remaining, sync customer balance
+        // If credit balance remaining, sync customer balance and ledger movement
         if (paymentData.remainingAmount > 0 && selectedCustomer?.name) {
+          if (selectedCustomer.id) {
+            api.addCustomerTransaction(selectedCustomer.id, {
+              type: 'DEBIT',
+              amount: paymentData.remainingAmount,
+              currency,
+              description: `فاتورة مبيعات نقطة البيع رقم ${invNum}${(paymentData as any).receivedBy ? ` - المستلم: ${(paymentData as any).receivedBy}` : ''}`,
+              referenceNo: invNum,
+              receivedBy: (paymentData as any).receivedBy,
+              received_by: (paymentData as any).receivedBy,
+            }).catch(console.warn);
+          }
+
           try {
             const custStored = localStorage.getItem('erp_customers_v1');
             const custList: any[] = custStored ? JSON.parse(custStored) : [];
@@ -2275,6 +2315,20 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
               </div>
 
               <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center justify-between">
+                  <span>المستلم / الساحب</span>
+                  <span className="text-[10px] text-sky-400 font-normal">اختياري</span>
+                </label>
+                <input
+                  type="text"
+                  value={creditHoldReceivedBy}
+                  onChange={(e) => setCreditHoldReceivedBy(e.target.value)}
+                  placeholder="مثال: الأخ محمد السائق / سيارة رقم..."
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500"
+                />
+              </div>
+
+              <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1.5">
                   ملاحظة على التعليق الآجل (اختياري)
                 </label>
@@ -2320,6 +2374,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                     name: custToUse.name,
                     phone: custToUse.phone,
                     note: creditHoldNote.trim() || undefined,
+                    receivedBy: creditHoldReceivedBy.trim() || undefined,
                   });
                 }}
                 className="px-5 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-black shadow-lg shadow-orange-950/50 transition-all flex items-center gap-1.5 cursor-pointer"

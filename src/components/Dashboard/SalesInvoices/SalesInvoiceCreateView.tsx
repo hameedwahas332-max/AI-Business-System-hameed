@@ -141,6 +141,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
   // Form Header State
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [customerName, setCustomerName] = useState('');
+  const [receivedBy, setReceivedBy] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
   const [dueDate, setDueDate] = useState('');
@@ -792,6 +793,8 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
         customer_name: effectiveCustomerName,
         customerName: effectiveCustomerName,
         clientName: effectiveCustomerName,
+        receivedBy: receivedBy.trim() || undefined,
+        received_by: receivedBy.trim() || undefined,
         invoice_number: invoiceNumber.trim() ? toEnglishDigits(invoiceNumber.trim()) : undefined,
         invoice_date: invoiceDate,
         due_date: dueDate || undefined,
@@ -874,6 +877,8 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
           customer_name: effectiveCustomerName,
           customerName: effectiveCustomerName,
           clientName: effectiveCustomerName,
+          receivedBy: receivedBy.trim() || undefined,
+          received_by: receivedBy.trim() || undefined,
           salesperson: effectiveSalesperson,
           salesperson_name: effectiveSalesperson,
           salespersonName: effectiveSalesperson,
@@ -960,9 +965,21 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
           console.error('Failed to sync to erp_invoices_v1:', e);
         }
 
-        // If credit sale with remaining balance, sync customer balance in erp_customers_v1
+        // If credit sale with remaining balance, sync customer balance in erp_customers_v1 and add ledger movement
         if (effectiveRemaining > 0 && effectiveCustomerName) {
           try {
+            api.addCustomerTransaction(selectedCustomerId || 'cust-direct', {
+              customerId: selectedCustomerId || 'cust-direct',
+              customerName: effectiveCustomerName,
+              type: 'CREDIT_SALE',
+              amount: effectiveRemaining,
+              invoiceNumber: finalInvoice.invoice_number,
+              invoiceId: finalInvoice.id,
+              description: `فاتورة مبيعات آجل #${finalInvoice.invoice_number}${receivedBy.trim() ? ` (المستلم: ${receivedBy.trim()})` : ''}`,
+              receivedBy: receivedBy.trim() || undefined,
+              date: invoiceDate,
+            }).catch((e) => console.warn('[LEDGER_SYNC_WARN]', e));
+
             const custStored = localStorage.getItem('erp_customers_v1');
             const custList: any[] = custStored ? JSON.parse(custStored) : [];
             let matched = false;
@@ -1046,7 +1063,8 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
         }
 
         if (shouldPrint) {
-          // Print invoice preview with unit, serial & scrap info
+          // Print invoice preview with unit, serial & scrap info and credit balances
+          const prevBal = Number(selectedCustomer?.current_balance || selectedCustomer?.balance || 0);
           printInvoiceDocument({
             companyName: 'المؤسسة التجارية',
             invoiceType: 'SALES',
@@ -1057,6 +1075,10 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
             status: effectiveRemaining <= 0.01 && grandTotal > 0 ? 'PAID' : effectivePaid > 0 ? 'PARTIAL' : 'PENDING',
             partyName: effectiveCustomerName,
             customer_name: effectiveCustomerName,
+            receivedBy: receivedBy.trim() || undefined,
+            previousBalance: prevBal,
+            currentInvoiceAmount: grandTotal,
+            newTotalBalance: prevBal + effectiveRemaining,
             salesperson: effectiveSalesperson,
             salesperson_name: effectiveSalesperson,
             partyPhone: selectedCustomer?.phone,
@@ -1276,6 +1298,20 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
             </div>
           </div>
 
+          {/* Recipient / Received By */}
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-slate-300">
+              المستلم / المسحوب بواسطة (سائق / مندوب / ابن العميل)
+            </label>
+            <input
+              type="text"
+              value={receivedBy}
+              onChange={(e) => setReceivedBy(e.target.value)}
+              placeholder="اختياري - اسم الشخص المستلم للبضاعة أو الفاتورة..."
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+            />
+          </div>
+
           {selectedCustomer && (
             <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl space-y-1.5 text-xs">
               <div className="flex justify-between">
@@ -1289,6 +1325,17 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                   <span className="text-slate-400">الحد الائتماني:</span>
                   <span className="font-mono text-slate-300">
                     {formatAmount(selectedCustomer.credit_limit, selectedCustomer.currency || currency)}
+                  </span>
+                </div>
+              )}
+              {paymentMethod === 'CREDIT' && remainingDue > 0 && (
+                <div className="flex justify-between border-t border-slate-800 pt-1 text-amber-400 font-bold">
+                  <span>الرصيد المتوقع بعد الفاتورة:</span>
+                  <span className="font-mono">
+                    {formatAmount(
+                      Number(selectedCustomer.current_balance || 0) + remainingDue,
+                      selectedCustomer.currency || currency
+                    )}
                   </span>
                 </div>
               )}

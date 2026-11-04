@@ -49,6 +49,10 @@ export const POSReceiptModal: React.FC<POSReceiptModalProps> = ({
       partyName: receiptData.customer?.name || 'عميل كاشير نقدي',
       partyPhone: receiptData.customer?.phone,
       paymentMethod: receiptData.paymentMethod || 'نقداً',
+      receivedBy: receiptData.receivedBy || receiptData.received_by || receiptData.customer?.receivedBy,
+      previousBalance: receiptData.previousBalance,
+      currentInvoiceAmount: receiptData.currentInvoiceAmount || receiptData.total,
+      newTotalBalance: receiptData.newTotalBalance || receiptData.newBalance,
       items: (receiptData.items || []).map((it: any) => {
         let title = it.product_name || it.name || it.itemName;
         if (it.unit && it.unit !== 'حبة') title += ` (${it.unit})`;
@@ -77,13 +81,32 @@ export const POSReceiptModal: React.FC<POSReceiptModalProps> = ({
   const handleWhatsAppShare = () => {
     const customerPhone = receiptData.customer?.phone || '';
     const cleanPhone = customerPhone.replace(/\D/g, '');
-    const message = `مرحباً بك، فاتورة مشترياتكم من ${company?.name || 'المتجر'}
+    const recBy = receiptData.receivedBy || receiptData.received_by;
+    const isCreditSale = receiptData.paymentMethod === 'آجل' || receiptData.paymentMethod === 'CREDIT' || Number(receiptData.remainingAmount) > 0;
+    
+    let message = `مرحباً بك، فاتورة مشترياتكم من ${company?.name || 'المتجر'}
 رقم الفاتورة: #${receiptData.invoiceNumber}
 التاريخ: ${receiptData.invoiceDate}
-الإجمالي: ${receiptData.total?.toLocaleString()} ${currSym}
-المدفوع: ${receiptData.paidAmount?.toLocaleString()} ${currSym}
-المتبقي: ${receiptData.remainingAmount?.toLocaleString()} ${currSym}
-شكراً لزيارتكم ونسعد بخدمتكم دائماً!`;
+العميل: ${receiptData.customer?.name || 'عميل نقدي'}`;
+
+    if (recBy) {
+      message += `\nالمستلم (المسحوب بواسطة): ${recBy}`;
+    }
+
+    message += `\nالإجمالي: ${Number(receiptData.total || 0).toLocaleString('en-US')} ${currSym}
+المدفوع: ${Number(receiptData.paidAmount || 0).toLocaleString('en-US')} ${currSym}
+المتبقي: ${Number(receiptData.remainingAmount || 0).toLocaleString('en-US')} ${currSym}`;
+
+    if (isCreditSale && receiptData.previousBalance !== undefined) {
+      const prevBal = Number(receiptData.previousBalance || 0);
+      const newBal = Number(receiptData.newTotalBalance ?? receiptData.newBalance ?? (prevBal + Number(receiptData.remainingAmount || 0)));
+      message += `\n--------------------
+الرصيد السابق: ${prevBal.toLocaleString('en-US')} ${currSym}
+مبلغ الفاتورة الحالية: ${Number(receiptData.total || 0).toLocaleString('en-US')} ${currSym}
+إجمالي الرصيد المستحق: ${newBal.toLocaleString('en-US')} ${currSym}`;
+    }
+
+    message += `\nشكراً لزيارتكم ونسعد بخدمتكم دائماً!`;
 
     const url = cleanPhone
       ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`
@@ -187,6 +210,12 @@ export const POSReceiptModal: React.FC<POSReceiptModalProps> = ({
                 <span>العميل:</span>
                 <span className="font-bold">{receiptData.customer?.name || 'عميل نقدي عام'}</span>
               </div>
+              {(receiptData.receivedBy || receiptData.received_by) && (
+                <div className="flex justify-between text-indigo-900 bg-indigo-50 px-1.5 py-0.5 rounded font-sans">
+                  <span>المستلم / الساحب:</span>
+                  <span className="font-bold">{receiptData.receivedBy || receiptData.received_by}</span>
+                </div>
+              )}
             </div>
 
             {/* Items Table */}
@@ -210,11 +239,11 @@ export const POSReceiptModal: React.FC<POSReceiptModalProps> = ({
                           )}
                         </div>
                         <span className="text-[9px] text-slate-500">
-                          {item.quantity} {item.unit || item.unitName || 'حبة'} × {item.unitPrice?.toLocaleString()} {currSym}
+                          {Number(item.quantity).toLocaleString('en-US')} {item.unit || item.unitName || 'حبة'} × {Number(item.unitPrice || 0).toLocaleString('en-US')} {currSym}
                         </span>
                       </div>
-                      <div className="w-1/6 text-center font-bold">{item.quantity}</div>
-                      <div className="w-1/3 text-left font-bold">{item.total?.toLocaleString()}</div>
+                      <div className="w-1/6 text-center font-bold">{Number(item.quantity).toLocaleString('en-US')}</div>
+                      <div className="w-1/3 text-left font-bold">{Number(item.total || 0).toLocaleString('en-US')}</div>
                     </div>
                     {item.serialNumber && (
                       <div className="text-[9px] text-amber-800 font-mono mt-0.5">
@@ -228,7 +257,7 @@ export const POSReceiptModal: React.FC<POSReceiptModalProps> = ({
                     )}
                     {Number(item.scrapDiscount) > 0 && (
                       <div className="text-[9px] text-emerald-800 font-bold mt-0.5">
-                        ♻️ خصم رجيع بطارية قديمة: -{Number(item.scrapDiscount).toLocaleString()} {currSym}
+                        ♻️ خصم رجيع بطارية قديمة: -{Number(item.scrapDiscount).toLocaleString('en-US')} {currSym}
                       </div>
                     )}
                   </div>
@@ -240,23 +269,23 @@ export const POSReceiptModal: React.FC<POSReceiptModalProps> = ({
             <div className="py-2.5 border-b border-dashed border-slate-400 space-y-1">
               <div className="flex justify-between">
                 <span>المجموع الفرعي:</span>
-                <span>{receiptData.subtotal?.toLocaleString()} {currSym}</span>
+                <span>{Number(receiptData.subtotal || 0).toLocaleString('en-US')} {currSym}</span>
               </div>
               {Number(receiptData.discount) > 0 && (
                 <div className="flex justify-between text-rose-600">
                   <span>الخصم:</span>
-                  <span>-{receiptData.discount?.toLocaleString()} {currSym}</span>
+                  <span>-{Number(receiptData.discount).toLocaleString('en-US')} {currSym}</span>
                 </div>
               )}
               {Number(receiptData.tax) > 0 && (
                 <div className="flex justify-between">
                   <span>ضريبة القيمة المضافة:</span>
-                  <span>+{receiptData.tax?.toLocaleString()} {currSym}</span>
+                  <span>+{Number(receiptData.tax).toLocaleString('en-US')} {currSym}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm font-black border-t border-slate-400 pt-1.5 mt-1">
                 <span>الإجمالي النهائي:</span>
-                <span>{receiptData.total?.toLocaleString()} {currSym}</span>
+                <span>{Number(receiptData.total || 0).toLocaleString('en-US')} {currSym}</span>
               </div>
             </div>
 
@@ -268,18 +297,37 @@ export const POSReceiptModal: React.FC<POSReceiptModalProps> = ({
               </div>
               <div className="flex justify-between">
                 <span>المدفوع / المقبوض:</span>
-                <span className="font-bold">{receiptData.paidAmount?.toLocaleString()} {currSym}</span>
+                <span className="font-bold">{Number(receiptData.paidAmount || 0).toLocaleString('en-US')} {currSym}</span>
               </div>
               {Number(receiptData.changeAmount) > 0 && (
                 <div className="flex justify-between text-emerald-700 font-bold">
                   <span>المتبقي للعميل (فكة):</span>
-                  <span>{receiptData.changeAmount?.toLocaleString()} {currSym}</span>
+                  <span>{Number(receiptData.changeAmount).toLocaleString('en-US')} {currSym}</span>
                 </div>
               )}
               {Number(receiptData.remainingAmount) > 0 && (
                 <div className="flex justify-between text-amber-700 font-bold">
                   <span>المتبقي على الحساب (آجل):</span>
-                  <span>{receiptData.remainingAmount?.toLocaleString()} {currSym}</span>
+                  <span>{Number(receiptData.remainingAmount).toLocaleString('en-US')} {currSym}</span>
+                </div>
+              )}
+              {(receiptData.previousBalance !== undefined || receiptData.isCredit || receiptData.paymentMethod === 'آجل' || receiptData.paymentMethod === 'CREDIT' || Number(receiptData.remainingAmount) > 0) && (
+                <div className="mt-2 pt-1.5 border-t border-slate-300 bg-slate-50 p-1.5 rounded space-y-1 text-[9px] font-sans">
+                  <div className="text-[9px] font-black text-slate-800 pb-0.5 border-b border-slate-200">
+                    كشف حساب العميل والذمة المستحقة:
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>الرصيد السابق:</span>
+                    <span className="font-bold font-mono">{Number(receiptData.previousBalance || 0).toLocaleString('en-US')} {currSym}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>مبلغ الفاتورة الحالية:</span>
+                    <span className="font-bold font-mono">+{Number(receiptData.total || 0).toLocaleString('en-US')} {currSym}</span>
+                  </div>
+                  <div className="flex justify-between text-rose-700 font-bold border-t border-slate-200 pt-0.5">
+                    <span>إجمالي الرصيد المستحق:</span>
+                    <span className="font-mono">{Number(receiptData.newTotalBalance ?? receiptData.newBalance ?? ((Number(receiptData.previousBalance || 0)) + (Number(receiptData.remainingAmount || 0)))).toLocaleString('en-US')} {currSym}</span>
+                  </div>
                 </div>
               )}
             </div>

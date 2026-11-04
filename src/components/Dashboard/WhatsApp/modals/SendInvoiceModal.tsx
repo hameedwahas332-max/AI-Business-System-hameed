@@ -72,18 +72,37 @@ export const SendInvoiceModal: React.FC<SendInvoiceModalProps> = ({
     const rem = parseFloat(inv.remaining_amount !== undefined ? inv.remaining_amount : total);
     const invNum = inv.invoice_number || inv.id;
     const custName = inv.customer || inv.customer_name || cust?.name || 'العميل الكريم';
+    const recBy = inv.receivedBy || inv.received_by || inv.recipient;
     const cur = inv.currency || 'YER';
+    const prevBal = parseFloat(inv.previousBalance ?? inv.previous_balance ?? cust?.current_balance ?? 0);
+    const hasBalanceInfo = prevBal > 0 || rem > 0;
+    const newBal = parseFloat(inv.newTotalBalance ?? (prevBal + rem));
 
-    const msg =
+    let msg =
 `📄 إشعار فاتورة مبيعات — ${companyName}
 ═════════════════════════════
-👤 العميل: ${custName}
+👤 العميل: ${custName}`;
+
+    if (recBy) {
+      msg += `\n📦 المستلم (المسحوب بواسطة): ${recBy}`;
+    }
+
+    msg += `
 🔢 رقم الفاتورة: #${invNum}
-📅 التاريخ: ${inv.date || new Date().toISOString().slice(0, 10)}
+📅 التاريخ: ${inv.date || inv.invoice_date || new Date().toISOString().slice(0, 10)}
 ═════════════════════════════
 • إجمالي الفاتورة: ${toEnglishDigits(formatNumber(total))} ${cur}
 • المبلغ المتبقي للسداد: ${toEnglishDigits(formatNumber(rem))} ${cur}
-• الحالة: ${inv.status || (rem <= 0 ? 'مدفوعة' : 'آجلة')}
+• الحالة: ${inv.status || (rem <= 0 ? 'مدفوعة' : 'آجلة')}`;
+
+    if (hasBalanceInfo && (inv.payment_method === 'CREDIT' || rem > 0 || prevBal > 0)) {
+      msg += `
+═════════════════════════════
+• الرصيد السابق: ${toEnglishDigits(formatNumber(prevBal))} ${cur}
+• إجمالي الرصيد المستحق: ${toEnglishDigits(formatNumber(newBal))} ${cur}`;
+    }
+
+    msg += `
 ═════════════════════════════
 شاكرين حسن تعاملكم معنا.`;
 

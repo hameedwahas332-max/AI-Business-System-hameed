@@ -165,7 +165,12 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
     date: new Date().toISOString().split('T')[0],
     description: '',
     referenceNo: '',
+    receivedBy: '',
   });
+
+  // Customer Merge Modal State (CR-2026-CUSTOMER-MERGE-HANDLER)
+  const [mergeModal, setMergeModal] = useState<{ sourceCustomer: any; targetCustomerId: string } | null>(null);
+  const [isMerging, setIsMerging] = useState(false);
 
   // Fetch Data Function
   const fetchAllData = async (q = '') => {
@@ -676,8 +681,33 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
       date: new Date().toISOString().split('T')[0],
       description: '',
       referenceNo: '',
+      receivedBy: '',
     });
     setIsTxModalOpen(true);
+  };
+
+  // Handler: Customer Merge
+  const handleOpenMergeModal = (customer: any) => {
+    const targetCandidates = customers.filter((c) => c.id !== customer.id);
+    const defaultTarget = targetCandidates[0]?.id || '';
+    setMergeModal({ sourceCustomer: customer, targetCustomerId: defaultTarget });
+  };
+
+  const handleExecuteMerge = async () => {
+    if (!mergeModal || !mergeModal.targetCustomerId) return;
+    try {
+      setIsMerging(true);
+      setError(null);
+      await api.mergeCustomers(mergeModal.sourceCustomer.id, mergeModal.targetCustomerId);
+      setSuccess(`تم دمج حساب العميل "${mergeModal.sourceCustomer.name || mergeModal.sourceCustomer._name}" بنجاح ونقل كافة الحركات والفواتير والرصيد`);
+      setMergeModal(null);
+      fetchAllData(searchQuery);
+      setTimeout(() => setSuccess(null), 5000);
+    } catch (err: any) {
+      setError(err?.message || 'فشل دمج حساب العميل');
+    } finally {
+      setIsMerging(false);
+    }
   };
 
   // Handler: Submit Direct Transaction
@@ -697,6 +727,8 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
       setTxSubmitting(true);
       setError(null);
 
+      const cleanReceivedBy = txFormData.receivedBy?.trim() || undefined;
+
       if (txTarget.type === 'CUSTOMER') {
         await api.addCustomerTransaction(txTarget.party.id, {
           type: txFormData.type,
@@ -706,6 +738,8 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
           date: txFormData.date || new Date().toISOString().split('T')[0],
           description: txFormData.description?.trim() || undefined,
           referenceNo: txFormData.referenceNo?.trim() || undefined,
+          receivedBy: cleanReceivedBy,
+          received_by: cleanReceivedBy,
         });
 
         // If customer payment (CREDIT transaction), record automatic receipt voucher
@@ -722,7 +756,7 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
               partyPhone: txTarget.party.phone || txTarget.party._phone,
               referenceNo: txFormData.referenceNo?.trim(),
               referenceType: 'DEBT_COLLECTION',
-              notes: txFormData.description?.trim() || `سند تحصيل ذمة عميل (${txTarget.party.name || txTarget.party._name})`,
+              notes: txFormData.description?.trim() || `سند تحصيل ذمة عميل (${txTarget.party.name || txTarget.party._name})${cleanReceivedBy ? ` - المستلم: ${cleanReceivedBy}` : ''}`,
             });
           } catch (pmtErr) {
             console.warn('Voucher sync warn:', pmtErr);
@@ -739,6 +773,8 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
           date: txFormData.date || new Date().toISOString().split('T')[0],
           description: txFormData.description?.trim() || undefined,
           referenceNo: txFormData.referenceNo?.trim() || undefined,
+          receivedBy: cleanReceivedBy,
+          received_by: cleanReceivedBy,
         });
 
         // If supplier payment (DEBIT transaction), record automatic payment voucher
@@ -989,12 +1025,16 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
         const txCur = tx.currency || cur;
         const ref = tx.reference_no || tx.referenceNo || tx.reference || tx.id || '-';
         const cleanDate = formatDateOnly(tx.date || tx.created_at) || '-';
+        const recBy = tx.received_by || tx.receivedBy;
+        const fullDesc = tx.description 
+          ? (recBy ? `${tx.description} (المستلم: ${recBy})` : tx.description)
+          : (recBy ? `المستلم: ${recBy}` : (d > 0 ? 'قيد مدين / مبيعات' : 'سند صرف / قبض / دائن'));
 
         return [
           idx + 1,
           cleanDate,
           ref,
-          tx.description || (d > 0 ? 'قيد مدين / مبيعات' : 'سند صرف / قبض / دائن'),
+          fullDesc,
           d > 0 ? formatNumber(d) : '—',
           c > 0 ? formatNumber(c) : '—',
           formatNumber(rBal),
@@ -1031,7 +1071,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
         'م',
         'التاريخ',
         'نوع ورقم السند/الفاتورة',
-        'البيان والتفاصيل',
+        'البيان والتفاصيل والمستلم',
         'مدين (عليه)',
         'دائن (له)',
         'الرصيد التراكمي',
@@ -1109,6 +1149,8 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
           referenceNo: tx.reference_no || tx.referenceNo || tx.reference || tx.id,
           reference: tx.reference_no || tx.referenceNo || tx.reference || tx.id,
           description: tx.description,
+          receivedBy: tx.received_by || tx.receivedBy,
+          received_by: tx.received_by || tx.receivedBy,
           debit: d,
           credit: c,
           debitAmount: d,
@@ -1894,6 +1936,16 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
 
+                          {isCustomer && (
+                            <button
+                              onClick={() => handleOpenMergeModal(account)}
+                              title="دمج حساب العميل مع عميل آخر (Merge Customer)"
+                              className="p-1.5 bg-[#0f2820] hover:bg-amber-600 text-amber-300 hover:text-white rounded-lg transition-all cursor-pointer shadow-sm"
+                            >
+                              <Share2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+
                           <button
                             onClick={() =>
                               isCustomer
@@ -2020,6 +2072,16 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                   >
                     <MessageCircle className="w-3.5 h-3.5" />
                   </button>
+
+                  {isCustomer && (
+                    <button
+                      onClick={() => handleOpenMergeModal(account)}
+                      className="p-2 bg-[#0c1f19] hover:bg-amber-600 text-amber-300 hover:text-white rounded-lg transition-all cursor-pointer"
+                      title="دمج الحساب"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
 
                   <button
                     onClick={() =>
@@ -2257,6 +2319,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                           <th className="p-2.5">مبلغ الحركة</th>
                           <th className="p-2.5">الرصيد التراكمي</th>
                           <th className="p-2.5">البيان / سبب القيد</th>
+                          <th className="p-2.5 text-center">المستلم / الساحب</th>
                           <th className="p-2.5 text-center">المرجع</th>
                         </tr>
                       </thead>
@@ -2282,13 +2345,16 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                             الرصيد الافتتاحي المعتمد لبداية الفترة (خط الأساس المحاسبي)
                           </td>
                           <td className="p-2.5 text-center text-slate-400 font-mono text-[10px]">
+                            —
+                          </td>
+                          <td className="p-2.5 text-center text-slate-400 font-mono text-[10px]">
                             BASELINE
                           </td>
                         </tr>
 
                         {/* 2. SECTION DIVIDER FOR ACTUAL MOVEMENTS */}
                         <tr className="bg-[#071912] text-emerald-400 font-bold text-[10px]">
-                          <td colSpan={6} className="py-1.5 px-3 text-right border-y border-emerald-500/20">
+                          <td colSpan={7} className="py-1.5 px-3 text-right border-y border-emerald-500/20">
                             ▼ الحركات الفعلية المسجلة خلال الفترة ({actualTxCount} حركة مسجلة)
                           </td>
                         </tr>
@@ -2296,13 +2362,14 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                         {/* 3. ACTUAL TRANSACTIONS */}
                         {actualTxList.length === 0 ? (
                           <tr>
-                            <td colSpan={6} className="p-8 text-center text-slate-400">
+                            <td colSpan={7} className="p-8 text-center text-slate-400">
                               لا توجد حركات مالية مسجلة خلال الفترة المحددة — الرصيد النهائي مطابق للرصيد الافتتاحي ({formatNumber(opBalance)} {cur}).
                             </td>
                           </tr>
                         ) : (
                           actualTxList.map((tx: any) => {
                             const txCur = tx.currency || cur;
+                            const recBy = tx.received_by || tx.receivedBy;
                             return (
                               <tr key={tx.id} className="hover:bg-[#0f241d] transition-colors">
                                 <td className="p-2.5 text-slate-400 font-mono text-[11px]">
@@ -2343,6 +2410,15 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                                 </td>
                                 <td className="p-2.5 text-slate-300">
                                   {tx.description || '-'}
+                                </td>
+                                <td className="p-2.5 text-center text-slate-200 font-medium">
+                                  {recBy ? (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-sky-950/80 text-sky-300 border border-sky-500/30">
+                                      {recBy}
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-500 text-[11px]">—</span>
+                                  )}
                                 </td>
                                 <td className="p-2.5 text-center text-slate-400 font-mono text-[10px]">
                                   {tx.reference_no || '-'}
@@ -2941,15 +3017,30 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                 </div>
               </div>
 
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1">البيان / الوصف</label>
-                <input
-                  type="text"
-                  placeholder="سبب الحركة أو الشرح المحاسبي..."
-                  value={txFormData.description}
-                  onChange={(e) => setTxFormData({ ...txFormData, description: e.target.value })}
-                  className="w-full p-2.5 bg-[#06100c] border border-emerald-500/20 rounded-xl text-white focus:ring-1 focus:ring-emerald-400 focus:outline-none"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">البيان / الوصف</label>
+                  <input
+                    type="text"
+                    placeholder="سبب الحركة أو الشرح المحاسبي..."
+                    value={txFormData.description}
+                    onChange={(e) => setTxFormData({ ...txFormData, description: e.target.value })}
+                    className="w-full p-2.5 bg-[#06100c] border border-emerald-500/20 rounded-xl text-white focus:ring-1 focus:ring-emerald-400 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1 flex items-center justify-between">
+                    <span>المستلم / المسحوب بواسطة</span>
+                    <span className="text-[10px] text-sky-400 font-normal">اختياري</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="اسم الشخص المستلم أو السائق..."
+                    value={txFormData.receivedBy}
+                    onChange={(e) => setTxFormData({ ...txFormData, receivedBy: e.target.value })}
+                    className="w-full p-2.5 bg-[#06100c] border border-sky-500/30 rounded-xl text-white focus:ring-1 focus:ring-sky-400 focus:outline-none"
+                  />
+                </div>
               </div>
 
               {/* Live Simulation Box */}
@@ -2985,6 +3076,89 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 9.5 CUSTOMER MERGE MODAL (دمج حساب عميل مكرر أو مجهول)                     */}
+      {/* ========================================================================= */}
+      {mergeModal && (
+        <div className="fixed inset-0 z-[65] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" dir="rtl">
+          <div className="bg-[#091511] rounded-2xl border border-amber-500/40 shadow-2xl w-full max-w-md overflow-hidden text-right">
+            <div className="p-4 bg-gradient-to-r from-[#171306] to-[#2a220e] border-b border-amber-500/30 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center">
+                  <Share2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-white text-sm">دمج حساب العميل (Customer Merge)</h4>
+                  <p className="text-[11px] text-amber-300/80">نقل الحركات والرصيد والفواتير إلى الحساب الأساسي</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setMergeModal(null)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 text-xs">
+              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-1.5">
+                <div className="text-[11px] font-bold text-amber-300">العميل المُراد دمجه (المصدر):</div>
+                <div className="text-white font-black text-sm">{mergeModal.sourceCustomer.name || mergeModal.sourceCustomer._name}</div>
+                <div className="text-slate-400 font-mono text-[11px]">
+                  الرصيد الحالي: {formatNumber(mergeModal.sourceCustomer.current_balance || mergeModal.sourceCustomer.balance || 0)} {mergeModal.sourceCustomer.currency || 'YER'}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-bold mb-1.5">
+                  اختر العميل الأساسي المُراد الدمج إليه (الهدف) <span className="text-amber-400">*</span>:
+                </label>
+                <select
+                  value={mergeModal.targetCustomerId}
+                  onChange={(e) => setMergeModal({ ...mergeModal, targetCustomerId: e.target.value })}
+                  className="w-full p-2.5 bg-[#06100c] border border-amber-500/30 rounded-xl text-white font-bold focus:ring-1 focus:ring-amber-400 focus:outline-none"
+                >
+                  <option value="" disabled>اختر العميل المستهدف...</option>
+                  {customers
+                    .filter((c) => c.id !== mergeModal.sourceCustomer.id)
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} — الرصيد: {formatNumber(c.current_balance || c.balance || 0)} {c.currency || 'YER'}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-400 text-[11px] space-y-1">
+                <div>⚠️ <strong>ماذا سيحدث بعد تأكيد الدمج؟</strong></div>
+                <div>• سيتم نقل كافة الفواتير وسندات القبض وحركات الحساب فوراً إلى العميل المستهدف.</div>
+                <div>• سيتم دمج الرصيد المالي وإلغاء حساب العميل المصدر لمنع التكرار والحسابات المجهولة.</div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-amber-900/40">
+                <button
+                  type="button"
+                  onClick={() => setMergeModal(null)}
+                  disabled={isMerging}
+                  className="px-4 py-2 bg-[#0a1511] text-slate-300 rounded-xl border border-slate-700 hover:bg-slate-800 font-semibold cursor-pointer"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExecuteMerge}
+                  disabled={isMerging || !mergeModal.targetCustomerId}
+                  className="px-5 py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white rounded-xl font-bold shadow-lg shadow-amber-950 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isMerging && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>تأكيد دمج الحساب</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

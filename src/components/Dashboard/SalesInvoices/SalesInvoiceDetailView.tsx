@@ -142,6 +142,10 @@ export const SalesInvoiceDetailView: React.FC<SalesInvoiceDetailViewProps> = ({
         paymentMethod: invoice.payment_method,
         partyName,
         customer_name: partyName,
+        receivedBy: invoice.receivedBy || invoice.received_by,
+        previousBalance: invoice.previousBalance ?? invoice.previous_balance,
+        currentInvoiceAmount: printTotal,
+        newTotalBalance: invoice.newTotalBalance ?? invoice.new_total_balance ?? invoice.customer_balance,
         salesperson,
         salesperson_name: salesperson,
         partyPhone: invoice.customer_phone,
@@ -417,6 +421,12 @@ export const SalesInvoiceDetailView: React.FC<SalesInvoiceDetailViewProps> = ({
               <span className="text-slate-400 text-xs">اسم العميل:</span>
               <span className="text-white font-medium">{customerName}</span>
             </div>
+            {(invoice.receivedBy || invoice.received_by) && (
+              <div className="flex justify-between bg-indigo-950/50 border border-indigo-500/30 px-2.5 py-1.5 rounded-xl">
+                <span className="text-indigo-300 text-xs font-bold">المستلم / الساحب:</span>
+                <span className="text-indigo-200 font-bold font-mono">{invoice.receivedBy || invoice.received_by}</span>
+              </div>
+            )}
             {invoice.customer_phone && (
               <div className="flex justify-between">
                 <span className="text-slate-400 text-xs">رقم الهاتف:</span>

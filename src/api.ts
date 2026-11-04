@@ -520,10 +520,24 @@ class ApiClient {
     return this.request(`/customers/aging${id ? `?customerId=${id}` : ''}`);
   }
 
-  async addCustomerTransaction(customerId: string, data: any) {
-    return this.request(`/customers/${customerId}/transactions`, {
+  async addCustomerTransaction(customerIdOrData: string | any, data?: any) {
+    if (typeof customerIdOrData === 'object' && customerIdOrData !== null) {
+      const cid = customerIdOrData.customerId || customerIdOrData.customer_id || 'cust-direct';
+      return this.request(`/customers/${cid}/transactions`, {
+        method: 'POST',
+        body: JSON.stringify(customerIdOrData),
+      });
+    }
+    return this.request(`/customers/${customerIdOrData}/transactions`, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(data || {}),
+    });
+  }
+
+  async mergeCustomers(sourceCustomerId: string, targetCustomerId: string) {
+    return this.request('/customers/merge', {
+      method: 'POST',
+      body: JSON.stringify({ sourceCustomerId, targetCustomerId }),
     });
   }
 

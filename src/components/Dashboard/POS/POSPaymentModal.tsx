@@ -34,6 +34,7 @@ interface POSPaymentModalProps {
     payments: POSPaymentSplit[];
     overrideCreditLimit?: boolean;
     notes?: string;
+    receivedBy?: string;
   }) => void;
   loading: boolean;
 }
@@ -55,6 +56,7 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
     { method: 'CARD', amount: Math.round(cartTotal - Math.round(cartTotal / 2)) },
   ]);
   const [overrideCredit, setOverrideCredit] = useState(false);
+  const [receivedBy, setReceivedBy] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -67,6 +69,7 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
         { method: 'CARD', amount: Math.round(cartTotal - Math.round(cartTotal / 2)) },
       ]);
       setOverrideCredit(false);
+      setReceivedBy('');
       setError(null);
     }
   }, [isOpen, cartTotal]);
@@ -149,6 +152,7 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
       payments: finalPayments,
       overrideCreditLimit: overrideCredit,
       notes,
+      receivedBy: receivedBy.trim() || undefined,
     });
   };
 
@@ -388,6 +392,21 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
               </label>
             </div>
           )}
+
+          {/* Received By */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center justify-between">
+              <span>المستلم / الساحب:</span>
+              <span className="text-[10px] text-sky-400 font-normal">اختياري (سائق / مندوب / ابن العميل)</span>
+            </label>
+            <input
+              type="text"
+              value={receivedBy}
+              onChange={(e) => setReceivedBy(e.target.value)}
+              placeholder="مثال: ابن العميل / السائق محمد / رقم اللوحة..."
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
+            />
+          </div>
 
           {/* Notes */}
           <div>

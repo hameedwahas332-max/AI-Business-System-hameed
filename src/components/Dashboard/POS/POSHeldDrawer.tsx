@@ -188,13 +188,18 @@ export const POSHeldDrawer: React.FC<POSHeldDrawerProps> = ({
                         </div>
                       )}
 
-                      <div className="text-[10px] text-slate-400 flex items-center gap-2">
+                      <div className="text-[10px] text-slate-400 flex items-center gap-2 flex-wrap">
                         {sale.reference_no && (
                           <span className="font-mono text-slate-300 font-bold">#{sale.reference_no}</span>
                         )}
                         {timeString && <span>⏰ {timeString}</span>}
                         {sale.customerPhone && (
                           <span>📞 {sale.customerPhone}</span>
+                        )}
+                        {(sale.receivedBy || (sale as any).received_by) && (
+                          <span className="text-sky-300 bg-sky-950/60 border border-sky-500/30 px-1.5 py-0.5 rounded font-bold">
+                            👤 المستلم: {sale.receivedBy || (sale as any).received_by}
+                          </span>
                         )}
                       </div>
                     </div>

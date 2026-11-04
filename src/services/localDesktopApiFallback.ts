@@ -234,10 +234,79 @@ export function installGlobalDesktopFetchInterceptor(): void {
   }
 }
 
+// Auto-clean corrupted phantom customers
+export function autoCleanCorruptedPhantomCustomers(): void {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    const raw = localStorage.getItem('erp_customers_v1');
+    if (!raw) return;
+    const customers: any[] = JSON.parse(raw);
+    if (!Array.isArray(customers) || customers.length === 0) return;
+
+    let hasChanges = false;
+    const validCustomers: any[] = [];
+    const phantomsToMerge: any[] = [];
+
+    for (const c of customers) {
+      const name = String(c.name || '').trim();
+      const isPhantomName = !name || name === 'عميل مجهول' || name.toLowerCase().includes('unknown') || name === 'مجهول';
+      const isActuallyTransaction = (c.amount !== undefined || c.type !== undefined) && (c.customerId || c.customer_id);
+
+      if (isPhantomName || isActuallyTransaction) {
+        phantomsToMerge.push(c);
+        hasChanges = true;
+      } else {
+        validCustomers.push(c);
+      }
+    }
+
+    if (hasChanges) {
+      // Merge phantom records into target customer if target id exists
+      for (const phantom of phantomsToMerge) {
+        const targetId = phantom.customerId || phantom.customer_id;
+        if (targetId) {
+          const target = validCustomers.find(
+            (v) => String(v.id) === String(targetId) || String(v.code) === String(targetId)
+          );
+          if (target) {
+            const amount = Number(phantom.amount || 0);
+            if (amount > 0) {
+              const type = (phantom.type || 'DEBIT').toUpperCase();
+              const signed = type === 'DEBIT' ? amount : -amount;
+              target.balance = Number(target.balance || 0) + signed;
+              target.current_balance = target.balance;
+              if (!Array.isArray(target.transactions)) target.transactions = [];
+              target.transactions.push({
+                id: phantom.id || `mov_${Date.now()}`,
+                customerId: String(target.id),
+                customerName: target.name,
+                receivedBy: phantom.receivedBy || phantom.received_by || '',
+                type,
+                amount,
+                description: phantom.description || phantom.notes || 'حركة سابقة مرحلة',
+                date: phantom.date || phantom.created_at || new Date().toISOString(),
+              });
+            }
+          }
+        }
+      }
+
+      localStorage.setItem('erp_customers_v1', JSON.stringify(validCustomers));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('erp-customers-updated'));
+        window.dispatchEvent(new Event('erp-data-updated'));
+      }
+    }
+  } catch (e) {
+    console.warn('[autoCleanCorruptedPhantomCustomers] Warning:', e);
+  }
+}
+
 // Auto-execute safely on module load
 try {
   if (typeof window !== 'undefined') {
     installGlobalDesktopFetchInterceptor();
+    autoCleanCorruptedPhantomCustomers();
   }
 } catch {}
 
@@ -2133,6 +2202,306 @@ async function internalHandleLocalDesktopApiFallback(
     return s;
   };
 
+  // =========================================================================
+  // 13.5 STRICT INTERCEPTOR: Customer Merge Handler
+  // =========================================================================
+  if (cleanUrl.includes('/customers') && cleanUrl.includes('/merge') && method === 'POST') {
+    let bodyData: any = {};
+    try {
+      if (options?.body) bodyData = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;
+    } catch {}
+    const sourceId = String(bodyData.sourceCustomerId || bodyData.sourceId || '');
+    const targetId = String(bodyData.targetCustomerId || bodyData.targetId || '');
+    if (!sourceId || !targetId || sourceId === targetId) {
+      return { ok: false, success: false, status: 400, error: 'معرّفات دمج الحساب غير صالحة', data: null };
+    }
+    const customers = getLocalItem<any[]>('erp_customers_v1', []);
+    const sourceIdx = customers.findIndex((c) => String(c.id) === sourceId);
+    const targetIdx = customers.findIndex((c) => String(c.id) === targetId);
+    if (sourceIdx === -1 || targetIdx === -1) {
+      return { ok: false, success: false, status: 404, error: 'أحد الحسابين المطلوب دمجهما غير موجود', data: null };
+    }
+    const source = customers[sourceIdx];
+    const target = customers[targetIdx];
+
+    // Transfer balance
+    const sourceBalance = Number(source.balance || source.current_balance || 0);
+    target.balance = Number(target.balance || target.current_balance || 0) + sourceBalance;
+    target.current_balance = target.balance;
+
+    // Reassign invoices
+    const invoices = getLocalItem<any[]>('erp_invoices_v1', []);
+    const updatedInvoices = invoices.map((inv) => {
+      if (String(inv.customer_id || inv.customerId) === sourceId || String(inv.customer_name || inv.customerName).trim() === source.name.trim()) {
+        return { ...inv, customer_id: target.id, customerId: target.id, customer_name: target.name, customerName: target.name };
+      }
+      return inv;
+    });
+    setLocalItem('erp_invoices_v1', updatedInvoices, companyId);
+
+    // Reassign movements
+    const movements = getLocalItem<any[]>('erp_customer_movements_v1', []);
+    const updatedMovements = movements.map((m) => {
+      if (String(m.customerId || m.customer_id) === sourceId || String(m.customerName || m.customer_name).trim() === source.name.trim()) {
+        return { ...m, customerId: target.id, customer_id: target.id, customerName: target.name, customer_name: target.name };
+      }
+      return m;
+    });
+    setLocalItem('erp_customer_movements_v1', updatedMovements, companyId);
+
+    // Remove source customer
+    customers.splice(sourceIdx, 1);
+    setLocalItem('erp_customers_v1', customers, companyId);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('erp-customers-updated'));
+      window.dispatchEvent(new Event('erp-invoices-updated'));
+      window.dispatchEvent(new Event('erp-data-updated'));
+    }
+
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: target,
+      message: `تم دمج حساب "${source.name}" في حساب "${target.name}" وترحيل الرصيد (${sourceBalance}) بنجاح`,
+    };
+  }
+
+  // =========================================================================
+  // 13.6 STRICT INTERCEPTOR: Customer & Supplier Movements / Ledger / Transactions
+  // Intercept all transaction routes BEFORE generic collection matching to prevent "عميل مجهول"
+  // =========================================================================
+  const isCustomerTx =
+    (cleanUrl.includes('/customers/') && (cleanUrl.includes('/transactions') || cleanUrl.includes('/movements') || cleanUrl.includes('/ledger'))) ||
+    cleanUrl.endsWith('/customers/transactions') ||
+    cleanUrl.includes('/customer-movements');
+
+  const isSupplierTx =
+    (cleanUrl.includes('/suppliers/') && (cleanUrl.includes('/transactions') || cleanUrl.includes('/movements') || cleanUrl.includes('/ledger'))) ||
+    cleanUrl.endsWith('/suppliers/transactions') ||
+    cleanUrl.includes('/supplier-movements');
+
+  if (isCustomerTx) {
+    let bodyData: any = {};
+    try {
+      if (options?.body) {
+        bodyData = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;
+      }
+    } catch {}
+
+    // Extract target customer ID from URL or body
+    let targetCustomerId = '';
+    const parts = cleanUrl.split('/').filter(Boolean);
+    const custIdx = parts.findIndex((p) => p === 'customers');
+    if (custIdx !== -1 && parts[custIdx + 1] && parts[custIdx + 1] !== 'transactions' && parts[custIdx + 1] !== 'movements' && parts[custIdx + 1] !== 'ledger') {
+      targetCustomerId = parts[custIdx + 1];
+    }
+    if (!targetCustomerId) {
+      targetCustomerId = String(bodyData.customerId || bodyData.customer_id || bodyData.partyId || bodyData.party_id || '');
+    }
+
+    const customers = getLocalItem<any[]>('erp_customers_v1', []);
+    const customerIdx = customers.findIndex(
+      (c) =>
+        String(c.id) === String(targetCustomerId) ||
+        (targetCustomerId && String(c.code) === String(targetCustomerId)) ||
+        (bodyData.customerName && String(c.name || '').trim() === String(bodyData.customerName).trim())
+    );
+
+    const targetCustomer = customerIdx !== -1 ? customers[customerIdx] : null;
+    const effectiveCustomerId = targetCustomer ? String(targetCustomer.id) : (targetCustomerId || `cust_direct`);
+    const effectiveCustomerName = targetCustomer ? targetCustomer.name : (bodyData.customerName || 'عميل نقدي');
+
+    if (method === 'GET') {
+      const allMovements = getLocalItem<any[]>('erp_customer_movements_v1', []);
+      const matched = allMovements.filter(
+        (m) =>
+          String(m.customerId || m.customer_id) === String(effectiveCustomerId) ||
+          (effectiveCustomerName && String(m.customerName || m.customer_name).trim() === effectiveCustomerName.trim())
+      );
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: matched,
+        items: matched,
+      };
+    }
+
+    if (method === 'POST') {
+      const amount = Number(bodyData.amount || 0);
+      const txType = (bodyData.type || 'DEBIT').toUpperCase(); // DEBIT (سحب / فاتورة آجلة) or CREDIT (دفعة / سداد)
+      const receivedBy = (bodyData.receivedBy || bodyData.received_by || bodyData.receiverName || bodyData.drawnBy || '').trim();
+      const txId = bodyData.id || `mov_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+      const refNo = bodyData.referenceNo || bodyData.reference_no || `MOV-${Date.now().toString().slice(-6)}`;
+      const desc = bodyData.description || bodyData.notes || (txType === 'DEBIT' ? 'سحب نقدي / بضاعة' : 'سداد دفعة نقدية');
+
+      const txRecord = {
+        id: txId,
+        customerId: effectiveCustomerId,
+        customer_id: effectiveCustomerId,
+        customerName: effectiveCustomerName,
+        customer_name: effectiveCustomerName,
+        receivedBy,
+        received_by: receivedBy,
+        type: txType,
+        amount,
+        currency: bodyData.currency || targetCustomer?.currency || 'YER',
+        exchange_rate: Number(bodyData.exchange_rate || bodyData.exchangeRate || 1.0),
+        description: desc,
+        notes: desc,
+        referenceNo: refNo,
+        reference_no: refNo,
+        date: bodyData.date || new Date().toISOString().split('T')[0],
+        invoiceId: bodyData.invoiceId || bodyData.invoice_id || null,
+        created_at: new Date().toISOString(),
+      };
+
+      // 1. Update customer balance in-place in erp_customers_v1
+      if (targetCustomer) {
+        const signedAmount = txType === 'DEBIT' ? amount : -amount;
+        targetCustomer.balance = Number(targetCustomer.balance || targetCustomer.current_balance || 0) + signedAmount;
+        targetCustomer.current_balance = targetCustomer.balance;
+        if (!Array.isArray(targetCustomer.transactions)) {
+          targetCustomer.transactions = [];
+        }
+        targetCustomer.transactions.unshift(txRecord);
+        customers[customerIdx] = targetCustomer;
+        setLocalItem('erp_customers_v1', customers, companyId);
+        await saveRecord('erp_customers_v1', targetCustomer);
+      }
+
+      // 2. Append to erp_customer_movements_v1
+      const movements = getLocalItem<any[]>('erp_customer_movements_v1', []);
+      setLocalItem('erp_customer_movements_v1', [txRecord, ...movements], companyId);
+      await saveRecord('erp_customer_movements_v1', txRecord);
+
+      // 3. Dispatch real-time events
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('erp-customers-updated'));
+        window.dispatchEvent(new Event('erp-ledger-updated'));
+        window.dispatchEvent(new Event('erp-data-updated'));
+      }
+
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: txRecord,
+        message: 'تم تسجيل الحركة وتحديث رصيد العميل بنجاح',
+      };
+    }
+  }
+
+  if (isSupplierTx) {
+    let bodyData: any = {};
+    try {
+      if (options?.body) {
+        bodyData = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;
+      }
+    } catch {}
+
+    let targetSupplierId = '';
+    const parts = cleanUrl.split('/').filter(Boolean);
+    const suppIdx = parts.findIndex((p) => p === 'suppliers');
+    if (suppIdx !== -1 && parts[suppIdx + 1] && parts[suppIdx + 1] !== 'transactions' && parts[suppIdx + 1] !== 'movements' && parts[suppIdx + 1] !== 'ledger') {
+      targetSupplierId = parts[suppIdx + 1];
+    }
+    if (!targetSupplierId) {
+      targetSupplierId = String(bodyData.supplierId || bodyData.supplier_id || bodyData.partyId || bodyData.party_id || '');
+    }
+
+    const suppliers = getLocalItem<any[]>('erp_suppliers_v1', []);
+    const supplierIdx = suppliers.findIndex(
+      (s) =>
+        String(s.id) === String(targetSupplierId) ||
+        (targetSupplierId && String(s.code) === String(targetSupplierId)) ||
+        (bodyData.supplierName && String(s.name || '').trim() === String(bodyData.supplierName).trim())
+    );
+
+    const targetSupplier = supplierIdx !== -1 ? suppliers[supplierIdx] : null;
+    const effectiveSupplierId = targetSupplier ? String(targetSupplier.id) : (targetSupplierId || `sup_direct`);
+    const effectiveSupplierName = targetSupplier ? targetSupplier.name : (bodyData.supplierName || 'مورد');
+
+    if (method === 'GET') {
+      const allMovements = getLocalItem<any[]>('erp_supplier_movements_v1', []);
+      const matched = allMovements.filter(
+        (m) =>
+          String(m.supplierId || m.supplier_id) === String(effectiveSupplierId) ||
+          (effectiveSupplierName && String(m.supplierName || m.supplier_name).trim() === effectiveSupplierName.trim())
+      );
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: matched,
+        items: matched,
+      };
+    }
+
+    if (method === 'POST') {
+      const amount = Number(bodyData.amount || 0);
+      const txType = (bodyData.type || 'CREDIT').toUpperCase(); // CREDIT (توريد) or DEBIT (سداد)
+      const receivedBy = (bodyData.receivedBy || bodyData.received_by || bodyData.receiverName || bodyData.deliveredBy || '').trim();
+      const txId = bodyData.id || `sup_mov_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+      const refNo = bodyData.referenceNo || bodyData.reference_no || `SMOV-${Date.now().toString().slice(-6)}`;
+      const desc = bodyData.description || bodyData.notes || (txType === 'CREDIT' ? 'توريد بضاعة / فاتورة مشتريات' : 'سداد دفعة للمورد');
+
+      const txRecord = {
+        id: txId,
+        supplierId: effectiveSupplierId,
+        supplier_id: effectiveSupplierId,
+        supplierName: effectiveSupplierName,
+        supplier_name: effectiveSupplierName,
+        receivedBy,
+        received_by: receivedBy,
+        type: txType,
+        amount,
+        currency: bodyData.currency || targetSupplier?.currency || 'YER',
+        exchange_rate: Number(bodyData.exchange_rate || bodyData.exchangeRate || 1.0),
+        description: desc,
+        notes: desc,
+        referenceNo: refNo,
+        reference_no: refNo,
+        date: bodyData.date || new Date().toISOString().split('T')[0],
+        invoiceId: bodyData.invoiceId || bodyData.invoice_id || null,
+        created_at: new Date().toISOString(),
+      };
+
+      if (targetSupplier) {
+        const signedAmount = txType === 'CREDIT' ? amount : -amount;
+        targetSupplier.balance = Number(targetSupplier.balance || targetSupplier.current_balance || 0) + signedAmount;
+        targetSupplier.current_balance = targetSupplier.balance;
+        if (!Array.isArray(targetSupplier.transactions)) {
+          targetSupplier.transactions = [];
+        }
+        targetSupplier.transactions.unshift(txRecord);
+        suppliers[supplierIdx] = targetSupplier;
+        setLocalItem('erp_suppliers_v1', suppliers, companyId);
+        await saveRecord('erp_suppliers_v1', targetSupplier);
+      }
+
+      const movements = getLocalItem<any[]>('erp_supplier_movements_v1', []);
+      setLocalItem('erp_supplier_movements_v1', [txRecord, ...movements], companyId);
+      await saveRecord('erp_supplier_movements_v1', txRecord);
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('erp-suppliers-updated'));
+        window.dispatchEvent(new Event('erp-ledger-updated'));
+        window.dispatchEvent(new Event('erp-data-updated'));
+      }
+
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: txRecord,
+        message: 'تم تسجيل حركة المورد وتحديث الرصيد بنجاح',
+      };
+    }
+  }
+
   // 14. Comprehensive Entity CRUD Router
   const ENTITY_CONFIG: Record<
     string,
@@ -2185,15 +2554,181 @@ async function internalHandleLocalDesktopApiFallback(
     if (cleanUrl.includes('/statement')) {
       const items = getLocalItem<any[]>(storeKey, []);
       const party = items.find((i) => String(i.id) === String(idParam)) || items[0] || null;
+      if (!party) {
+        return {
+          ok: true,
+          success: true,
+          status: 200,
+          data: { party: null, openingBalance: 0, currentBalance: 0, transactions: [] },
+        };
+      }
+
+      const isCustomer = matchedEntityKey === 'customers';
+      let transactions: any[] = [];
+
+      if (isCustomer) {
+        // 1. Manual movements
+        const movements = getLocalItem<any[]>('erp_customer_movements_v1', []);
+        const custMovs = movements.filter(
+          (m) =>
+            String(m.customerId || m.customer_id) === String(party.id) ||
+            String(m.customerName || m.customer_name).trim() === String(party.name).trim()
+        );
+
+        // 2. Sales & POS Invoices
+        const invoices = getLocalItem<any[]>('erp_invoices_v1', []);
+        const custInvoices = invoices.filter(
+          (inv) =>
+            String(inv.customer_id || inv.customerId) === String(party.id) ||
+            String(inv.customer_name || inv.customerName || inv.customer).trim() === String(party.name).trim()
+        );
+
+        // 3. Payments
+        const payments = getLocalItem<any[]>('erp_payments_v1', []);
+        const custPayments = payments.filter(
+          (p) =>
+            String(p.partyId || p.party_id || p.customerId) === String(party.id) ||
+            String(p.partyName || p.party_name).trim() === String(party.name).trim()
+        );
+
+        for (const m of custMovs) {
+          transactions.push({
+            id: m.id,
+            date: m.date || m.created_at,
+            type: m.type || 'DEBIT',
+            debit: m.type === 'DEBIT' ? m.amount : 0,
+            credit: m.type === 'CREDIT' ? m.amount : 0,
+            amount: m.amount,
+            receivedBy: m.receivedBy || m.received_by || '',
+            description: m.description || (m.type === 'DEBIT' ? 'سحب نقدي / بضاعة' : 'سداد دفعة'),
+            referenceNo: m.referenceNo || m.reference_no || '',
+          });
+        }
+
+        for (const inv of custInvoices) {
+          const invTotal = Number(inv.total || inv.grandTotal || inv.amount || 0);
+          transactions.push({
+            id: inv.id,
+            date: inv.invoice_date || inv.date || inv.created_at,
+            type: 'DEBIT',
+            debit: invTotal,
+            credit: 0,
+            amount: invTotal,
+            receivedBy: inv.receivedBy || inv.received_by || '',
+            description: `فاتورة مبيعات #${inv.invoice_number || inv.invoiceNumber || inv.id}${inv.receivedBy ? ` (المستلم: ${inv.receivedBy})` : ''}`,
+            referenceNo: inv.invoice_number || inv.invoiceNumber || inv.id,
+          });
+          const paid = Number(inv.paidAmount || inv.paid_amount || inv.paid || 0);
+          if (paid > 0 && inv.payment_method !== 'CASH') {
+            transactions.push({
+              id: `pmt_${inv.id}`,
+              date: inv.invoice_date || inv.date || inv.created_at,
+              type: 'CREDIT',
+              debit: 0,
+              credit: paid,
+              amount: paid,
+              receivedBy: inv.receivedBy || '',
+              description: `سداد جزء من الفاتورة #${inv.invoice_number || inv.invoiceNumber}`,
+              referenceNo: `RCV-${inv.invoice_number || inv.id}`,
+            });
+          }
+        }
+
+        for (const p of custPayments) {
+          const pAmount = Number(p.amount || 0);
+          transactions.push({
+            id: p.id,
+            date: p.date || p.payment_date || p.created_at,
+            type: 'CREDIT',
+            debit: 0,
+            credit: pAmount,
+            amount: pAmount,
+            receivedBy: p.receivedBy || '',
+            description: p.notes || p.description || `سند تحصيل / دفعة #${p.voucher_number || p.voucherNumber || p.id}`,
+            referenceNo: p.voucher_number || p.voucherNumber || p.id,
+          });
+        }
+      } else {
+        const movements = getLocalItem<any[]>('erp_supplier_movements_v1', []);
+        const suppMovs = movements.filter(
+          (m) =>
+            String(m.supplierId || m.supplier_id) === String(party.id) ||
+            String(m.supplierName || m.supplier_name).trim() === String(party.name).trim()
+        );
+        const purchases = getLocalItem<any[]>('erp_purchase_invoices_v1', []);
+        const suppPurchases = purchases.filter(
+          (pur) =>
+            String(pur.supplier_id || pur.supplierId) === String(party.id) ||
+            String(pur.supplier_name || pur.supplierName || pur.supplier).trim() === String(party.name).trim()
+        );
+
+        for (const m of suppMovs) {
+          transactions.push({
+            id: m.id,
+            date: m.date || m.created_at,
+            type: m.type || 'CREDIT',
+            credit: m.type === 'CREDIT' ? m.amount : 0,
+            debit: m.type === 'DEBIT' ? m.amount : 0,
+            amount: m.amount,
+            receivedBy: m.receivedBy || m.received_by || '',
+            description: m.description || (m.type === 'CREDIT' ? 'توريد بضاعة' : 'سداد دفعة للمورد'),
+            referenceNo: m.referenceNo || m.reference_no || '',
+          });
+        }
+
+        for (const pur of suppPurchases) {
+          const purTotal = Number(pur.grandTotal || pur.total || pur.amount || 0);
+          transactions.push({
+            id: pur.id,
+            date: pur.invoiceDate || pur.date || pur.created_at,
+            type: 'CREDIT',
+            credit: purTotal,
+            debit: 0,
+            amount: purTotal,
+            receivedBy: pur.receivedBy || pur.deliveredBy || '',
+            description: `فاتورة مشتريات #${pur.invoiceNumber || pur.invoice_number || pur.id}`,
+            referenceNo: pur.invoiceNumber || pur.invoice_number || pur.id,
+          });
+        }
+      }
+
+      const txMap = new Map<string, any>();
+      transactions.forEach((t) => {
+        if (!txMap.has(t.id)) txMap.set(t.id, t);
+      });
+      const uniqueTx = Array.from(txMap.values());
+      uniqueTx.sort((a, b) => new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime());
+
+      let runningBalance = Number(party?.opening_balance || party?.openingBalance || 0);
+      let totalDebit = 0;
+      let totalCredit = 0;
+
+      const transactionsWithBalance = uniqueTx.map((tx) => {
+        if (isCustomer) {
+          runningBalance += (tx.debit || 0) - (tx.credit || 0);
+        } else {
+          runningBalance += (tx.credit || 0) - (tx.debit || 0);
+        }
+        totalDebit += Number(tx.debit || 0);
+        totalCredit += Number(tx.credit || 0);
+        return {
+          ...tx,
+          balanceAfter: runningBalance,
+          running_balance: runningBalance,
+        };
+      });
+
       const statement = {
         party,
-        openingBalance: Number(party?.opening_balance || party?.openingBalance || party?.balance || 0),
-        currentBalance: Number(party?.current_balance || party?.balance || 0),
+        openingBalance: Number(party?.opening_balance || party?.openingBalance || 0),
+        currentBalance: runningBalance,
         currency: party?.currency || 'YER',
-        transactions: [],
-        totalDebit: 0,
-        totalCredit: 0,
+        transactions: transactionsWithBalance,
+        items: transactionsWithBalance,
+        totalDebit,
+        totalCredit,
       };
+
       return {
         ok: true,
         success: true,
@@ -2229,6 +2764,9 @@ async function internalHandleLocalDesktopApiFallback(
 
     // GET Request: List or Single Item
     if (method === 'GET') {
+      if (matchedEntityKey === 'customers') {
+        autoCleanCorruptedPhantomCustomers();
+      }
       const items = getLocalItem<any[]>(storeKey, []);
       if (idParam && idParam !== 'current' && idParam !== 'categories' && idParam !== 'aging' && idParam !== 'stats') {
         const found = items.find(
@@ -2258,6 +2796,58 @@ async function internalHandleLocalDesktopApiFallback(
       try {
         if (options?.body) bodyData = JSON.parse(options.body as string);
       } catch {}
+
+      // STRICT GUARD: If this is customers collection, prevent empty name, phantom customer, or transaction payload!
+      if (matchedEntityKey === 'customers') {
+        const rawName = String(bodyData.name || '').trim();
+        // If body has amount / customerId / type, it is a transaction payload that collided
+        if ((bodyData.amount !== undefined || bodyData.customerId || bodyData.type) && (!rawName || rawName === 'عميل مجهول')) {
+          console.warn('[localDesktopApiFallback] Collided transaction payload sent to POST /customers. Redirecting to customer transaction handler.');
+          const targetCustId = bodyData.customerId || bodyData.customer_id;
+          const customers = getLocalItem<any[]>('erp_customers_v1', []);
+          const target = customers.find(
+            (c) => String(c.id) === String(targetCustId) || (bodyData.customerName && c.name?.trim() === bodyData.customerName?.trim())
+          );
+          if (target) {
+            const amount = Number(bodyData.amount || 0);
+            const txType = (bodyData.type || 'DEBIT').toUpperCase();
+            const signedAmount = txType === 'DEBIT' ? amount : -amount;
+            target.balance = Number(target.balance || target.current_balance || 0) + signedAmount;
+            target.current_balance = target.balance;
+            if (!Array.isArray(target.transactions)) target.transactions = [];
+            target.transactions.unshift({
+              id: bodyData.id || `mov_${Date.now()}`,
+              customerId: String(target.id),
+              customerName: target.name,
+              receivedBy: bodyData.receivedBy || '',
+              type: txType,
+              amount,
+              description: bodyData.description || 'حركة حساب عميل',
+              date: bodyData.date || new Date().toISOString(),
+            });
+            setLocalItem('erp_customers_v1', customers, companyId);
+            return {
+              ok: true,
+              success: true,
+              status: 200,
+              data: target,
+              message: 'تم تسجيل الحركة بنجاح',
+            };
+          }
+        }
+
+        // Never allow "عميل مجهول" to be added as a customer!
+        if (!rawName || rawName === 'عميل مجهول' || rawName.toLowerCase().includes('unknown')) {
+          return {
+            ok: false,
+            success: false,
+            status: 400,
+            error: 'لا يمكن إضافة عميل بدون اسم صالح',
+            message: 'يرجى إدخال اسم العميل بشكل صحيح',
+            data: null,
+          };
+        }
+      }
 
       const id = bodyData.id || `${prefix}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
       const sanitized = sanitizeEntityRecord({
