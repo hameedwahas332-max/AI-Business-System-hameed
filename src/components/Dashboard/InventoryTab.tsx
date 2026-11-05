@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../api';
 import { formatAmount, formatNumber, getActiveCurrencySymbol } from '../../lib/formatters';
+import { formatProductStock, computeLiveProductStockMetrics, getProductMajorFactor } from '../../utils/inventoryMath';
 import { ModuleSettingsModal } from '../Common/ModuleSettingsModal';
 import { ProductActivityType } from '../../types';
 import {
@@ -329,21 +330,16 @@ export const InventoryTab: React.FC = () => {
     };
   }, [typeFilter]);
 
-  // Stock breakdown helper (Cartons + Pieces)
+  // Stock breakdown helper (Cartons + Pieces + Remainder)
   const getStockBreakdown = (prod: any) => {
-    const stock = Number(prod.current_stock ?? prod.qty ?? 0);
-    const factor = Number(prod.majorUnitFactor ?? prod.major_unit_factor ?? 0);
-    const majorName = prod.majorUnitName || prod.major_unit_name || 'كرتون';
-    const baseName = prod.baseUnitName || prod.unit || 'حبة';
-
-    if (factor > 1 && stock >= factor) {
-      const cartons = Math.floor(stock / factor);
-      const pieces = stock % factor;
-      return pieces > 0
-        ? `${cartons} ${majorName} + ${pieces} ${baseName}`
-        : `${cartons} ${majorName}`;
+    const metrics = computeLiveProductStockMetrics(prod);
+    const { majorCount, remainderSub, majorFactor, majorUnitName, baseUnitName } = metrics;
+    if (majorFactor > 1 && majorUnitName) {
+      return remainderSub > 0
+        ? `${majorCount} ${majorUnitName} + ${remainderSub} ${baseUnitName}`
+        : `${majorCount} ${majorUnitName}`;
     }
-    return `${stock} ${baseName}`;
+    return `${metrics.currentStock} ${baseUnitName}`;
   };
 
   // Filtered products list
@@ -1079,10 +1075,11 @@ export const InventoryTab: React.FC = () => {
                     </tr>
                   ) : (
                     filteredProducts.map((prod) => {
-                      const stock = Number(prod.current_stock ?? prod.qty ?? prod.stock ?? 0);
-                      const totalSold = Number(prod.totalSold || 0);
-                      const soldToday = Number(prod.soldToday || 0);
-                      const incomingTotal = stock + totalSold;
+                      const m = computeLiveProductStockMetrics(prod);
+                      const stock = m.remainingStock;
+                      const totalSold = m.totalSold;
+                      const soldToday = m.soldToday;
+                      const incomingTotal = m.totalIncoming;
                       const minStock = Number(prod.min_stock_level ?? 5);
                       const isLow = stock <= minStock;
 
@@ -1102,8 +1099,8 @@ export const InventoryTab: React.FC = () => {
                             </div>
                           </td>
                           <td className="p-3.5 font-mono text-slate-300">{prod.sku || '-'}</td>
-                          <td className="p-3.5 font-mono font-bold text-slate-300">
-                            {formatNumber(incomingTotal)} {prod.baseUnitName || prod.unit || 'حبة'}
+                          <td className="p-3.5 font-mono font-bold text-slate-300" title={m.formattedIncoming}>
+                            {formatNumber(incomingTotal)} {m.baseUnitName}
                           </td>
                           <td className="p-3.5 font-mono font-bold text-cyan-400">
                             {formatNumber(soldToday)}
@@ -1111,8 +1108,8 @@ export const InventoryTab: React.FC = () => {
                           <td className="p-3.5 font-mono font-bold text-purple-400">
                             {formatNumber(totalSold)}
                           </td>
-                          <td className="p-3.5 font-mono font-bold text-emerald-400">
-                            {formatNumber(stock)} {prod.baseUnitName || prod.unit || 'حبة'}
+                          <td className="p-3.5 font-mono font-bold text-emerald-400" title={m.formattedRemaining}>
+                            {formatNumber(stock)} {m.baseUnitName}
                           </td>
                           <td className="p-3.5 font-bold text-emerald-400">
                             <span className="bg-emerald-950/80 px-2.5 py-1 rounded-lg border border-emerald-800/50 inline-block font-mono text-[11px]">

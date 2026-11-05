@@ -169,6 +169,11 @@ export interface StockDeductionItem {
   quantity: number;
   unitFactor?: number;
   unitName?: string;
+  unit?: string;
+  name?: string;
+  sku?: string;
+  itemCode?: string;
+  barcode?: string;
   price?: number;
   total?: number;
 }
@@ -199,17 +204,35 @@ export function applyStockMovementSync(items: StockDeductionItem[], options: Sto
     const isStockIncrease = options.type === 'purchase' || options.type === 'return';
 
     items.forEach((item) => {
-      const pIdx = products.findIndex((p) => p.id === item.productId || p.itemCode === item.productId || p.sku === item.productId);
-      const factor = Number(item.unitFactor || 1);
-      const baseQty = Number(item.quantity || 0) * factor;
+      const pIdx = products.findIndex((p) => 
+        (item.productId && (String(p.id) === String(item.productId) || String(p.itemCode) === String(item.productId) || String(p.sku) === String(item.productId))) ||
+        (item.sku && String(p.sku) === String(item.sku)) ||
+        (item.barcode && String(p.barcode) === String(item.barcode)) ||
+        (item.name && String(p.name).trim().toLowerCase() === String(item.name).trim().toLowerCase())
+      );
 
       let stockBefore = 0;
       let stockAfter = 0;
-      let prodName = 'صنف تجاري';
-      let prodCode = '';
+      let prodName = item.name || 'صنف تجاري';
+      let prodCode = item.sku || item.itemCode || '';
+      let baseQty = Number(item.quantity || 0) * Number(item.unitFactor || 1);
 
       if (pIdx !== -1) {
         const p = products[pIdx];
+        const pFactor = Number(p.majorUnitFactor || p.conversionFactor || 1);
+        const itemFactor = Number(item.unitFactor || 1);
+        const itemUnit = (item.unit || item.unitName || '').trim().toLowerCase();
+        const pMajorUnit = (p.majorUnitName || '').trim().toLowerCase();
+
+        baseQty = Number(item.quantity || 0);
+        if (itemFactor > 1) {
+          baseQty = baseQty * itemFactor;
+        } else if (pFactor > 1 && pMajorUnit && itemUnit === pMajorUnit) {
+          baseQty = baseQty * pFactor;
+        } else if (pFactor > 1 && (itemUnit.includes('كيس') || itemUnit.includes('كرتون') || itemUnit.includes('شوال'))) {
+          baseQty = baseQty * pFactor;
+        }
+
         stockBefore = Number(p.current_stock !== undefined ? p.current_stock : (p.stock !== undefined ? p.stock : (p.quantity || 0)));
         prodName = p.name || prodName;
         prodCode = p.itemCode || p.sku || p.barcode || '';
@@ -231,9 +254,16 @@ export function applyStockMovementSync(items: StockDeductionItem[], options: Sto
             if (p.lastSoldDate === today) {
               p.soldToday = Math.max(0, Number(p.soldToday || 0) - baseQty);
             }
+          } else if (options.type === 'purchase') {
+            p.incomingStock = Number(p.incomingStock || p.initialStock || stockBefore) + baseQty;
           }
         } else {
           stockAfter = stockBefore;
+        }
+
+        // Initialize incomingStock if unset
+        if (p.incomingStock === undefined || Number(p.incomingStock) <= 0) {
+          p.incomingStock = stockAfter + Number(p.totalSold || 0);
         }
 
         p.current_stock = stockAfter;
@@ -252,7 +282,7 @@ export function applyStockMovementSync(items: StockDeductionItem[], options: Sto
         productCode: prodCode,
         productName: prodName,
         type: options.type,
-        unitName: item.unitName || 'حبة',
+        unitName: item.unitName || item.unit || 'حبة',
         quantity: Number(item.quantity || 0),
         baseQuantity: baseQty,
         stockBefore,

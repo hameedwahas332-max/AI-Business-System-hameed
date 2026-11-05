@@ -54,6 +54,7 @@ import {
 import { printInvoiceDocument } from '../../../lib/exportUtils';
 import { recordAutomaticTreasuryVoucher } from '../../../utils/treasuryVoucherHelper';
 import { normalizeScannedBarcode, playBarcodeBeep, findProductByBarcode, attachGlobalBarcodeScannerListener, shouldProcessBarcodeScan } from '../../../utils/barcodeUtils';
+import { formatProductStock, computeLiveProductStockMetrics } from '../../../utils/inventoryMath';
 import { enqueueOutboxTransaction } from '../../../services/transactionalOutbox';
 import { ModuleSettingsModal } from '../../Common/ModuleSettingsModal';
 import { POSQuickItemModal } from './POSQuickItemModal';
@@ -1791,10 +1792,11 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                               ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                               : isLowStock
                               ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                              : 'bg-slate-800 text-slate-400'
+                              : 'bg-slate-800 text-emerald-400 border border-slate-700/80 font-mono'
                           }`}
+                          title={`الرصيد: ${formatProductStock(stock, p)}`}
                         >
-                          {stock <= 0 ? 'نفد المخزون' : `${stock} ${p.unit || 'حبة'}`}
+                          {stock <= 0 ? 'نفد المخزون' : formatProductStock(stock, p)}
                         </span>
                       </div>
                     </button>

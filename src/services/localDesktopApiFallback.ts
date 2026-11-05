@@ -313,6 +313,8 @@ try {
   if (typeof window !== 'undefined') {
     installGlobalDesktopFetchInterceptor();
     autoCleanCorruptedPhantomCustomers();
+    autoCleanDuplicateAccountingRecords();
+    autoRepairExistingProductStock();
   }
 } catch {}
 
@@ -519,6 +521,81 @@ export function autoCleanDuplicateAccountingRecords(): void {
     }
   } catch (err) {
     console.warn('[autoCleanDuplicateAccountingRecords] Warning:', err);
+  }
+}
+
+/**
+ * Auto-repair existing products that show 0 in localStorage despite having openingStock or majorQuantity,
+ * or where stock > 0 but incomingStock is 0. Normalizes canonical stock into base units.
+ */
+export function autoRepairExistingProductStock(): void {
+  try {
+    const companyId = getActiveCompanyId();
+    const products = getLocalItem<any[]>('erp_products_v1', []);
+    if (!Array.isArray(products) || products.length === 0) return;
+
+    let changed = false;
+    const repaired = products.map((p) => {
+      let current = Number(p.current_stock ?? p.stock ?? p.quantity ?? p.qty ?? 0);
+      const factor = Number(p.majorUnitFactor ?? p.conversionFactor ?? 1);
+      const opening = Number(p.initialStock ?? p.initial_stock ?? p.openingStock ?? p.opening_stock ?? 0);
+      const totalSold = Number(p.totalSold || 0);
+
+      let repairedStock = current;
+
+      // Case A: Product has 0 stock but has a positive opening stock or major count
+      if (repairedStock <= 0 && opening > 0) {
+        repairedStock = opening;
+        changed = true;
+      } else if (repairedStock <= 0 && factor > 1 && p.majorQuantity && Number(p.majorQuantity) > 0) {
+        repairedStock = Number(p.majorQuantity) * factor;
+        changed = true;
+      }
+
+      // Case B: Opening stock was saved in major units (e.g. 3) but factor is 50 and current stock is 150
+      let repairedInitial = opening;
+      if (repairedInitial <= 0) {
+        repairedInitial = Math.max(repairedStock, repairedStock + totalSold);
+        changed = true;
+      } else if (factor > 1 && repairedInitial < factor && repairedStock >= factor) {
+        repairedInitial = repairedInitial * factor;
+        changed = true;
+      }
+
+      // Case C: incomingStock is unset or 0 while currentStock > 0
+      let repairedIncoming = Number(p.incomingStock ?? p.incoming_stock ?? 0);
+      if (repairedIncoming <= 0 || repairedIncoming < (repairedStock + totalSold)) {
+        repairedIncoming = Math.max(repairedInitial, repairedStock + totalSold);
+        changed = true;
+      }
+
+      if (repairedStock !== current || p.current_stock === undefined || p.stock === undefined || p.incomingStock !== repairedIncoming) {
+        changed = true;
+        return {
+          ...p,
+          current_stock: repairedStock,
+          stock: repairedStock,
+          quantity: repairedStock,
+          qty: repairedStock,
+          initialStock: repairedInitial,
+          initial_stock: repairedInitial,
+          openingStock: repairedInitial,
+          incomingStock: repairedIncoming,
+          incoming_stock: repairedIncoming,
+        };
+      }
+      return p;
+    });
+
+    if (changed) {
+      setLocalItem('erp_products_v1', repaired, companyId);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('erp-inventory-updated'));
+        window.dispatchEvent(new Event('erp-data-updated'));
+      }
+    }
+  } catch (err) {
+    console.warn('[autoRepairExistingProductStock] Warning:', err);
   }
 }
 

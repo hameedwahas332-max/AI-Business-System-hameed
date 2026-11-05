@@ -8,6 +8,7 @@ import {
   parseEnglishNumber,
 } from '../../lib/formatters';
 import { normalizeScannedBarcode, playBarcodeBeep, findProductByBarcode, attachGlobalBarcodeScannerListener, shouldProcessBarcodeScan } from '../../utils/barcodeUtils';
+import { formatProductStock, computeLiveProductStockMetrics, getProductMajorFactor, toBaseQuantity } from '../../utils/inventoryMath';
 import { ExportActions } from '../Common/ExportActions';
 import { ModuleSettingsModal } from '../Common/ModuleSettingsModal';
 import { TableExportConfig } from '../../lib/exportUtils';
@@ -428,6 +429,14 @@ export const ProductsTab: React.FC = () => {
     try {
       setError(null);
       const retail = parseFloat(formData.retailPrice || formData.sellingPrice || '0');
+      const majorFactor = parseFloat(formData.majorUnitFactor || '1');
+      const baseStockInput = parseFloat(formData.currentStock || '0');
+      
+      // Normalized canonical base quantity (الوحدة الصغرى/الأساسية)
+      // e.g. 3 bags * 50 = 150 kg, or entered directly as 150 kg
+      const canonicalBaseStock = Math.max(0, baseStockInput);
+      const initialStockVal = canonicalBaseStock;
+
       const payload: any = {
         name: formData.name,
         sku: formData.sku,
@@ -440,7 +449,16 @@ export const ProductsTab: React.FC = () => {
         baseUnitName: formData.baseUnitName || formData.unit || 'حبة',
         purchasePrice: parseFloat(formData.purchasePrice || '0'),
         sellingPrice: retail,
-        currentStock: parseFloat(formData.currentStock || '0'),
+        currentStock: canonicalBaseStock,
+        current_stock: canonicalBaseStock,
+        stock: canonicalBaseStock,
+        quantity: canonicalBaseStock,
+        qty: canonicalBaseStock,
+        initialStock: initialStockVal,
+        initial_stock: initialStockVal,
+        openingStock: initialStockVal,
+        incomingStock: canonicalBaseStock,
+        incoming_stock: canonicalBaseStock,
         minStockLevel: parseFloat(formData.minStockLevel || '0'),
         isActive: formData.isActive,
         description: formData.description,
@@ -455,7 +473,7 @@ export const ProductsTab: React.FC = () => {
         subUnitPrice: parseFloat(formData.subUnitPrice || '0'),
         subUnitBarcode: formData.subUnitBarcode,
         majorUnitName: formData.majorUnitName,
-        majorUnitFactor: parseFloat(formData.majorUnitFactor || '1'),
+        majorUnitFactor: majorFactor,
         majorUnitPrice: parseFloat(formData.majorUnitPrice || '0'),
         majorUnitBarcode: formData.majorUnitBarcode,
 
@@ -499,6 +517,33 @@ export const ProductsTab: React.FC = () => {
             productRecord,
             ...prev.filter((p) => p.id !== productRecord.id),
           ]);
+
+          // Record opening stock movement so it appears immediately in inventory movements audit
+          if (canonicalBaseStock > 0) {
+            try {
+              const rawMovs = localStorage.getItem('erp_inventory_movements_v1');
+              const movList: any[] = rawMovs ? JSON.parse(rawMovs) : [];
+              movList.unshift({
+                id: `mov-init-${Date.now()}`,
+                date: new Date().toISOString().split('T')[0],
+                timestamp: new Date().toISOString(),
+                productId: productRecord.id || payload.sku,
+                productCode: payload.itemCode || payload.sku,
+                productName: payload.name,
+                type: 'OPENING_STOCK',
+                unitName: payload.baseUnitName || 'حبة',
+                quantity: canonicalBaseStock,
+                baseQuantity: canonicalBaseStock,
+                stockBefore: 0,
+                stockAfter: canonicalBaseStock,
+                referenceNumber: 'OPENING-STOCK',
+                customerOrSupplierName: 'رصيد افتتاحي تأسيسي',
+                notes: `رصيد أول المدة عند إنشاء الصنف (${formatProductStock(canonicalBaseStock, payload)})`,
+              });
+              localStorage.setItem('erp_inventory_movements_v1', JSON.stringify(movList.slice(0, 500)));
+              window.dispatchEvent(new Event('erp-inventory-updated'));
+            } catch {}
+          }
         }
         setSuccess('تمت إضافة المنتج الجديد إلى الدليل بنجاح');
       }
@@ -529,23 +574,20 @@ export const ProductsTab: React.FC = () => {
     }
   };
 
-  // Stock Breakdown helper (Cartons + Pieces)
+  // Stock Breakdown helper (Cartons + Pieces + Remainder)
   const renderStockBreakdown = (prod: any) => {
-    const stock = Number(prod.current_stock ?? prod.qty ?? 0);
-    const factor = Number(prod.majorUnitFactor ?? prod.major_unit_factor ?? 0);
-    const majorName = prod.majorUnitName || prod.major_unit_name || 'كرتون';
-    const baseName = prod.baseUnitName || prod.unit || 'حبة';
+    const metrics = computeLiveProductStockMetrics(prod);
+    const { majorCount, remainderSub, majorFactor, majorUnitName, baseUnitName } = metrics;
+    const stock = metrics.currentStock;
 
-    if (factor > 1 && stock >= factor) {
-      const cartons = Math.floor(stock / factor);
-      const pieces = stock % factor;
+    if (majorFactor > 1 && majorUnitName) {
       return (
         <div className="flex flex-col items-start gap-0.5">
           <span className="font-mono font-bold text-white text-xs">
-            {formatNumber(stock)} {baseName}
+            {formatNumber(stock)} {baseUnitName}
           </span>
-          <span className="text-[11px] text-emerald-400 font-semibold bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/40">
-            📦 {cartons} {majorName} {pieces > 0 ? `+ ${pieces} ${baseName}` : ''}
+          <span className="text-[11px] text-emerald-300 font-semibold bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/40 font-mono">
+            📦 {majorCount} {majorUnitName} {remainderSub > 0 ? `+ ${remainderSub} ${baseUnitName}` : ''}
           </span>
         </div>
       );
@@ -553,7 +595,7 @@ export const ProductsTab: React.FC = () => {
 
     return (
       <span className="font-mono font-bold text-slate-200">
-        {formatNumber(stock)} {baseName}
+        {formatNumber(stock)} {baseUnitName}
       </span>
     );
   };
@@ -957,26 +999,31 @@ export const ProductsTab: React.FC = () => {
                             )}
                           </div>
                           {/* 4 Inventory Indicators: السابق/الوارد، المباع اليوم، إجمالي المباع، المتبقي */}
-                          <div className="grid grid-cols-2 gap-1 text-[10px] font-mono bg-slate-950/70 p-1.5 rounded-lg border border-slate-800">
-                            <div className="text-slate-400">
-                              <span>الوارد: </span>
-                              <span className="font-bold text-slate-200">
-                                {formatNumber(Number(prod.current_stock ?? prod.qty ?? prod.stock ?? 0) + Number(prod.totalSold || 0))}
-                              </span>
-                            </div>
-                            <div className="text-blue-400">
-                              <span>مباع اليوم: </span>
-                              <span className="font-bold">{formatNumber(Number(prod.soldToday || 0))}</span>
-                            </div>
-                            <div className="text-purple-400">
-                              <span>إجمالي المباع: </span>
-                              <span className="font-bold">{formatNumber(Number(prod.totalSold || 0))}</span>
-                            </div>
-                            <div className="text-emerald-400">
-                              <span>المتبقي: </span>
-                              <span className="font-bold">{formatNumber(stock)}</span>
-                            </div>
-                          </div>
+                          {(() => {
+                            const m = computeLiveProductStockMetrics(prod);
+                            return (
+                              <div className="grid grid-cols-2 gap-1 text-[10px] font-mono bg-slate-950/70 p-1.5 rounded-lg border border-slate-800">
+                                <div className="text-slate-400">
+                                  <span>الوارد: </span>
+                                  <span className="font-bold text-slate-200" title={m.formattedIncoming}>
+                                    {formatNumber(m.totalIncoming)}
+                                  </span>
+                                </div>
+                                <div className="text-blue-400">
+                                  <span>مباع اليوم: </span>
+                                  <span className="font-bold">{formatNumber(m.soldToday)}</span>
+                                </div>
+                                <div className="text-purple-400">
+                                  <span>إجمالي المباع: </span>
+                                  <span className="font-bold">{formatNumber(m.totalSold)}</span>
+                                </div>
+                                <div className="text-emerald-400">
+                                  <span>المتبقي: </span>
+                                  <span className="font-bold" title={m.formattedRemaining}>{formatNumber(m.remainingStock)}</span>
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </div>
                       </td>
 
@@ -1542,7 +1589,7 @@ export const ProductsTab: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                   <div>
-                    <label className="block text-slate-400 text-[11px] mb-1">سعر الشراء (التكلفة الأساسية)</label>
+                    <label className="block text-slate-400 text-[11px] mb-1">سعر الشراء (التكلفة الأساسية للوحدة الصغرى)</label>
                     <input
                       type="number"
                       step="any"
@@ -1553,17 +1600,68 @@ export const ProductsTab: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-400 text-[11px] mb-1">الرصيد الافتتاحي بالمخزن</label>
+                    <label className="block text-slate-400 text-[11px] mb-1">الرصيد الافتتاحي بالوحدة الصغرى ({formData.baseUnitName || 'حبة/كيلو'})</label>
                     <input
                       type="number"
                       step="any"
                       placeholder="0"
                       value={formData.currentStock}
                       onChange={(e) => setFormData({ ...formData, currentStock: e.target.value })}
-                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono font-bold"
+                      className="w-full p-2 bg-slate-900 border border-emerald-500/50 rounded-lg text-emerald-300 font-mono font-bold"
                     />
                   </div>
                 </div>
+
+                {/* Dual Synchronization Panel if Major Unit Factor > 1 */}
+                {(() => {
+                  const mFactor = parseFloat(formData.majorUnitFactor || '1');
+                  const mUnit = formData.majorUnitName || 'كرتون/كيس';
+                  const bUnit = formData.baseUnitName || 'كيلو/حبة';
+                  const baseQty = parseFloat(formData.currentStock || '0');
+                  const majorCountVal = mFactor > 1 ? Number((baseQty / mFactor).toFixed(2)) : 0;
+
+                  if (mFactor > 1) {
+                    return (
+                      <div className="p-3 bg-slate-900/90 rounded-xl border border-emerald-500/30 space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-emerald-400 font-bold flex items-center gap-1.5">
+                            <Boxes className="w-4 h-4 text-emerald-400" />
+                            <span>تحديد الرصيد بعدد ({mUnit}):</span>
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            1 {mUnit} = {mFactor} {bUnit}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          <div>
+                            <label className="block text-slate-400 text-[10px] mb-1">
+                              العدد بالوحدة الكبرى ({mUnit})
+                            </label>
+                            <input
+                              type="number"
+                              step="any"
+                              placeholder="مثال: 3"
+                              value={majorCountVal > 0 ? majorCountVal : ''}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value || '0');
+                                const convertedBase = Math.round(val * mFactor * 100) / 100;
+                                setFormData({ ...formData, currentStock: String(convertedBase) });
+                              }}
+                              className="w-full p-2 bg-slate-950 border border-slate-700 rounded-lg text-white font-mono font-bold text-xs"
+                            />
+                          </div>
+                          <div className="flex flex-col justify-center text-xs bg-slate-950/70 p-2 rounded-lg border border-slate-800">
+                            <span className="text-[10px] text-slate-400 font-semibold">إجمالي الرصيد المحسوب:</span>
+                            <span className="text-emerald-300 font-bold font-mono text-xs">
+                              {baseQty} {bUnit} {mFactor > 1 && baseQty > 0 ? `(يعادل ${Number((baseQty / mFactor).toFixed(2))} ${mUnit})` : ''}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
 
               {/* Conditional Activity Specific Fields */}

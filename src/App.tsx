@@ -10,6 +10,7 @@ import { toEnglishDigits } from './lib/formatters';
 import { useAuth } from './context/AuthContext';
 import { checkForUpdates, UpdateCheckResult } from './services/updaterService';
 import { triggerSyncImmediate, isAutoSyncEnabled } from './services/transactionalOutbox';
+import { autoRepairExistingProductStock } from './services/localDesktopApiFallback';
 
 // 29 Real Enterprise ERP Dashboard Tabs
 import { OverviewTab } from './components/Dashboard/OverviewTab';
@@ -142,6 +143,11 @@ export function App() {
 
     // Periodic check every 15 minutes
     const intervalTimer = setInterval(executeBackgroundCheck, 15 * 60 * 1000);
+
+    // Initial check & auto-repair existing stock records
+    try {
+      autoRepairExistingProductStock();
+    } catch {}
 
     return () => {
       isMounted = false;

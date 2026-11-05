@@ -12,6 +12,7 @@ import {
 import { printInvoiceDocument } from '../../../lib/exportUtils';
 import { recordAutomaticTreasuryVoucher } from '../../../utils/treasuryVoucherHelper';
 import { normalizeScannedBarcode, playBarcodeBeep, findProductByBarcode, attachGlobalBarcodeScannerListener, shouldProcessBarcodeScan } from '../../../utils/barcodeUtils';
+import { formatProductStock } from '../../../utils/inventoryMath';
 import { enqueueOutboxTransaction } from '../../../services/transactionalOutbox';
 import {
   ArrowRight,
@@ -1628,17 +1629,17 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                           <option value="">-- أو صنف يدوي غير مسجل --</option>
                           {productList.map((p) => (
                             <option key={p.id} value={p.id}>
-                              {p.name} {p.itemCode ? `[${p.itemCode}]` : p.sku ? `[${p.sku}]` : ''} ({formatNumber(p.current_stock ?? 0)} {p.unit || 'حبة'})
+                              {p.name} {p.itemCode ? `[${p.itemCode}]` : p.sku ? `[${p.sku}]` : ''} ({formatProductStock(p.current_stock ?? p.stock ?? 0, p)})
                             </option>
                           ))}
                         </select>
                         {it.product_id && (
                           <div className="flex items-center gap-2 mt-1 text-[11px]">
                             <span className="text-slate-400">
-                              المخزون: <span className="font-mono text-slate-200">{formatNumber(it.current_stock ?? 0)}</span>
+                              المخزون المتاح: <span className="font-mono text-emerald-400 font-bold">{formatProductStock(it.current_stock ?? 0, productList.find((p) => p.id === it.product_id))}</span>
                             </span>
                             {isOverStock && (
-                              <span className="text-rose-400 flex items-center gap-0.5">
+                              <span className="text-rose-400 flex items-center gap-0.5 font-bold">
                                 <AlertTriangle className="w-3 h-3" /> الكمية تتجاوز الرصيد
                               </span>
                             )}

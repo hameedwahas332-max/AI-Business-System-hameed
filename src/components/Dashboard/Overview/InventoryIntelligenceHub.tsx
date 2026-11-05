@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { formatAmount } from '../../../lib/formatters';
+import { getProductMajorFactor, computeLiveProductStockMetrics } from '../../../utils/inventoryMath';
 import { TabType } from '../../Sidebar';
 import {
   Package,
@@ -129,24 +130,27 @@ export const InventoryIntelligenceHub: React.FC<InventoryIntelligenceHubProps> =
   const lowStockItems =
     safeProducts.length > 0
       ? safeProducts
-          .filter((p) => Number(p?.current_stock ?? p?.qty ?? 10) <= Number(p?.min_stock_level ?? 20))
-          .slice(0, 4)
           .map((p, i) => {
-            const factor = Number(p.majorUnitFactor || 12);
-            const total = Number(p.current_stock ?? p.qty ?? 12);
-            const cartons = Math.floor(total / factor);
-            const pieces = total % factor;
+            const m = computeLiveProductStockMetrics(p);
+            const total = m.currentStock;
+            const factor = m.majorFactor;
+            const cartons = m.majorCount;
+            const pieces = m.remainderSub;
             return {
+              product: p,
               sku: p.sku || `SKU-0${i + 1}`,
               name: p.name || 'صنف تجاري',
               cartons,
               pieces,
               totalUnits: total,
               minStockUnits: Number(p.min_stock_level ?? 25),
-              unitPrice: Number(p.price ?? 45),
-              urgency: total < 12 ? 'HIGH' : 'MEDIUM',
+              unitPrice: Number(p.price ?? p.selling_price ?? 45),
+              urgency: total < (Number(p.min_stock_level ?? 25) / 2) ? 'HIGH' : 'MEDIUM',
+              isLow: total <= Number(p.min_stock_level ?? 25),
             };
           })
+          .filter((item) => item.isLow)
+          .slice(0, 4)
       : (isClean ? [] : fallbackLowStock);
 
   // Multi-Activity Radar & Warranties
