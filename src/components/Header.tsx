@@ -287,14 +287,25 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Theme Mode Toggle (Dark / Light) */}
         {onToggleTheme && (
           <button
+            type="button"
             onClick={onToggleTheme}
-            className="p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition-colors border border-slate-700/60 relative"
-            title={themeMode === 'dark' ? 'التحويل إلى الوضع النهاري (Light Mode)' : 'التحويل إلى الوضع الليلي (Dark Mode)'}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-sm ${
+              themeMode === 'dark'
+                ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30'
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500/40 shadow-emerald-950/20'
+            }`}
+            title={themeMode === 'dark' ? 'التحويل إلى الوضع الفاتح (Light Mode)' : 'التحويل إلى الوضع المظلم (Dark Mode)'}
           >
             {themeMode === 'dark' ? (
-              <Sun className="w-4 h-4 text-amber-400" />
+              <>
+                <Sun className="w-4 h-4 text-amber-400" />
+                <span className="hidden sm:inline">الوضع الفاتح</span>
+              </>
             ) : (
-              <Moon className="w-4 h-4 text-indigo-400" />
+              <>
+                <Moon className="w-4 h-4 text-amber-300" />
+                <span className="hidden sm:inline">الوضع المظلم</span>
+              </>
             )}
           </button>
         )}

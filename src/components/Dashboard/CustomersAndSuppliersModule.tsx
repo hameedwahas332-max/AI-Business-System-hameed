@@ -2432,19 +2432,19 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                       {/* 4. FINAL ACCOUNT SUMMARY BLOCK (TFOOT) */}
                       <tfoot className="bg-[#071712] border-t-2 border-emerald-500/40 text-xs font-semibold">
                         <tr className="border-b border-emerald-950/60">
-                          <td colSpan={3} className="p-2.5 text-slate-300">الرصيد الافتتاحي لبداية الفترة (Opening Balance):</td>
+                          <td colSpan={4} className="p-2.5 text-slate-300">الرصيد الافتتاحي لبداية الفترة (Opening Balance):</td>
                           <td colSpan={3} className="p-2.5 font-mono text-slate-200 text-left font-bold" dir="ltr">{formatNumber(opBalance)} {cur}</td>
                         </tr>
                         <tr className="border-b border-emerald-950/60">
-                          <td colSpan={3} className="p-2.5 text-amber-300">إجمالي مدين الفترة / المسحوبات (Total Debit):</td>
+                          <td colSpan={4} className="p-2.5 text-amber-300">إجمالي مدين الفترة / المسحوبات (Total Debit):</td>
                           <td colSpan={3} className="p-2.5 font-mono text-amber-300 text-left font-bold" dir="ltr">+{formatNumber(totalDebit)} {cur}</td>
                         </tr>
                         <tr className="border-b border-emerald-950/60">
-                          <td colSpan={3} className="p-2.5 text-emerald-300">إجمالي دائن / مسددات الفترة (Total Credit / Payments):</td>
+                          <td colSpan={4} className="p-2.5 text-emerald-300">إجمالي دائن / مسددات الفترة (Total Credit / Payments):</td>
                           <td colSpan={3} className="p-2.5 font-mono text-emerald-300 text-left font-bold" dir="ltr">-{formatNumber(totalCredit)} {cur}</td>
                         </tr>
                         <tr className="bg-[#0c281f] text-sm font-black text-white">
-                          <td colSpan={3} className="p-3 text-emerald-300">
+                          <td colSpan={4} className="p-3 text-emerald-300">
                             الرصيد الختامي النهائي (Final Account Balance) — [{actualTxCount} حركة فعلية]:
                           </td>
                           <td colSpan={3} className="p-3 font-mono text-emerald-300 text-base text-left" dir="ltr">{formatNumber(clBalance)} {cur}</td>

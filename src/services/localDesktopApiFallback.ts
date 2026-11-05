@@ -52,6 +52,12 @@ export function installGlobalDesktopFetchInterceptor(): void {
   (window as any).__ERP_FETCH_INTERCEPTOR_INSTALLED__ = true;
 
   try {
+    autoCleanDuplicateAccountingRecords();
+  } catch (cleanErr) {
+    console.warn('[FetchInterceptor] Auto clean accounting warning:', cleanErr);
+  }
+
+  try {
     // 1. Safe Response.prototype.json override
     if (typeof Response !== 'undefined' && Response.prototype && Response.prototype.json) {
       try {
@@ -377,6 +383,142 @@ function updateVaultSnapshot(dataSnapshot: Record<string, string>, allowEmpty = 
     }
   } catch (err) {
     console.warn('[LocalDesktopFallback] Vault snapshot warning:', err);
+  }
+}
+
+/**
+ * Auto-clean duplicate accounting movements and reconcile customer balances.
+ * Removes duplicate MOV-... entries that reference an existing sales/POS invoice,
+ * removes 0 or NaN movements, and recalculates exact customer ledger balance.
+ */
+export function autoCleanDuplicateAccountingRecords(): void {
+  try {
+    const companyId = getActiveCompanyId();
+    const invoices = getLocalItem<any[]>('erp_invoices_v1', []);
+    const movements = getLocalItem<any[]>('erp_customer_movements_v1', []);
+    const customers = getLocalItem<any[]>('erp_customers_v1', []);
+
+    if (movements.length === 0 && customers.length === 0) return;
+
+    // Build set of all known invoice IDs and numbers
+    const invoiceIdentSet = new Set<string>();
+    invoices.forEach((inv) => {
+      if (inv.id) invoiceIdentSet.add(String(inv.id).trim().toLowerCase());
+      if (inv.invoice_number) invoiceIdentSet.add(String(inv.invoice_number).trim().toLowerCase());
+      if (inv.invoiceNumber) invoiceIdentSet.add(String(inv.invoiceNumber).trim().toLowerCase());
+    });
+
+    const seenTxKeys = new Set<string>();
+    let movementsChanged = false;
+
+    const cleanedMovements = movements.filter((m) => {
+      const amt = Number(m.amount || 0);
+      if (!amt || isNaN(amt) || amt <= 0) {
+        movementsChanged = true;
+        return false;
+      }
+
+      const refNo = String(m.referenceNo || m.reference_no || '').trim().toLowerCase();
+      const invId = String(m.invoiceId || m.invoice_id || '').trim().toLowerCase();
+      const desc = String(m.description || m.notes || '').toLowerCase();
+
+      // Check if duplicate of an existing invoice
+      if (refNo && invoiceIdentSet.has(refNo)) {
+        movementsChanged = true;
+        return false;
+      }
+      if (invId && invoiceIdentSet.has(invId)) {
+        movementsChanged = true;
+        return false;
+      }
+      if (refNo.startsWith('mov-') && Array.from(invoiceIdentSet).some((r) => r && desc.includes(r))) {
+        movementsChanged = true;
+        return false;
+      }
+
+      // Check duplicate movement key (customerId + date + amount + type + refNo)
+      const txKey = `${m.customerId || m.customer_id}_${m.date || m.created_at}_${amt}_${m.type}_${refNo}`;
+      if (seenTxKeys.has(txKey)) {
+        movementsChanged = true;
+        return false;
+      }
+      seenTxKeys.add(txKey);
+
+      return true;
+    });
+
+    if (movementsChanged) {
+      setLocalItem('erp_customer_movements_v1', cleanedMovements, companyId);
+    }
+
+    // Now reconcile customer balances so balance strictly matches accounting formula:
+    // Balance = opening_balance + sum(unpaid invoice amounts) + sum(manual debit movements) - sum(manual credit movements) - sum(standalone payments)
+    const payments = getLocalItem<any[]>('erp_payments_v1', []);
+    let customersChanged = false;
+
+    const updatedCustomers = customers.map((c) => {
+      const cId = String(c.id);
+      const cName = String(c.name || '').trim().toLowerCase();
+      const opBal = Number(c.opening_balance || c.openingBalance || 0);
+
+      const custInvs = invoices.filter(
+        (inv) =>
+          String(inv.customer_id || inv.customerId) === cId ||
+          String(inv.customer_name || inv.customerName || inv.customer || '').trim().toLowerCase() === cName
+      );
+
+      const invoiceRemainingDebt = custInvs.reduce((sum, inv) => {
+        const total = Number(inv.total || inv.grandTotal || inv.amount || 0);
+        const paid = Number(inv.paidAmount ?? inv.paid_amount ?? inv.paid ?? 0);
+        const rem = Number(inv.remainingAmount ?? inv.remaining_amount ?? Math.max(0, total - paid));
+        return sum + (rem > 0 ? rem : 0);
+      }, 0);
+
+      const custMovs = cleanedMovements.filter(
+        (m) =>
+          String(m.customerId || m.customer_id) === cId ||
+          String(m.customerName || m.customer_name || '').trim().toLowerCase() === cName
+      );
+      const manualDebit = custMovs
+        .filter((m) => m.type === 'DEBIT')
+        .reduce((sum, m) => sum + Number(m.amount || 0), 0);
+      const manualCredit = custMovs
+        .filter((m) => m.type === 'CREDIT' || m.type === 'PAYMENT')
+        .reduce((sum, m) => sum + Number(m.amount || 0), 0);
+
+      const custPmts = payments.filter((p) => {
+        const pPartyId = String(p.partyId || p.party_id || p.customerId || '');
+        const pPartyName = String(p.partyName || p.party_name || '').trim().toLowerCase();
+        if (pPartyId !== cId && pPartyName !== cName) return false;
+        if (p.referenceType === 'SALES_INVOICE' && invoiceIdentSet.has(String(p.referenceNo || p.referenceId || '').toLowerCase())) {
+          return false;
+        }
+        return true;
+      });
+      const paymentCredits = custPmts.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+      const computedBalance = Number((opBal + invoiceRemainingDebt + manualDebit - manualCredit - paymentCredits).toFixed(2));
+      const currentBal = Number(c.current_balance ?? c.balance ?? 0);
+
+      if (Math.abs(computedBalance - currentBal) > 0.01) {
+        customersChanged = true;
+        return {
+          ...c,
+          current_balance: computedBalance,
+          balance: computedBalance,
+        };
+      }
+      return c;
+    });
+
+    if (customersChanged) {
+      setLocalItem('erp_customers_v1', updatedCustomers, companyId);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('erp-customers-updated'));
+      }
+    }
+  } catch (err) {
+    console.warn('[autoCleanDuplicateAccountingRecords] Warning:', err);
   }
 }
 
@@ -1921,6 +2063,93 @@ async function internalHandleLocalDesktopApiFallback(
     };
   }
 
+  // POS Checkout Endpoint (Sales / Credit Sales / Rapid Invoicing)
+  if (cleanUrl.includes('/pos/checkout') && method === 'POST') {
+    let bodyData: any = {};
+    try {
+      if (options?.body) {
+        bodyData = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;
+      }
+    } catch {}
+
+    const invNum = bodyData.invoice_number || bodyData.invoiceNumber || bodyData.id || `POS-${Date.now().toString().slice(-6)}`;
+    const invoiceId = bodyData.id || invNum;
+    const grandTotal = Number(bodyData.total || bodyData.grandTotal || bodyData.totalAmount || 0);
+    const paidAmount = Number(bodyData.paidAmount ?? bodyData.paid_amount ?? grandTotal);
+    const remainingAmount = Number(bodyData.remainingAmount ?? bodyData.remaining_amount ?? Math.max(0, grandTotal - paidAmount));
+    const customerName = String(bodyData.customerName || bodyData.customer_name || bodyData.customer || 'عميل نقدي').trim();
+    const customerId = bodyData.customerId || bodyData.customer_id;
+
+    // Idempotency check: if invoice with exact ID or invNum exists, or identical invoice within 5s
+    const invoices = getLocalItem<any[]>('erp_invoices_v1', []);
+    const existing = invoices.find(
+      (inv) =>
+        String(inv.id) === String(invoiceId) ||
+        String(inv.invoice_number) === String(invNum) ||
+        (customerName &&
+          inv.customer_name === customerName &&
+          Math.abs(Number(inv.total || 0) - grandTotal) < 0.01 &&
+          Math.abs(new Date(inv.created_at || 0).getTime() - Date.now()) < 5000)
+    );
+
+    if (existing) {
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: existing,
+        message: 'تم استرجاع الفاتورة المسجلة مسبقاً لمنع التكرار',
+      };
+    }
+
+    const posInvoice = {
+      ...bodyData,
+      id: invoiceId,
+      invoice_number: invNum,
+      invoiceNumber: invNum,
+      customer_id: customerId,
+      customer_name: customerName,
+      customerName: customerName,
+      total: grandTotal,
+      paid_amount: paidAmount,
+      remaining_amount: remainingAmount,
+      status: remainingAmount <= 0.01 ? 'PAID' : paidAmount > 0 ? 'PARTIAL' : 'UNPAID',
+      created_at: bodyData.created_at || new Date().toISOString(),
+      invoice_date: bodyData.invoice_date || new Date().toISOString().split('T')[0],
+    };
+
+    invoices.unshift(posInvoice);
+    setLocalItem('erp_invoices_v1', invoices, companyId);
+    await saveRecord('erp_invoices_v1', posInvoice);
+
+    // If credit balance remaining and customer exists, update customer balance ONCE
+    if (remainingAmount > 0 && customerId) {
+      const customers = getLocalItem<any[]>('erp_customers_v1', []);
+      const cIdx = customers.findIndex((c) => String(c.id) === String(customerId) || String(c.name || '').trim() === customerName);
+      if (cIdx !== -1) {
+        const prev = Number(customers[cIdx].current_balance ?? customers[cIdx].balance ?? 0);
+        customers[cIdx].current_balance = prev + remainingAmount;
+        customers[cIdx].balance = customers[cIdx].current_balance;
+        setLocalItem('erp_customers_v1', customers, companyId);
+        await saveRecord('erp_customers_v1', customers[cIdx]);
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('erp-invoices-updated'));
+      window.dispatchEvent(new Event('erp-customers-updated'));
+      window.dispatchEvent(new Event('erp-data-updated'));
+    }
+
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: posInvoice,
+      message: 'تم إتمام عملية الدفع وإنشاء فاتورة نقطة البيع بنجاح',
+    };
+  }
+
   // POS Held Orders (Normal & Credit) - Persistent Unified Storage
   if (cleanUrl.includes('/pos/held-sales') || cleanUrl.includes('/pos/held') || cleanUrl.includes('/held_orders')) {
     const HELD_ORDERS_KEY = 'erp_pos_held_orders_v1';
@@ -2331,6 +2560,23 @@ async function internalHandleLocalDesktopApiFallback(
 
     if (method === 'POST') {
       const amount = Number(bodyData.amount || 0);
+
+      // CRITICAL DEDUPLICATION: If this transaction references an existing invoice, skip creating duplicate movement!
+      const invoiceRef = bodyData.invoiceId || bodyData.invoice_id || bodyData.invoiceNumber || bodyData.referenceNo || bodyData.reference_no;
+      if (invoiceRef) {
+        const invoices = getLocalItem<any[]>('erp_invoices_v1', []);
+        const exists = invoices.some((i) => String(i.id) === String(invoiceRef) || String(i.invoice_number) === String(invoiceRef));
+        if (exists) {
+          return {
+            ok: true,
+            success: true,
+            status: 200,
+            data: { id: `ref_${invoiceRef}`, skippedDuplicate: true },
+            message: 'تم ربط الحركة بالفاتورة الأصلية مسبقاً',
+          };
+        }
+      }
+
       const txType = (bodyData.type || 'DEBIT').toUpperCase(); // DEBIT (سحب / فاتورة آجلة) or CREDIT (دفعة / سداد)
       const receivedBy = (bodyData.receivedBy || bodyData.received_by || bodyData.receiverName || bodyData.drawnBy || '').trim();
       const txId = bodyData.id || `mov_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
@@ -2567,117 +2813,174 @@ async function internalHandleLocalDesktopApiFallback(
       let transactions: any[] = [];
 
       if (isCustomer) {
-        // 1. Manual movements
-        const movements = getLocalItem<any[]>('erp_customer_movements_v1', []);
-        const custMovs = movements.filter(
-          (m) =>
-            String(m.customerId || m.customer_id) === String(party.id) ||
-            String(m.customerName || m.customer_name).trim() === String(party.name).trim()
-        );
-
-        // 2. Sales & POS Invoices
+        // 1. Sales & POS Invoices for customer
         const invoices = getLocalItem<any[]>('erp_invoices_v1', []);
         const custInvoices = invoices.filter(
           (inv) =>
             String(inv.customer_id || inv.customerId) === String(party.id) ||
-            String(inv.customer_name || inv.customerName || inv.customer).trim() === String(party.name).trim()
+            String(inv.customer_name || inv.customerName || inv.customer || '').trim() === String(party.name || '').trim()
         );
 
-        // 3. Payments
-        const payments = getLocalItem<any[]>('erp_payments_v1', []);
-        const custPayments = payments.filter(
-          (p) =>
-            String(p.partyId || p.party_id || p.customerId) === String(party.id) ||
-            String(p.partyName || p.party_name).trim() === String(party.name).trim()
+        // Build set of all known invoice identifiers
+        const knownInvoiceRefs = new Set<string>();
+        for (const inv of custInvoices) {
+          if (inv.id) knownInvoiceRefs.add(String(inv.id).trim().toLowerCase());
+          if (inv.invoice_number) knownInvoiceRefs.add(String(inv.invoice_number).trim().toLowerCase());
+          if (inv.invoiceNumber) knownInvoiceRefs.add(String(inv.invoiceNumber).trim().toLowerCase());
+        }
+
+        // 2. Manual movements (strictly exclude duplicate movements that mirror invoices)
+        const movements = getLocalItem<any[]>('erp_customer_movements_v1', []);
+        const custMovs = movements.filter(
+          (m) =>
+            String(m.customerId || m.customer_id) === String(party.id) ||
+            String(m.customerName || m.customer_name || '').trim() === String(party.name || '').trim()
         );
 
         for (const m of custMovs) {
+          const amt = Number(m.amount || 0);
+          if (!amt || isNaN(amt) || amt <= 0) continue;
+
+          const refNo = String(m.referenceNo || m.reference_no || '').trim().toLowerCase();
+          const invId = String(m.invoiceId || m.invoice_id || '').trim().toLowerCase();
+          const desc = String(m.description || m.notes || '').toLowerCase();
+
+          // Skip if this movement is an invoice-generated transaction or references an existing invoice
+          const isDuplicateOfInvoice =
+            (refNo && knownInvoiceRefs.has(refNo)) ||
+            (invId && knownInvoiceRefs.has(invId)) ||
+            (refNo.startsWith('mov-') && Array.from(knownInvoiceRefs).some((r) => r && desc.includes(r)));
+
+          if (isDuplicateOfInvoice) continue;
+
           transactions.push({
             id: m.id,
             date: m.date || m.created_at,
             type: m.type || 'DEBIT',
-            debit: m.type === 'DEBIT' ? m.amount : 0,
-            credit: m.type === 'CREDIT' ? m.amount : 0,
-            amount: m.amount,
+            debit: m.type === 'DEBIT' ? amt : 0,
+            credit: m.type === 'CREDIT' ? amt : 0,
+            amount: amt,
             receivedBy: m.receivedBy || m.received_by || '',
             description: m.description || (m.type === 'DEBIT' ? 'سحب نقدي / بضاعة' : 'سداد دفعة'),
-            referenceNo: m.referenceNo || m.reference_no || '',
+            referenceNo: m.referenceNo || m.reference_no || m.id,
           });
         }
 
+        // 3. Add each sales invoice exactly ONCE
         for (const inv of custInvoices) {
           const invTotal = Number(inv.total || inv.grandTotal || inv.amount || 0);
+          const paid = Number(inv.paidAmount ?? inv.paid_amount ?? inv.paid ?? 0);
+          const invNum = inv.invoice_number || inv.invoiceNumber || inv.id;
+
           transactions.push({
-            id: inv.id,
+            id: String(inv.id || invNum),
             date: inv.invoice_date || inv.date || inv.created_at,
             type: 'DEBIT',
             debit: invTotal,
             credit: 0,
             amount: invTotal,
             receivedBy: inv.receivedBy || inv.received_by || '',
-            description: `فاتورة مبيعات #${inv.invoice_number || inv.invoiceNumber || inv.id}${inv.receivedBy ? ` (المستلم: ${inv.receivedBy})` : ''}`,
-            referenceNo: inv.invoice_number || inv.invoiceNumber || inv.id,
+            description: `فاتورة مبيعات #${invNum}${inv.receivedBy ? ` (المستلم: ${inv.receivedBy})` : ''}`,
+            referenceNo: invNum,
           });
-          const paid = Number(inv.paidAmount || inv.paid_amount || inv.paid || 0);
-          if (paid > 0 && inv.payment_method !== 'CASH') {
+
+          // Immediate payment recorded on invoice
+          if (paid > 0) {
             transactions.push({
-              id: `pmt_${inv.id}`,
+              id: `pmt_${inv.id || invNum}`,
               date: inv.invoice_date || inv.date || inv.created_at,
-              type: 'CREDIT',
+              type: 'PAYMENT',
               debit: 0,
               credit: paid,
               amount: paid,
               receivedBy: inv.receivedBy || '',
-              description: `سداد جزء من الفاتورة #${inv.invoice_number || inv.invoiceNumber}`,
-              referenceNo: `RCV-${inv.invoice_number || inv.id}`,
+              description: inv.payment_method === 'CASH'
+                ? `سداد نقدي فوري للفاتورة #${invNum}`
+                : `سداد دفعة من الفاتورة #${invNum}`,
+              referenceNo: `RCV-${invNum}`,
             });
           }
         }
 
+        // 4. Standalone Treasury Payments
+        const payments = getLocalItem<any[]>('erp_payments_v1', []);
+        const custPayments = payments.filter(
+          (p) =>
+            String(p.partyId || p.party_id || p.customerId) === String(party.id) ||
+            String(p.partyName || p.party_name || '').trim() === String(party.name || '').trim()
+        );
+
         for (const p of custPayments) {
           const pAmount = Number(p.amount || 0);
+          const refNo = p.referenceNo || p.voucher_number || p.voucherNumber || p.id;
+          // Skip if already counted as invoice payment
+          if (p.referenceType === 'SALES_INVOICE' && knownInvoiceRefs.has(String(p.referenceNo || p.referenceId || '').toLowerCase())) {
+            continue;
+          }
           transactions.push({
             id: p.id,
             date: p.date || p.payment_date || p.created_at,
-            type: 'CREDIT',
+            type: 'PAYMENT',
             debit: 0,
             credit: pAmount,
             amount: pAmount,
             receivedBy: p.receivedBy || '',
-            description: p.notes || p.description || `سند تحصيل / دفعة #${p.voucher_number || p.voucherNumber || p.id}`,
-            referenceNo: p.voucher_number || p.voucherNumber || p.id,
+            description: p.notes || p.description || `سند تحصيل / دفعة #${refNo}`,
+            referenceNo: refNo,
           });
         }
       } else {
-        const movements = getLocalItem<any[]>('erp_supplier_movements_v1', []);
-        const suppMovs = movements.filter(
-          (m) =>
-            String(m.supplierId || m.supplier_id) === String(party.id) ||
-            String(m.supplierName || m.supplier_name).trim() === String(party.name).trim()
-        );
+        // Supplier statement logic with exact same deduplication
         const purchases = getLocalItem<any[]>('erp_purchase_invoices_v1', []);
         const suppPurchases = purchases.filter(
           (pur) =>
             String(pur.supplier_id || pur.supplierId) === String(party.id) ||
-            String(pur.supplier_name || pur.supplierName || pur.supplier).trim() === String(party.name).trim()
+            String(pur.supplier_name || pur.supplierName || pur.supplier || '').trim() === String(party.name || '').trim()
+        );
+
+        const knownPurchaseRefs = new Set<string>();
+        for (const pur of suppPurchases) {
+          if (pur.id) knownPurchaseRefs.add(String(pur.id).trim().toLowerCase());
+          if (pur.invoiceNumber) knownPurchaseRefs.add(String(pur.invoiceNumber).trim().toLowerCase());
+          if (pur.invoice_number) knownPurchaseRefs.add(String(pur.invoice_number).trim().toLowerCase());
+        }
+
+        const movements = getLocalItem<any[]>('erp_supplier_movements_v1', []);
+        const suppMovs = movements.filter(
+          (m) =>
+            String(m.supplierId || m.supplier_id) === String(party.id) ||
+            String(m.supplierName || m.supplier_name || '').trim() === String(party.name || '').trim()
         );
 
         for (const m of suppMovs) {
+          const amt = Number(m.amount || 0);
+          if (!amt || isNaN(amt) || amt <= 0) continue;
+          const refNo = String(m.referenceNo || m.reference_no || '').trim().toLowerCase();
+          const purId = String(m.purchaseId || m.purchase_id || m.invoiceId || '').trim().toLowerCase();
+          const desc = String(m.description || m.notes || '').toLowerCase();
+
+          if (refNo && knownPurchaseRefs.has(refNo)) continue;
+          if (purId && knownPurchaseRefs.has(purId)) continue;
+          if (refNo.startsWith('smov-') && Array.from(knownPurchaseRefs).some((r) => r && desc.includes(r))) continue;
+
           transactions.push({
             id: m.id,
             date: m.date || m.created_at,
             type: m.type || 'CREDIT',
-            credit: m.type === 'CREDIT' ? m.amount : 0,
-            debit: m.type === 'DEBIT' ? m.amount : 0,
-            amount: m.amount,
+            credit: m.type === 'CREDIT' ? amt : 0,
+            debit: m.type === 'DEBIT' ? amt : 0,
+            amount: amt,
             receivedBy: m.receivedBy || m.received_by || '',
             description: m.description || (m.type === 'CREDIT' ? 'توريد بضاعة' : 'سداد دفعة للمورد'),
-            referenceNo: m.referenceNo || m.reference_no || '',
+            referenceNo: m.referenceNo || m.reference_no || m.id,
           });
         }
 
         for (const pur of suppPurchases) {
           const purTotal = Number(pur.grandTotal || pur.total || pur.amount || 0);
+          const paid = Number(pur.paidAmount ?? pur.paid_amount ?? 0);
+          const purNum = pur.invoiceNumber || pur.invoice_number || pur.id;
+
           transactions.push({
             id: pur.id,
             date: pur.invoiceDate || pur.date || pur.created_at,
@@ -2686,9 +2989,23 @@ async function internalHandleLocalDesktopApiFallback(
             debit: 0,
             amount: purTotal,
             receivedBy: pur.receivedBy || pur.deliveredBy || '',
-            description: `فاتورة مشتريات #${pur.invoiceNumber || pur.invoice_number || pur.id}`,
-            referenceNo: pur.invoiceNumber || pur.invoice_number || pur.id,
+            description: `فاتورة مشتريات #${purNum}`,
+            referenceNo: purNum,
           });
+
+          if (paid > 0) {
+            transactions.push({
+              id: `pmt_${pur.id || purNum}`,
+              date: pur.invoiceDate || pur.date || pur.created_at,
+              type: 'DEBIT',
+              credit: 0,
+              debit: paid,
+              amount: paid,
+              receivedBy: pur.receivedBy || '',
+              description: `سداد دفعة لفاتورة المشتريات #${purNum}`,
+              referenceNo: `PV-${purNum}`,
+            });
+          }
         }
       }
 
@@ -2704,16 +3021,22 @@ async function internalHandleLocalDesktopApiFallback(
       let totalCredit = 0;
 
       const transactionsWithBalance = uniqueTx.map((tx) => {
+        const d = Number(tx.debit || 0);
+        const c = Number(tx.credit || 0);
         if (isCustomer) {
-          runningBalance += (tx.debit || 0) - (tx.credit || 0);
+          runningBalance += d - c;
         } else {
-          runningBalance += (tx.credit || 0) - (tx.debit || 0);
+          runningBalance += c - d;
         }
-        totalDebit += Number(tx.debit || 0);
-        totalCredit += Number(tx.credit || 0);
+        totalDebit += d;
+        totalCredit += c;
         return {
           ...tx,
+          debit: d,
+          credit: c,
           balanceAfter: runningBalance,
+          balance_after: runningBalance,
+          runningBalance: runningBalance,
           running_balance: runningBalance,
         };
       });
@@ -2721,10 +3044,12 @@ async function internalHandleLocalDesktopApiFallback(
       const statement = {
         party,
         openingBalance: Number(party?.opening_balance || party?.openingBalance || 0),
+        closingBalance: runningBalance,
         currentBalance: runningBalance,
         currency: party?.currency || 'YER',
         transactions: transactionsWithBalance,
         items: transactionsWithBalance,
+        transactionCount: transactionsWithBalance.length,
         totalDebit,
         totalCredit,
       };
@@ -2849,7 +3174,33 @@ async function internalHandleLocalDesktopApiFallback(
         }
       }
 
-      const id = bodyData.id || `${prefix}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      if (matchedEntityKey === 'invoices') {
+        const invNum = bodyData.invoice_number || bodyData.invoiceNumber;
+        const targetId = bodyData.id || invNum;
+        const grandTotal = Number(bodyData.total || bodyData.grandTotal || bodyData.totalAmount || 0);
+        const custName = String(bodyData.customer_name || bodyData.customerName || bodyData.customer || '').trim();
+        const existingInvoices = getLocalItem<any[]>('erp_invoices_v1', []);
+        const duplicate = existingInvoices.find(
+          (inv) =>
+            (targetId && (String(inv.id) === String(targetId) || String(inv.invoice_number) === String(targetId))) ||
+            (invNum && (String(inv.invoice_number) === String(invNum) || String(inv.invoiceNumber) === String(invNum))) ||
+            (custName &&
+              inv.customer_name === custName &&
+              Math.abs(Number(inv.total || inv.grandTotal || 0) - grandTotal) < 0.01 &&
+              Math.abs(new Date(inv.created_at || 0).getTime() - Date.now()) < 5000)
+        );
+        if (duplicate) {
+          return {
+            ok: true,
+            success: true,
+            status: 200,
+            data: duplicate,
+            message: 'تم استرجاع الفاتورة المسجلة مسبقاً لمنع التكرار',
+          };
+        }
+      }
+
+      const id = bodyData.id || bodyData.invoice_number || bodyData.invoiceNumber || `${prefix}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
       const sanitized = sanitizeEntityRecord({
         ...bodyData,
         id,
@@ -2868,6 +3219,24 @@ async function internalHandleLocalDesktopApiFallback(
 
       setLocalItem(storeKey, items, companyId);
       await saveRecord(storeKey, sanitized);
+
+      // If credit invoice created with remaining balance, update customer balance once
+      if (matchedEntityKey === 'invoices') {
+        const remaining = Number(sanitized.remaining_amount ?? sanitized.remainingAmount ?? 0);
+        const custId = sanitized.customer_id || sanitized.customerId;
+        const custName = sanitized.customer_name || sanitized.customerName || sanitized.customer;
+        if (remaining > 0 && (custId || custName)) {
+          const customers = getLocalItem<any[]>('erp_customers_v1', []);
+          const cIdx = customers.findIndex((c) => String(c.id) === String(custId) || String(c.name || '').trim() === String(custName).trim());
+          if (cIdx !== -1) {
+            const currentBal = Number(customers[cIdx].current_balance ?? customers[cIdx].balance ?? 0);
+            customers[cIdx].current_balance = currentBal + remaining;
+            customers[cIdx].balance = customers[cIdx].current_balance;
+            setLocalItem('erp_customers_v1', customers, companyId);
+            await saveRecord('erp_customers_v1', customers[cIdx]);
+          }
+        }
+      }
 
       // Clear clean mode flags to ensure newly entered live production data is rendered
       try {

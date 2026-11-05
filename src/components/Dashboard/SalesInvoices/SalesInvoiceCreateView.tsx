@@ -169,6 +169,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const isSubmittingInvoiceRef = useRef<boolean>(false);
 
   // Items State
   const [items, setItems] = useState<InvoiceLineItem[]>([
@@ -747,6 +748,9 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
       return;
     }
 
+    if (isSubmittingInvoiceRef.current) return;
+    isSubmittingInvoiceRef.current = true;
+
     try {
       setLoading(true);
       setError(null);
@@ -768,6 +772,11 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
       const computedStatus = effectiveRemaining <= 0.01 && grandTotal > 0 ? 'paid' : effectivePaid > 0 ? 'partial' : 'unpaid';
       const effectiveSalesperson = (salespersonName || loggedInSalesperson || 'حميد وهاس').trim();
 
+      const canonicalInvNum = invoiceNumber.trim() ? toEnglishDigits(invoiceNumber.trim()) : `INV-${Date.now().toString().slice(-6)}`;
+      const targetCust = customerList.find((c: any) => c.id === selectedCustomerId || c.name?.trim() === effectiveCustomerName.trim());
+      const prevBal = targetCust ? Number(targetCust.current_balance ?? targetCust.balance ?? 0) : 0;
+      const newBal = prevBal + effectiveRemaining;
+
       // Construct payment method notes / metadata
       let paymentNotes = '';
       if (paymentMethod === 'BANK') {
@@ -788,6 +797,9 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
       const combinedNotes = [notes, paymentNotes].filter(Boolean).join(' | ');
 
       const payload = {
+        id: canonicalInvNum,
+        invoice_number: canonicalInvNum,
+        invoiceNumber: canonicalInvNum,
         customer_id: selectedCustomerId || 'cust-direct',
         customer: effectiveCustomerName,
         customer_name: effectiveCustomerName,
@@ -795,7 +807,12 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
         clientName: effectiveCustomerName,
         receivedBy: receivedBy.trim() || undefined,
         received_by: receivedBy.trim() || undefined,
-        invoice_number: invoiceNumber.trim() ? toEnglishDigits(invoiceNumber.trim()) : undefined,
+        previousBalance: prevBal,
+        previous_balance: prevBal,
+        currentInvoiceAmount: grandTotal,
+        newTotalBalance: newBal,
+        newBalance: newBal,
+        customer_balance: newBal,
         invoice_date: invoiceDate,
         due_date: dueDate || undefined,
         currency,
@@ -870,8 +887,9 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
       if (res.success && res.data) {
         const finalInvoice = {
           ...res.data,
-          id: res.data?.id || `inv-${Date.now()}`,
-          invoice_number: res.data?.invoice_number || invoiceNumber || `INV-${Date.now().toString().slice(-4)}`,
+          id: canonicalInvNum,
+          invoice_number: canonicalInvNum,
+          invoiceNumber: canonicalInvNum,
           customer_id: selectedCustomerId || 'cust-direct',
           customer: effectiveCustomerName,
           customer_name: effectiveCustomerName,
@@ -879,6 +897,12 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
           clientName: effectiveCustomerName,
           receivedBy: receivedBy.trim() || undefined,
           received_by: receivedBy.trim() || undefined,
+          previousBalance: prevBal,
+          previous_balance: prevBal,
+          currentInvoiceAmount: grandTotal,
+          newTotalBalance: newBal,
+          newBalance: newBal,
+          customer_balance: newBal,
           salesperson: effectiveSalesperson,
           salesperson_name: effectiveSalesperson,
           salespersonName: effectiveSalesperson,
@@ -965,21 +989,9 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
           console.error('Failed to sync to erp_invoices_v1:', e);
         }
 
-        // If credit sale with remaining balance, sync customer balance in erp_customers_v1 and add ledger movement
+        // If credit sale with remaining balance, sync customer balance in erp_customers_v1 ONCE (no duplicate addCustomerTransaction call)
         if (effectiveRemaining > 0 && effectiveCustomerName) {
           try {
-            api.addCustomerTransaction(selectedCustomerId || 'cust-direct', {
-              customerId: selectedCustomerId || 'cust-direct',
-              customerName: effectiveCustomerName,
-              type: 'CREDIT_SALE',
-              amount: effectiveRemaining,
-              invoiceNumber: finalInvoice.invoice_number,
-              invoiceId: finalInvoice.id,
-              description: `فاتورة مبيعات آجل #${finalInvoice.invoice_number}${receivedBy.trim() ? ` (المستلم: ${receivedBy.trim()})` : ''}`,
-              receivedBy: receivedBy.trim() || undefined,
-              date: invoiceDate,
-            }).catch((e) => console.warn('[LEDGER_SYNC_WARN]', e));
-
             const custStored = localStorage.getItem('erp_customers_v1');
             const custList: any[] = custStored ? JSON.parse(custStored) : [];
             let matched = false;
@@ -988,7 +1000,8 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                 matched = true;
                 return {
                   ...c,
-                  current_balance: Number(c.current_balance || 0) + effectiveRemaining,
+                  current_balance: newBal,
+                  balance: newBal,
                   total_sales: Number(c.total_sales || 0) + grandTotal,
                 };
               }
@@ -998,7 +1011,8 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
               updatedCustList.push({
                 id: selectedCustomerId || `cust-${Date.now()}`,
                 name: effectiveCustomerName,
-                current_balance: effectiveRemaining,
+                current_balance: newBal,
+                balance: newBal,
                 total_sales: grandTotal,
                 status: 'active',
                 currency: currency || 'YER',
@@ -1114,6 +1128,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
     } catch (err: any) {
       setError(err.message || 'حدث خطأ أثناء الاتصال بالخادم');
     } finally {
+      isSubmittingInvoiceRef.current = false;
       setLoading(false);
     }
   };

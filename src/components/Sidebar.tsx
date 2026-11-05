@@ -31,6 +31,8 @@ import {
   PanelRightClose,
   PanelRight,
   Fuel,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { AppIcon } from './Common/AppIcon';
 import { useModuleSettings } from '../context/ModuleSettingsContext';
@@ -153,6 +155,31 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
       window.removeEventListener('erp:update-available', handleUpdateAvailable);
     };
   }, []);
+
+  // 4. Theme state & listener
+  const [sidebarTheme, setSidebarTheme] = useState<'dark' | 'light'>(() => {
+    try {
+      return (localStorage.getItem('erp_theme_mode') as 'dark' | 'light') || 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
+
+  useEffect(() => {
+    const handleThemeChange = (e: any) => {
+      const t = e.detail?.theme || e.detail;
+      if (t === 'dark' || t === 'light') setSidebarTheme(t);
+    };
+    window.addEventListener('erp-theme-changed', handleThemeChange as EventListener);
+    return () => window.removeEventListener('erp-theme-changed', handleThemeChange as EventListener);
+  }, []);
+
+  const toggleThemeFromSidebar = () => {
+    const next = sidebarTheme === 'dark' ? 'light' : 'dark';
+    setSidebarTheme(next);
+    localStorage.setItem('erp_theme_mode', next);
+    window.dispatchEvent(new CustomEvent('erp-theme-changed', { detail: { theme: next } }));
+  };
 
   const sections: NavSection[] = [
     {
@@ -381,6 +408,32 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
               </span>
             </button>
 
+            {/* Theme Mode Toggle Pill in Sidebar */}
+            <button
+              type="button"
+              onClick={toggleThemeFromSidebar}
+              className={`w-full flex items-center justify-between text-xs px-2.5 py-1.5 rounded-xl transition cursor-pointer select-none ${
+                sidebarTheme === 'dark'
+                  ? 'bg-slate-800/40 hover:bg-slate-800 text-slate-300 border border-slate-700/40'
+                  : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300/60 font-bold'
+              }`}
+              title="تبديل مظهر النظام بين الوضع الليلي والوضع الفاتح"
+            >
+              <div className="flex items-center gap-1.5">
+                {sidebarTheme === 'dark' ? (
+                  <Sun className="w-3.5 h-3.5 text-amber-400" />
+                ) : (
+                  <Moon className="w-3.5 h-3.5 text-emerald-700" />
+                )}
+                <span className="font-bold text-[11px]">مظهر النظام</span>
+              </div>
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                sidebarTheme === 'dark' ? 'bg-slate-900/80 text-amber-300 border border-slate-700/60' : 'bg-emerald-600 text-white'
+              }`}>
+                {sidebarTheme === 'dark' ? 'الوضع المظلم' : 'الوضع الفاتح'}
+              </span>
+            </button>
+
             <div className="flex items-center justify-between text-xs px-2.5 py-1.5 bg-slate-800/50 rounded-xl">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -391,6 +444,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           </>
         ) : (
           <div className="space-y-1.5 flex flex-col items-center">
+            <button
+              type="button"
+              onClick={toggleThemeFromSidebar}
+              className="w-full flex items-center justify-center p-2 bg-slate-800/50 hover:bg-slate-800 rounded-xl text-center cursor-pointer"
+              title={sidebarTheme === 'dark' ? 'التحويل إلى الوضع الفاتح' : 'التحويل إلى الوضع المظلم'}
+            >
+              {sidebarTheme === 'dark' ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-emerald-600" />
+              )}
+            </button>
             <button
               type="button"
               onClick={() => window.dispatchEvent(new CustomEvent('erp:open-updater-modal'))}

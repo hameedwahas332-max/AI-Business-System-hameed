@@ -92,13 +92,31 @@ export function App() {
   // Apply Theme & Accent to document element
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', themeMode);
+    if (themeMode === 'light') {
+      document.documentElement.classList.add('light-mode');
+    } else {
+      document.documentElement.classList.remove('light-mode');
+    }
     localStorage.setItem('erp_theme_mode', themeMode);
+    window.dispatchEvent(new CustomEvent('erp-theme-changed', { detail: { theme: themeMode } }));
   }, [themeMode]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-accent', accentColor);
     localStorage.setItem('erp_accent_color', accentColor);
   }, [accentColor]);
+
+  // Sync external theme changes (e.g. from Sidebar or Settings Modal)
+  useEffect(() => {
+    const handleThemeChange = (e: any) => {
+      const newTheme = e.detail?.theme || e.detail;
+      if (newTheme === 'dark' || newTheme === 'light') {
+        setThemeMode(newTheme);
+      }
+    };
+    window.addEventListener('erp-theme-changed', handleThemeChange as EventListener);
+    return () => window.removeEventListener('erp-theme-changed', handleThemeChange as EventListener);
+  }, []);
 
   // Automatic Background Update Verification (Startup after 5s & every 15 minutes)
   const [pendingUpdate, setPendingUpdate] = useState<UpdateCheckResult | null>(null);

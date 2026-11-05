@@ -139,6 +139,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
   const lastKeyTimeRef = useRef<number>(0);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const isSubmittingInvoiceRef = useRef<boolean>(false);
 
   // Helper for Tiered Pricing
   const getProductPriceForTier = (product: any, tier: PriceTier = selectedPriceTier) => {
@@ -380,12 +381,18 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
       setError(`⛔ تنبيه رقابي: لا يمكن إتمام البيع بسعر أقل من سعر الشراء لمنع الخسائر! الأصناف: (${names}). يرجى رفع سعر البيع ليغطي التكلفة.`);
       return;
     }
+    if (isSubmittingInvoiceRef.current) return;
+    isSubmittingInvoiceRef.current = true;
     try {
       setCheckoutLoading(true);
       const accountingRate = getAccountingRate(currency);
       const enrichedCartItems = enrichCartItemsWithIdentifiers(cart);
+      const invoiceNum = `POS-${Date.now().toString().slice(-6)}`;
 
       const payload = {
+        id: invoiceNum,
+        invoice_number: invoiceNum,
+        invoiceNumber: invoiceNum,
         customerId: selectedCustomer?.id || null,
         customerName: selectedCustomer?.name || 'عميل نقدي سريع',
         paymentMethod: 'CASH',
@@ -401,12 +408,12 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
       };
 
       const res = await api.posCheckout(payload);
-      const invoiceNum = res.data?.invoice_number || `POS-${Date.now().toString().slice(-6)}`;
+      const finalInvNum = res.data?.invoice_number || invoiceNum;
       const receiptDataObj = {
         ...payload,
-        id: res.data?.id || `sale-${Date.now()}`,
-        invoiceNumber: invoiceNum,
-        invoice_number: invoiceNum,
+        id: res.data?.id || finalInvNum,
+        invoiceNumber: finalInvNum,
+        invoice_number: finalInvNum,
         invoiceDate: new Date().toLocaleDateString('ar-YE'),
         receipt: {
           date: new Date().toLocaleDateString('ar-YE'),
@@ -511,6 +518,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
     } catch (err: any) {
       setError(err.message || 'فشل إتمام الدفع النقدي السريع');
     } finally {
+      isSubmittingInvoiceRef.current = false;
       setCheckoutLoading(false);
     }
   };
@@ -1100,14 +1108,19 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
 
   // Direct Credit Posting for Held Sale (اعتماد آجل لحساب العميل)
   const handlePostCreditHeldSale = async (heldSale: POSHeldSale) => {
+    if (isSubmittingInvoiceRef.current) return;
+    isSubmittingInvoiceRef.current = true;
     try {
-      const invNum = `INV-CR-${Date.now().toString().slice(-6)}`;
+      const invNum = `POS-${Date.now().toString().slice(-6)}`;
       const effectiveSalesperson = (user?.full_name || (user as any)?.name || 'حميد وهاس').trim();
       const rawCustomer = heldSale.customer || (heldSale.customer_id ? customers.find((c) => c.id === heldSale.customer_id) : null);
       const effectiveCustName = heldSale.customer_name || rawCustomer?.name || 'عميل آجل';
       const effectiveCustId = heldSale.customer_id || rawCustomer?.id || `cust-${Date.now()}`;
       const itemsList = heldSale.items || heldSale.cart_data || heldSale.cartData || [];
       const saleTotal = Number(heldSale.total || heldSale.totalAmount || 0);
+
+      const prevBal = rawCustomer ? Number(rawCustomer.current_balance ?? rawCustomer.balance ?? 0) : 0;
+      const newBal = prevBal + saleTotal;
 
       const enrichedItems = enrichCartItemsWithIdentifiers(itemsList);
 
@@ -1122,11 +1135,12 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
         notes: `فاتورة مبيعات آجلة مرحلة من الفواتير المعلقة #${heldSale.reference_no || heldSale.id}`,
       });
 
-      // 2. Build Credit Invoice object
+      // 2. Build Credit Invoice object with single canonical ID & balance audit
       const effectiveRecBy = heldSale.receivedBy || (heldSale as any).received_by || undefined;
       const creditInvoice = {
-        id: `inv-${Date.now()}`,
+        id: invNum,
         invoice_number: invNum,
+        invoiceNumber: invNum,
         customer_id: effectiveCustId,
         customer: effectiveCustName,
         customer_name: effectiveCustName,
@@ -1135,6 +1149,12 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
         salesperson_name: effectiveSalesperson,
         receivedBy: effectiveRecBy,
         received_by: effectiveRecBy,
+        previousBalance: prevBal,
+        previous_balance: prevBal,
+        currentInvoiceAmount: saleTotal,
+        newTotalBalance: newBal,
+        newBalance: newBal,
+        customer_balance: newBal,
         total: saleTotal,
         totalAmount: saleTotal,
         grandTotal: saleTotal,
@@ -1151,28 +1171,16 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
         notes: `فاتورة مبيعات آجلة مرحلة لحساب العميل: ${effectiveCustName}${effectiveRecBy ? ` - المستلم: ${effectiveRecBy}` : ''}`,
       };
 
-      if (effectiveCustId) {
-        api.addCustomerTransaction(effectiveCustId, {
-          type: 'DEBIT',
-          amount: saleTotal,
-          currency,
-          description: `فاتورة مبيعات آجلة رقم ${invNum}${effectiveRecBy ? ` - المستلم: ${effectiveRecBy}` : ''}`,
-          referenceNo: invNum,
-          receivedBy: effectiveRecBy,
-          received_by: effectiveRecBy,
-        }).catch(console.warn);
-      }
-
-      // 3. Save to erp_invoices_v1
+      // 3. Save directly to erp_invoices_v1 (Atomic: no duplicate api.addCustomerTransaction call)
       try {
         const storedInvs = localStorage.getItem('erp_invoices_v1');
         const list: any[] = storedInvs ? JSON.parse(storedInvs) : [];
-        localStorage.setItem('erp_invoices_v1', JSON.stringify([creditInvoice, ...list.filter((i) => i.id !== creditInvoice.id)]));
+        localStorage.setItem('erp_invoices_v1', JSON.stringify([creditInvoice, ...list.filter((i) => i.id !== creditInvoice.id && i.invoice_number !== invNum)]));
       } catch (e) {
         console.warn('Failed to save credit invoice to storage:', e);
       }
 
-      // 4. Update customer balance in erp_customers_v1
+      // 4. Update customer balance EXACTLY ONCE in erp_customers_v1
       try {
         const storedCusts = localStorage.getItem('erp_customers_v1');
         const custList: any[] = storedCusts ? JSON.parse(storedCusts) : [];
@@ -1180,7 +1188,6 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
         const updatedCustList = custList.map((c) => {
           if (c.id === effectiveCustId || c.name?.trim() === effectiveCustName.trim()) {
             found = true;
-            const newBal = Number(c.balance || c.current_balance || 0) + saleTotal;
             return {
               ...c,
               balance: newBal,
@@ -1195,8 +1202,8 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
             id: effectiveCustId,
             name: effectiveCustName,
             phone: heldSale.customerPhone || '',
-            balance: saleTotal,
-            current_balance: saleTotal,
+            balance: newBal,
+            current_balance: newBal,
             total_sales: saleTotal,
             currency,
             status: 'active',
@@ -1221,11 +1228,15 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
       setTimeout(() => setSuccess(null), 4500);
     } catch (err: any) {
       setError(err.message || 'فشل ترحيل الفاتورة الآجلة لحساب العميل');
+    } finally {
+      isSubmittingInvoiceRef.current = false;
     }
   };
 
   // Execute Checkout Transaction
   const handleConfirmPayment = async (paymentData: any) => {
+    if (isSubmittingInvoiceRef.current) return;
+    isSubmittingInvoiceRef.current = true;
     try {
       setCheckoutLoading(true);
       setError(null);
@@ -1234,24 +1245,43 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
       const effectiveSalesperson = (user?.full_name || (user as any)?.name || 'حميد وهاس').trim();
       const effectiveCustomer = (selectedCustomer?.name || 'عميل نقدي').trim();
       const enrichedCartItems = enrichCartItemsWithIdentifiers(cart);
+      const invNum = `POS-${Date.now().toString().slice(-6)}`;
+      const prevBal = selectedCustomer ? Number(selectedCustomer.current_balance ?? selectedCustomer.balance ?? 0) : undefined;
+      const isCreditSale = paymentData.paymentMethod === 'CREDIT' || (paymentData.remainingAmount || 0) > 0;
+      const newBal = prevBal !== undefined ? (prevBal + (isCreditSale ? Number(paymentData.remainingAmount || 0) : 0)) : undefined;
 
       const payload = {
+        id: invNum,
+        invoice_number: invNum,
+        invoiceNumber: invNum,
         customerId: selectedCustomer?.id || undefined,
+        customer_id: selectedCustomer?.id || undefined,
         customerName: effectiveCustomer,
+        customer_name: effectiveCustomer,
         customer: effectiveCustomer,
         salesperson: effectiveSalesperson,
+        salesperson_name: effectiveSalesperson,
         salespersonName: effectiveSalesperson,
         cashierName: effectiveSalesperson,
         createdBy: effectiveSalesperson,
+        previousBalance: prevBal,
+        previous_balance: prevBal,
+        currentInvoiceAmount: grandTotal,
+        newTotalBalance: newBal,
+        newBalance: newBal,
+        customer_balance: newBal,
         items: enrichedCartItems,
         subtotal,
         discount: cartDiscount,
         tax: taxAmount,
         total: grandTotal,
         paidAmount: paymentData.paidAmount,
-        remainingAmount: paymentData.remainingAmount,
+        paid_amount: paymentData.paidAmount,
+        remainingAmount: paymentData.remainingAmount || 0,
+        remaining_amount: paymentData.remainingAmount || 0,
         changeAmount: paymentData.changeAmount,
         paymentMethod: paymentData.paymentMethod,
+        payment_method: paymentData.paymentMethod,
         payments: paymentData.payments,
         currency,
         exchangeRate,
@@ -1265,10 +1295,6 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
       const res = await api.posCheckout(payload);
 
       if (res.success && res.data) {
-        const invNum = res.data?.invoice_number || res.data?.invoiceNumber || `POS-${Date.now().toString().slice(-6)}`;
-        const prevBal = selectedCustomer ? Number(selectedCustomer.current_balance || selectedCustomer.balance || 0) : undefined;
-        const newBal = prevBal !== undefined ? (prevBal + (paymentData.remainingAmount || 0)) : undefined;
-
         // 1. Sync Central Stock Deduction and Movements
         applyStockMovementSync(enrichedCartItems, {
           type: 'pos_sale',
@@ -1282,8 +1308,9 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
         // 2. Record to Central Invoices and POS Sales Log
         const finalPosInvoice = {
           ...res.data,
-          id: res.data?.id || `pos-${Date.now()}`,
+          id: invNum,
           invoice_number: invNum,
+          invoiceNumber: invNum,
           customer_name: effectiveCustomer,
           customer: effectiveCustomer,
           customerName: effectiveCustomer,
@@ -1297,8 +1324,11 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
           received_by: (paymentData as any).receivedBy,
           previousBalance: prevBal,
           previous_balance: prevBal,
+          currentInvoiceAmount: grandTotal,
           newBalance: newBal,
           new_balance: newBal,
+          newTotalBalance: newBal,
+          customer_balance: newBal,
           total: grandTotal,
           totalAmount: grandTotal,
           grandTotal: grandTotal,
@@ -1356,20 +1386,8 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
           }
         }
 
-        // If credit balance remaining, sync customer balance and ledger movement
+        // If credit balance remaining, sync customer balance in erp_customers_v1 ONCE (no duplicate addCustomerTransaction call)
         if (paymentData.remainingAmount > 0 && selectedCustomer?.name) {
-          if (selectedCustomer.id) {
-            api.addCustomerTransaction(selectedCustomer.id, {
-              type: 'DEBIT',
-              amount: paymentData.remainingAmount,
-              currency,
-              description: `فاتورة مبيعات نقطة البيع رقم ${invNum}${(paymentData as any).receivedBy ? ` - المستلم: ${(paymentData as any).receivedBy}` : ''}`,
-              referenceNo: invNum,
-              receivedBy: (paymentData as any).receivedBy,
-              received_by: (paymentData as any).receivedBy,
-            }).catch(console.warn);
-          }
-
           try {
             const custStored = localStorage.getItem('erp_customers_v1');
             const custList: any[] = custStored ? JSON.parse(custStored) : [];
@@ -1377,7 +1395,8 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
               if (c.id === selectedCustomer.id || c.name?.trim() === selectedCustomer.name.trim()) {
                 return {
                   ...c,
-                  current_balance: Number(c.current_balance || 0) + Number(paymentData.remainingAmount),
+                  current_balance: newBal !== undefined ? newBal : Number(c.current_balance || 0) + Number(paymentData.remainingAmount),
+                  balance: newBal !== undefined ? newBal : Number(c.balance || c.current_balance || 0) + Number(paymentData.remainingAmount),
                   total_sales: Number(c.total_sales || 0) + grandTotal,
                 };
               }
@@ -1391,7 +1410,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
         }
 
         const posLogRecord = {
-          id: res.data?.id || `pos-${Date.now()}`,
+          id: invNum,
           invoiceNumber: invNum,
           date: new Date().toISOString(),
           dateFormatted: new Date().toLocaleDateString('ar-YE'),
@@ -1410,7 +1429,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
             unitPrice: it.unitPrice,
             total: it.quantity * it.unitPrice - (it.discount || 0),
           })),
-          rawPayload: res.data,
+          rawPayload: finalPosInvoice,
         };
 
         const existingLogs = (() => {
@@ -1446,6 +1465,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
     } catch (err: any) {
       setError(err.message || 'حدث خطأ أثناء معالجة الفاتورة');
     } finally {
+      isSubmittingInvoiceRef.current = false;
       setCheckoutLoading(false);
     }
   };

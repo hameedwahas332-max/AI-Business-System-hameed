@@ -19,6 +19,9 @@ import {
   Eye,
   EyeOff,
   RotateCcw,
+  Sun,
+  Moon,
+  Palette,
 } from 'lucide-react';
 
 export type SupportedModuleName =
@@ -59,8 +62,29 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
 }) => {
   const effectiveModule: SupportedModuleName = module || moduleName || 'general';
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'module' | 'presets' | 'sidebar'>('module');
+  const [activeTab, setActiveTab] = useState<'module' | 'presets' | 'sidebar' | 'appearance'>('module');
   const [savedNotice, setSavedNotice] = useState(false);
+
+  const [currentTheme, setCurrentTheme] = useState<'dark' | 'light'>(() => {
+    try {
+      return (localStorage.getItem('erp_theme_mode') as 'dark' | 'light') || 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
+
+  const handleSelectTheme = (theme: 'dark' | 'light') => {
+    setCurrentTheme(theme);
+    localStorage.setItem('erp_theme_mode', theme);
+    document.documentElement.setAttribute('data-theme', theme);
+    if (theme === 'light') {
+      document.documentElement.classList.add('light-mode');
+    } else {
+      document.documentElement.classList.remove('light-mode');
+    }
+    window.dispatchEvent(new CustomEvent('erp-theme-changed', { detail: { theme } }));
+    showSavedNotification();
+  };
 
   const {
     settings,
@@ -199,6 +223,18 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
               >
                 <Layers className="w-3.5 h-3.5" />
                 <span>تخصيص القائمة الجانبية</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('appearance')}
+                className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 ${
+                  activeTab === 'appearance'
+                    ? 'border-amber-500 text-amber-400 font-bold'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Sun className="w-3.5 h-3.5" />
+                <span>المظهر والسمة (Dark / Light)</span>
               </button>
             </div>
 
@@ -519,6 +555,94 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
                         </div>
                       );
                     })}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: APPEARANCE & THEME (DARK / LIGHT) */}
+              {activeTab === 'appearance' && (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-bold text-slate-200 text-sm mb-1">سمة ومظهر المنظومة (Theme Engine)</h4>
+                    <p className="text-slate-400 text-xs">
+                      اختر نمط الإضاءة والألوان المفضل للعمل على النظام. التغيير فوري ويبقى محفوظاً في جهازك:
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Dark Mode Card */}
+                    <div
+                      onClick={() => handleSelectTheme('dark')}
+                      className={`p-4 rounded-2xl border-2 transition-all cursor-pointer relative flex flex-col justify-between ${
+                        currentTheme === 'dark'
+                          ? 'bg-slate-900 border-amber-500 shadow-lg shadow-amber-500/10'
+                          : 'bg-slate-950 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-xl bg-slate-800 flex items-center justify-center text-amber-400">
+                              <Moon className="w-4 h-4" />
+                            </div>
+                            <span className="font-bold text-white text-sm">الوضع الليلي الكلاسيكي</span>
+                          </div>
+                          {currentTheme === 'dark' && (
+                            <span className="w-6 h-6 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center">
+                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                          الوضع الافتراضي الأصلي للنظام بدرجات الرمادي الداكن والأسود المريح للعين في بيئات الإضاءة الخافتة ونقاط البيع السريعة.
+                        </p>
+                      </div>
+
+                      <div className="mt-4 pt-3 border-t border-slate-800 flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-full bg-slate-950 border border-slate-700" />
+                        <span className="w-3 h-3 rounded-full bg-slate-900 border border-slate-700" />
+                        <span className="w-3 h-3 rounded-full bg-emerald-500" />
+                        <span className="w-3 h-3 rounded-full bg-amber-500" />
+                        <span className="text-[10px] text-slate-500 font-mono mr-auto">Dark #022C22</span>
+                      </div>
+                    </div>
+
+                    {/* Royal Emerald & Gold Light Mode Card */}
+                    <div
+                      onClick={() => handleSelectTheme('light')}
+                      className={`p-4 rounded-2xl border-2 transition-all cursor-pointer relative flex flex-col justify-between ${
+                        currentTheme === 'light'
+                          ? 'bg-emerald-950/20 border-emerald-500 shadow-lg shadow-emerald-500/10'
+                          : 'bg-slate-950 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400">
+                              <Sun className="w-4 h-4" />
+                            </div>
+                            <span className="font-bold text-white text-sm">الوضع الفاتح الملكي (Royal Emerald)</span>
+                          </div>
+                          {currentTheme === 'light' && (
+                            <span className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center">
+                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                          مظهر فائق النقاء بخلفيات مرمرية مريحة وتباين عالي بنمط الزمرد الأخضر والذهب الملكي للطباعة والمكاتب النهارية.
+                        </p>
+                      </div>
+
+                      <div className="mt-4 pt-3 border-t border-slate-800 flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-full bg-[#F4F7F6] border border-slate-300" />
+                        <span className="w-3 h-3 rounded-full bg-[#FFFFFF] border border-slate-300" />
+                        <span className="w-3 h-3 rounded-full bg-[#0F766E]" />
+                        <span className="w-3 h-3 rounded-full bg-[#C9A227]" />
+                        <span className="text-[10px] text-slate-500 font-mono mr-auto">Light #0F766E</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
