@@ -543,11 +543,46 @@ app.post('/api/v1/auth/login', async (req: Request, res: Response) => {
 app.post('/api/v1/auth/rehydrate-account', async (req: Request, res: Response) => {
   try {
     const payload = req.body || {};
+    const email = (payload.user?.email || payload.email || '').trim().toLowerCase();
+    const companyId = payload.company?.id || payload.user?.company_id || payload.companyId;
+
+    // 1. Check for token in payload or headers
+    const authHeader = req.headers['authorization'] || '';
+    const rawToken = payload.token || extractBearerToken(authHeader) || (req.headers['x-auth-token'] as string) || '';
+    let isAuthorized = false;
+
+    if (rawToken) {
+      const verified = verifySignedToken(rawToken);
+      if (verified.valid && verified.payload) {
+        const tokenEmail = verified.payload.email?.trim().toLowerCase();
+        const tokenCid = verified.payload.cid;
+        if ((!email || !tokenEmail || tokenEmail === email) && (!companyId || !tokenCid || tokenCid === companyId)) {
+          isAuthorized = true;
+        }
+      }
+    }
+
+    // 2. Check password against permanentUsersMap
+    if (!isAuthorized) {
+      const permUser = email ? permanentUsersMap.get(email) : undefined;
+      const candidatePassword = payload.password || payload.user?.password || '';
+      if (permUser && candidatePassword && permUser.password_hash) {
+        if (verifyPassword(candidatePassword, permUser.password_hash)) {
+          isAuthorized = true;
+        }
+      }
+    }
+
+    if (!isAuthorized) {
+      return res.status(401).json({
+        success: false,
+        message: 'غير مصرح به: يتطلب رمز مصادقة صالح أو كلمة مرور صحيحة للاستعادة',
+      });
+    }
+
     const result = await rehydrateTenantData(payload, dbPool);
 
-    let email = payload.user?.email || payload.email;
     if (email) {
-      email = email.trim().toLowerCase();
       const permUser = permanentUsersMap.get(email);
       if (permUser) {
         const compId = permUser.company_id;
@@ -571,7 +606,7 @@ app.post('/api/v1/auth/rehydrate-account', async (req: Request, res: Response) =
         tenantUsersByEmail.set(email, tenantUser);
         tenantCompaniesById.set(compId, comp);
 
-        const token = generatePermanentToken(tenantUser.id, compId);
+        const token = generatePermanentToken(tenantUser.id, compId, tenantUser.email, tenantUser.role);
         const oneYearMs = 365 * 24 * 60 * 60 * 1000;
         activeSessions.set(token, { user: tenantUser, company: comp, expiresAt: Date.now() + oneYearMs });
 
@@ -666,105 +701,76 @@ app.post('/api/v1/auth/delete-account', async (req: Request, res: Response) => {
   }
 });
 
-// Sliding session renewal - Merchant stays logged in indefinitely
-app.post('/api/v1/auth/refresh', (req: Request, res: Response) => {
-  const authHeader = req.headers['authorization'] || '';
-  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-
-  if (!token) {
-    return res.status(401).json({ success: false, message: 'رمز الدخول مطلوب' });
-  }
-
-  let session = activeSessions.get(token);
-  let user: PersistentTenantUser | undefined = session?.user;
-  let company: PersistentTenantCompany | undefined = session?.company;
-
-  if (!user || !company) {
-    const verified = verifySignedToken(token);
-    if (verified && verified.sub) {
-      const email = verified.email ? verified.email.toLowerCase() : '';
-      const permUser = email ? permanentUsersMap.get(email) : undefined;
-      const compId = verified.cid || permUser?.company_id || 'comp_001';
-      company = permanentCompaniesMap.get(compId) || tenantCompaniesById.get(compId);
-      if (permUser) {
-        user = {
-          id: permUser.id,
-          username: permUser.email.split('@')[0],
-          full_name: permUser.name,
-          email: permUser.email,
-          role: permUser.role,
-          company_id: compId,
-          is_active: true,
-          created_at: permUser.created_at,
-        };
-      }
-    }
-  }
-
-  if (!user || !company) {
-    return res.status(401).json({ success: false, message: 'الجلسة غير صالحة أو منتهية، يرجى تسجيل الدخول مجدداً' });
-  }
-
-  const newToken = generatePermanentToken(user.id, company.id, user.email, user.role);
-  const oneYearMs = 365 * 24 * 60 * 60 * 1000;
-  activeSessions.set(newToken, { user, company, expiresAt: Date.now() + oneYearMs });
-
-  res.status(200).json({
-    success: true,
-    token: newToken,
-    user,
-    company,
-    expiresIn: '365d',
-  });
-});
-
 // Session Restore Endpoint (Handles cold starts & background re-sync seamlessly)
 app.post(['/api/v1/auth/session-restore', '/api/auth/session-restore'], async (req: Request, res: Response) => {
-  const { user, company, token: clientToken } = req.body || {};
-  let normalizedEmail = (user?.email || '').trim().toLowerCase();
+  const { user, company, token: clientToken, password } = req.body || {};
+  const authHeader = req.headers['authorization'] || '';
+  const tokenCandidate = clientToken || extractBearerToken(authHeader) || (req.headers['x-auth-token'] as string) || '';
 
-  if (!normalizedEmail && clientToken) {
-    const existing = activeSessions.get(clientToken);
-    if (existing) {
-      normalizedEmail = existing.user.email.trim().toLowerCase();
+  let normalizedEmail = (user?.email || '').trim().toLowerCase();
+  let hasValidSessionOrToken = false;
+
+  if (tokenCandidate) {
+    const existing = activeSessions.get(tokenCandidate);
+    if (existing && existing.expiresAt > Date.now()) {
+      hasValidSessionOrToken = true;
+      if (!normalizedEmail) {
+        normalizedEmail = existing.user.email.trim().toLowerCase();
+      }
     } else {
-      const verified = verifySignedToken(clientToken);
-      if (verified && verified.email) {
-        normalizedEmail = verified.email.trim().toLowerCase();
+      const verified = verifySignedToken(tokenCandidate);
+      if (verified.valid && verified.payload?.email) {
+        hasValidSessionOrToken = true;
+        if (!normalizedEmail) {
+          normalizedEmail = verified.payload.email.trim().toLowerCase();
+        }
       }
     }
   }
 
   let finalUser: PersistentTenantUser | null = null;
   let finalCompany: PersistentTenantCompany | null = null;
+  const permUser = normalizedEmail ? permanentUsersMap.get(normalizedEmail) : undefined;
 
-  if (normalizedEmail) {
-    const permUser = permanentUsersMap.get(normalizedEmail);
-    if (permUser) {
-      const compId = permUser.company_id || company?.id || 'comp_001';
-      finalCompany = permanentCompaniesMap.get(compId) || tenantCompaniesById.get(compId) || {
-        id: compId,
-        name: permUser.company_name || company?.name || 'المؤسسة التجارية',
-        currency: company?.currency || 'YER',
-        phone: company?.phone || permUser.phone || '',
-        email: normalizedEmail,
-        status: 'ACTIVE',
-        created_at: permUser.created_at || new Date().toISOString(),
-      };
-      finalUser = {
-        id: permUser.id,
-        username: permUser.email.split('@')[0] || 'admin',
-        full_name: permUser.name || user?.full_name || 'المدير العام',
-        email: normalizedEmail,
-        role: permUser.role || 'ADMIN',
-        company_id: compId,
-        is_active: true,
-        created_at: permUser.created_at,
-      };
+  // Check valid password verification if neither active session nor signed token is valid
+  let isPasswordVerified = false;
+  const candidatePass = password || user?.password;
+  if (permUser && candidatePass && permUser.password_hash) {
+    if (verifyPassword(candidatePass, permUser.password_hash)) {
+      isPasswordVerified = true;
     }
   }
 
-  if (!finalUser && user && user.email) {
+  // Require a valid session or valid signed token or valid password verification
+  if (!hasValidSessionOrToken && !isPasswordVerified) {
+    return res.status(401).json({
+      success: false,
+      message: 'جلسة غير صالحة، يرجى تسجيل الدخول',
+    });
+  }
+
+  if (normalizedEmail && permUser) {
+    const compId = permUser.company_id || company?.id || 'comp_001';
+    finalCompany = permanentCompaniesMap.get(compId) || tenantCompaniesById.get(compId) || {
+      id: compId,
+      name: permUser.company_name || company?.name || 'المؤسسة التجارية',
+      currency: company?.currency || 'YER',
+      phone: company?.phone || permUser.phone || '',
+      email: normalizedEmail,
+      status: 'ACTIVE',
+      created_at: permUser.created_at || new Date().toISOString(),
+    };
+    finalUser = {
+      id: permUser.id,
+      username: permUser.email.split('@')[0] || 'admin',
+      full_name: permUser.name || user?.full_name || 'المدير العام',
+      email: normalizedEmail,
+      role: permUser.role || 'ADMIN',
+      company_id: compId,
+      is_active: true,
+      created_at: permUser.created_at,
+    };
+  } else if (user && user.email) {
     const compId = company?.id || user.company_id || `comp_${(normalizedEmail.split('@')[0] || 'merchant').replace(/[^a-z0-9]/g, '_')}`;
     finalCompany = company || {
       id: compId,
@@ -783,34 +789,36 @@ app.post(['/api/v1/auth/session-restore', '/api/auth/session-restore'], async (r
       is_active: true,
       created_at: user.created_at || new Date().toISOString(),
     };
-    if (normalizedEmail) {
-      const permUser: PermanentUserRecord = {
+    if (normalizedEmail && candidatePass) {
+      const newPermUser: PermanentUserRecord = {
         id: finalUser.id,
         email: normalizedEmail,
-        password_hash: hashPassword(user.password || 'admin123'),
+        password_hash: hashPassword(candidatePass),
         name: finalUser.full_name,
         role: finalUser.role,
         company_id: compId,
         company_name: finalCompany.name,
         created_at: finalUser.created_at,
       };
-      permanentUsersMap.set(normalizedEmail, permUser);
-      saveUserToPermanentStore(permUser, dbPool).catch(() => {});
+      permanentUsersMap.set(normalizedEmail, newPermUser);
+      saveUserToPermanentStore(newPermUser, dbPool).catch(() => {});
     }
   }
 
-  if (!finalUser) {
+  if (!finalUser || !finalCompany) {
     return res.status(401).json({
       success: false,
-      message: 'لم يتم العثور على جلسة صالحة للاستعادة، يرجى تسجيل الدخول',
+      message: 'جلسة غير صالحة، يرجى تسجيل الدخول',
     });
   }
 
-  const tokenToUse = clientToken || generatePermanentToken(finalUser.id, finalCompany!.id);
+  const tokenToUse = (hasValidSessionOrToken && tokenCandidate)
+    ? tokenCandidate
+    : generatePermanentToken(finalUser.id, finalCompany.id, finalUser.email, finalUser.role);
   const oneYearMs = 365 * 24 * 60 * 60 * 1000;
-  activeSessions.set(tokenToUse, { user: finalUser, company: finalCompany!, expiresAt: Date.now() + oneYearMs });
+  activeSessions.set(tokenToUse, { user: finalUser, company: finalCompany, expiresAt: Date.now() + oneYearMs });
   tenantUsersByEmail.set(finalUser.email.trim().toLowerCase(), finalUser);
-  tenantCompaniesById.set(finalCompany!.id, finalCompany!);
+  tenantCompaniesById.set(finalCompany.id, finalCompany);
 
   res.status(200).json({
     success: true,

@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "saved_at": "2026-11-07T08:24:39.364Z",
+  "saved_at": "2026-11-07T09:02:36.605Z",
   "isSampleDataSeeded": false,
   "cleanProductionModes": {
     "comp_001": true,
@@ -12,15 +12,14 @@
   },
   "users": [
     {
-      "id": "usr_001",
+      "id": "usr_1794042156399",
       "email": "admin@alsahabi.com",
-      "password_hash": "admin123",
+      "password_hash": "scrypt$96ac5ed40b20cedf5441c6dc78aad270$1a791d76ba818f4fd152329f8617493a4853745de4156109d87929bf492663259b9ae4a13d3e751149fcab19510c545a2fb0b08804ad21d7d0a5a5fcdc97d092",
       "name": "المدير العام",
       "role": "ADMIN",
       "company_id": "comp_001",
-      "company_name": "مؤسسة السحابي للتجارة والتقنية",
-      "created_at": "2026-01-01T00:00:00.000Z",
-      "metadata": {}
+      "company_name": "المؤسسة التجارية",
+      "created_at": "2026-11-07T09:02:36.399Z"
     },
     {
       "id": "usr_enterprise_01",
@@ -76,18 +75,13 @@
       "role": "ADMIN",
       "company_id": "comp____________________9162",
       "company_name": "شركة الأفق للتجارة",
-      "created_at": "2026-11-07T08:24:39.286Z"
+      "created_at": "2026-11-07T08:24:39.286Z",
+      "metadata": {}
     }
   ],
   "companies": [
     {
-      "id": "comp_001",
-      "name": "مؤسسة السحابي للتجارة والتقنية",
-      "currency": "SAR",
-      "phone": "0501234567",
-      "email": "admin@alsahabi.com",
-      "status": "ACTIVE",
-      "created_at": "2026-01-01T00:00:00Z"
+      "id": "comp_001"
     },
     {
       "id": "comp_alamal",
@@ -1802,13 +1796,13 @@
       "updated_at": "2026-11-05T17:09:58.215Z"
     },
     "comp_001": {
+      "companyId": "comp_001",
       "userKey": "admin@alsahabi.com",
       "snapshot": {
         "erp_module_settings_v1": "{\"activePreset\":\"multi_activity\",\"enableMultiUnits\":true,\"enableTieredPricing\":true,\"enableExpiryTracking\":true,\"enableSerialAndWarranty\":true,\"enableTiresAndSizes\":true,\"enableOilViscositySpec\":true,\"defaultCostingMethod\":\"weighted_average\",\"lowStockDefaultThreshold\":10,\"expiryWarningDays\":60,\"allowNegativeStockSale\":false,\"allowCashierPriceEdit\":true,\"enableLineDiscount\":true,\"enableTaxVat\":true,\"defaultTaxRate\":15,\"enableBatteryScrapTradeIn\":true,\"printWarrantyOnInvoice\":true,\"defaultPrintFormat\":\"A4\",\"enforceCreditLimit\":true,\"defaultCustomerPriceTier\":\"retail\",\"autoWhatsAppAfterVoucher\":true,\"defaultCurrency\":\"YER\",\"baseCurrency\":\"YER\",\"hiddenSidebarTabs\":[]}",
         "erp_clean_production_mode_v1": "false"
       },
-      "companyId": "comp_001",
-      "updated_at": "2026-11-05T19:38:10.562Z"
+      "updated_at": "2026-11-07T09:02:26.257Z"
     },
     "admin@alsahabi.com": {
       "companyId": "comp_001",
@@ -1817,7 +1811,7 @@
         "erp_module_settings_v1": "{\"activePreset\":\"multi_activity\",\"enableMultiUnits\":true,\"enableTieredPricing\":true,\"enableExpiryTracking\":true,\"enableSerialAndWarranty\":true,\"enableTiresAndSizes\":true,\"enableOilViscositySpec\":true,\"defaultCostingMethod\":\"weighted_average\",\"lowStockDefaultThreshold\":10,\"expiryWarningDays\":60,\"allowNegativeStockSale\":false,\"allowCashierPriceEdit\":true,\"enableLineDiscount\":true,\"enableTaxVat\":true,\"defaultTaxRate\":15,\"enableBatteryScrapTradeIn\":true,\"printWarrantyOnInvoice\":true,\"defaultPrintFormat\":\"A4\",\"enforceCreditLimit\":true,\"defaultCustomerPriceTier\":\"retail\",\"autoWhatsAppAfterVoucher\":true,\"defaultCurrency\":\"YER\",\"baseCurrency\":\"YER\",\"hiddenSidebarTabs\":[]}",
         "erp_clean_production_mode_v1": "false"
       },
-      "updated_at": "2026-10-31T18:19:03.598Z"
+      "updated_at": "2026-11-07T09:02:26.257Z"
     },
     "comp_alamal": {
       "userKey": "admin@alamal-trade.com",
