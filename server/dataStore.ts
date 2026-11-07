@@ -50,6 +50,9 @@ export interface ProductItem {
   cost_price: number;
   qty: number;
   current_stock: number;
+  stock?: number;
+  totalSold?: number;
+  soldToday?: number;
   min_stock_level: number;
   status: string;
   is_active: boolean;
@@ -96,6 +99,7 @@ export interface CustomerItem {
   currency?: string;
   notes?: string;
   status: string;
+  is_active?: boolean;
   taxNumber?: string;
   created_at?: string;
   updated_at?: string;
@@ -105,7 +109,7 @@ export interface SupplierItem {
   id: string;
   company_id?: string;
   name: string;
-  category: string;
+  category?: string;
   balance: number;
   current_balance: number;
   opening_balance?: number;
@@ -115,6 +119,8 @@ export interface SupplierItem {
   email?: string;
   address?: string;
   notes?: string;
+  status?: string;
+  is_active?: boolean;
   created_at?: string;
   updated_at?: string;
 }

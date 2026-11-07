@@ -58,6 +58,20 @@ import {
   hashPassword,
   isPasswordHashed,
 } from './server/security.js';
+import {
+  postSalesTransactionAtomic,
+  postSalesReturnAtomic,
+  postPurchaseTransactionAtomic,
+  postVoucherAtomic,
+  postExpenseAtomic,
+  postPayrollRunAtomic,
+  computeUnifiedFinancialMetrics,
+  validateBalancedJournalLines,
+  getTenantAccounts,
+  getTenantJournalEntries,
+  postDoubleEntryJournal,
+  roundMoney,
+} from './server/accountingEngine.js';
 
 const { Pool } = pg;
 const app = express();
@@ -1240,211 +1254,41 @@ app.get('/api/v1/invoices', (_req: Request, res: Response) => {
   });
 });
 
-app.post('/api/v1/invoices', (req: Request, res: Response) => {
-  const inv = req.body || {};
-  const rawItems = Array.isArray(inv.items) ? inv.items : [];
-  const computedItemsTotal = rawItems.reduce((acc: number, it: any) => {
-    const q = Number(it.quantity || 1);
-    const p = Number(it.unit_price ?? it.price ?? 0);
-    const d = Number(it.discount || 0);
-    const scrap = Number(it.scrapDiscount || 0);
-    const tx = Number(it.tax || 0);
-    return acc + Math.max(0, q * p - d - scrap) + tx;
-  }, 0);
+app.post(['/api/v1/invoices', '/api/invoices'], (req: Request, res: Response) => {
+  try {
+    const companyId = resolveCompanyId(req);
+    const inv = req.body || {};
+    const rawItems = Array.isArray(inv.items) ? inv.items : [];
 
-  const invoiceDiscount = Number(inv.invoice_discount ?? inv.discount ?? 0);
-  const invoiceTax = Number(inv.tax ?? 0);
-  const calculatedGrandTotal = Math.max(0, computedItemsTotal - invoiceDiscount + invoiceTax);
+    const result = postSalesTransactionAtomic({
+      companyId,
+      invoice: inv,
+      items: rawItems,
+      customerId: inv.customer_id || inv.customerId,
+      customerName: inv.customer_name || inv.customerName || inv.clientName || inv.customer,
+      paymentMethod: inv.payment_method || inv.paymentMethod || 'CASH',
+      paidAmount: inv.paid_amount !== undefined ? Number(inv.paid_amount) : (inv.paidAmount !== undefined ? Number(inv.paidAmount) : undefined),
+      enforceStockCheck: true,
+      userName: inv.salesperson_name || inv.salespersonName || inv.cashier_name || inv.createdBy || 'حميد وهاس',
+    });
 
-  const totalVal = Number(
-    inv.total ??
-    inv.totalAmount ??
-    inv.grandTotal ??
-    inv.netTotal ??
-    inv.total_amount ??
-    inv.amount ??
-    (calculatedGrandTotal > 0 ? calculatedGrandTotal : 0)
-  );
-
-  const paymentMethod = String(inv.payment_method || inv.paymentMethod || 'CASH').toUpperCase();
-  const rawPaid = inv.paid_amount ?? inv.paidAmount ?? inv.paid ?? inv.amountPaid;
-  
-  let paidVal = 0;
-  if (paymentMethod === 'CASH' || paymentMethod === 'BANK' || paymentMethod === 'WALLET') {
-    paidVal = rawPaid !== undefined ? Number(rawPaid) : totalVal;
-  } else if (paymentMethod === 'CREDIT') {
-    paidVal = rawPaid !== undefined ? Number(rawPaid) : 0;
-  } else {
-    // PARTIAL or other
-    paidVal = rawPaid !== undefined ? Number(rawPaid) : 0;
-  }
-
-  const remainingVal = Math.max(0, totalVal - paidVal);
-  let status = inv.status;
-  if (!status || status === 'PENDING' || status === 'DRAFT') {
-    status = remainingVal <= 0.01 && totalVal > 0 ? 'paid' : (paidVal > 0 ? 'partial' : 'unpaid');
-  }
-
-  const rawDate = String(inv.date || inv.invoice_date || inv.created_at || '').trim();
-  const invoiceDate = (rawDate ? rawDate.split('T')[0] : new Date().toISOString().split('T')[0]);
-  const invoiceCreatedAt = rawDate ? `${invoiceDate}T12:00:00.000Z` : new Date().toISOString();
-
-  // Real customer name resolution
-  let customerName = String(
-    inv.customer_name ||
-    inv.customerName ||
-    inv.clientName ||
-    inv.customer ||
-    ''
-  ).trim();
-
-  let cust = mockCustomersList.find(
-    (c) => (inv.customer_id && c.id === inv.customer_id) || (customerName && c.name.toLowerCase() === customerName.toLowerCase())
-  );
-  if (cust && !customerName) {
-    customerName = cust.name;
-  }
-  if (!customerName) {
-    customerName = (paymentMethod === 'CASH' || paymentMethod === 'BANK' || paymentMethod === 'WALLET') ? 'عميل نقدي' : 'عميل غير محدد';
-  }
-
-  // Real salesperson name resolution
-  const salesperson = String(
-    inv.salesperson_name ||
-    inv.salespersonName ||
-    inv.salesperson ||
-    inv.cashier_name ||
-    inv.cashierName ||
-    inv.created_by_name ||
-    inv.createdBy ||
-    'حميد وهاس'
-  ).trim();
-
-  const invoiceNumber = inv.invoice_number || inv.invoiceNumber || `INV-${Date.now().toString().slice(-6)}`;
-
-  const newInv = {
-    ...inv,
-    id: inv.id || `INV-${Date.now()}`,
-    invoice_number: invoiceNumber,
-    invoiceNumber: invoiceNumber,
-    customer: customerName,
-    customer_name: customerName,
-    customerName: customerName,
-    clientName: customerName,
-    customer_id: cust ? cust.id : (inv.customer_id || null),
-    salesperson: salesperson,
-    salesperson_name: salesperson,
-    salespersonName: salesperson,
-    cashier_name: salesperson,
-    cashierName: salesperson,
-    createdBy: salesperson,
-    date: invoiceDate,
-    invoice_date: invoiceDate,
-    subtotal: Number(inv.subtotal || computedItemsTotal || totalVal),
-    discount: invoiceDiscount,
-    tax: invoiceTax,
-    total: totalVal,
-    totalAmount: totalVal,
-    grandTotal: totalVal,
-    netTotal: totalVal,
-    total_amount: totalVal,
-    amount: totalVal,
-    paid_amount: paidVal,
-    paidAmount: paidVal,
-    paid: paidVal,
-    amountPaid: paidVal,
-    remaining_amount: remainingVal,
-    remainingAmount: remainingVal,
-    remaining: remainingVal,
-    remainingBalance: remainingVal,
-    balanceDue: remainingVal,
-    payment_method: paymentMethod,
-    paymentMethod: paymentMethod,
-    status: status,
-    payment_status: status === 'paid' ? 'PAID' : (status === 'partial' ? 'PARTIAL' : 'PENDING'),
-    created_at: invoiceCreatedAt,
-  };
-  mockInvoicesList.unshift(newInv);
-
-  // Update customer balance & record in ledger if customer account matched
-  if (remainingVal > 0) {
-    if (!cust && customerName && customerName !== 'عميل نقدي' && customerName !== 'عميل غير محدد') {
-      cust = {
-        id: `cust-${Date.now()}`,
-        name: customerName,
-        phone: inv.customer_phone || '',
-        current_balance: remainingVal,
-        balance: remainingVal,
-        currency: newInv.currency || 'YER',
-        is_active: true,
-        created_at: invoiceCreatedAt,
-        updated_at: invoiceCreatedAt,
-      };
-      mockCustomersList.unshift(cust);
-    } else if (cust) {
-      cust.current_balance = (cust.current_balance || 0) + remainingVal;
-      cust.balance = cust.current_balance;
-      cust.updated_at = invoiceCreatedAt;
-    }
-  }
-
-  if (cust) {
-    mockAccountTransactions.unshift({
-      id: `ctx-inv-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      party_id: cust.id,
-      party_type: 'CUSTOMER',
-      type: 'INVOICE',
-      amount: totalVal,
-      currency: newInv.currency || cust.currency || 'YER',
-      exchange_rate: 1.0,
-      balance_after: cust.current_balance,
-      running_balance: cust.current_balance,
-      date: invoiceDate,
-      description: `فاتورة مبيعات ضريبية ${newInv.invoice_number}`,
-      reference_no: newInv.invoice_number,
-      created_at: invoiceCreatedAt,
+    res.status(201).json({
+      success: true,
+      data: result.newInv || result.invoice,
+      invoice: result.newInv || result.invoice,
+      revenueJournal: result.revenueJournal,
+      cogsJournal: result.cogsJournal,
+      message: 'تم إصدار الفاتورة وتحديث المخزون وقيد الدفاتر المزدوجة بنجاح',
+    });
+  } catch (err: any) {
+    const status = err.statusCode || err.status || 400;
+    res.status(status).json({
+      success: false,
+      code: err.code || 'INSUFFICIENT_STOCK',
+      error: err.message || 'فشل إصدار فاتورة المبيعات',
+      message: err.message || 'فشل إصدار فاتورة المبيعات',
     });
   }
-
-  // Deduct inventory and log stock movements for invoice items
-  if (Array.isArray(inv.items)) {
-    inv.items.forEach((it: any) => {
-      const prodId = it.product_id || it.productId || it.id;
-      const prod = mockProducts.find((p) => p.id === prodId || (p.sku && p.sku === it.sku) || (p.barcode && p.barcode === it.barcode));
-      if (prod) {
-        const factor = Number(it.unitFactor || it.conversionFactor || 1);
-        const qty = Number(it.quantity || 1);
-        const baseQty = qty * factor;
-        const oldStock = Number(prod.current_stock ?? prod.qty ?? 0);
-        const newStock = Math.max(0, oldStock - baseQty);
-        prod.current_stock = newStock;
-        prod.qty = newStock;
-        prod.stock = newStock;
-        prod.totalSold = (Number(prod.totalSold) || 0) + baseQty;
-        prod.soldToday = (Number(prod.soldToday) || 0) + baseQty;
-
-        mockInventoryMovements.unshift({
-          id: `mov-sale-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-          product_id: prod.id,
-          product_name: prod.name,
-          type: 'OUT',
-          quantity: -baseQty,
-          remaining_stock: newStock,
-          reference_type: 'SALES_INVOICE',
-          reference_id: newInv.invoice_number,
-          notes: `مبيعات فاتورة رقم: ${newInv.invoice_number}`,
-          date: invoiceDate,
-        });
-      }
-    });
-  }
-
-  persistAllToDisk();
-
-  res.status(201).json({
-    success: true,
-    data: newInv,
-  });
 });
 
 app.delete('/api/v1/invoices/:id', (req: Request, res: Response) => {
@@ -1471,151 +1315,73 @@ app.get('/api/v1/purchase-invoices/:id', (req: Request, res: Response) => {
   res.status(404).json({ success: false, error: 'Purchase invoice not found' });
 });
 
-app.post('/api/v1/purchase-invoices', (req: Request, res: Response) => {
-  const pur = req.body || {};
-  const rawDate = String(pur.invoice_date || pur.date || pur.created_at || '').trim();
-  const invoiceDate = (rawDate ? rawDate.split('T')[0] : new Date().toISOString().split('T')[0]);
-  const invoiceCreatedAt = rawDate ? `${invoiceDate}T12:00:00.000Z` : new Date().toISOString();
-  const rawItems = Array.isArray(pur.items) ? pur.items : [];
+app.post(['/api/v1/purchase-invoices', '/api/purchase-invoices'], (req: Request, res: Response) => {
+  try {
+    const companyId = resolveCompanyId(req);
+    const pur = req.body || {};
+    const rawItems = Array.isArray(pur.items) ? pur.items : [];
 
-  let calculatedSubtotal = 0;
-  let calculatedItemsDiscount = 0;
-  let totalReceivedUnits = 0;
+    const result = postPurchaseTransactionAtomic({
+      companyId,
+      purchaseInvoice: pur,
+      items: rawItems,
+      supplierId: pur.supplier_id || pur.supplierId,
+      supplierName: pur.supplier_name || pur.supplierName || pur.supplier,
+      paymentMethod: pur.payment_method || pur.paymentMethod || 'CREDIT',
+      paidAmount: pur.paid_amount !== undefined ? Number(pur.paid_amount) : (pur.paidAmount !== undefined ? Number(pur.paidAmount) : undefined),
+      userName: pur.created_by_name || pur.createdBy || 'حميد وهاس',
+    });
 
-  const processedItems = rawItems.map((it: any) => {
-    const paidQty = Math.max(0, Number(it.quantity || 0));
-    const freeQty = Math.max(0, Number(it.freeQuantity || 0));
-    const totalQty = paidQty + freeQty;
-    const unitCost = Math.max(0, Number(it.unit_cost !== undefined ? it.unit_cost : (it.unitPrice || it.price || 0)));
-    const grossTotal = paidQty * unitCost;
-
-    const discType = it.discountType || 'amount';
-    const discVal = Math.max(0, Number(it.discountValue !== undefined ? it.discountValue : (it.discount || 0)));
-    const lineDiscount = discType === 'percent' ? (grossTotal * (discVal / 100)) : discVal;
-    const netLineTotal = Math.max(0, grossTotal - lineDiscount);
-    const effectiveCost = totalQty > 0 ? (netLineTotal / totalQty) : unitCost;
-
-    calculatedSubtotal += grossTotal;
-    calculatedItemsDiscount += lineDiscount;
-    totalReceivedUnits += totalQty;
-
-    // Inventory and cost price sync
-    const prodId = it.product_id || it.productId || it.id;
-    const prod = mockProducts.find((p) => p.id === prodId || p.sku === it.sku || p.barcode === it.barcode);
-    if (prod) {
-      const unitFactor = Number(it.unitFactor || 1);
-      const incomingStock = totalQty * unitFactor;
-      prod.current_stock = (Number(prod.current_stock || 0) + incomingStock);
-      prod.qty = prod.current_stock;
-
-      // Update unit cost to effective unit cost
-      if (effectiveCost > 0) {
-        prod.purchase_price = effectiveCost;
-        prod.cost_price = effectiveCost;
-      }
-
-      // Log inventory movement
-      mockInventoryMovements.unshift({
-        id: `mov-pur-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        product_id: prod.id,
-        product_name: prod.name,
-        type: 'IN',
-        quantity: incomingStock,
-        remaining_stock: prod.current_stock,
-        reference_type: 'PURCHASE_INVOICE',
-        reference_id: pur.invoice_number || `PUR-${Date.now()}`,
-        notes: `توريد مشتريات (شراء: ${paidQty} + بونص مجاني: ${freeQty})`,
-        date: invoiceDate,
-      });
-    }
-
-    return {
-      ...it,
-      quantity: paidQty,
-      freeQuantity: freeQty,
-      totalReceivedQuantity: totalQty,
-      unit_cost: unitCost,
-      discount: lineDiscount,
-      discountValue: discVal,
-      discountType: discType,
-      grossTotal: grossTotal,
-      total: netLineTotal,
-      effectiveUnitCost: effectiveCost,
-    };
-  });
-
-  const invoiceDiscountVal = Math.max(0, Number(pur.invoice_discount_value !== undefined ? pur.invoice_discount_value : (pur.invoice_discount || 0)));
-  const invoiceDiscountType = pur.invoice_discount_type || 'amount';
-  const subtotalAfterItemDisc = Math.max(0, calculatedSubtotal - calculatedItemsDiscount);
-  const invoiceDiscountAmount = invoiceDiscountType === 'percent'
-    ? (subtotalAfterItemDisc * (invoiceDiscountVal / 100))
-    : invoiceDiscountVal;
-
-  const totalDiscount = calculatedItemsDiscount + invoiceDiscountAmount;
-  const taxVal = Math.max(0, Number(pur.tax || 0));
-  const finalCalculatedTotal = Math.max(0, (calculatedSubtotal - totalDiscount) + taxVal);
-
-  const totalVal = Number(pur.total !== undefined ? pur.total : finalCalculatedTotal);
-  const paidVal = Math.max(0, Number(pur.paid_amount || 0));
-  const remainingVal = Number(pur.remaining_amount !== undefined ? pur.remaining_amount : Math.max(0, totalVal - paidVal));
-
-  const newPur = {
-    ...pur,
-    id: pur.id || `PUR-${Date.now()}`,
-    invoice_number: pur.invoice_number || `PUR-${Date.now()}`,
-    supplier_name: pur.supplier_name || 'مورد تجاري',
-    invoice_date: invoiceDate,
-    date: invoiceDate,
-    subtotal: calculatedSubtotal || totalVal,
-    items_discount: calculatedItemsDiscount,
-    invoice_discount: invoiceDiscountAmount,
-    invoice_discount_value: invoiceDiscountVal,
-    invoice_discount_type: invoiceDiscountType,
-    discount: totalDiscount,
-    tax: taxVal,
-    total: totalVal,
-    paid_amount: paidVal,
-    remaining_amount: remainingVal,
-    total_received_quantity: totalReceivedUnits,
-    status: pur.status || (remainingVal === 0 ? 'PAID' : 'PARTIAL'),
-    items: processedItems,
-    created_at: invoiceCreatedAt,
-  };
-  mockPurchaseInvoicesList.unshift(newPur);
-
-  // Update supplier balance & record in ledger if supplier account matched
-  const supp = mockSuppliersList.find(
-    (s) => (newPur.supplier_id && s.id === newPur.supplier_id) || s.name === newPur.supplier_name
-  );
-  if (supp) {
-    if (remainingVal > 0) {
-      supp.current_balance = (supp.current_balance || 0) + remainingVal;
-      supp.balance = supp.current_balance;
-      supp.updated_at = invoiceCreatedAt;
-    }
-    mockAccountTransactions.unshift({
-      id: `stx-pur-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      party_id: supp.id,
-      party_type: 'SUPPLIER',
-      type: 'PURCHASE_INVOICE',
-      amount: totalVal, // ONLY Final Net Total (never gross subtotal)
-      currency: newPur.currency || supp.currency || 'YER',
-      exchange_rate: 1.0,
-      balance_after: supp.current_balance,
-      running_balance: supp.current_balance,
-      date: invoiceDate,
-      description: `فاتورة مشتريات وتوريد ${newPur.invoice_number} (الصافي المستحق للمورد)`,
-      reference_no: newPur.invoice_number,
-      created_at: invoiceCreatedAt,
+    res.status(201).json({
+      success: true,
+      data: result.newPur || result.purchaseInvoice,
+      invoice: result.newPur || result.purchaseInvoice,
+      purchaseJournal: result.purchaseJournal,
+      message: 'تم توريد فاتورة المشتريات وإعادة احتساب المتوسط المرجح WAC وقيد اليومية بنجاح',
+    });
+  } catch (err: any) {
+    const status = err.statusCode || err.status || 400;
+    res.status(status).json({
+      success: false,
+      error: err.message || 'فشل توريد فاتورة المشتريات',
+      message: err.message || 'فشل توريد فاتورة المشتريات',
     });
   }
+});
 
-  persistAllToDisk();
+app.post(['/api/v1/sales-returns', '/api/v1/invoices/returns', '/api/sales-returns', '/api/invoices/returns'], (req: Request, res: Response) => {
+  try {
+    const companyId = resolveCompanyId(req);
+    const body = req.body || {};
+    const items = Array.isArray(body.items) ? body.items : [];
 
-  res.status(201).json({
-    success: true,
-    data: newPur,
-  });
+    const result = postSalesReturnAtomic({
+      companyId,
+      returnData: body,
+      items,
+      originalInvoiceNumber: body.original_invoice_number || body.originalInvoiceNumber || body.invoice_number,
+      customerId: body.customer_id || body.customerId,
+      customerName: body.customer_name || body.customerName,
+      refundMethod: body.refund_method || body.refundMethod || 'CASH',
+      refundAmount: body.refund_amount !== undefined ? Number(body.refund_amount) : undefined,
+      userName: body.user_name || body.userName || 'حميد وهاس',
+    });
+
+    res.status(201).json({
+      success: true,
+      data: result,
+      returnJournal: result.returnJournal,
+      cogsReversalJournal: result.cogsReversalJournal,
+      message: 'تم تسجيل مردود المبيعات وإعادة المخزون وعكس تكلفة المبيعات بنجاح',
+    });
+  } catch (err: any) {
+    const status = err.statusCode || err.status || 400;
+    res.status(status).json({
+      success: false,
+      error: err.message || 'فشل تسجيل مردود المبيعات',
+      message: err.message || 'فشل تسجيل مردود المبيعات',
+    });
+  }
 });
 
 app.delete('/api/v1/purchase-invoices/:id', (req: Request, res: Response) => {
@@ -1637,80 +1403,179 @@ app.get('/api/v1/payments', (_req: Request, res: Response) => {
   });
 });
 
-app.post('/api/v1/payments', (req: Request, res: Response) => {
-  const pmt = req.body || {};
-  const amountVal = Number(pmt.amount || 0);
-  const rawDate = String(pmt.payment_date || pmt.date || pmt.created_at || '').trim();
-  const paymentDate = (rawDate ? rawDate.split('T')[0] : new Date().toISOString().split('T')[0]);
-  const paymentCreatedAt = rawDate ? `${paymentDate}T12:00:00.000Z` : new Date().toISOString();
+app.post(['/api/v1/payments', '/api/payments'], (req: Request, res: Response) => {
+  try {
+    const companyId = resolveCompanyId(req);
+    const pmt = req.body || {};
+    const amountVal = Number(pmt.amount || 0);
 
-  const newPmt = {
-    ...pmt,
-    id: pmt.id || `PMT-${Date.now()}`,
-    voucher_number: pmt.voucher_number || `VOUCH-${Math.floor(1000 + Math.random() * 9000)}`,
-    amount: amountVal,
-    currency: pmt.currency || 'SAR',
-    payment_method: pmt.payment_method || 'CASH',
-    payment_date: paymentDate,
-    date: paymentDate,
-    status: pmt.status || 'CONFIRMED',
-    created_at: paymentCreatedAt,
-  };
-  mockPaymentsList.unshift(newPmt);
+    const type: 'RECEIPT' | 'PAYMENT' = (pmt.type === 'CUSTOMER_PAYMENT' || pmt.voucher_type === 'RECEIPT' || pmt.payment_type === 'IN')
+      ? 'RECEIPT'
+      : 'PAYMENT';
 
-  if (newPmt.type === 'CUSTOMER_PAYMENT') {
-    const cust = mockCustomersList.find(
-      (c) => (newPmt.customer_id && c.id === newPmt.customer_id) || c.name === newPmt.customer_name
-    );
-    if (cust) {
-      cust.current_balance = Math.max(0, (cust.current_balance || 0) - amountVal);
-      cust.balance = cust.current_balance;
-      cust.updated_at = paymentCreatedAt;
-      mockAccountTransactions.unshift({
-        id: `ctx-pmt-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        party_id: cust.id,
-        party_type: 'CUSTOMER',
-        type: 'PAYMENT',
-        amount: amountVal,
-        currency: newPmt.currency || cust.currency || 'YER',
-        exchange_rate: 1.0,
-        balance_after: cust.current_balance,
-        running_balance: cust.current_balance,
-        date: paymentDate,
-        description: `سند تحصيل / قبض ${newPmt.voucher_number}`,
-        reference_no: newPmt.voucher_number,
-        created_at: paymentCreatedAt,
-      });
-    }
-  } else if (newPmt.type === 'SUPPLIER_PAYMENT') {
-    const supp = mockSuppliersList.find(
-      (s) => (newPmt.supplier_id && s.id === newPmt.supplier_id) || s.name === newPmt.supplier_name
-    );
-    if (supp) {
-      supp.current_balance = Math.max(0, (supp.current_balance || 0) - amountVal);
-      supp.balance = supp.current_balance;
-      supp.updated_at = paymentCreatedAt;
-      mockAccountTransactions.unshift({
-        id: `stx-pmt-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        party_id: supp.id,
-        party_type: 'SUPPLIER',
-        type: 'PAYMENT',
-        amount: amountVal,
-        currency: newPmt.currency || supp.currency || 'YER',
-        exchange_rate: 1.0,
-        balance_after: supp.current_balance,
-        running_balance: supp.current_balance,
-        date: paymentDate,
-        description: `سند صرف للمورد ${newPmt.voucher_number}`,
-        reference_no: newPmt.voucher_number,
-        created_at: paymentCreatedAt,
-      });
-    }
+    const partyType = pmt.customer_id || pmt.customerId || pmt.type === 'CUSTOMER_PAYMENT' ? 'CUSTOMER' : (pmt.supplier_id || pmt.supplierId || pmt.type === 'SUPPLIER_PAYMENT' ? 'SUPPLIER' : 'OTHER');
+    const partyId = pmt.customer_id || pmt.customerId || pmt.supplier_id || pmt.supplierId || pmt.party_id || pmt.partyId;
+    const partyName = pmt.customer_name || pmt.customerName || pmt.supplier_name || pmt.supplierName || pmt.party_name;
+
+    const result = postVoucherAtomic({
+      companyId,
+      type,
+      voucherNumber: pmt.voucher_number || pmt.voucherNumber,
+      amount: amountVal,
+      partyType,
+      partyId,
+      partyName,
+      paymentMethod: (pmt.payment_method === 'BANK' || pmt.paymentMethod === 'BANK') ? 'BANK' : 'CASH',
+      description: pmt.description || pmt.notes || `سند ${type === 'RECEIPT' ? 'قبض' : 'صرف'}`,
+      date: pmt.payment_date || pmt.date,
+      created_by: pmt.created_by_name || pmt.createdBy || 'حميد وهاس',
+    });
+
+    res.status(201).json({
+      success: true,
+      data: result.payment || result.data,
+      voucher: result.payment || result.data,
+      journal: result.journal,
+      message: `تم إصدار سند ${type === 'RECEIPT' ? 'القبض' : 'الصرف'} وقيد اليومية بنجاح`,
+    });
+  } catch (err: any) {
+    const status = err.statusCode || err.status || 400;
+    res.status(status).json({
+      success: false,
+      error: err.message || 'فشل حفظ السند المالي',
+      message: err.message || 'فشل حفظ السند المالي',
+    });
   }
+});
 
-  res.status(201).json({
+app.post(['/api/v1/expenses', '/api/expenses'], (req: Request, res: Response) => {
+  try {
+    const companyId = resolveCompanyId(req);
+    const body = req.body || {};
+    const result = postExpenseAtomic({
+      companyId,
+      category: body.category,
+      description: body.description || 'مصروف عام',
+      amount: Number(body.amount || 0),
+      paymentMethod: body.payment_method === 'BANK' || body.paymentMethod === 'BANK' ? 'BANK' : 'CASH',
+      beneficiary: body.beneficiary || body.payee,
+      date: body.date,
+      voucherNumber: body.voucher_number || body.voucherNumber,
+      created_by: body.created_by || body.createdBy || 'حميد وهاس',
+    });
+
+    res.status(201).json({
+      success: true,
+      data: result.expense || result.data,
+      expense: result.expense || result.data,
+      journal: result.journal,
+      message: 'تم قيد المصروف في الحسابات العامة ودفتر الأستاذ بنجاح',
+    });
+  } catch (err: any) {
+    const status = err.statusCode || err.status || 400;
+    res.status(status).json({
+      success: false,
+      error: err.message || 'فشل تسجيل المصروف',
+      message: err.message || 'فشل تسجيل المصروف',
+    });
+  }
+});
+
+app.post(['/api/v1/hr/payroll/run', '/api/v1/payroll/run', '/api/payroll/run'], (req: Request, res: Response) => {
+  try {
+    const companyId = resolveCompanyId(req);
+    const body = req.body || {};
+    const result = postPayrollRunAtomic({
+      companyId,
+      month: body.month || new Date().toISOString().slice(0, 7),
+      year: Number(body.year || new Date().getFullYear()),
+      totalGross: Number(body.totalGross || body.total_gross || body.gross || 0),
+      totalDeductions: Number(body.totalDeductions || body.total_deductions || 0),
+      totalNet: Number(body.totalNet || body.total_net || body.net || 0),
+      paymentMethod: body.paymentMethod || body.payment_method || 'ACCRUED',
+      date: body.date,
+      created_by: body.created_by || body.createdBy || 'حميد وهاس',
+    });
+
+    res.status(201).json({
+      success: true,
+      data: result,
+      message: 'تم ترحيل مسير الرواتب وإثبات مستحقات الأجور والقيود المحاسبية بنجاح',
+    });
+  } catch (err: any) {
+    const status = err.statusCode || err.status || 400;
+    res.status(status).json({
+      success: false,
+      error: err.message || 'فشل ترحيل مسير الرواتب',
+      message: err.message || 'فشل ترحيل مسير الرواتب',
+    });
+  }
+});
+
+app.get(['/api/v1/journal-entries', '/api/journal-entries'], (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const entries = getTenantJournalEntries(companyId);
+  res.json({
     success: true,
-    data: newPmt,
+    data: entries,
+    entries,
+    total: entries.length,
+  });
+});
+
+app.post(['/api/v1/journal-entries', '/api/journal-entries'], (req: Request, res: Response) => {
+  try {
+    const companyId = resolveCompanyId(req);
+    const body = req.body || {};
+    const lines = Array.isArray(body.lines) ? body.lines : [];
+
+    // Strictly validate balanced lines
+    const balanceCheck = validateBalancedJournalLines(lines);
+    if (!balanceCheck.valid) {
+      return res.status(400).json({
+        success: false,
+        code: 'UNBALANCED_JOURNAL_ENTRY',
+        error: balanceCheck.error || 'القيد المحاسبي غير متوازن: إجمالي المدين يجب أن يساوي إجمالي الدائن تماماً',
+        message: balanceCheck.error || 'القيد المحاسبي غير متوازن: إجمالي المدين يجب أن يساوي إجمالي الدائن تماماً',
+      });
+    }
+
+    const journal = postDoubleEntryJournal({
+      companyId,
+      reference_type: body.reference_type || 'MANUAL_JOURNAL',
+      reference_id: body.reference_id,
+      description: body.description || 'قيد تسوية يدوي',
+      currency: body.currency || 'YER',
+      date: body.date,
+      lines,
+      created_by: body.created_by || 'حميد وهاس',
+    });
+
+    res.status(201).json({
+      success: true,
+      data: journal,
+      entry: journal,
+      message: 'تم ترحيل القيد المزدوج بنجاح وتحديث أرصدة الحسابات',
+    });
+  } catch (err: any) {
+    const status = err.statusCode || err.status || 400;
+    res.status(status).json({
+      success: false,
+      code: err.code || 'JOURNAL_POSTING_FAILED',
+      error: err.message || 'فشل ترحيل القيد المحاسبي',
+      message: err.message || 'فشل ترحيل القيد المحاسبي',
+    });
+  }
+});
+
+app.get(['/api/v1/accounts', '/api/accounts'], (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const accounts = getTenantAccounts(companyId);
+  res.json({
+    success: true,
+    data: accounts,
+    accounts,
+    total: accounts.length,
   });
 });
 
@@ -1916,33 +1781,18 @@ app.get('/api/v1/reports/purchases', (req: Request, res: Response) => {
   });
 });
 
-app.get('/api/v1/reports/profit-loss', (req: Request, res: Response) => {
+app.get(['/api/v1/reports/profit-loss', '/api/reports/profit-loss'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
-  const isClean = isTenantCleanProductionMode(companyId);
-
-  let revenue = mockInvoicesList.reduce((s, i) => s + Number(i.total || i.amount || 0), 0);
-  let cogs = mockPurchaseInvoicesList.reduce((s, p) => s + Number(p.grandTotal || p.total || 0), 0);
-  if (cogs === 0 && revenue > 0) cogs = Math.round(revenue * 0.65);
-  let grossProfit = Math.max(0, revenue - cogs);
-  let operatingExpenses = mockExpensesList.reduce((s, e: any) => s + Number(e.amount || 0), 0);
-  let netProfit = Math.max(0, grossProfit - operatingExpenses);
-
-  if (isClean && mockInvoicesList.length === 0) {
-    revenue = 0;
-    cogs = 0;
-    grossProfit = 0;
-    operatingExpenses = 0;
-    netProfit = 0;
-  }
-
+  const metrics = computeUnifiedFinancialMetrics(companyId);
   res.json({
     success: true,
     data: {
-      revenue,
-      cogs,
-      grossProfit,
-      operatingExpenses,
-      netProfit,
+      revenue: metrics.netRevenue,
+      cogs: metrics.cogs,
+      grossProfit: metrics.grossProfit,
+      operatingExpenses: metrics.operatingExpenses,
+      netProfit: metrics.netProfit,
+      marginPercentage: metrics.marginPercentage,
     },
   });
 });
@@ -2060,30 +1910,23 @@ app.post(['/api/v1/sandbox/seed-demo-data', '/api/v1/saas/sample-data/seed'], (r
   });
 });
 
-app.get('/api/v1/reports/cash-flow', (req: Request, res: Response) => {
+app.get(['/api/v1/reports/cash-flow', '/api/reports/cash-flow'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
-  const isClean = isTenantCleanProductionMode(companyId);
-  const totalInflows = mockInvoicesList.reduce((sum, inv) => sum + Number(inv.paid_amount || (inv.status === 'مدفوعة' ? inv.total : 0)), 0);
-  const totalOutflows = mockPurchaseInvoicesList.reduce((sum, pur) => sum + Number(pur.paid_amount || 0), 0) + mockExpensesList.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
-
-  if (isClean && mockInvoicesList.length === 0 && mockPurchaseInvoicesList.length === 0) {
-    return res.json({
-      success: true,
-      data: { inflows: 0, outflows: 0, netCashFlow: 0 },
-    });
-  }
-
+  const metrics = computeUnifiedFinancialMetrics(companyId);
   res.json({
     success: true,
     data: {
-      inflows: totalInflows || (isClean ? 0 : 142500),
-      outflows: totalOutflows || (isClean ? 0 : 90700),
-      netCashFlow: (totalInflows - totalOutflows) || (isClean ? 0 : 51800),
+      inflows: metrics.netRevenue,
+      outflows: roundMoney(metrics.cogs + metrics.operatingExpenses),
+      netCashFlow: metrics.netProfit,
+      cashOnHand: metrics.cashBalance,
+      bankBalance: metrics.bankBalance,
+      totalCashAndBank: metrics.totalCashAndBank,
     },
   });
 });
 
-app.get('/api/v1/reports/inventory', (req: Request, res: Response) => {
+app.get(['/api/v1/reports/inventory', '/api/reports/inventory'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   const isClean = isTenantCleanProductionMode(companyId);
   const valuation = mockProducts.reduce((sum, p) => sum + Number((p.cost_price || p.purchase_price || p.price || 0) * (p.current_stock || 0)), 0);
@@ -2093,91 +1936,108 @@ app.get('/api/v1/reports/inventory', (req: Request, res: Response) => {
     success: true,
     data: {
       totalProductsCount: mockProducts.length,
-      totalValuation: valuation || (isClean ? 0 : (mockProducts.length > 0 ? valuation : 0)),
+      totalValuation: roundMoney(valuation || (isClean ? 0 : (mockProducts.length > 0 ? valuation : 0))),
       lowStockCount: lowStock,
     },
   });
 });
 
-app.get('/api/v1/reports/trial-balance', (_req: Request, res: Response) => {
+app.get(['/api/v1/reports/trial-balance', '/api/reports/trial-balance'], (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const metrics = computeUnifiedFinancialMetrics(companyId);
   res.json({
     success: true,
     data: {
-      totalDebit: 320000,
-      totalCredit: 320000,
-      balanced: true,
-      accounts: [
-        { code: '101', name: 'الصندوق الرئيسي', debit: 28400, credit: 0 },
-        { code: '102', name: 'الحسابات البنكية', debit: 34000, credit: 0 },
-        { code: '105', name: 'المدينون والعملاء', debit: 18200, credit: 0 },
-        { code: '107', name: 'مخزون البضائع', debit: 78500, credit: 0 },
-        { code: '201', name: 'الدائنون والموردون', debit: 0, credit: 18200 },
-        { code: '301', name: 'رأس المال', debit: 0, credit: 100000 },
-        { code: '401', name: 'إيرادات المبيعات', debit: 0, credit: 142500 },
-        { code: '501', name: 'تكلفة المبيعات والمشتريات', debit: 84200, credit: 0 },
-        { code: '502', name: 'المصروفات التشغيلية', debit: 17400, credit: 0 },
-      ],
+      totalDebit: metrics.trialBalance.totalDebit,
+      totalCredit: metrics.trialBalance.totalCredit,
+      balanced: metrics.trialBalance.isBalanced,
+      isBalanced: metrics.trialBalance.isBalanced,
+      difference: metrics.trialBalance.difference,
+      accounts: metrics.trialBalance.accounts,
     },
   });
 });
 
-app.get('/api/v1/reports/balance-sheet', (_req: Request, res: Response) => {
+app.get(['/api/v1/reports/balance-sheet', '/api/reports/balance-sheet'], (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const metrics = computeUnifiedFinancialMetrics(companyId);
+  const currentAssets = roundMoney(metrics.cashBalance + metrics.bankBalance + metrics.accountsReceivable + metrics.inventoryValuation);
+  const fixedAssets = 0;
+  const totalAssets = currentAssets;
+  const currentLiabilities = roundMoney(metrics.accountsPayable + metrics.vatPayable);
+  const totalLiabilities = currentLiabilities;
+  const retainedEarnings = metrics.netProfit;
+  const capital = roundMoney(Math.max(0, totalAssets - totalLiabilities - retainedEarnings));
+  const totalEquity = roundMoney(capital + retainedEarnings);
+
   res.json({
     success: true,
     data: {
       assets: {
-        currentAssets: 159100,
-        fixedAssets: 85000,
-        totalAssets: 244100,
+        currentAssets,
+        fixedAssets,
+        totalAssets,
+        cashAndBank: metrics.totalCashAndBank,
+        receivables: metrics.accountsReceivable,
+        inventory: metrics.inventoryValuation,
       },
       liabilities: {
-        currentLiabilities: 18200,
+        currentLiabilities,
         longTermLiabilities: 0,
-        totalLiabilities: 18200,
+        totalLiabilities,
+        payables: metrics.accountsPayable,
+        vatPayable: metrics.vatPayable,
       },
       equity: {
-        capital: 100000,
-        retainedEarnings: 125900,
-        totalEquity: 225900,
+        capital,
+        retainedEarnings,
+        totalEquity,
       },
-      balanced: true,
+      balanced: Math.abs(totalAssets - (totalLiabilities + totalEquity)) <= 0.05,
     },
   });
 });
 
-app.get('/api/v1/reports/income-statement', (_req: Request, res: Response) => {
+app.get(['/api/v1/reports/income-statement', '/api/reports/income-statement'], (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const metrics = computeUnifiedFinancialMetrics(companyId);
   res.json({
     success: true,
     data: {
-      revenue: 142500,
-      cogs: 72200,
-      grossProfit: 70300,
-      expenses: 18500,
-      netIncome: 51800,
+      revenue: metrics.netRevenue,
+      salesRevenue: metrics.salesRevenue,
+      cogs: metrics.cogs,
+      grossProfit: metrics.grossProfit,
+      expenses: metrics.operatingExpenses,
+      operatingExpenses: metrics.operatingExpenses,
+      netIncome: metrics.netProfit,
+      netProfit: metrics.netProfit,
+      marginPercentage: metrics.marginPercentage,
     },
   });
 });
 
-app.get('/api/v1/reports/tax', (_req: Request, res: Response) => {
+app.get(['/api/v1/reports/tax', '/api/reports/tax'], (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const metrics = computeUnifiedFinancialMetrics(companyId);
+  const outputVat = roundMoney(metrics.salesRevenue * 0.15);
+  const inputVat = roundMoney(metrics.cogs * 0.15);
   res.json({
     success: true,
     data: {
-      taxableSales: 142500,
-      outputVat: 21375,
-      taxablePurchases: 84200,
-      inputVat: 12630,
-      netVatPayable: 8745,
+      taxableSales: metrics.salesRevenue,
+      outputVat,
+      taxablePurchases: metrics.cogs,
+      inputVat,
+      netVatPayable: metrics.vatPayable,
     },
   });
 });
 
-app.get('/api/v1/reports/executive-summary', (req: Request, res: Response) => {
+app.get(['/api/v1/reports/executive-summary', '/api/reports/executive-summary'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   const isClean = isTenantCleanProductionMode(companyId);
-  const salesTotal = mockInvoicesList.reduce((sum, inv) => sum + Number(inv.total || inv.amount || 0), 0);
-  const purchasesTotal = mockPurchaseInvoicesList.reduce((sum, pur) => sum + Number(pur.total || 0), 0);
-  const netProfit = Math.max(0, salesTotal - purchasesTotal);
-  const margin = salesTotal > 0 ? ((netProfit / salesTotal) * 100).toFixed(1) + '%' : '0.0%';
+  const metrics = computeUnifiedFinancialMetrics(companyId);
 
   if (isClean && mockInvoicesList.length === 0) {
     return res.json({
@@ -2196,24 +2056,20 @@ app.get('/api/v1/reports/executive-summary', (req: Request, res: Response) => {
   res.json({
     success: true,
     data: {
-      revenue: salesTotal || (isClean ? 0 : 142500),
-      netProfit: netProfit || (isClean ? 0 : 51800),
-      grossMargin: margin || (isClean ? '0.0%' : '49.3%'),
-      activeCustomers: mockCustomersList.length || (isClean ? 0 : 48),
+      revenue: metrics.netRevenue,
+      netProfit: metrics.netProfit,
+      grossMargin: `${metrics.marginPercentage}%`,
+      activeCustomers: mockCustomersList.length,
       inventoryTurnover: 4.2,
-      liquidityRatio: 3.4,
+      liquidityRatio: metrics.accountsPayable > 0 ? roundMoney(metrics.totalCashAndBank / metrics.accountsPayable) : 3.4,
     },
   });
 });
 
-app.get('/api/v1/reports/dashboard', (req: Request, res: Response) => {
+app.get(['/api/v1/reports/dashboard', '/api/reports/dashboard', '/api/v1/dashboard'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   const isClean = isTenantCleanProductionMode(companyId);
-  const salesTotal = mockInvoicesList.reduce((sum, inv) => sum + Number(inv.total || inv.amount || 0), 0);
-  const purchasesTotal = mockPurchaseInvoicesList.reduce((sum, pur) => sum + Number(pur.total || 0), 0);
-  const receivables = mockCustomersList.reduce((sum, c) => sum + Number(c.balance || c.current_balance || 0), 0);
-  const payables = mockSuppliersList.reduce((sum, s) => sum + Number(s.balance || s.current_balance || 0), 0);
-  const netProfit = Math.max(0, salesTotal - purchasesTotal);
+  const metrics = computeUnifiedFinancialMetrics(companyId);
 
   if (isClean && mockInvoicesList.length === 0 && mockProducts.length === 0) {
     return res.json({
@@ -2225,6 +2081,8 @@ app.get('/api/v1/reports/dashboard', (req: Request, res: Response) => {
         vatPayable: 0,
         receivables: 0,
         payables: 0,
+        cashBalance: 0,
+        inventoryValuation: 0,
       },
     });
   }
@@ -2232,13 +2090,25 @@ app.get('/api/v1/reports/dashboard', (req: Request, res: Response) => {
   res.json({
     success: true,
     data: {
-      salesTotal: salesTotal || (isClean ? 0 : 142500),
-      purchasesTotal: purchasesTotal || (isClean ? 0 : 84200),
-      netProfit: netProfit || (isClean ? 0 : 58300),
-      vatPayable: Math.round((salesTotal * 0.15) - (purchasesTotal * 0.15)) || (isClean ? 0 : 8745),
-      receivables: receivables || (isClean ? 0 : 18200),
-      payables: payables || (isClean ? 0 : 18200),
+      salesTotal: metrics.netRevenue,
+      purchasesTotal: metrics.cogs,
+      netProfit: metrics.netProfit,
+      vatPayable: metrics.vatPayable,
+      receivables: metrics.accountsReceivable,
+      payables: metrics.accountsPayable,
+      cashBalance: metrics.totalCashAndBank,
+      inventoryValuation: metrics.inventoryValuation,
     },
+  });
+});
+
+app.get(['/api/v1/financial/overview', '/api/financial/overview', '/api/v1/reports/Comprehensive', '/api/reports/Comprehensive'], (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const metrics = computeUnifiedFinancialMetrics(companyId);
+  res.json({
+    success: true,
+    data: metrics,
+    metrics,
   });
 });
 
