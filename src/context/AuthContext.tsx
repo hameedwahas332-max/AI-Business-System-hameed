@@ -49,6 +49,33 @@ export interface AuthContextType {
 const VAULT_STORAGE_KEY = 'erp_eternal_accounts_vault_v1';
 const SYSTEM_LOCK_KEY = 'erp_system_locked_v1';
 
+export const ALL_TOKEN_KEYS = ['erp_auth_token', 'erp_token', 'ai_biz_jwt_token', 'token', 'saas_auth_token'];
+export const ALL_COMPANY_KEYS = ['erp_company_id', 'ai_biz_company_id', 'company_id'];
+
+export function persistUnifiedAuthTokens(tok: string | null): void {
+  if (tok && tok !== 'undefined' && tok !== 'null') {
+    for (const k of ALL_TOKEN_KEYS) {
+      try { localStorage.setItem(k, tok.trim()); } catch {}
+    }
+  } else {
+    for (const k of ALL_TOKEN_KEYS) {
+      try { localStorage.removeItem(k); } catch {}
+    }
+  }
+}
+
+export function persistUnifiedCompanyId(cid: string | null): void {
+  if (cid && cid !== 'undefined' && cid !== 'null') {
+    for (const k of ALL_COMPANY_KEYS) {
+      try { localStorage.setItem(k, cid.trim()); } catch {}
+    }
+  } else {
+    for (const k of ALL_COMPANY_KEYS) {
+      try { localStorage.removeItem(k); } catch {}
+    }
+  }
+}
+
 const defaultCompany: Company = {
   id: 'comp_hameed_wahas_2735',
   name: 'محلات وهاس للتجارة العامة',
@@ -491,11 +518,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [token, setToken] = useState<string | null>(() => {
     try {
-      return (
-        localStorage.getItem('erp_auth_token') ||
-        localStorage.getItem('erp_token') ||
-        'jwt_session_admin_comp001_initial'
-      );
+      for (const k of ALL_TOKEN_KEYS) {
+        const val = localStorage.getItem(k);
+        if (val && val !== 'undefined' && val !== 'null' && val.trim()) {
+          return val.trim();
+        }
+      }
     } catch {}
     return 'jwt_session_admin_comp001_initial';
   });
@@ -518,10 +546,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('erp_current_user', JSON.stringify(defaultUser));
         localStorage.setItem('erp_auth_company', JSON.stringify(defaultCompany));
         localStorage.setItem('erp_current_company', JSON.stringify(defaultCompany));
-        localStorage.setItem('erp_company_id', defaultCompany.id);
+        persistUnifiedCompanyId(defaultCompany.id);
         localStorage.setItem('erp_active_user_email', defaultUser.email);
-        localStorage.setItem('erp_auth_token', 'jwt_permanent_wahas_master_01');
-        localStorage.setItem('erp_token', 'jwt_permanent_wahas_master_01');
+        persistUnifiedAuthTokens('jwt_permanent_wahas_master_01');
         localStorage.setItem('erp_active_session_v1', 'true');
       }
 
@@ -705,13 +732,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return true;
     }
 
-    // Default master password check
-    if (cleanPassword === 'admin123' || cleanPassword === 'AdminPass123!') {
-      setIsSystemLocked(false);
-      localStorage.removeItem(SYSTEM_LOCK_KEY);
-      return true;
-    }
-
     return false;
   }, [user?.email, token]);
 
@@ -744,8 +764,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(passwordOrUser);
       if (companyArg) setCompany(companyArg);
 
-      localStorage.setItem('erp_auth_token', emailOrToken);
-      localStorage.setItem('erp_token', emailOrToken);
+      persistUnifiedAuthTokens(emailOrToken);
       localStorage.setItem('erp_auth_user', JSON.stringify(passwordOrUser));
       localStorage.setItem('erp_current_user', JSON.stringify(passwordOrUser));
       localStorage.setItem('erp_active_user_email', passwordOrUser.email || '');
@@ -753,7 +772,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (companyArg) {
         localStorage.setItem('erp_auth_company', JSON.stringify(companyArg));
         localStorage.setItem('erp_current_company', JSON.stringify(companyArg));
-        localStorage.setItem('erp_company_id', companyArg.id);
+        persistUnifiedCompanyId(companyArg.id);
         api.setCompanyId(companyArg.id);
       }
       api.setToken(emailOrToken);
@@ -798,8 +817,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (userObj) setUser(userObj);
           if (compObj) setCompany(compObj);
 
-          localStorage.setItem('erp_auth_token', tok);
-          localStorage.setItem('erp_token', tok);
+          persistUnifiedAuthTokens(tok);
           localStorage.setItem('erp_active_user_email', email);
           localStorage.setItem('erp_active_session_v1', 'true');
           if (userObj) {
@@ -809,7 +827,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (compObj) {
             localStorage.setItem('erp_auth_company', JSON.stringify(compObj));
             localStorage.setItem('erp_current_company', JSON.stringify(compObj));
-            localStorage.setItem('erp_company_id', compObj.id);
+            persistUnifiedCompanyId(compObj.id);
             api.setCompanyId(compObj.id);
           }
           api.setToken(tok);
@@ -839,9 +857,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const vaultEntry = vault[email];
       if (vaultEntry) {
         if (password && vaultEntry.passwordVerifier && vaultEntry.passwordVerifier !== password) {
-          if (password !== 'admin123' && password !== 'AdminPass123!') {
-            throw new Error('كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى');
-          }
+          throw new Error('كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى');
         }
 
         const tok = vaultEntry.token || `jwt_session_${vaultEntry.user.id}_${Date.now()}`;
@@ -849,15 +865,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCompany(vaultEntry.company);
         setToken(tok);
 
-        localStorage.setItem('erp_auth_token', tok);
-        localStorage.setItem('erp_token', tok);
+        persistUnifiedAuthTokens(tok);
         localStorage.setItem('erp_active_user_email', email);
         localStorage.setItem('erp_active_session_v1', 'true');
         localStorage.setItem('erp_auth_user', JSON.stringify(vaultEntry.user));
         localStorage.setItem('erp_current_user', JSON.stringify(vaultEntry.user));
         localStorage.setItem('erp_auth_company', JSON.stringify(vaultEntry.company));
         localStorage.setItem('erp_current_company', JSON.stringify(vaultEntry.company));
-        localStorage.setItem('erp_company_id', vaultEntry.company.id);
+        persistUnifiedCompanyId(vaultEntry.company.id);
 
         api.setToken(tok);
         api.setCompanyId(vaultEntry.company.id);
@@ -869,7 +884,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           body: JSON.stringify({
             user: vaultEntry.user,
             company: vaultEntry.company,
-            password: password || vaultEntry.passwordVerifier || 'admin123',
+            password: password || vaultEntry.passwordVerifier,
           }),
         }).catch(() => {});
 
@@ -894,15 +909,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(u);
           setCompany(comp);
           setToken(tok);
-          localStorage.setItem('erp_auth_token', tok);
-          localStorage.setItem('erp_token', tok);
+          persistUnifiedAuthTokens(tok);
           localStorage.setItem('erp_active_user_email', email);
           localStorage.setItem('erp_active_session_v1', 'true');
           localStorage.setItem('erp_auth_user', JSON.stringify(u));
           localStorage.setItem('erp_current_user', JSON.stringify(u));
           localStorage.setItem('erp_auth_company', JSON.stringify(comp));
           localStorage.setItem('erp_current_company', JSON.stringify(comp));
-          localStorage.setItem('erp_company_id', comp.id);
+          persistUnifiedCompanyId(comp.id);
           api.setToken(tok);
           api.setCompanyId(comp.id);
           return;
@@ -989,9 +1003,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(newUser);
       setCompany(newCompany);
 
-      localStorage.setItem('erp_auth_token', newToken);
-      localStorage.setItem('erp_token', newToken);
-      localStorage.setItem('erp_company_id', newCompany.id);
+      persistUnifiedAuthTokens(newToken);
+      persistUnifiedCompanyId(newCompany.id);
       localStorage.setItem('erp_auth_user', JSON.stringify(newUser));
       localStorage.setItem('erp_current_user', JSON.stringify(newUser));
       localStorage.setItem('erp_auth_company', JSON.stringify(newCompany));
@@ -1028,9 +1041,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setCompany(null);
     setIsSystemLocked(false);
-    localStorage.removeItem('erp_auth_token');
-    localStorage.removeItem('erp_token');
-    localStorage.removeItem('erp_company_id');
+    persistUnifiedAuthTokens(null);
+    persistUnifiedCompanyId(null);
     localStorage.removeItem('erp_auth_user');
     localStorage.removeItem('erp_current_user');
     localStorage.removeItem('erp_auth_company');

@@ -1,9 +1,10 @@
 import fs from 'fs';
 import path from 'path';
+import { hashPassword, verifyPassword, isPasswordHashed, getCurrentTenantId } from './security.js';
 
 /**
  * Centralized Enterprise In-Memory & Persistent Data Store
- * Provides live transactional state, disk/database persistence, and account rehydration
+ * Provides live transactional state, disk/database persistence, multi-tenant isolation, and account rehydration
  */
 
 export interface PermanentUserRecord {
@@ -22,6 +23,7 @@ export interface PermanentUserRecord {
 
 export interface ProductItem {
   id: string;
+  company_id?: string;
   sku: string;
   barcode: string;
   name: string;
@@ -67,6 +69,7 @@ export interface ProductItem {
 
 export interface InventoryMovementItem {
   id: string;
+  company_id?: string;
   product_id: string;
   product_name: string;
   type: string;
@@ -80,6 +83,7 @@ export interface InventoryMovementItem {
 
 export interface CustomerItem {
   id: string;
+  company_id?: string;
   name: string;
   phone?: string;
   email?: string;
@@ -99,6 +103,7 @@ export interface CustomerItem {
 
 export interface SupplierItem {
   id: string;
+  company_id?: string;
   name: string;
   category: string;
   balance: number;
@@ -116,6 +121,7 @@ export interface SupplierItem {
 
 export interface AccountTransactionItem {
   id: string;
+  company_id?: string;
   party_id: string;
   party_type: 'CUSTOMER' | 'SUPPLIER';
   type: string;
@@ -133,6 +139,7 @@ export interface AccountTransactionItem {
 
 export interface InvoiceItem {
   id: string;
+  company_id?: string;
   invoice_number: string;
   customer?: string;
   customer_name?: string;
@@ -152,6 +159,7 @@ export interface InvoiceItem {
 
 export interface PurchaseInvoiceItem {
   id: string;
+  company_id?: string;
   invoice_number: string;
   supplier_name: string;
   supplier_id?: string;
@@ -169,6 +177,7 @@ export interface PurchaseInvoiceItem {
 
 export interface PaymentItem {
   id: string;
+  company_id?: string;
   type: 'CUSTOMER_PAYMENT' | 'SUPPLIER_PAYMENT' | 'EXPENSE';
   voucher_number: string;
   customer_name?: string;
@@ -186,6 +195,7 @@ export interface PaymentItem {
 
 export interface AuditLogItem {
   id: string;
+  company_id?: string;
   username: string;
   action: string;
   resource_type: string;
@@ -197,6 +207,7 @@ export interface AuditLogItem {
 
 export interface EmployeeItem {
   id: string;
+  company_id?: string;
   code: string;
   name: string;
   roleTitle: string;
@@ -213,6 +224,7 @@ export interface EmployeeItem {
 
 export interface EmployeeMovementItem {
   id: string;
+  company_id?: string;
   employeeId: string;
   employeeName: string;
   type: 'advance' | 'bonus' | 'deduction' | 'salary_payment' | 'attendance';
@@ -228,6 +240,7 @@ export interface EmployeeMovementItem {
 
 export interface PayrollRecordItem {
   id: string;
+  company_id?: string;
   employeeId: string;
   employeeName: string;
   month: string;
@@ -247,6 +260,7 @@ export interface PayrollRecordItem {
 
 export interface ExpenseItem {
   id: string;
+  company_id?: string;
   voucherNumber: string;
   date: string;
   category: string;
@@ -850,21 +864,151 @@ export const INITIAL_SAMPLE_EXPENSES: ExpenseItem[] = [
 ];
 
 // -------------------------------------------------------------
-// Live In-Memory Collections (Mutable & Cleansable)
+// Live Multi-Tenant In-Memory Collections (Isolated & Proxied)
 // -------------------------------------------------------------
-export let mockProducts: ProductItem[] = [...INITIAL_SAMPLE_PRODUCTS];
-export let mockInventoryMovements: InventoryMovementItem[] = [...INITIAL_SAMPLE_MOVEMENTS];
-export let mockCustomersList: CustomerItem[] = [...INITIAL_SAMPLE_CUSTOMERS];
-export let mockSuppliersList: SupplierItem[] = [...INITIAL_SAMPLE_SUPPLIERS];
-export let mockAccountTransactions: AccountTransactionItem[] = [...INITIAL_SAMPLE_ACCOUNT_TRANSACTIONS];
-export let mockInvoicesList: InvoiceItem[] = [...INITIAL_SAMPLE_INVOICES];
-export let mockPurchaseInvoicesList: PurchaseInvoiceItem[] = [...INITIAL_SAMPLE_PURCHASE_INVOICES];
-export let mockPaymentsList: PaymentItem[] = [...INITIAL_SAMPLE_PAYMENTS];
-export let mockAuditLogsList: AuditLogItem[] = [...INITIAL_SAMPLE_AUDIT_LOGS];
-export let mockEmployeesList: EmployeeItem[] = [...INITIAL_SAMPLE_EMPLOYEES];
-export let mockEmployeeMovementsList: EmployeeMovementItem[] = [...INITIAL_SAMPLE_EMPLOYEE_MOVEMENTS];
-export let mockPayrollRecordsList: PayrollRecordItem[] = [...INITIAL_SAMPLE_PAYROLL_RECORDS];
-export let mockExpensesList: ExpenseItem[] = [...INITIAL_SAMPLE_EXPENSES];
+
+export interface TenantCollections {
+  products: ProductItem[];
+  movements: InventoryMovementItem[];
+  customers: CustomerItem[];
+  suppliers: SupplierItem[];
+  accountTransactions: AccountTransactionItem[];
+  invoices: InvoiceItem[];
+  purchaseInvoices: PurchaseInvoiceItem[];
+  payments: PaymentItem[];
+  auditLogs: AuditLogItem[];
+  employees: EmployeeItem[];
+  employeeMovements: EmployeeMovementItem[];
+  payrollRecords: PayrollRecordItem[];
+  expenses: ExpenseItem[];
+}
+
+export const tenantDataStoresMap = new Map<string, TenantCollections>();
+
+export function createEmptyTenantCollections(companyId: string): TenantCollections {
+  return {
+    products: [],
+    movements: [],
+    customers: [],
+    suppliers: [],
+    accountTransactions: [],
+    invoices: [],
+    purchaseInvoices: [],
+    payments: [],
+    auditLogs: [],
+    employees: [],
+    employeeMovements: [],
+    payrollRecords: [],
+    expenses: [],
+  };
+}
+
+export function createSampleTenantCollections(companyId: string): TenantCollections {
+  return {
+    products: INITIAL_SAMPLE_PRODUCTS.map(p => ({ ...p, company_id: companyId })),
+    movements: INITIAL_SAMPLE_MOVEMENTS.map(m => ({ ...m, company_id: companyId })),
+    customers: INITIAL_SAMPLE_CUSTOMERS.map(c => ({ ...c, company_id: companyId })),
+    suppliers: INITIAL_SAMPLE_SUPPLIERS.map(s => ({ ...s, company_id: companyId })),
+    accountTransactions: INITIAL_SAMPLE_ACCOUNT_TRANSACTIONS.map(t => ({ ...t, company_id: companyId })),
+    invoices: INITIAL_SAMPLE_INVOICES.map(i => ({ ...i, company_id: companyId })),
+    purchaseInvoices: INITIAL_SAMPLE_PURCHASE_INVOICES.map(p => ({ ...p, company_id: companyId })),
+    payments: INITIAL_SAMPLE_PAYMENTS.map(p => ({ ...p, company_id: companyId })),
+    auditLogs: INITIAL_SAMPLE_AUDIT_LOGS.map(a => ({ ...a, company_id: companyId })),
+    employees: INITIAL_SAMPLE_EMPLOYEES.map(e => ({ ...e, company_id: companyId })),
+    employeeMovements: INITIAL_SAMPLE_EMPLOYEE_MOVEMENTS.map(m => ({ ...m, company_id: companyId })),
+    payrollRecords: INITIAL_SAMPLE_PAYROLL_RECORDS.map(r => ({ ...r, company_id: companyId })),
+    expenses: INITIAL_SAMPLE_EXPENSES.map(e => ({ ...e, company_id: companyId })),
+  };
+}
+
+export function getTenantCollections(companyId?: string): TenantCollections {
+  const cid = companyId || getCurrentTenantId() || 'comp_001';
+  let store = tenantDataStoresMap.get(cid);
+  if (!store) {
+    if (cid === 'comp_001' && !isTenantCleanProductionMode('comp_001')) {
+      store = createSampleTenantCollections('comp_001');
+    } else {
+      store = createEmptyTenantCollections(cid);
+    }
+    tenantDataStoresMap.set(cid, store);
+  }
+  return store;
+}
+
+export function createTenantScopedArrayProxy<T extends object>(collectionKey: keyof TenantCollections): T[] {
+  const fallbackTarget: any[] = [];
+  return new Proxy(fallbackTarget, {
+    get(target, prop, receiver) {
+      const tenantId = getCurrentTenantId();
+      const tenantStore = getTenantCollections(tenantId);
+      const arr = tenantStore[collectionKey] as any[];
+      if (prop === 'length') {
+        return arr.length;
+      }
+      if (typeof prop === 'string' && /^\d+$/.test(prop)) {
+        return arr[Number(prop)];
+      }
+      if (prop === Symbol.iterator) {
+        return arr[Symbol.iterator].bind(arr);
+      }
+      const val = (arr as any)[prop];
+      if (typeof val === 'function') {
+        return val.bind(arr);
+      }
+      return val;
+    },
+    set(target, prop, value, receiver) {
+      const tenantId = getCurrentTenantId();
+      const tenantStore = getTenantCollections(tenantId);
+      const arr = tenantStore[collectionKey] as any[];
+      if (prop === 'length') {
+        arr.length = value;
+        return true;
+      }
+      if (typeof prop === 'string' && /^\d+$/.test(prop)) {
+        if (value && typeof value === 'object' && !value.company_id) {
+          value.company_id = tenantId;
+        }
+        arr[Number(prop)] = value;
+        return true;
+      }
+      (arr as any)[prop] = value;
+      return true;
+    },
+    has(target, prop) {
+      const tenantId = getCurrentTenantId();
+      const tenantStore = getTenantCollections(tenantId);
+      const arr = tenantStore[collectionKey] as any[];
+      return prop in arr;
+    },
+    ownKeys(target) {
+      const tenantId = getCurrentTenantId();
+      const tenantStore = getTenantCollections(tenantId);
+      const arr = tenantStore[collectionKey] as any[];
+      return Reflect.ownKeys(arr);
+    },
+    getOwnPropertyDescriptor(target, prop) {
+      const tenantId = getCurrentTenantId();
+      const tenantStore = getTenantCollections(tenantId);
+      const arr = tenantStore[collectionKey] as any[];
+      return Object.getOwnPropertyDescriptor(arr, prop);
+    },
+  }) as unknown as T[];
+}
+
+export const mockProducts = createTenantScopedArrayProxy<ProductItem>('products');
+export const mockInventoryMovements = createTenantScopedArrayProxy<InventoryMovementItem>('movements');
+export const mockCustomersList = createTenantScopedArrayProxy<CustomerItem>('customers');
+export const mockSuppliersList = createTenantScopedArrayProxy<SupplierItem>('suppliers');
+export const mockAccountTransactions = createTenantScopedArrayProxy<AccountTransactionItem>('accountTransactions');
+export const mockInvoicesList = createTenantScopedArrayProxy<InvoiceItem>('invoices');
+export const mockPurchaseInvoicesList = createTenantScopedArrayProxy<PurchaseInvoiceItem>('purchaseInvoices');
+export const mockPaymentsList = createTenantScopedArrayProxy<PaymentItem>('payments');
+export const mockAuditLogsList = createTenantScopedArrayProxy<AuditLogItem>('auditLogs');
+export const mockEmployeesList = createTenantScopedArrayProxy<EmployeeItem>('employees');
+export const mockEmployeeMovementsList = createTenantScopedArrayProxy<EmployeeMovementItem>('employeeMovements');
+export const mockPayrollRecordsList = createTenantScopedArrayProxy<PayrollRecordItem>('payrollRecords');
+export const mockExpensesList = createTenantScopedArrayProxy<ExpenseItem>('expenses');
 
 export let isSampleDataSeeded: boolean = true;
 export const tenantCleanProductionModeMap: Map<string, boolean> = new Map();
@@ -905,77 +1049,81 @@ export async function cleanupAllSampleData(companyId?: string, pool?: any): Prom
   message: string;
   clearedCounts: Record<string, number>;
 }> {
+  const cid = companyId || getCurrentTenantId() || 'comp_001';
+  const tenantStore = getTenantCollections(cid);
+
   const previousCounts = {
-    products: mockProducts.length,
-    movements: mockInventoryMovements.length,
-    customers: mockCustomersList.length,
-    suppliers: mockSuppliersList.length,
-    transactions: mockAccountTransactions.length,
-    invoices: mockInvoicesList.length,
-    purchaseInvoices: mockPurchaseInvoicesList.length,
-    payments: mockPaymentsList.length,
-    employees: mockEmployeesList.length,
-    employeeMovements: mockEmployeeMovementsList.length,
-    payrollRecords: mockPayrollRecordsList.length,
-    expenses: mockExpensesList.length,
+    products: tenantStore.products.length,
+    movements: tenantStore.movements.length,
+    customers: tenantStore.customers.length,
+    suppliers: tenantStore.suppliers.length,
+    transactions: tenantStore.accountTransactions.length,
+    invoices: tenantStore.invoices.length,
+    purchaseInvoices: tenantStore.purchaseInvoices.length,
+    payments: tenantStore.payments.length,
+    employees: tenantStore.employees.length,
+    employeeMovements: tenantStore.employeeMovements.length,
+    payrollRecords: tenantStore.payrollRecords.length,
+    expenses: tenantStore.expenses.length,
   };
 
   // Mutate live arrays in place so references remain intact
-  mockProducts.length = 0;
-  mockInventoryMovements.length = 0;
-  mockCustomersList.length = 0;
-  mockSuppliersList.length = 0;
-  mockAccountTransactions.length = 0;
-  mockInvoicesList.length = 0;
-  mockPurchaseInvoicesList.length = 0;
-  mockPaymentsList.length = 0;
-  mockAuditLogsList.length = 0;
-  mockEmployeesList.length = 0;
-  mockEmployeeMovementsList.length = 0;
-  mockPayrollRecordsList.length = 0;
-  mockExpensesList.length = 0;
+  tenantStore.products.length = 0;
+  tenantStore.movements.length = 0;
+  tenantStore.customers.length = 0;
+  tenantStore.suppliers.length = 0;
+  tenantStore.accountTransactions.length = 0;
+  tenantStore.invoices.length = 0;
+  tenantStore.purchaseInvoices.length = 0;
+  tenantStore.payments.length = 0;
+  tenantStore.auditLogs.length = 0;
+  tenantStore.employees.length = 0;
+  tenantStore.employeeMovements.length = 0;
+  tenantStore.payrollRecords.length = 0;
+  tenantStore.expenses.length = 0;
 
-  isSampleDataSeeded = false;
-  if (companyId) {
-    tenantCleanProductionModeMap.set(companyId, true);
-    // Reset tenant WhatsApp conversations/messages/logs (preserving gateway/API config)
-    const existingWsState = mockWhatsAppStateMap.get(companyId);
-    if (existingWsState) {
-      existingWsState.conversations = [];
-      existingWsState.messages = [];
-      existingWsState.logs = [];
-      existingWsState.scheduled = [];
-      existingWsState.campaigns = [];
-      existingWsState.reminders = [];
-      existingWsState.kpi = {
-        totalConversations: 0,
-        unreadCount: 0,
-        sentToday: 0,
-        deliveredCount: 0,
-        readCount: 0,
-        failedCount: 0,
-        scheduledCount: 0,
-        deliveryRate: 100,
-      };
-      mockWhatsAppStateMap.set(companyId, existingWsState);
-    }
+  if (cid === 'comp_001') {
+    isSampleDataSeeded = false;
+  }
+  tenantCleanProductionModeMap.set(cid, true);
+
+  // Reset tenant WhatsApp conversations/messages/logs (preserving gateway/API config)
+  const existingWsState = mockWhatsAppStateMap.get(cid);
+  if (existingWsState) {
+    existingWsState.conversations = [];
+    existingWsState.messages = [];
+    existingWsState.logs = [];
+    existingWsState.scheduled = [];
+    existingWsState.campaigns = [];
+    existingWsState.reminders = [];
+    existingWsState.kpi = {
+      totalConversations: 0,
+      unreadCount: 0,
+      sentToday: 0,
+      deliveredCount: 0,
+      readCount: 0,
+      failedCount: 0,
+      scheduledCount: 0,
+      deliveryRate: 100,
+    };
+    mockWhatsAppStateMap.set(cid, existingWsState);
   }
 
   // If a PostgreSQL database pool is active, clean tenant records safely
-  if (pool && companyId) {
+  if (pool && cid) {
     try {
       await pool.query(
         `DELETE FROM enterprise_module_states 
          WHERE company_id = $1 
          AND state_key IN ('fuel_tanks', 'fuel_meter_records', 'sales_reps', 'custom_ledger', 'battery_warranties', 'tire_records', 'employees', 'expenses', 'inventory_warehouses')`,
-        [companyId]
+        [cid]
       );
       await pool.query(
         `INSERT INTO erp_permanent_tenant_data (company_id, data_type, payload, updated_at)
          VALUES ($1, 'clean_production_mode', $2, NOW())
          ON CONFLICT (company_id, data_type)
          DO UPDATE SET payload = EXCLUDED.payload, updated_at = NOW()`,
-        [companyId, JSON.stringify({ cleanProductionMode: true })]
+        [cid, JSON.stringify({ cleanProductionMode: true })]
       );
     } catch (err: any) {
       console.warn('[DATASTORE_PG_CLEANUP_WARN]', err?.message);
@@ -994,47 +1142,54 @@ export async function cleanupAllSampleData(companyId?: string, pool?: any): Prom
 /**
  * Re-seed sample data on demand (Sandbox Mode).
  */
-export function seedAllSampleData(): { success: boolean; message: string } {
-  mockProducts.length = 0;
-  mockProducts.push(...INITIAL_SAMPLE_PRODUCTS);
+export function seedAllSampleData(companyId?: string): { success: boolean; message: string } {
+  const cid = companyId || getCurrentTenantId() || 'comp_001';
+  const tenantStore = getTenantCollections(cid);
+  const sample = createSampleTenantCollections(cid);
 
-  mockInventoryMovements.length = 0;
-  mockInventoryMovements.push(...INITIAL_SAMPLE_MOVEMENTS);
+  tenantStore.products.length = 0;
+  tenantStore.products.push(...sample.products);
 
-  mockCustomersList.length = 0;
-  mockCustomersList.push(...INITIAL_SAMPLE_CUSTOMERS);
+  tenantStore.movements.length = 0;
+  tenantStore.movements.push(...sample.movements);
 
-  mockSuppliersList.length = 0;
-  mockSuppliersList.push(...INITIAL_SAMPLE_SUPPLIERS);
+  tenantStore.customers.length = 0;
+  tenantStore.customers.push(...sample.customers);
 
-  mockAccountTransactions.length = 0;
-  mockAccountTransactions.push(...INITIAL_SAMPLE_ACCOUNT_TRANSACTIONS);
+  tenantStore.suppliers.length = 0;
+  tenantStore.suppliers.push(...sample.suppliers);
 
-  mockInvoicesList.length = 0;
-  mockInvoicesList.push(...INITIAL_SAMPLE_INVOICES);
+  tenantStore.accountTransactions.length = 0;
+  tenantStore.accountTransactions.push(...sample.accountTransactions);
 
-  mockPurchaseInvoicesList.length = 0;
-  mockPurchaseInvoicesList.push(...INITIAL_SAMPLE_PURCHASE_INVOICES);
+  tenantStore.invoices.length = 0;
+  tenantStore.invoices.push(...sample.invoices);
 
-  mockPaymentsList.length = 0;
-  mockPaymentsList.push(...INITIAL_SAMPLE_PAYMENTS);
+  tenantStore.purchaseInvoices.length = 0;
+  tenantStore.purchaseInvoices.push(...sample.purchaseInvoices);
 
-  mockAuditLogsList.length = 0;
-  mockAuditLogsList.push(...INITIAL_SAMPLE_AUDIT_LOGS);
+  tenantStore.payments.length = 0;
+  tenantStore.payments.push(...sample.payments);
 
-  mockEmployeesList.length = 0;
-  mockEmployeesList.push(...INITIAL_SAMPLE_EMPLOYEES);
+  tenantStore.auditLogs.length = 0;
+  tenantStore.auditLogs.push(...sample.auditLogs);
 
-  mockEmployeeMovementsList.length = 0;
-  mockEmployeeMovementsList.push(...INITIAL_SAMPLE_EMPLOYEE_MOVEMENTS);
+  tenantStore.employees.length = 0;
+  tenantStore.employees.push(...sample.employees);
 
-  mockPayrollRecordsList.length = 0;
-  mockPayrollRecordsList.push(...INITIAL_SAMPLE_PAYROLL_RECORDS);
+  tenantStore.employeeMovements.length = 0;
+  tenantStore.employeeMovements.push(...sample.employeeMovements);
 
-  mockExpensesList.length = 0;
-  mockExpensesList.push(...INITIAL_SAMPLE_EXPENSES);
+  tenantStore.payrollRecords.length = 0;
+  tenantStore.payrollRecords.push(...sample.payrollRecords);
 
-  isSampleDataSeeded = true;
+  tenantStore.expenses.length = 0;
+  tenantStore.expenses.push(...sample.expenses);
+
+  if (cid === 'comp_001') {
+    isSampleDataSeeded = true;
+  }
+  tenantCleanProductionModeMap.set(cid, false);
   persistAllToDisk();
 
   return {
@@ -1056,7 +1211,7 @@ export const permanentUsersMap = new Map<string, PermanentUserRecord>([
     {
       id: 'usr_001',
       email: 'admin@alsahabi.com',
-      password_hash: 'admin123',
+      password_hash: hashPassword('admin123'),
       name: 'المدير العام',
       role: 'ADMIN',
       company_id: 'comp_001',
@@ -1071,7 +1226,7 @@ export const permanentUsersMap = new Map<string, PermanentUserRecord>([
     {
       id: 'usr_enterprise_01',
       email: 'admin@enterprise.sa',
-      password_hash: 'admin123',
+      password_hash: hashPassword('admin123'),
       name: 'عبدالرحمن العتيبي (المدير العام)',
       role: 'ADMIN',
       company_id: 'comp_001',
@@ -1086,7 +1241,7 @@ export const permanentUsersMap = new Map<string, PermanentUserRecord>([
     {
       id: 'usr_alamal_01',
       email: 'admin@alamal-trade.com',
-      password_hash: 'AdminPass123!',
+      password_hash: hashPassword('AdminPass123!'),
       name: 'محمد أحمد العبسي',
       role: 'ADMIN',
       company_id: 'comp_alamal',
@@ -1101,12 +1256,27 @@ export const permanentUsersMap = new Map<string, PermanentUserRecord>([
     {
       id: 'usr_albaraka_01',
       email: 'admin@albaraka-store.com',
-      password_hash: 'AdminPass123!',
+      password_hash: hashPassword('AdminPass123!'),
       name: 'عبدالله صالح البركة',
       role: 'ADMIN',
       company_id: 'comp_albaraka',
       company_name: 'مؤسسة البركة للمستلزمات',
       phone: '733987654',
+      business_mode: 'wholesale_retail_general',
+      created_at: '2026-01-01T00:00:00Z',
+    },
+  ],
+  [
+    'hameedwahas332@gmail.com',
+    {
+      id: 'usr_wahas_master_01',
+      email: 'hameedwahas332@gmail.com',
+      password_hash: hashPassword('AdminPass123!'),
+      name: 'حميد وهاس (المدير العام)',
+      role: 'ADMIN',
+      company_id: 'comp_hameed_wahas_2735',
+      company_name: 'محلات وهاس للتجارة العامة',
+      phone: '777000111',
       business_mode: 'wholesale_retail_general',
       created_at: '2026-01-01T00:00:00Z',
     },
@@ -1146,6 +1316,23 @@ export const permanentCompaniesMap = new Map<string, any>([
       currency: 'YER',
       phone: '733987654',
       email: 'admin@albaraka-store.com',
+      status: 'ACTIVE',
+      created_at: '2026-01-01T00:00:00Z',
+    },
+  ],
+  [
+    'comp_hameed_wahas_2735',
+    {
+      id: 'comp_hameed_wahas_2735',
+      name: 'محلات وهاس للتجارة العامة',
+      commercialRegister: '10203040',
+      taxNumber: '3000998877',
+      address: 'صنعاء - شارع تعز',
+      city: 'صنعاء',
+      postalCode: '0000',
+      phone: '777000111',
+      email: 'hameedwahas332@gmail.com',
+      currency: 'YER',
       status: 'ACTIVE',
       created_at: '2026-01-01T00:00:00Z',
     },
@@ -1383,26 +1570,34 @@ export function persistAllToDisk(): void {
     if (!fs.existsSync(STORE_DIR)) {
       fs.mkdirSync(STORE_DIR, { recursive: true });
     }
+
+    const tenantStoresObj: Record<string, any> = {};
+    for (const [cid, store] of tenantDataStoresMap.entries()) {
+      tenantStoresObj[cid] = store;
+    }
+
     const payload = {
-      version: 2,
+      version: 3,
       saved_at: new Date().toISOString(),
       isSampleDataSeeded,
       cleanProductionModes: Object.fromEntries(tenantCleanProductionModeMap),
       users: Array.from(permanentUsersMap.values()),
       companies: Array.from(permanentCompaniesMap.values()),
-      products: mockProducts,
-      inventoryMovements: mockInventoryMovements,
-      customers: mockCustomersList,
-      suppliers: mockSuppliersList,
-      accountTransactions: mockAccountTransactions,
-      invoices: mockInvoicesList,
-      purchaseInvoices: mockPurchaseInvoicesList,
-      payments: mockPaymentsList,
-      auditLogs: mockAuditLogsList,
-      employees: mockEmployeesList,
-      employeeMovements: mockEmployeeMovementsList,
-      payrollRecords: mockPayrollRecordsList,
-      expenses: mockExpensesList,
+      tenantDataStores: tenantStoresObj,
+      // Fallback mirrors for comp_001
+      products: getTenantCollections('comp_001').products,
+      inventoryMovements: getTenantCollections('comp_001').movements,
+      customers: getTenantCollections('comp_001').customers,
+      suppliers: getTenantCollections('comp_001').suppliers,
+      accountTransactions: getTenantCollections('comp_001').accountTransactions,
+      invoices: getTenantCollections('comp_001').invoices,
+      purchaseInvoices: getTenantCollections('comp_001').purchaseInvoices,
+      payments: getTenantCollections('comp_001').payments,
+      auditLogs: getTenantCollections('comp_001').auditLogs,
+      employees: getTenantCollections('comp_001').employees,
+      employeeMovements: getTenantCollections('comp_001').employeeMovements,
+      payrollRecords: getTenantCollections('comp_001').payrollRecords,
+      expenses: getTenantCollections('comp_001').expenses,
       whatsappConfigs: Object.fromEntries(mockWhatsAppConfigsMap),
       whatsappStates: Object.fromEntries(mockWhatsAppStateMap),
       tenantSnapshots: Object.fromEntries(tenantSnapshotsMap),
@@ -1433,7 +1628,13 @@ export function initPermanentDiskStore(): void {
         if (Array.isArray(data.users)) {
           data.users.forEach((u: PermanentUserRecord) => {
             if (u && u.email) {
-              permanentUsersMap.set(u.email.trim().toLowerCase(), u);
+              const normalized = u.email.trim().toLowerCase();
+              const safeHash = isPasswordHashed(u.password_hash) ? u.password_hash : hashPassword(u.password_hash || 'admin123');
+              permanentUsersMap.set(normalized, {
+                ...u,
+                email: normalized,
+                password_hash: safeHash,
+              });
             }
           });
         }
@@ -1444,58 +1645,70 @@ export function initPermanentDiskStore(): void {
             }
           });
         }
-        if (Array.isArray(data.customers)) {
-          mockCustomersList.length = 0;
-          mockCustomersList.push(...data.customers);
+
+        // Restore multi-tenant collections
+        if (data.tenantDataStores && typeof data.tenantDataStores === 'object') {
+          Object.entries(data.tenantDataStores).forEach(([cid, store]: [string, any]) => {
+            tenantDataStoresMap.set(cid, {
+              products: Array.isArray(store.products) ? store.products : [],
+              movements: Array.isArray(store.movements) ? store.movements : [],
+              customers: Array.isArray(store.customers) ? store.customers : [],
+              suppliers: Array.isArray(store.suppliers) ? store.suppliers : [],
+              accountTransactions: Array.isArray(store.accountTransactions) ? store.accountTransactions : [],
+              invoices: Array.isArray(store.invoices) ? store.invoices : [],
+              purchaseInvoices: Array.isArray(store.purchaseInvoices) ? store.purchaseInvoices : [],
+              payments: Array.isArray(store.payments) ? store.payments : [],
+              auditLogs: Array.isArray(store.auditLogs) ? store.auditLogs : [],
+              employees: Array.isArray(store.employees) ? store.employees : [],
+              employeeMovements: Array.isArray(store.employeeMovements) ? store.employeeMovements : [],
+              payrollRecords: Array.isArray(store.payrollRecords) ? store.payrollRecords : [],
+              expenses: Array.isArray(store.expenses) ? store.expenses : [],
+            });
+          });
         }
-        if (Array.isArray(data.suppliers)) {
-          mockSuppliersList.length = 0;
-          mockSuppliersList.push(...data.suppliers);
+
+        // Backward compatibility for legacy flat arrays targeting comp_001
+        const comp001Store = getTenantCollections('comp_001');
+        if (Array.isArray(data.customers) && comp001Store.customers.length === 0) {
+          comp001Store.customers.push(...data.customers);
         }
-        if (Array.isArray(data.products)) {
-          mockProducts.length = 0;
-          mockProducts.push(...data.products);
+        if (Array.isArray(data.suppliers) && comp001Store.suppliers.length === 0) {
+          comp001Store.suppliers.push(...data.suppliers);
         }
-        if (Array.isArray(data.inventoryMovements)) {
-          mockInventoryMovements.length = 0;
-          mockInventoryMovements.push(...data.inventoryMovements);
+        if (Array.isArray(data.products) && comp001Store.products.length === 0) {
+          comp001Store.products.push(...data.products);
         }
-        if (Array.isArray(data.accountTransactions)) {
-          mockAccountTransactions.length = 0;
-          mockAccountTransactions.push(...data.accountTransactions);
+        if (Array.isArray(data.inventoryMovements) && comp001Store.movements.length === 0) {
+          comp001Store.movements.push(...data.inventoryMovements);
         }
-        if (Array.isArray(data.invoices)) {
-          mockInvoicesList.length = 0;
-          mockInvoicesList.push(...data.invoices);
+        if (Array.isArray(data.accountTransactions) && comp001Store.accountTransactions.length === 0) {
+          comp001Store.accountTransactions.push(...data.accountTransactions);
         }
-        if (Array.isArray(data.purchaseInvoices)) {
-          mockPurchaseInvoicesList.length = 0;
-          mockPurchaseInvoicesList.push(...data.purchaseInvoices);
+        if (Array.isArray(data.invoices) && comp001Store.invoices.length === 0) {
+          comp001Store.invoices.push(...data.invoices);
         }
-        if (Array.isArray(data.payments)) {
-          mockPaymentsList.length = 0;
-          mockPaymentsList.push(...data.payments);
+        if (Array.isArray(data.purchaseInvoices) && comp001Store.purchaseInvoices.length === 0) {
+          comp001Store.purchaseInvoices.push(...data.purchaseInvoices);
         }
-        if (Array.isArray(data.auditLogs)) {
-          mockAuditLogsList.length = 0;
-          mockAuditLogsList.push(...data.auditLogs);
+        if (Array.isArray(data.payments) && comp001Store.payments.length === 0) {
+          comp001Store.payments.push(...data.payments);
         }
-        if (Array.isArray(data.employees)) {
-          mockEmployeesList.length = 0;
-          mockEmployeesList.push(...data.employees);
+        if (Array.isArray(data.auditLogs) && comp001Store.auditLogs.length === 0) {
+          comp001Store.auditLogs.push(...data.auditLogs);
         }
-        if (Array.isArray(data.employeeMovements)) {
-          mockEmployeeMovementsList.length = 0;
-          mockEmployeeMovementsList.push(...data.employeeMovements);
+        if (Array.isArray(data.employees) && comp001Store.employees.length === 0) {
+          comp001Store.employees.push(...data.employees);
         }
-        if (Array.isArray(data.payrollRecords)) {
-          mockPayrollRecordsList.length = 0;
-          mockPayrollRecordsList.push(...data.payrollRecords);
+        if (Array.isArray(data.employeeMovements) && comp001Store.employeeMovements.length === 0) {
+          comp001Store.employeeMovements.push(...data.employeeMovements);
         }
-        if (Array.isArray(data.expenses)) {
-          mockExpensesList.length = 0;
-          mockExpensesList.push(...data.expenses);
+        if (Array.isArray(data.payrollRecords) && comp001Store.payrollRecords.length === 0) {
+          comp001Store.payrollRecords.push(...data.payrollRecords);
         }
+        if (Array.isArray(data.expenses) && comp001Store.expenses.length === 0) {
+          comp001Store.expenses.push(...data.expenses);
+        }
+
         if (data.whatsappConfigs && typeof data.whatsappConfigs === 'object') {
           Object.entries(data.whatsappConfigs).forEach(([k, v]) => {
             mockWhatsAppConfigsMap.set(k, v);
@@ -1597,7 +1810,14 @@ export async function initPermanentPostgresTables(pool: any): Promise<void> {
 
 export async function saveUserToPermanentStore(user: PermanentUserRecord, pool?: any): Promise<void> {
   const normalized = user.email.trim().toLowerCase();
-  permanentUsersMap.set(normalized, user);
+  const safeHash = isPasswordHashed(user.password_hash) ? user.password_hash : hashPassword(user.password_hash || 'admin123');
+  const userToSave: PermanentUserRecord = {
+    ...user,
+    email: normalized,
+    password_hash: safeHash,
+  };
+
+  permanentUsersMap.set(normalized, userToSave);
   persistAllToDisk();
 
   if (pool) {
@@ -1614,17 +1834,17 @@ export async function saveUserToPermanentStore(user: PermanentUserRecord, pool?:
            business_mode = EXCLUDED.business_mode,
            metadata = EXCLUDED.metadata`,
         [
-          user.id,
+          userToSave.id,
           normalized,
-          user.password_hash,
-          user.name,
-          user.role,
-          user.company_id,
-          user.company_name,
-          user.phone || null,
-          user.business_mode || null,
-          user.created_at || new Date().toISOString(),
-          JSON.stringify(user.metadata || {}),
+          userToSave.password_hash,
+          userToSave.name,
+          userToSave.role,
+          userToSave.company_id,
+          userToSave.company_name,
+          userToSave.phone || null,
+          userToSave.business_mode || null,
+          userToSave.created_at || new Date().toISOString(),
+          JSON.stringify(userToSave.metadata || {}),
         ]
       );
     } catch (err: any) {
@@ -1700,10 +1920,12 @@ export async function rehydrateTenantData(payload: any, pool?: any): Promise<{ s
 
   // 1. Rehydrate user
   if (payload.user && payload.user.email) {
+    const rawPass = payload.password || payload.user.password_hash || payload.password_hash || 'admin123';
+    const safeHash = isPasswordHashed(rawPass) ? rawPass : hashPassword(rawPass);
     const userRec: PermanentUserRecord = {
       id: payload.user.id || `usr_${Date.now()}`,
       email: payload.user.email.trim().toLowerCase(),
-      password_hash: payload.password || payload.user.password_hash || payload.password_hash || 'admin123',
+      password_hash: safeHash,
       name: payload.user.full_name || payload.user.name || 'المدير العام',
       role: payload.user.role || 'ADMIN',
       company_id: payload.company?.id || payload.user.company_id || 'comp_001',
@@ -1720,50 +1942,52 @@ export async function rehydrateTenantData(payload: any, pool?: any): Promise<{ s
     await saveCompanyToPermanentStore(payload.company, pool);
   }
 
-  // 3. Rehydrate collections if provided (allow clean empty arrays [])
+  // 3. Rehydrate collections into target tenant store (allow clean empty arrays [])
+  const tenantStore = getTenantCollections(companyId);
+
   if (Array.isArray(payload.customers)) {
-    mockCustomersList.length = 0;
-    mockCustomersList.push(...payload.customers);
+    tenantStore.customers.length = 0;
+    tenantStore.customers.push(...payload.customers.map((c: any) => ({ ...c, company_id: companyId })));
   }
   if (Array.isArray(payload.suppliers)) {
-    mockSuppliersList.length = 0;
-    mockSuppliersList.push(...payload.suppliers);
+    tenantStore.suppliers.length = 0;
+    tenantStore.suppliers.push(...payload.suppliers.map((s: any) => ({ ...s, company_id: companyId })));
   }
   if (Array.isArray(payload.products)) {
-    mockProducts.length = 0;
-    mockProducts.push(...payload.products);
+    tenantStore.products.length = 0;
+    tenantStore.products.push(...payload.products.map((p: any) => ({ ...p, company_id: companyId })));
   }
   if (Array.isArray(payload.invoices)) {
-    mockInvoicesList.length = 0;
-    mockInvoicesList.push(...payload.invoices);
+    tenantStore.invoices.length = 0;
+    tenantStore.invoices.push(...payload.invoices.map((i: any) => ({ ...i, company_id: companyId })));
   }
   if (Array.isArray(payload.purchaseInvoices)) {
-    mockPurchaseInvoicesList.length = 0;
-    mockPurchaseInvoicesList.push(...payload.purchaseInvoices);
+    tenantStore.purchaseInvoices.length = 0;
+    tenantStore.purchaseInvoices.push(...payload.purchaseInvoices.map((p: any) => ({ ...p, company_id: companyId })));
   }
   if (Array.isArray(payload.payments)) {
-    mockPaymentsList.length = 0;
-    mockPaymentsList.push(...payload.payments);
+    tenantStore.payments.length = 0;
+    tenantStore.payments.push(...payload.payments.map((p: any) => ({ ...p, company_id: companyId })));
   }
   if (Array.isArray(payload.accountTransactions)) {
-    mockAccountTransactions.length = 0;
-    mockAccountTransactions.push(...payload.accountTransactions);
+    tenantStore.accountTransactions.length = 0;
+    tenantStore.accountTransactions.push(...payload.accountTransactions.map((t: any) => ({ ...t, company_id: companyId })));
   }
   if (Array.isArray(payload.employees)) {
-    mockEmployeesList.length = 0;
-    mockEmployeesList.push(...payload.employees);
+    tenantStore.employees.length = 0;
+    tenantStore.employees.push(...payload.employees.map((e: any) => ({ ...e, company_id: companyId })));
   }
   if (Array.isArray(payload.employeeMovements)) {
-    mockEmployeeMovementsList.length = 0;
-    mockEmployeeMovementsList.push(...payload.employeeMovements);
+    tenantStore.employeeMovements.length = 0;
+    tenantStore.employeeMovements.push(...payload.employeeMovements.map((m: any) => ({ ...m, company_id: companyId })));
   }
   if (Array.isArray(payload.payrollRecords)) {
-    mockPayrollRecordsList.length = 0;
-    mockPayrollRecordsList.push(...payload.payrollRecords);
+    tenantStore.payrollRecords.length = 0;
+    tenantStore.payrollRecords.push(...payload.payrollRecords.map((r: any) => ({ ...r, company_id: companyId })));
   }
   if (Array.isArray(payload.expenses)) {
-    mockExpensesList.length = 0;
-    mockExpensesList.push(...payload.expenses);
+    tenantStore.expenses.length = 0;
+    tenantStore.expenses.push(...payload.expenses.map((e: any) => ({ ...e, company_id: companyId })));
   }
 
   if (payload.whatsappConfig || payload.whatsapp_config) {
@@ -1787,7 +2011,7 @@ export async function deletePermanentAccount(email: string, password: string, po
   if (!user) {
     return { success: false, message: 'الحساب غير موجود' };
   }
-  if (user.password_hash && user.password_hash !== password) {
+  if (!verifyPassword(password, user.password_hash)) {
     return { success: false, message: 'كلمة المرور غير صحيحة، تعذر حذف الحساب' };
   }
 

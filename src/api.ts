@@ -78,46 +78,71 @@ class ApiClient {
     });
   }
 
+  private static readonly TOKEN_KEYS = ['erp_auth_token', 'erp_token', 'ai_biz_jwt_token', 'token', 'saas_auth_token'];
+  private static readonly COMPANY_KEYS = ['erp_company_id', 'ai_biz_company_id', 'company_id'];
+
   public setToken(token: string | null) {
     if (!token || token === 'undefined' || token === 'null') {
       this.clearToken();
       return;
     }
-    this.token = token;
-    this.setStorageItem('erp_token', token);
-    this.setStorageItem('erp_auth_token', token);
+    this.token = token.trim();
+    for (const key of ApiClient.TOKEN_KEYS) {
+      this.setStorageItem(key, this.token);
+    }
   }
 
   public setCompanyId(companyId: string | null) {
     if (!companyId || companyId === 'undefined' || companyId === 'null') {
       this.companyId = null;
-      this.removeStorageItem('erp_company_id');
+      for (const key of ApiClient.COMPANY_KEYS) {
+        this.removeStorageItem(key);
+      }
       return;
     }
-    this.companyId = companyId;
-    this.setStorageItem('erp_company_id', companyId);
+    this.companyId = companyId.trim();
+    for (const key of ApiClient.COMPANY_KEYS) {
+      this.setStorageItem(key, this.companyId);
+    }
   }
 
   public clearToken() {
     this.token = null;
     this.companyId = null;
-    this.removeStorageItem('erp_token');
-    this.removeStorageItem('erp_auth_token');
-    this.removeStorageItem('erp_company_id');
+    for (const key of ApiClient.TOKEN_KEYS) {
+      this.removeStorageItem(key);
+    }
+    for (const key of ApiClient.COMPANY_KEYS) {
+      this.removeStorageItem(key);
+    }
   }
 
   public getToken(): string | null {
-    if (!this.token) {
-      this.token = this.getStorageItem('erp_auth_token') || this.getStorageItem('erp_token');
+    if (this.token && this.token !== 'undefined' && this.token !== 'null') {
+      return this.token;
     }
-    return this.token;
+    for (const key of ApiClient.TOKEN_KEYS) {
+      const val = this.getStorageItem(key);
+      if (val && val !== 'undefined' && val !== 'null' && val.trim()) {
+        this.token = val.trim();
+        return this.token;
+      }
+    }
+    return null;
   }
 
   public getCompanyId(): string | null {
-    if (!this.companyId) {
-      this.companyId = this.getStorageItem('erp_company_id');
+    if (this.companyId && this.companyId !== 'undefined' && this.companyId !== 'null') {
+      return this.companyId;
     }
-    return this.companyId;
+    for (const key of ApiClient.COMPANY_KEYS) {
+      const val = this.getStorageItem(key);
+      if (val && val !== 'undefined' && val !== 'null' && val.trim()) {
+        this.companyId = val.trim();
+        return this.companyId;
+      }
+    }
+    return null;
   }
 
   private async request<T = any>(

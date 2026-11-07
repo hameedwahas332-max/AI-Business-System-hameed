@@ -45,6 +45,19 @@ import {
   recordSentWhatsAppMessage,
   persistAllToDisk,
 } from './server/dataStore';
+import {
+  generateSignedToken,
+  verifySignedToken,
+  revokeToken,
+  extractBearerToken,
+  runWithTenantContext,
+  getCurrentTenantId,
+  hasPermission,
+  resolveRequiredPermissionForRoute,
+  verifyPassword,
+  hashPassword,
+  isPasswordHashed,
+} from './server/security.js';
 
 const { Pool } = pg;
 const app = express();
@@ -270,10 +283,90 @@ const tenantCompaniesById: Map<string, PersistentTenantCompany> = new Map([
 // Active sessions map (Token -> { user, company, expiresAt })
 const activeSessions: Map<string, { user: PersistentTenantUser; company: PersistentTenantCompany; expiresAt: number }> = new Map();
 
-function generatePermanentToken(userId: string, companyId: string): string {
-  const nonce = Math.random().toString(36).substring(2, 10);
-  return `jwt_session_${userId}_${companyId}_${Date.now()}_${nonce}`;
+function generatePermanentToken(userId: string, companyId: string, email?: string, role = 'ADMIN'): string {
+  return generateSignedToken({
+    userId,
+    companyId,
+    email: email || 'admin@alsahabi.com',
+    role,
+    expiresInMs: 365 * 24 * 60 * 60 * 1000,
+  });
 }
+
+// ==========================================
+// Central Enterprise Security, RBAC & Multi-Tenant Context Middleware
+// ==========================================
+app.use('/api', (req: Request, res: Response, next: any) => {
+  const authHeader = req.headers['authorization'] as string | undefined;
+  const rawToken = extractBearerToken(authHeader) || (req.headers['x-auth-token'] as string) || '';
+
+  let tenantContext = {
+    companyId: 'comp_001',
+    userId: 'usr_guest',
+    email: '',
+    role: 'VIEWER',
+    isAuthenticated: false,
+    token: rawToken || undefined,
+  };
+
+  if (rawToken) {
+    const jwtRes = verifySignedToken(rawToken);
+    if (jwtRes.valid && jwtRes.payload) {
+      tenantContext = {
+        companyId: jwtRes.payload.cid,
+        userId: jwtRes.payload.sub,
+        email: jwtRes.payload.email,
+        role: jwtRes.payload.role,
+        isAuthenticated: true,
+        token: rawToken,
+      };
+    } else if (activeSessions.has(rawToken)) {
+      const sess = activeSessions.get(rawToken)!;
+      tenantContext = {
+        companyId: sess.company.id,
+        userId: sess.user.id,
+        email: sess.user.email,
+        role: sess.user.role || 'ADMIN',
+        isAuthenticated: true,
+        token: rawToken,
+      };
+    }
+  }
+
+  // ANTI-SPOOFING: Lock companyId to authenticated identity
+  if (tenantContext.isAuthenticated) {
+    (req as any).user = tenantContext;
+    (req as any).companyId = tenantContext.companyId;
+  } else {
+    const headerComp = req.headers['x-company-id'] as string;
+    if (headerComp && typeof headerComp === 'string' && headerComp.trim()) {
+      tenantContext.companyId = headerComp.trim();
+    }
+  }
+
+  // RBAC Permission Check
+  const requiredPerm = resolveRequiredPermissionForRoute(req.path, req.method);
+  if (requiredPerm) {
+    if (!tenantContext.isAuthenticated) {
+      return res.status(401).json({
+        success: false,
+        error: 'AUTHENTICATION_REQUIRED',
+        message: 'جلسة العمل غير مسجلة أو انتهت صلاحيتها، يرجى تسجيل الدخول',
+      });
+    }
+    if (!hasPermission(tenantContext.role, requiredPerm)) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: `ليس لديك الصلاحية المطلوبة (${requiredPerm}) لإتمام هذه العملية`,
+      });
+    }
+  }
+
+  runWithTenantContext(tenantContext, () => {
+    next();
+  });
+});
 
 app.post('/api/v1/auth/register', async (req: Request, res: Response) => {
   const { companyName, fullName, email, password, phone, currency, companyCode, business_mode } = req.body || {};
@@ -333,7 +426,7 @@ app.post('/api/v1/auth/register', async (req: Request, res: Response) => {
   const permUser: PermanentUserRecord = {
     id: userId,
     email: normalizedEmail,
-    password_hash: password || 'admin123',
+    password_hash: hashPassword(password || 'admin123'),
     name: user.full_name,
     role: 'ADMIN',
     company_id: companyId,
@@ -344,7 +437,7 @@ app.post('/api/v1/auth/register', async (req: Request, res: Response) => {
   };
   await saveUserToPermanentStore(permUser, dbPool);
 
-  const token = generatePermanentToken(user.id, company.id);
+  const token = generatePermanentToken(user.id, company.id, user.email, user.role);
   const oneYearMs = 365 * 24 * 60 * 60 * 1000;
   activeSessions.set(token, { user, company, expiresAt: Date.now() + oneYearMs });
 
@@ -370,9 +463,12 @@ app.post('/api/v1/auth/login', async (req: Request, res: Response) => {
   let permUser = permanentUsersMap.get(normalizedEmail);
   let tenantUser = tenantUsersByEmail.get(normalizedEmail);
 
-  // Verify password if user exists and password is provided
-  if (permUser && permUser.password_hash && password) {
-    if (permUser.password_hash !== password) {
+  // Verify password using scrypt
+  if (permUser) {
+    if (!password) {
+      return res.status(400).json({ success: false, message: 'كلمة المرور مطلوبة' });
+    }
+    if (!verifyPassword(password, permUser.password_hash)) {
       return res.status(401).json({
         success: false,
         message: 'كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى',
@@ -429,7 +525,7 @@ app.post('/api/v1/auth/login', async (req: Request, res: Response) => {
     });
   }
 
-  const token = generatePermanentToken(user.id, company.id);
+  const token = generatePermanentToken(user.id, company.id, user.email, user.role);
   const oneYearMs = 365 * 24 * 60 * 60 * 1000;
   activeSessions.set(token, { user, company, expiresAt: Date.now() + oneYearMs });
 
@@ -499,30 +595,31 @@ app.post('/api/v1/auth/rehydrate-account', async (req: Request, res: Response) =
 app.post('/api/v1/auth/verify-password', (req: Request, res: Response) => {
   const { email, password } = req.body || {};
   const authHeader = req.headers['authorization'] || '';
-  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  const token = extractBearerToken(authHeader) || (req.headers['x-auth-token'] as string) || '';
 
   let targetEmail = (email || '').trim().toLowerCase();
   if (!targetEmail && token) {
-    const session = activeSessions.get(token);
-    if (session) {
-      targetEmail = session.user.email.trim().toLowerCase();
+    const verified = verifySignedToken(token);
+    if (verified.valid && verified.payload) {
+      targetEmail = verified.payload.email.trim().toLowerCase();
+    } else {
+      const session = activeSessions.get(token);
+      if (session) {
+        targetEmail = session.user.email.trim().toLowerCase();
+      }
     }
   }
 
-  if (!targetEmail) {
-    return res.status(400).json({ success: false, valid: false, message: 'البريد الإلكتروني مطلوب للتحقق' });
+  if (!targetEmail || !password) {
+    return res.status(400).json({ success: false, valid: false, message: 'البريد الإلكتروني وكلمة المرور مطلوبان للتحقق' });
   }
 
   const user = permanentUsersMap.get(targetEmail);
   if (!user) {
-    // If not found in permanent users, check default passwords
-    if (password === 'admin123' || password === 'AdminPass123!') {
-      return res.status(200).json({ success: true, valid: true });
-    }
     return res.status(404).json({ success: false, valid: false, message: 'الحساب غير موجود' });
   }
 
-  if (user.password_hash && user.password_hash !== password) {
+  if (!verifyPassword(password, user.password_hash)) {
     return res.status(401).json({
       success: false,
       valid: false,
@@ -537,13 +634,18 @@ app.post('/api/v1/auth/verify-password', (req: Request, res: Response) => {
 app.post('/api/v1/auth/delete-account', async (req: Request, res: Response) => {
   const { email, password } = req.body || {};
   const authHeader = req.headers['authorization'] || '';
-  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  const token = extractBearerToken(authHeader) || (req.headers['x-auth-token'] as string) || '';
 
   let targetEmail = (email || '').trim().toLowerCase();
   if (!targetEmail && token) {
-    const session = activeSessions.get(token);
-    if (session) {
-      targetEmail = session.user.email.trim().toLowerCase();
+    const verified = verifySignedToken(token);
+    if (verified.valid && verified.payload) {
+      targetEmail = verified.payload.email.trim().toLowerCase();
+    } else {
+      const session = activeSessions.get(token);
+      if (session) {
+        targetEmail = session.user.email.trim().toLowerCase();
+      }
     }
   }
 
@@ -554,7 +656,10 @@ app.post('/api/v1/auth/delete-account', async (req: Request, res: Response) => {
   const result = await deletePermanentAccount(targetEmail, password, dbPool);
   if (result.success) {
     tenantUsersByEmail.delete(targetEmail);
-    if (token) activeSessions.delete(token);
+    if (token) {
+      revokeToken(token);
+      activeSessions.delete(token);
+    }
     return res.status(200).json(result);
   } else {
     return res.status(400).json(result);
@@ -566,20 +671,41 @@ app.post('/api/v1/auth/refresh', (req: Request, res: Response) => {
   const authHeader = req.headers['authorization'] || '';
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
 
-  let session = token ? activeSessions.get(token) : undefined;
-  let user: PersistentTenantUser;
-  let company: PersistentTenantCompany;
-
-  if (session) {
-    user = session.user;
-    company = session.company;
-  } else {
-    // Resolve fallback user and company
-    user = tenantUsersByEmail.get('admin@alsahabi.com')!;
-    company = tenantCompaniesById.get('comp_001')!;
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'رمز الدخول مطلوب' });
   }
 
-  const newToken = generatePermanentToken(user.id, company.id);
+  let session = activeSessions.get(token);
+  let user: PersistentTenantUser | undefined = session?.user;
+  let company: PersistentTenantCompany | undefined = session?.company;
+
+  if (!user || !company) {
+    const verified = verifySignedToken(token);
+    if (verified && verified.sub) {
+      const email = verified.email ? verified.email.toLowerCase() : '';
+      const permUser = email ? permanentUsersMap.get(email) : undefined;
+      const compId = verified.cid || permUser?.company_id || 'comp_001';
+      company = permanentCompaniesMap.get(compId) || tenantCompaniesById.get(compId);
+      if (permUser) {
+        user = {
+          id: permUser.id,
+          username: permUser.email.split('@')[0],
+          full_name: permUser.name,
+          email: permUser.email,
+          role: permUser.role,
+          company_id: compId,
+          is_active: true,
+          created_at: permUser.created_at,
+        };
+      }
+    }
+  }
+
+  if (!user || !company) {
+    return res.status(401).json({ success: false, message: 'الجلسة غير صالحة أو منتهية، يرجى تسجيل الدخول مجدداً' });
+  }
+
+  const newToken = generatePermanentToken(user.id, company.id, user.email, user.role);
   const oneYearMs = 365 * 24 * 60 * 60 * 1000;
   activeSessions.set(newToken, { user, company, expiresAt: Date.now() + oneYearMs });
 
@@ -601,6 +727,11 @@ app.post(['/api/v1/auth/session-restore', '/api/auth/session-restore'], async (r
     const existing = activeSessions.get(clientToken);
     if (existing) {
       normalizedEmail = existing.user.email.trim().toLowerCase();
+    } else {
+      const verified = verifySignedToken(clientToken);
+      if (verified && verified.email) {
+        normalizedEmail = verified.email.trim().toLowerCase();
+      }
     }
   }
 
@@ -633,7 +764,7 @@ app.post(['/api/v1/auth/session-restore', '/api/auth/session-restore'], async (r
     }
   }
 
-  if (!finalUser && user) {
+  if (!finalUser && user && user.email) {
     const compId = company?.id || user.company_id || `comp_${(normalizedEmail.split('@')[0] || 'merchant').replace(/[^a-z0-9]/g, '_')}`;
     finalCompany = company || {
       id: compId,
@@ -646,7 +777,7 @@ app.post(['/api/v1/auth/session-restore', '/api/auth/session-restore'], async (r
       id: user.id || `usr_${Date.now()}`,
       username: user.username || normalizedEmail.split('@')[0] || 'admin',
       full_name: user.full_name || 'المدير العام',
-      email: normalizedEmail || 'admin@alsahabi.com',
+      email: normalizedEmail,
       role: user.role || 'ADMIN',
       company_id: compId,
       is_active: true,
@@ -656,7 +787,7 @@ app.post(['/api/v1/auth/session-restore', '/api/auth/session-restore'], async (r
       const permUser: PermanentUserRecord = {
         id: finalUser.id,
         email: normalizedEmail,
-        password_hash: 'admin123',
+        password_hash: hashPassword(user.password || 'admin123'),
         name: finalUser.full_name,
         role: finalUser.role,
         company_id: compId,
@@ -669,23 +800,10 @@ app.post(['/api/v1/auth/session-restore', '/api/auth/session-restore'], async (r
   }
 
   if (!finalUser) {
-    finalUser = tenantUsersByEmail.get('admin@alsahabi.com') || {
-      id: 'usr_001',
-      username: 'admin',
-      full_name: 'المدير العام',
-      email: 'admin@alsahabi.com',
-      role: 'ADMIN',
-      company_id: 'comp_001',
-      is_active: true,
-      created_at: new Date().toISOString(),
-    };
-    finalCompany = tenantCompaniesById.get('comp_001') || {
-      id: 'comp_001',
-      name: 'المؤسسة التجارية الذكية',
-      currency: 'SAR',
-      status: 'ACTIVE',
-      created_at: new Date().toISOString(),
-    };
+    return res.status(401).json({
+      success: false,
+      message: 'لم يتم العثور على جلسة صالحة للاستعادة، يرجى تسجيل الدخول',
+    });
   }
 
   const tokenToUse = clientToken || generatePermanentToken(finalUser.id, finalCompany!.id);
@@ -735,21 +853,50 @@ app.get(['/api/v1/tenant-snapshot/:companyId', '/api/tenant-snapshot/:companyId'
 // Sliding session renewal - Merchant stays logged in indefinitely
 app.post(['/api/v1/auth/refresh', '/api/auth/refresh'], (req: Request, res: Response) => {
   const authHeader = req.headers['authorization'] || '';
-  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  const token = extractBearerToken(authHeader) || (req.headers['x-auth-token'] as string) || '';
 
   let session = token ? activeSessions.get(token) : undefined;
-  let user: PersistentTenantUser;
-  let company: PersistentTenantCompany;
+  let user: PersistentTenantUser | null = null;
+  let company: PersistentTenantCompany | null = null;
 
   if (session) {
     user = session.user;
     company = session.company;
-  } else {
-    user = tenantUsersByEmail.get('admin@alsahabi.com')!;
-    company = tenantCompaniesById.get('comp_001')!;
+  } else if (token) {
+    const verified = verifySignedToken(token);
+    if (verified.valid && verified.payload) {
+      const perm = permanentUsersMap.get(verified.payload.email);
+      if (perm) {
+        const compId = perm.company_id || 'comp_001';
+        company = permanentCompaniesMap.get(compId) || tenantCompaniesById.get(compId) || {
+          id: compId,
+          name: perm.company_name || 'المؤسسة التجارية',
+          currency: 'SAR',
+          status: 'ACTIVE',
+          created_at: perm.created_at,
+        };
+        user = {
+          id: perm.id,
+          username: perm.email.split('@')[0],
+          full_name: perm.name,
+          email: perm.email,
+          role: perm.role || verified.payload.role || 'ADMIN',
+          company_id: compId,
+          is_active: true,
+          created_at: perm.created_at,
+        };
+      }
+    }
   }
 
-  const newToken = generatePermanentToken(user.id, company.id);
+  if (!user || !company) {
+    return res.status(401).json({
+      success: false,
+      message: 'جلسة العمل غير صالحة أو منتهية، يرجى تسجيل الدخول مجدداً',
+    });
+  }
+
+  const newToken = generatePermanentToken(user.id, company.id, user.email, user.role);
   const oneYearMs = 365 * 24 * 60 * 60 * 1000;
   activeSessions.set(newToken, { user, company, expiresAt: Date.now() + oneYearMs });
 
@@ -764,59 +911,45 @@ app.post(['/api/v1/auth/refresh', '/api/auth/refresh'], (req: Request, res: Resp
 
 app.get(['/api/v1/auth/me', '/api/auth/me'], (req: Request, res: Response) => {
   const authHeader = req.headers['authorization'] || '';
-  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-  const headerEmail = (req.headers['x-user-email'] as string || '').trim().toLowerCase();
-  const headerCompId = (req.headers['x-company-id'] as string || '').trim();
+  const token = extractBearerToken(authHeader) || (req.headers['x-auth-token'] as string) || '';
 
   let session = token ? activeSessions.get(token) : undefined;
   let user: PersistentTenantUser | null = session ? session.user : null;
   let company: PersistentTenantCompany | null = session ? session.company : null;
 
-  if (!user && headerEmail) {
-    const perm = permanentUsersMap.get(headerEmail);
-    if (perm) {
-      const compId = perm.company_id || headerCompId || 'comp_001';
-      user = {
-        id: perm.id,
-        username: perm.email.split('@')[0],
-        full_name: perm.name,
-        email: perm.email,
-        role: perm.role || 'ADMIN',
-        company_id: compId,
-        is_active: true,
-        created_at: perm.created_at,
-      };
-      company = permanentCompaniesMap.get(compId) || tenantCompaniesById.get(compId) || {
-        id: compId,
-        name: perm.company_name || 'المؤسسة التجارية',
-        currency: 'YER',
-        status: 'ACTIVE',
-        created_at: new Date().toISOString(),
-      };
-      if (token) {
+  if (!user && token) {
+    const verified = verifySignedToken(token);
+    if (verified.valid && verified.payload) {
+      const perm = permanentUsersMap.get(verified.payload.email);
+      if (perm) {
+        const compId = perm.company_id || 'comp_001';
+        company = permanentCompaniesMap.get(compId) || tenantCompaniesById.get(compId) || {
+          id: compId,
+          name: perm.company_name || 'المؤسسة التجارية',
+          currency: 'SAR',
+          status: 'ACTIVE',
+          created_at: perm.created_at,
+        };
+        user = {
+          id: perm.id,
+          username: perm.email.split('@')[0],
+          full_name: perm.name,
+          email: perm.email,
+          role: perm.role || verified.payload.role || 'ADMIN',
+          company_id: compId,
+          is_active: true,
+          created_at: perm.created_at,
+        };
         activeSessions.set(token, { user, company, expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1000 });
       }
     }
   }
 
-  if (!user) {
-    user = tenantUsersByEmail.get('admin@alsahabi.com') || {
-      id: 'usr_001',
-      username: 'admin',
-      full_name: 'المدير العام',
-      email: 'admin@alsahabi.com',
-      role: 'ADMIN',
-      company_id: 'comp_001',
-      is_active: true,
-      created_at: new Date().toISOString(),
-    };
-    company = tenantCompaniesById.get(user.company_id) || {
-      id: 'comp_001',
-      name: 'مؤسسة السحابي للتجارة والتقنية',
-      currency: 'SAR',
-      status: 'ACTIVE',
-      created_at: new Date().toISOString(),
-    };
+  if (!user || !company) {
+    return res.status(401).json({
+      success: false,
+      message: 'غير مسجل الدخول، يرجى تسجيل الدخول للمتابعة',
+    });
   }
 
   res.status(200).json({
@@ -829,8 +962,9 @@ app.get(['/api/v1/auth/me', '/api/auth/me'], (req: Request, res: Response) => {
 
 app.post(['/api/v1/auth/logout', '/api/auth/logout'], (req: Request, res: Response) => {
   const authHeader = req.headers['authorization'] || '';
-  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  const token = extractBearerToken(authHeader) || (req.headers['x-auth-token'] as string) || '';
   if (token) {
+    revokeToken(token);
     activeSessions.delete(token);
   }
   res.status(200).json({ success: true, message: 'تم تسجيل الخروج بنجاح' });

@@ -12,17 +12,18 @@ class APIClient {
     this.companyId = this.resolveStoredCompanyId();
   }
 
+  private static readonly TOKEN_KEYS = ['erp_auth_token', 'erp_token', 'ai_biz_jwt_token', 'token', 'saas_auth_token'];
+  private static readonly COMPANY_KEYS = ['erp_company_id', 'ai_biz_company_id', 'company_id'];
+
   private resolveStoredToken(): string | null {
     try {
-      const candidate =
-        localStorage.getItem('ai_biz_jwt_token') ||
-        localStorage.getItem('token') ||
-        localStorage.getItem('saas_auth_token') ||
-        null;
-      if (!candidate || candidate === 'undefined' || candidate === 'null' || !candidate.trim()) {
-        return null;
+      for (const key of APIClient.TOKEN_KEYS) {
+        const candidate = localStorage.getItem(key);
+        if (candidate && candidate !== 'undefined' && candidate !== 'null' && candidate.trim()) {
+          return candidate.trim();
+        }
       }
-      return candidate.trim();
+      return null;
     } catch {
       return null;
     }
@@ -30,30 +31,35 @@ class APIClient {
 
   private resolveStoredCompanyId(): string | null {
     try {
-      const candidate =
-        localStorage.getItem('ai_biz_company_id') ||
-        localStorage.getItem('company_id') ||
-        null;
-      if (!candidate || candidate === 'undefined' || candidate === 'null' || !candidate.trim()) {
-        return null;
+      for (const key of APIClient.COMPANY_KEYS) {
+        const candidate = localStorage.getItem(key);
+        if (candidate && candidate !== 'undefined' && candidate !== 'null' && candidate.trim()) {
+          return candidate.trim();
+        }
       }
-      return candidate.trim();
+      return null;
     } catch {
       return null;
     }
   }
 
   public setToken(token: string | null): void {
-    this.token = token;
+    if (!token || token === 'undefined' || token === 'null' || !token.trim()) {
+      this.token = null;
+      try {
+        for (const key of APIClient.TOKEN_KEYS) {
+          localStorage.removeItem(key);
+        }
+      } catch (e) {
+        console.warn('Could not clear token from localStorage', e);
+      }
+      return;
+    }
+
+    this.token = token.trim();
     try {
-      if (token) {
-        localStorage.setItem('ai_biz_jwt_token', token);
-        localStorage.setItem('token', token);
-        localStorage.setItem('saas_auth_token', token);
-      } else {
-        localStorage.removeItem('ai_biz_jwt_token');
-        localStorage.removeItem('token');
-        localStorage.removeItem('saas_auth_token');
+      for (const key of APIClient.TOKEN_KEYS) {
+        localStorage.setItem(key, this.token);
       }
     } catch (e) {
       console.warn('Could not persist token to localStorage', e);
@@ -61,14 +67,22 @@ class APIClient {
   }
 
   public setCompanyId(companyId: string | null): void {
-    this.companyId = companyId;
+    if (!companyId || companyId === 'undefined' || companyId === 'null' || !companyId.trim()) {
+      this.companyId = null;
+      try {
+        for (const key of APIClient.COMPANY_KEYS) {
+          localStorage.removeItem(key);
+        }
+      } catch (e) {
+        console.warn('Could not clear companyId from localStorage', e);
+      }
+      return;
+    }
+
+    this.companyId = companyId.trim();
     try {
-      if (companyId) {
-        localStorage.setItem('ai_biz_company_id', companyId);
-        localStorage.setItem('company_id', companyId);
-      } else {
-        localStorage.removeItem('ai_biz_company_id');
-        localStorage.removeItem('company_id');
+      for (const key of APIClient.COMPANY_KEYS) {
+        localStorage.setItem(key, this.companyId);
       }
     } catch (e) {
       console.warn('Could not persist companyId to localStorage', e);

@@ -33,6 +33,12 @@ import {
   getTenantConflicts,
   registerSseClient,
 } from '../services/syncEngineServer';
+import {
+  getCurrentTenantContext,
+  extractBearerToken,
+  verifySignedToken,
+  hashPassword,
+} from '../security.js';
 
 export {
   mockCustomersList,
@@ -67,6 +73,31 @@ export function setEnterpriseDbPool(pool: any) {
 }
 
 export function resolveCompanyId(req: Request): string {
+  // 1. If verified by authentication middleware, use locked companyId
+  if ((req as any).companyId) {
+    return (req as any).companyId;
+  }
+  if ((req as any).user?.companyId) {
+    return (req as any).user.companyId;
+  }
+
+  // 2. Check AsyncLocalStorage tenant context
+  const currentCtx = getCurrentTenantContext();
+  if (currentCtx?.companyId) {
+    return currentCtx.companyId;
+  }
+
+  // 3. Check signed JWT token in authorization header
+  const authHeader = req.headers['authorization'] || '';
+  const token = extractBearerToken(authHeader) || (req.headers['x-auth-token'] as string);
+  if (token) {
+    const verified = verifySignedToken(token);
+    if (verified.valid && verified.payload?.cid) {
+      return verified.payload.cid;
+    }
+  }
+
+  // 4. Fallback to header or query if unauthenticated
   const headerId = req.headers['x-company-id'] || req.headers['x-tenant-id'];
   if (headerId && typeof headerId === 'string' && headerId.trim()) {
     return headerId.trim();
@@ -75,14 +106,7 @@ export function resolveCompanyId(req: Request): string {
   if (queryId && typeof queryId === 'string' && queryId.trim()) {
     return String(queryId).trim();
   }
-  const authHeader = req.headers['authorization'] || '';
-  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-  if (token && token.startsWith('jwt_session_')) {
-    const parts = token.split('_');
-    if (parts.length >= 4) {
-      return parts[3]; // jwt_session_userId_companyId_timestamp_nonce
-    }
-  }
+
   return 'comp_001';
 }
 
@@ -597,7 +621,7 @@ enterpriseRouter.post('/customers', (req: Request, res: Response) => {
 });
 
 enterpriseRouter.get('/customers/:id', (req: Request, res: Response) => {
-  const c = mockCustomersList.find((x) => x.id === req.params.id) || mockCustomersList[0];
+  const c = mockCustomersList.find((x) => x.id === req.params.id);
   if (!c) {
     return res.status(404).json({ success: false, error: 'Customer not found' });
   }
@@ -632,7 +656,7 @@ enterpriseRouter.delete('/customers/:id', (req: Request, res: Response) => {
 });
 
 enterpriseRouter.get('/customers/:id/statement', (req: Request, res: Response) => {
-  const cust = mockCustomersList.find((c) => c.id === req.params.id) || mockCustomersList[0];
+  const cust = mockCustomersList.find((c) => c.id === req.params.id);
   if (!cust) {
     return res.status(404).json({ success: false, error: 'Customer not found' });
   }
@@ -903,7 +927,7 @@ enterpriseRouter.post('/suppliers', (req: Request, res: Response) => {
 });
 
 enterpriseRouter.get('/suppliers/:id', (req: Request, res: Response) => {
-  const s = mockSuppliersList.find((x) => x.id === req.params.id) || mockSuppliersList[0];
+  const s = mockSuppliersList.find((x) => x.id === req.params.id);
   if (!s) {
     return res.status(404).json({ success: false, error: 'Supplier not found' });
   }
@@ -938,7 +962,7 @@ enterpriseRouter.delete('/suppliers/:id', (req: Request, res: Response) => {
 });
 
 enterpriseRouter.get('/suppliers/:id/statement', (req: Request, res: Response) => {
-  const supp = mockSuppliersList.find((x) => x.id === req.params.id) || mockSuppliersList[0];
+  const supp = mockSuppliersList.find((x) => x.id === req.params.id);
   if (!supp) {
     return res.status(404).json({ success: false, error: 'Supplier not found' });
   }
