@@ -1,0 +1,24 @@
+# Node & Build artifacts
+node_modules/
+dist/
+build/
+.cache/
+
+# Tauri build outputs and secrets
+src-tauri/target/
+.tauri_private_key_temp.txt
+*.key
+*.priv
+*.pem
+
+# Environment & logs
+.env
+.env.local
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS specific
+.DS_Store
+Thumbs.db

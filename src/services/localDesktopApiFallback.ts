@@ -335,32 +335,413 @@ function getActiveCompanyId(): string {
 }
 
 /**
- * Safe local storage getter
+ * The 10 core ERP localStorage keys requiring strict tenant isolation
+ */
+export const TENANT_ISOLATED_KEYS = new Set<string>([
+  'erp_products_v1',
+  'erp_invoices_v1',
+  'erp_purchase_invoices_v1',
+  'erp_inventory_movements_v1',
+  'erp_payments_v1',
+  'erp_customers_v1',
+  'erp_suppliers_v1',
+  'erp_accounts_v1',
+  'erp_journal_entries_v1',
+  'erp_employees_expenses_v1',
+]);
+
+/**
+ * Standard rounding to 2 decimal places for financial calculations
+ */
+export function roundMoney(val: unknown): number {
+  return Math.round((Number(val) + Number.EPSILON) * 100) / 100;
+}
+
+/**
+ * Validate double-entry journal balance (totalDebit === totalCredit)
+ */
+export function validateLocalBalancedJournalLines(lines: Array<{ debit?: number; credit?: number }>): {
+  valid: boolean;
+  totalDebit: number;
+  totalCredit: number;
+  difference: number;
+} {
+  if (!Array.isArray(lines) || lines.length === 0) {
+    return { valid: false, totalDebit: 0, totalCredit: 0, difference: 0 };
+  }
+  const totalDebit = lines.reduce((s, l) => s + roundMoney(l.debit || 0), 0);
+  const totalCredit = lines.reduce((s, l) => s + roundMoney(l.credit || 0), 0);
+  const diff = roundMoney(Math.abs(totalDebit - totalCredit));
+  const valid = diff <= 0.01 && totalDebit > 0;
+  return { valid, totalDebit: roundMoney(totalDebit), totalCredit: roundMoney(totalCredit), difference: diff };
+}
+
+/**
+ * Standard Chart of Accounts
+ */
+export const LOCAL_STANDARD_CHART_OF_ACCOUNTS = [
+  { code: '1101', name: 'الخزينة الرئيسية (النقدية)', type: 'ASSET', category: 'CURRENT_ASSET', normal_balance: 'DEBIT', balance: 0 },
+  { code: '1102', name: 'البنك / الحسابات المصرفية', type: 'ASSET', category: 'CURRENT_ASSET', normal_balance: 'DEBIT', balance: 0 },
+  { code: '1103', name: 'العملاء والمدينون التجاريون', type: 'ASSET', category: 'CURRENT_ASSET', normal_balance: 'DEBIT', balance: 0 },
+  { code: '1104', name: 'مخزون البضائع', type: 'ASSET', category: 'CURRENT_ASSET', normal_balance: 'DEBIT', balance: 0 },
+  { code: '1105', name: 'ضريبة القيمة المضافة المدخلة (مستردة)', type: 'ASSET', category: 'CURRENT_ASSET', normal_balance: 'DEBIT', balance: 0 },
+  { code: '1201', name: 'الأصول الثابتة والمعدات', type: 'ASSET', category: 'FIXED_ASSET', normal_balance: 'DEBIT', balance: 0 },
+  { code: '2101', name: 'الموردون والدائنون التجاريون', type: 'LIABILITY', category: 'CURRENT_LIABILITY', normal_balance: 'CREDIT', balance: 0 },
+  { code: '2102', name: 'ضريبة القيمة المضافة المخرجة (مستحقة)', type: 'LIABILITY', category: 'CURRENT_LIABILITY', normal_balance: 'CREDIT', balance: 0 },
+  { code: '2103', name: 'المصروفات والرواتب المستحقة', type: 'LIABILITY', category: 'CURRENT_LIABILITY', normal_balance: 'CREDIT', balance: 0 },
+  { code: '3101', name: 'رأس المال المدفوع', type: 'EQUITY', category: 'EQUITY', normal_balance: 'CREDIT', balance: 0 },
+  { code: '3201', name: 'الأرباح المحتجزة / السابقة', type: 'EQUITY', category: 'EQUITY', normal_balance: 'CREDIT', balance: 0 },
+  { code: '4101', name: 'إيرادات المبيعات', type: 'REVENUE', category: 'OPERATING_REVENUE', normal_balance: 'CREDIT', balance: 0 },
+  { code: '4102', name: 'مردودات ومسموحات المبيعات', type: 'REVENUE', category: 'OPERATING_REVENUE', normal_balance: 'DEBIT', balance: 0 },
+  { code: '5101', name: 'تكلفة البضاعة المباعة (COGS)', type: 'EXPENSE', category: 'DIRECT_COST', normal_balance: 'DEBIT', balance: 0 },
+  { code: '5201', name: 'مصروفات عمومية وإدارية', type: 'EXPENSE', category: 'OPERATING_EXPENSE', normal_balance: 'DEBIT', balance: 0 },
+  { code: '5202', name: 'مصروفات الرواتب والأجور', type: 'EXPENSE', category: 'OPERATING_EXPENSE', normal_balance: 'DEBIT', balance: 0 },
+  { code: '5203', name: 'إيجارات ومنافع', type: 'EXPENSE', category: 'OPERATING_EXPENSE', normal_balance: 'DEBIT', balance: 0 },
+];
+
+/**
+ * Safe local storage getter with tenant isolation
  */
 function getLocalItem<T = any[]>(key: string, fallback: any = []): T {
   try {
+    const activeComp = getActiveCompanyId();
+    if (typeof localStorage === 'undefined') return fallback;
+
+    // If key is tenant-isolated, check company-specific key first
+    if (TENANT_ISOLATED_KEYS.has(key)) {
+      const compKey = `${key}_${activeComp}`;
+      const compRaw = localStorage.getItem(compKey);
+      if (compRaw) {
+        try {
+          const parsed = JSON.parse(compRaw);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed as unknown as T;
+        } catch {}
+      }
+    }
+
     const raw = localStorage.getItem(key);
     if (!raw) return fallback;
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+
+    if (TENANT_ISOLATED_KEYS.has(key) && Array.isArray(parsed)) {
+      const filtered = parsed.filter((item: any) => {
+        if (!item || typeof item !== 'object') return false;
+        const itemComp = item.company_id || item.companyId;
+        return !itemComp || itemComp === activeComp;
+      });
+      return filtered as unknown as T;
+    }
+
+    return parsed;
   } catch {
     return fallback;
   }
 }
 
 /**
- * Safe local storage setter (writes to both base key and company-scoped key)
+ * Safe local storage setter with tenant isolation
  */
 function setLocalItem(key: string, value: any, companyId?: string): void {
   try {
+    if (typeof localStorage === 'undefined') return;
+    const comp = companyId || getActiveCompanyId();
+
+    if (TENANT_ISOLATED_KEYS.has(key) && Array.isArray(value)) {
+      // Ensure all objects in value have matching company_id
+      const tagged = value.map((item: any) => {
+        if (item && typeof item === 'object') {
+          return {
+            ...item,
+            company_id: item.company_id || comp,
+            companyId: item.companyId || comp,
+          };
+        }
+        return item;
+      });
+
+      // Write directly to company-scoped key
+      localStorage.setItem(`${key}_${comp}`, JSON.stringify(tagged));
+
+      // Merge into base key preserving other companies' data
+      try {
+        const rawBase = localStorage.getItem(key);
+        let baseItems: any[] = [];
+        if (rawBase) {
+          const parsed = JSON.parse(rawBase);
+          if (Array.isArray(parsed)) {
+            baseItems = parsed.filter((i: any) => {
+              const iComp = i?.company_id || i?.companyId;
+              return iComp && iComp !== comp;
+            });
+          }
+        }
+        const merged = [...tagged, ...baseItems];
+        localStorage.setItem(key, JSON.stringify(merged));
+      } catch {
+        localStorage.setItem(key, JSON.stringify(tagged));
+      }
+      return;
+    }
+
     const str = typeof value === 'string' ? value : JSON.stringify(value);
     localStorage.setItem(key, str);
-    const comp = companyId || getActiveCompanyId();
     if (comp) {
       localStorage.setItem(`${key}_${comp}`, str);
     }
   } catch (err) {
     console.warn('[LocalDesktopFallback] Storage write warning:', err);
   }
+}
+
+/**
+ * Get or initialize local Chart of Accounts for company
+ */
+export function getLocalAccounts(companyId: string): any[] {
+  let accounts = getLocalItem<any[]>('erp_accounts_v1', []);
+  if (!Array.isArray(accounts) || accounts.length === 0) {
+    accounts = LOCAL_STANDARD_CHART_OF_ACCOUNTS.map((acc) => ({
+      ...acc,
+      id: `acc_${companyId}_${acc.code}`,
+      company_id: companyId,
+      created_at: new Date().toISOString(),
+    }));
+    setLocalItem('erp_accounts_v1', accounts, companyId);
+  }
+  return accounts;
+}
+
+/**
+ * Post balanced double entry journal into local storage
+ */
+export function postLocalDoubleEntryJournal(options: {
+  company_id?: string;
+  reference_type?: string;
+  reference_id?: string;
+  description?: string;
+  date?: string;
+  lines: Array<{ account_id?: string; account_code?: string; account_name?: string; debit?: number; credit?: number }>;
+}): { success: boolean; entry?: any; error?: string; message?: string } {
+  const companyId = options.company_id || getActiveCompanyId();
+  const validation = validateLocalBalancedJournalLines(options.lines);
+  if (!validation.valid) {
+    return {
+      success: false,
+      error: 'UNBALANCED_JOURNAL_ENTRY',
+      message: `القيد المحاسبي غير متوازن: مجموع المدين (${validation.totalDebit}) لا يساوي مجموع الدائن (${validation.totalCredit})`,
+    };
+  }
+
+  const entries = getLocalItem<any[]>('erp_journal_entries_v1', []);
+  const accounts = getLocalAccounts(companyId);
+
+  const entryId = `je_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+  const entryNumber = `JE-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${(entries.length + 1).toString().padStart(4, '0')}`;
+
+  const entryLines = options.lines.map((line, idx) => {
+    const acc = accounts.find((a) => (line.account_code && a.code === line.account_code) || (line.account_id && a.id === line.account_id));
+    return {
+      id: `line_${entryId}_${idx + 1}`,
+      journal_id: entryId,
+      company_id: companyId,
+      account_id: line.account_id || acc?.id || `acc_${line.account_code}`,
+      account_code: line.account_code || acc?.code || '',
+      account_name: line.account_name || acc?.name || '',
+      debit: roundMoney(line.debit || 0),
+      credit: roundMoney(line.credit || 0),
+    };
+  });
+
+  // Update account balances
+  for (const line of entryLines) {
+    const accIdx = accounts.findIndex((a) => a.id === line.account_id || a.code === line.account_code);
+    if (accIdx !== -1) {
+      const acc = accounts[accIdx];
+      const debit = Number(line.debit || 0);
+      const credit = Number(line.credit || 0);
+      const currentBal = Number(acc.balance || 0);
+      if (acc.type === 'ASSET' || acc.type === 'EXPENSE') {
+        acc.balance = roundMoney(currentBal + debit - credit);
+      } else {
+        acc.balance = roundMoney(currentBal + credit - debit);
+      }
+    }
+  }
+
+  setLocalItem('erp_accounts_v1', accounts, companyId);
+
+  const newEntry = {
+    id: entryId,
+    entry_number: entryNumber,
+    company_id: companyId,
+    date: options.date || new Date().toISOString(),
+    description: options.description || 'قيد محاسبي آلي',
+    reference_type: options.reference_type || 'MANUAL',
+    reference_id: options.reference_id || null,
+    total_debit: validation.totalDebit,
+    total_credit: validation.totalCredit,
+    status: 'POSTED',
+    lines: entryLines,
+    created_at: new Date().toISOString(),
+  };
+
+  entries.unshift(newEntry);
+  setLocalItem('erp_journal_entries_v1', entries, companyId);
+  return { success: true, entry: newEntry };
+}
+
+/**
+ * Compute local unified financial metrics matching Income Statement, Balance Sheet, Trial Balance, and Dashboard
+ */
+export function computeLocalUnifiedFinancialMetrics(companyId: string) {
+  const invs = getLocalItem<any[]>('erp_invoices_v1', []);
+  const pur = getLocalItem<any[]>('erp_purchase_invoices_v1', []);
+  const prods = getLocalItem<any[]>('erp_products_v1', []);
+  const custs = getLocalItem<any[]>('erp_customers_v1', []);
+  const supps = getLocalItem<any[]>('erp_suppliers_v1', []);
+  const expenses = getLocalItem<any[]>('erp_employees_expenses_v1', []);
+  const returns = getLocalItem<any[]>('erp_sales_returns_v1', []);
+  const journalEntries = getLocalItem<any[]>('erp_journal_entries_v1', []);
+  const accounts = getLocalAccounts(companyId);
+
+  const salesTotal = roundMoney(
+    invs
+      .filter((i) => (i.status || '').toUpperCase() !== 'CANCELLED')
+      .reduce((s, i) => s + Number(i.total || i.grandTotal || 0), 0)
+  );
+  const salesReturns = roundMoney(returns.reduce((s, r) => s + Number(r.total || r.totalRefund || 0), 0));
+  const netSales = roundMoney(Math.max(0, salesTotal - salesReturns));
+
+  // COGS calculation from 5101 journal entries or items
+  let cogsTotal = 0;
+  for (const je of journalEntries) {
+    if (Array.isArray(je.lines)) {
+      for (const line of je.lines) {
+        if (line.account_code === '5101') {
+          cogsTotal += Number(line.debit || 0) - Number(line.credit || 0);
+        }
+      }
+    }
+  }
+  cogsTotal = roundMoney(Math.max(0, cogsTotal));
+  if (cogsTotal === 0 && invs.length > 0) {
+    for (const inv of invs) {
+      const items = inv.items || inv.cartData || inv.invoice_items || [];
+      for (const it of items) {
+        const p = prods.find((pr) => String(pr.id) === String(it.productId || it.product_id || it.id));
+        const cost = Number(p?.cost_price || it.cost_price || 0);
+        const qty = Number(it.quantity || it.qty || 1);
+        cogsTotal += cost * qty;
+      }
+    }
+    cogsTotal = roundMoney(cogsTotal);
+  }
+
+  const grossProfit = roundMoney(netSales - cogsTotal);
+  const operatingExpenses = roundMoney(expenses.reduce((s, e) => s + Number(e.amount || 0), 0));
+  const netIncome = roundMoney(grossProfit - operatingExpenses);
+  const netProfit = netIncome;
+  const purchasesTotal = roundMoney(pur.reduce((s, p) => s + Number(p.grandTotal || p.total || 0), 0));
+
+  const receivables = roundMoney(custs.reduce((s, c) => s + Math.max(0, Number(c.balance || c.current_balance || 0)), 0));
+  const payables = roundMoney(supps.reduce((s, sp) => s + Math.max(0, Number(sp.balance || sp.current_balance || 0)), 0));
+  const inventoryValuation = roundMoney(
+    prods.reduce((s, pr) => s + Number(pr.cost_price || 0) * Math.max(0, Number(pr.current_stock ?? pr.stock ?? 0)), 0)
+  );
+
+  const cashAcc = accounts.find((a) => a.code === '1101');
+  const cashBalance = roundMoney(Math.max(0, Number(cashAcc?.balance || 0)));
+  const vatAcc = accounts.find((a) => a.code === '2102');
+  const vatPayable = roundMoney(Math.max(0, Number(vatAcc?.balance || 0)));
+
+  // Trial balance from journals
+  let totalDebit = 0;
+  let totalCredit = 0;
+  const tbAccounts = accounts.map((acc) => {
+    let accDebit = 0;
+    let accCredit = 0;
+    for (const je of journalEntries) {
+      if (Array.isArray(je.lines)) {
+        for (const line of je.lines) {
+          if (line.account_code === acc.code || line.account_id === acc.id) {
+            accDebit += Number(line.debit || 0);
+            accCredit += Number(line.credit || 0);
+          }
+        }
+      }
+    }
+    totalDebit += accDebit;
+    totalCredit += accCredit;
+    return {
+      code: acc.code,
+      name: acc.name,
+      type: acc.type,
+      category: acc.category,
+      debit: roundMoney(accDebit),
+      credit: roundMoney(accCredit),
+      balance: roundMoney(acc.balance || 0),
+    };
+  });
+
+  totalDebit = roundMoney(totalDebit);
+  totalCredit = roundMoney(totalCredit);
+  const diff = roundMoney(Math.abs(totalDebit - totalCredit));
+
+  return {
+    salesTotal,
+    salesReturns,
+    netSales,
+    cogsTotal,
+    grossProfit,
+    operatingExpenses,
+    netIncome,
+    netProfit,
+    purchasesTotal,
+    receivables,
+    payables,
+    inventoryValuation,
+    cashBalance,
+    vatPayable,
+    marginPercentage: netSales > 0 ? roundMoney((grossProfit / netSales) * 100) : 0,
+    trialBalance: {
+      totalDebit,
+      totalCredit,
+      difference: diff,
+      isBalanced: diff <= 0.01,
+      balanced: diff <= 0.01,
+      accounts: tbAccounts,
+    },
+    balanceSheet: {
+      assets: {
+        currentAssets: roundMoney(cashBalance + receivables + inventoryValuation),
+        fixedAssets: 0,
+        totalAssets: roundMoney(cashBalance + receivables + inventoryValuation),
+        cashAndBank: cashBalance,
+        receivables,
+        inventory: inventoryValuation,
+      },
+      liabilities: {
+        currentLiabilities: roundMoney(payables + vatPayable),
+        totalLiabilities: roundMoney(payables + vatPayable),
+        payables,
+        vatPayable,
+      },
+      equity: {
+        capital: 0,
+        retainedEarnings: netProfit,
+        totalEquity: netProfit,
+      },
+      balanced: true,
+    },
+    incomeStatement: {
+      revenue: netSales,
+      cogs: cogsTotal,
+      grossProfit,
+      operatingExpenses,
+      netIncome,
+      netProfit,
+      marginPercentage: netSales > 0 ? roundMoney((grossProfit / netSales) * 100) : 0,
+    },
+  };
 }
 
 /**
