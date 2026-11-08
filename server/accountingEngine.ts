@@ -365,7 +365,8 @@ export interface SalesPostParams {
 }
 
 export function postSalesTransactionAtomic(params: SalesPostParams) {
-  const { companyId, invoice, items, enforceStockCheck = true } = params;
+  const { companyId, invoice, enforceStockCheck = true } = params;
+  const items = params.items || invoice.items || [];
   const cid = companyId || getCurrentTenantId() || 'comp_001';
   const paymentMethod = String(params.paymentMethod || invoice.payment_method || invoice.paymentMethod || 'CASH').toUpperCase();
   const rawDate = String(invoice.date || invoice.invoice_date || invoice.created_at || '').trim();
@@ -601,7 +602,10 @@ export function postSalesTransactionAtomic(params: SalesPostParams) {
     mockPaymentsList.unshift({
       id: `pmt-sale-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       company_id: cid,
+      voucher_number: `REC-${invoiceNumber}`,
+      voucherNumber: `REC-${invoiceNumber}`,
       payment_number: `REC-${invoiceNumber}`,
+      paymentNumber: `REC-${invoiceNumber}`,
       voucher_type: 'RECEIPT',
       payment_type: 'IN',
       type: 'CUSTOMER_PAYMENT',
@@ -611,9 +615,14 @@ export function postSalesTransactionAtomic(params: SalesPostParams) {
       amount: paidVal,
       payment_method: isBank ? 'BANK' : 'CASH',
       reference_type: 'SALES_INVOICE',
+      referenceType: 'SALES_INVOICE',
       reference_id: invoiceNumber,
+      referenceId: invoiceNumber,
+      reference_no: invoiceNumber,
+      referenceNo: invoiceNumber,
       date: invoiceDate,
       notes: `تحصيل مبيعات فاتورة رقم #${invoiceNumber}`,
+      description: `تحصيل مبيعات فاتورة رقم #${invoiceNumber}`,
       created_at: invoiceCreatedAt,
     } as any);
   }
@@ -662,6 +671,13 @@ export function postSalesTransactionAtomic(params: SalesPostParams) {
     items: items,
     created_at: invoiceCreatedAt,
   };
+
+  const existingInvIdx = mockInvoicesList.findIndex(
+    (inv) => String(inv.id) === String(newInv.id) || String(inv.invoice_number) === String(invoiceNumber) || String(inv.invoiceNumber) === String(invoiceNumber)
+  );
+  if (existingInvIdx !== -1) {
+    mockInvoicesList.splice(existingInvIdx, 1);
+  }
   mockInvoicesList.unshift(newInv);
 
   persistAllToDisk();
@@ -891,7 +907,8 @@ export interface PurchasePostParams {
 }
 
 export function postPurchaseTransactionAtomic(params: PurchasePostParams) {
-  const { companyId, purchaseInvoice, items } = params;
+  const { companyId, purchaseInvoice } = params;
+  const items = params.items || purchaseInvoice.items || [];
   const cid = companyId || getCurrentTenantId() || 'comp_001';
   const paymentMethod = String(params.paymentMethod || purchaseInvoice.payment_method || 'CREDIT').toUpperCase();
   const rawDate = String(purchaseInvoice.invoice_date || purchaseInvoice.date || purchaseInvoice.created_at || '').trim();
@@ -1083,7 +1100,10 @@ export function postPurchaseTransactionAtomic(params: PurchasePostParams) {
     mockPaymentsList.unshift({
       id: `pmt-pur-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       company_id: cid,
+      voucher_number: `PAY-${invoiceNumber}`,
+      voucherNumber: `PAY-${invoiceNumber}`,
       payment_number: `PAY-${invoiceNumber}`,
+      paymentNumber: `PAY-${invoiceNumber}`,
       voucher_type: 'PAYMENT',
       payment_type: 'OUT',
       type: 'SUPPLIER_PAYMENT',
@@ -1093,9 +1113,14 @@ export function postPurchaseTransactionAtomic(params: PurchasePostParams) {
       amount: paidVal,
       payment_method: isBank ? 'BANK' : 'CASH',
       reference_type: 'PURCHASE_INVOICE',
+      referenceType: 'PURCHASE_INVOICE',
       reference_id: invoiceNumber,
+      referenceId: invoiceNumber,
+      reference_no: invoiceNumber,
+      referenceNo: invoiceNumber,
       date: invoiceDate,
       notes: `سداد مشتريات فاتورة رقم #${invoiceNumber}`,
+      description: `سداد مشتريات فاتورة رقم #${invoiceNumber}`,
       created_at: invoiceCreatedAt,
     } as any);
   }
@@ -1131,6 +1156,13 @@ export function postPurchaseTransactionAtomic(params: PurchasePostParams) {
     items: items,
     created_at: invoiceCreatedAt,
   };
+
+  const existingPurIdx = mockPurchaseInvoicesList.findIndex(
+    (pur) => String(pur.id) === String(newPur.id) || String(pur.invoice_number) === String(invoiceNumber) || String(pur.invoiceNumber) === String(invoiceNumber)
+  );
+  if (existingPurIdx !== -1) {
+    mockPurchaseInvoicesList.splice(existingPurIdx, 1);
+  }
   mockPurchaseInvoicesList.unshift(newPur);
 
   persistAllToDisk();
@@ -1164,6 +1196,12 @@ export interface VoucherParams {
   description?: string;
   date?: string;
   created_by?: string;
+  referenceType?: string;
+  reference_type?: string;
+  referenceNo?: string;
+  reference_no?: string;
+  referenceId?: string;
+  reference_id?: string;
 }
 
 export function postVoucherAtomic(params: VoucherParams) {
@@ -1181,6 +1219,83 @@ export function postVoucherAtomic(params: VoucherParams) {
   const isBank = params.paymentMethod === 'BANK';
   const cashOrBankCode = isBank ? '1102' : '1101';
   const cashOrBankName = isBank ? 'البنك / الحسابات البنكية' : 'الصندوق / النقدية';
+
+  const refType = String(params.referenceType || params.reference_type || '').toUpperCase();
+  const refNo = String(params.referenceNo || params.reference_no || params.referenceId || params.reference_id || '').trim();
+  const desc = String(params.description || '');
+
+  // Idempotency check for invoice payments:
+  // If referenceType === 'SALES_INVOICE' || referenceType === 'PURCHASE_INVOICE' or description contains
+  // 'سند قبض آلي عن فاتورة مبيعات' / 'نقطة البيع' / 'فاتورة مشتريات', return the existing payment idempotently
+  // WITHOUT deducting cust.current_balance or supp.current_balance and WITHOUT posting a duplicate journal entry to 1101 Cash!
+  const isInvoiceAutoVoucher =
+    refType === 'SALES_INVOICE' ||
+    refType === 'PURCHASE_INVOICE' ||
+    desc.includes('سند قبض آلي عن فاتورة مبيعات') ||
+    desc.includes('نقطة البيع') ||
+    desc.includes('فاتورة مشتريات') ||
+    desc.includes('تحصيل مبيعات فاتورة');
+
+  if (isInvoiceAutoVoucher) {
+    const existingPmt = mockPaymentsList.find((p) => {
+      const pRef = String(p.reference_no || p.referenceNo || p.reference_id || p.referenceId || '').trim();
+      const pVouch = String(p.voucher_number || p.voucherNumber || p.payment_number || p.paymentNumber || '').trim();
+      return (
+        (refNo && (pRef === refNo || pVouch === refNo || pVouch === `REC-${refNo}` || pVouch === `PAY-${refNo}`)) ||
+        (params.voucherNumber && (pVouch === params.voucherNumber || pRef === params.voucherNumber))
+      );
+    });
+
+    if (existingPmt) {
+      return {
+        voucherNumber: existingPmt.voucher_number || existingPmt.payment_number || vNum,
+        amount: roundAmt,
+        journal: null,
+        payment: existingPmt,
+        data: existingPmt,
+      };
+    }
+
+    const autoPmt = {
+      id: `PMT-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      company_id: cid,
+      voucher_number: params.voucherNumber || vNum,
+      voucherNumber: params.voucherNumber || vNum,
+      payment_number: params.voucherNumber || vNum,
+      paymentNumber: params.voucherNumber || vNum,
+      amount: roundAmt,
+      type: type === 'RECEIPT' ? 'CUSTOMER_PAYMENT' : 'SUPPLIER_PAYMENT',
+      voucher_type: type,
+      payment_type: type === 'RECEIPT' ? 'IN' : 'OUT',
+      customer_id: params.partyType === 'CUSTOMER' ? params.partyId : undefined,
+      customer_name: params.partyType === 'CUSTOMER' ? params.partyName : undefined,
+      supplier_id: params.partyType === 'SUPPLIER' ? params.partyId : undefined,
+      supplier_name: params.partyType === 'SUPPLIER' ? params.partyName : undefined,
+      party_id: params.partyId,
+      party_name: params.partyName,
+      payment_method: params.paymentMethod || 'CASH',
+      reference_type: refType || (type === 'RECEIPT' ? 'SALES_INVOICE' : 'PURCHASE_INVOICE'),
+      referenceType: refType || (type === 'RECEIPT' ? 'SALES_INVOICE' : 'PURCHASE_INVOICE'),
+      reference_id: refNo,
+      referenceId: refNo,
+      reference_no: refNo,
+      referenceNo: refNo,
+      date: dateStr,
+      payment_date: dateStr,
+      description: desc || `سند ${type === 'RECEIPT' ? 'قبض' : 'صرف'} #${vNum}`,
+      status: 'CONFIRMED',
+      created_at: new Date().toISOString(),
+    };
+    mockPaymentsList.unshift(autoPmt as any);
+    persistAllToDisk();
+    return {
+      voucherNumber: params.voucherNumber || vNum,
+      amount: roundAmt,
+      journal: null,
+      payment: autoPmt,
+      data: autoPmt,
+    };
+  }
 
   const lines: JournalLine[] = [];
 

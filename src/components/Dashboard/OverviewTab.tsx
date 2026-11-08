@@ -155,12 +155,32 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
         },
       };
 
-      setStats(dynamicStats);
-      const netProfit = Math.max(0, computedTotalSales - computedTotalPurchases);
+      let backendDashboard: any = null;
+      try {
+        const dRes = await fetch('/api/v1/dashboard', {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-company-id': localStorage.getItem('erp_company_id') || 'comp_001',
+          },
+        });
+        if (dRes.ok) {
+          const dJson = await dRes.json();
+          backendDashboard = dJson?.data;
+        }
+      } catch {}
+
+      const netProfit = backendDashboard?.netProfit !== undefined 
+        ? Number(backendDashboard.netProfit) 
+        : Math.max(0, computedTotalSales - computedTotalPurchases);
+
+      const netMargin = backendDashboard?.marginPercentage !== undefined
+        ? String(backendDashboard.marginPercentage)
+        : (dynamicStats.totalSales > 0 ? ((netProfit / dynamicStats.totalSales) * 100).toFixed(1) : '0.0');
+
       setKpis({
-        revenue: dynamicStats.totalSales,
+        revenue: backendDashboard?.salesTotal !== undefined ? Number(backendDashboard.salesTotal) : dynamicStats.totalSales,
         netProfit: netProfit,
-        netMargin: dynamicStats.totalSales > 0 ? ((netProfit / dynamicStats.totalSales) * 100).toFixed(1) : '0.0',
+        netMargin: netMargin,
       });
 
       setTopData({

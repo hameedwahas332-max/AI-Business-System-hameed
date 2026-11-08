@@ -139,6 +139,9 @@ export interface AccountTransactionItem {
   date: string;
   description?: string;
   reference_no?: string;
+  reference_id?: string;
+  reference_type?: string;
+  referenceType?: string;
   notes?: string;
   created_at?: string;
 }
@@ -147,16 +150,27 @@ export interface InvoiceItem {
   id: string;
   company_id?: string;
   invoice_number: string;
+  invoiceNumber?: string;
   customer?: string;
   customer_name?: string;
+  customerName?: string;
   customer_id?: string;
+  customerId?: string;
   date: string;
+  invoice_date?: string;
+  invoiceDate?: string;
   total: number;
+  totalAmount?: number;
+  grandTotal?: number;
   amount: number;
   paid_amount: number;
+  paidAmount?: number;
+  paid?: number;
   remaining_amount?: number;
+  remainingAmount?: number;
   status: string;
   payment_method?: string;
+  paymentMethod?: string;
   currency?: string;
   items?: any[];
   notes?: string;
@@ -167,14 +181,26 @@ export interface PurchaseInvoiceItem {
   id: string;
   company_id?: string;
   invoice_number: string;
+  invoiceNumber?: string;
   supplier_name: string;
+  supplierName?: string;
   supplier_id?: string;
+  supplierId?: string;
   invoice_date: string;
+  invoiceDate?: string;
+  date?: string;
   total: number;
+  totalAmount?: number;
+  grandTotal?: number;
+  amount?: number;
   paid_amount: number;
+  paidAmount?: number;
+  paid?: number;
   remaining_amount: number;
+  remainingAmount?: number;
   status: string;
   payment_method?: string;
+  paymentMethod?: string;
   currency?: string;
   items?: any[];
   notes?: string;
@@ -186,6 +212,13 @@ export interface PaymentItem {
   company_id?: string;
   type: 'CUSTOMER_PAYMENT' | 'SUPPLIER_PAYMENT' | 'EXPENSE';
   voucher_number: string;
+  voucherNumber?: string;
+  payment_number?: string;
+  paymentNumber?: string;
+  voucher_type?: string;
+  payment_type?: string;
+  party_id?: string;
+  party_name?: string;
   customer_name?: string;
   customer_id?: string;
   supplier_name?: string;
@@ -194,7 +227,15 @@ export interface PaymentItem {
   currency: string;
   payment_method: string;
   payment_date: string;
+  date?: string;
+  reference_type?: string;
+  referenceType?: string;
+  reference_id?: string;
+  referenceId?: string;
+  reference_no?: string;
+  referenceNo?: string;
   status: string;
+  description?: string;
   notes?: string;
   created_at?: string;
 }
@@ -599,52 +640,21 @@ export const INITIAL_SAMPLE_SUPPLIERS: SupplierItem[] = [
   { id: '2', name: 'مؤسسة الاستيراد المباشر', category: 'معدات ومستلزمات تشغيل', balance: 4000, current_balance: 4000, opening_balance: 4000, openingBalance: 4000, currency: 'SAR', phone: '0118765432', email: 'import@direct.sa', address: 'الدمام - الميناء', created_at: '2026-10-02T08:30:00Z' },
 ];
 
-export const INITIAL_SAMPLE_ACCOUNT_TRANSACTIONS: AccountTransactionItem[] = [
-  {
-    id: 'tx-sample-1',
-    party_id: '1',
-    party_type: 'CUSTOMER',
-    type: 'INVOICE',
-    amount: 1667.5,
-    currency: 'SAR',
-    exchange_rate: 1.0,
-    balance_after: 8200,
-    running_balance: 8200,
-    date: '2026-10-18',
-    description: 'فاتورة مبيعات ضريبية INV-2026-0042',
-    reference_no: 'INV-2026-0042',
-    created_at: '2026-10-18T10:00:00Z',
-  },
-  {
-    id: 'stx-sample-1',
-    party_id: '1',
-    party_type: 'SUPPLIER',
-    type: 'PURCHASE_INVOICE',
-    amount: 14200,
-    currency: 'SAR',
-    exchange_rate: 1.0,
-    balance_after: 14200,
-    running_balance: 14200,
-    date: '2026-10-17',
-    description: 'توريد بضاعة للمستودع PUR-2026-0012',
-    reference_no: 'PUR-2026-0012',
-    created_at: '2026-10-17T11:00:00Z',
-  },
-];
+export const INITIAL_SAMPLE_ACCOUNT_TRANSACTIONS: AccountTransactionItem[] = [];
 
 export const INITIAL_SAMPLE_INVOICES: InvoiceItem[] = [
-  { id: 'INV-2026-0042', invoice_number: 'INV-2026-0042', customer: 'مؤسسة الأفق للتجارة', customer_name: 'مؤسسة الأفق للتجارة', customer_id: '1', date: '2026-10-18', total: 1667.5, amount: 1667.5, paid_amount: 1667.5, status: 'مدفوعة' },
-  { id: 'INV-2026-0041', invoice_number: 'INV-2026-0041', customer: 'شركة الوفاق المحدودة', customer_name: 'شركة الوفاق المحدودة', customer_id: '2', date: '2026-10-18', total: 943.0, amount: 943.0, paid_amount: 943.0, status: 'مدفوعة' },
-  { id: 'INV-2026-0040', invoice_number: 'INV-2026-0040', customer: 'عميل كاشير نقدي', customer_name: 'عميل كاشير نقدي', date: '2026-10-18', total: 207.0, amount: 207.0, paid_amount: 207.0, status: 'مدفوعة' },
+  { id: 'INV-2026-0042', invoice_number: 'INV-2026-0042', customer: 'مؤسسة الأفق للتجارة', customer_name: 'مؤسسة الأفق للتجارة', customer_id: '1', date: '2026-10-18', total: 1667.5, amount: 1667.5, paid_amount: 1667.5, remaining_amount: 0, payment_method: 'CASH', status: 'paid' },
+  { id: 'INV-2026-0041', invoice_number: 'INV-2026-0041', customer: 'شركة الوفاق المحدودة', customer_name: 'شركة الوفاق المحدودة', customer_id: '2', date: '2026-10-18', total: 943.0, amount: 943.0, paid_amount: 943.0, remaining_amount: 0, payment_method: 'CASH', status: 'paid' },
+  { id: 'INV-2026-0040', invoice_number: 'INV-2026-0040', customer: 'عميل كاشير نقدي', customer_name: 'عميل كاشير نقدي', date: '2026-10-18', total: 207.0, amount: 207.0, paid_amount: 207.0, remaining_amount: 0, payment_method: 'CASH', status: 'paid' },
 ];
 
 export const INITIAL_SAMPLE_PURCHASE_INVOICES: PurchaseInvoiceItem[] = [
-  { id: 'PUR-2026-0012', invoice_number: 'PUR-2026-0012', supplier_name: 'شركة التوريدات الوطنية الكبرى', supplier_id: '1', invoice_date: '2026-10-17', total: 14200, paid_amount: 10000, remaining_amount: 4200, status: 'PARTIAL' },
+  { id: 'PUR-2026-0012', invoice_number: 'PUR-2026-0012', supplier_name: 'شركة التوريدات الوطنية الكبرى', supplier_id: '1', invoice_date: '2026-10-17', total: 14200, paid_amount: 14200, remaining_amount: 0, status: 'PAID' },
   { id: 'PUR-2026-0011', invoice_number: 'PUR-2026-0011', supplier_name: 'مؤسسة الاستيراد المباشر', supplier_id: '2', invoice_date: '2026-10-15', total: 5800, paid_amount: 5800, remaining_amount: 0, status: 'PAID' },
 ];
 
 export const INITIAL_SAMPLE_PAYMENTS: PaymentItem[] = [
-  { id: 'PMT-001', type: 'CUSTOMER_PAYMENT', voucher_number: 'VOUCH-1001', customer_name: 'مؤسسة الأفق للتجارة', customer_id: '1', amount: 5000, currency: 'SAR', payment_method: 'CASH', payment_date: '2026-10-18', status: 'CONFIRMED' },
+  { id: 'PMT-001', type: 'CUSTOMER_PAYMENT', voucher_number: 'REC-INV-2026-0042', customer_name: 'مؤسسة الأفق للتجارة', customer_id: '1', amount: 1667.5, currency: 'SAR', payment_method: 'CASH', payment_date: '2026-10-18', reference_type: 'SALES_INVOICE', reference_id: 'INV-2026-0042', status: 'CONFIRMED' },
   { id: 'PMT-002', type: 'SUPPLIER_PAYMENT', voucher_number: 'VOUCH-1002', supplier_name: 'شركة التوريدات الوطنية الكبرى', supplier_id: '1', amount: 10000, currency: 'SAR', payment_method: 'BANK_TRANSFER', payment_date: '2026-10-18', status: 'CONFIRMED' },
 ];
 

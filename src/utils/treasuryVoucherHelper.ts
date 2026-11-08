@@ -120,31 +120,39 @@ export function recordAutomaticTreasuryVoucher(params: AutomaticVoucherParams): 
     console.warn('[RECORD_VOUCHER_LOCAL_WARN]', err);
   }
 
-  // Enqueue into persistent Transactional Outbox (CR-2026-TAURI-OFFLINE-SYNC-001)
-  try {
-    enqueueOutboxTransaction(
-      isReceipt ? 'TREASURY_RECEIPT_VOUCHER' : 'TREASURY_PAYMENT_VOUCHER',
-      voucherObj,
-      {
-        dependencyOrder: 40,
-        idempotencyKey: `vouch_${voucherObj.id}`,
-      }
-    ).catch((e) => console.warn('[OUTBOX_VOUCHER_ENQUEUE_WARN]', e));
-  } catch (e) {
-    console.warn('[OUTBOX_VOUCHER_WARN]', e);
-  }
+  const isInvoiceOrDebtTransaction =
+    params.referenceType === 'SALES_INVOICE' ||
+    params.referenceType === 'PURCHASE_INVOICE' ||
+    params.referenceType === 'DEBT_COLLECTION' ||
+    params.referenceType === 'DEBT_PAYMENT';
 
-  // Push to server asynchronously as optimistic fallback
-  try {
-    fetch('/api/v1/payments', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-company-id': localStorage.getItem('erp_company_id') || 'comp_001',
-      },
-      body: JSON.stringify(voucherObj),
-    }).catch(() => {});
-  } catch {}
+  if (!isInvoiceOrDebtTransaction) {
+    // Enqueue into persistent Transactional Outbox (CR-2026-TAURI-OFFLINE-SYNC-001)
+    try {
+      enqueueOutboxTransaction(
+        isReceipt ? 'TREASURY_RECEIPT_VOUCHER' : 'TREASURY_PAYMENT_VOUCHER',
+        voucherObj,
+        {
+          dependencyOrder: 40,
+          idempotencyKey: `vouch_${voucherObj.id}`,
+        }
+      ).catch((e) => console.warn('[OUTBOX_VOUCHER_ENQUEUE_WARN]', e));
+    } catch (e) {
+      console.warn('[OUTBOX_VOUCHER_WARN]', e);
+    }
+
+    // Push to server asynchronously as optimistic fallback
+    try {
+      fetch('/api/v1/payments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-company-id': localStorage.getItem('erp_company_id') || 'comp_001',
+        },
+        body: JSON.stringify(voucherObj),
+      }).catch(() => {});
+    } catch {}
+  }
 
   return voucherObj;
 }

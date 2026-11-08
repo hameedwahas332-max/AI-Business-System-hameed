@@ -566,25 +566,24 @@ export const PurchaseInvoicesTab: React.FC = () => {
         console.warn('Failed to sync stock movement for purchase:', syncErr);
       }
 
-      // 2. Update product costPrice with effectiveUnitCost in erp_products_v1
+      // 2. Sync products from backend to preserve real Weighted Average Cost (WAC)
       try {
-        const rawProducts = localStorage.getItem('erp_products_v1');
-        if (rawProducts) {
-          const prods = JSON.parse(rawProducts);
-          processedItems.forEach((it) => {
-            const pIdx = prods.findIndex((p: any) => p.id === it.product_id);
-            if (pIdx !== -1) {
-              prods[pIdx].costPrice = it.effectiveUnitCost;
-              prods[pIdx].cost_price = it.effectiveUnitCost;
-              prods[pIdx].purchasePrice = it.effectiveUnitCost;
-              prods[pIdx].purchase_price = it.effectiveUnitCost;
-            }
-          });
-          localStorage.setItem('erp_products_v1', JSON.stringify(prods));
-          window.dispatchEvent(new CustomEvent('erp-inventory-updated'));
+        const prodRes = await fetch('/api/v1/products', {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-company-id': localStorage.getItem('erp_company_id') || 'comp_001',
+          },
+        });
+        if (prodRes.ok) {
+          const prodData = await prodRes.json();
+          const itemsList = Array.isArray(prodData) ? prodData : (prodData?.data || prodData?.products || []);
+          if (itemsList.length > 0) {
+            localStorage.setItem('erp_products_v1', JSON.stringify(itemsList));
+            window.dispatchEvent(new CustomEvent('erp-inventory-updated'));
+          }
         }
       } catch (prodErr) {
-        console.warn('Failed to update product cost price in storage:', prodErr);
+        console.warn('Backend product WAC sync note:', prodErr);
       }
 
       // 3. Record automatic payment voucher (سند صرف) if paid amount > 0

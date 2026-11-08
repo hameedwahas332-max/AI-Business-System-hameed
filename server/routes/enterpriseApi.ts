@@ -675,66 +675,125 @@ enterpriseRouter.get('/customers/:id/statement', (req: Request, res: Response) =
     return res.status(404).json({ success: false, error: 'Customer not found' });
   }
 
-  const opBalance = Number(cust.opening_balance !== undefined ? cust.opening_balance : (cust.openingBalance !== undefined ? cust.openingBalance : (cust.balance || 0)));
+  const opBalance = Number(cust.opening_balance !== undefined ? cust.opening_balance : (cust.openingBalance !== undefined ? cust.openingBalance : 0));
   const currency = cust.currency || 'YER';
 
   const fromDate = req.query.from_date ? String(req.query.from_date).split('T')[0] : (req.query.from ? String(req.query.from).split('T')[0] : '');
   const toDate = req.query.to_date ? String(req.query.to_date).split('T')[0] : (req.query.to ? String(req.query.to).split('T')[0] : '');
 
-  // 1. Gather all transactions recorded directly in mockAccountTransactions
-  const rawTxs: any[] = mockAccountTransactions.filter(
-    (t) => t.party_id === cust.id || (t.party_type === 'CUSTOMER' && t.party_id === cust.name)
-  ).map((t) => ({ ...t }));
+  const rawTxs: any[] = [];
+  const knownInvoiceRefs = new Set<string>();
 
-  // 2. Gather invoices for this customer not yet in rawTxs
+  // 1. Gather invoices for this customer and pair payments for cash/partial amounts
   mockInvoicesList.forEach((inv) => {
     const isMatching = inv.customer_id === cust.id || inv.customer === cust.name || inv.customer_name === cust.name;
     if (isMatching) {
-      const alreadyIncluded = rawTxs.some(
-        (t) => t.reference_no === inv.invoice_number || t.id === inv.id || (t.reference_no && t.reference_no === inv.id)
-      );
-      if (!alreadyIncluded) {
-        const invDate = String(inv.date || inv.created_at || new Date().toISOString()).split('T')[0];
+      const invNum = String(inv.invoice_number || inv.invoiceNumber || inv.id || '').trim();
+      if (inv.id) knownInvoiceRefs.add(String(inv.id).trim().toLowerCase());
+      if (inv.invoice_number) knownInvoiceRefs.add(String(inv.invoice_number).trim().toLowerCase());
+      if (inv.invoiceNumber) knownInvoiceRefs.add(String(inv.invoiceNumber).trim().toLowerCase());
+
+      const invDate = String(inv.date || inv.created_at || new Date().toISOString()).split('T')[0];
+      const totalAmt = Number(inv.total || inv.amount || 0);
+      const paidAmt = Number(inv.paid_amount ?? inv.paidAmount ?? inv.paid ?? 0);
+
+      // Add DEBIT row for total
+      rawTxs.push({
+        id: `tx-inv-${inv.id}`,
+        party_id: cust.id,
+        party_type: 'CUSTOMER',
+        type: 'DEBIT',
+        amount: totalAmt,
+        currency: inv.currency || currency,
+        exchange_rate: 1.0,
+        date: invDate,
+        description: `فاتورة مبيعات ${invNum}`,
+        reference_no: invNum,
+        created_at: invDate,
+      });
+
+      // If paid_amount > 0, immediately add paired CREDIT (PAYMENT) row so cash invoice has 0 net balance impact
+      if (paidAmt > 0) {
         rawTxs.push({
-          id: `tx-inv-${inv.id}`,
+          id: `tx-pmt-inv-${inv.id}`,
           party_id: cust.id,
           party_type: 'CUSTOMER',
-          type: 'DEBIT',
-          amount: Number(inv.total || inv.amount || 0),
+          type: 'PAYMENT',
+          amount: paidAmt,
           currency: inv.currency || currency,
           exchange_rate: 1.0,
           date: invDate,
-          description: `فاتورة مبيعات ${inv.invoice_number || inv.id}`,
-          reference_no: inv.invoice_number || inv.id,
+          description: `سداد دفعة لفاتورة مبيعات ${invNum}`,
+          reference_no: `REC-${invNum}`,
           created_at: invDate,
         });
       }
     }
   });
 
-  // 3. Gather payments for this customer not yet in rawTxs
-  mockPaymentsList.forEach((pmt) => {
-    const isCustomerPayment = pmt.type === 'CUSTOMER_PAYMENT' && (pmt.customer_id === cust.id || pmt.customer_name === cust.name);
-    if (isCustomerPayment) {
-      const alreadyIncluded = rawTxs.some(
-        (t) => t.reference_no === pmt.voucher_number || t.id === pmt.id
-      );
-      if (!alreadyIncluded) {
-        const pmtDate = String(pmt.payment_date || pmt.created_at || new Date().toISOString()).split('T')[0];
-        rawTxs.push({
-          id: `tx-pmt-${pmt.id}`,
-          party_id: cust.id,
-          party_type: 'CUSTOMER',
-          type: 'PAYMENT',
-          amount: Number(pmt.amount || 0),
-          currency: pmt.currency || currency,
-          exchange_rate: 1.0,
-          date: pmtDate,
-          description: `سند قبض نقدي ${pmt.voucher_number || pmt.id}`,
-          reference_no: pmt.voucher_number || pmt.id,
-          created_at: pmtDate,
-        });
+  // 2. Gather standalone account transactions (skip invoice-paired transactions)
+  mockAccountTransactions.forEach((t) => {
+    const isMatching = t.party_id === cust.id || (t.party_type === 'CUSTOMER' && t.party_id === cust.name);
+    if (isMatching) {
+      const refNo = String(t.reference_no || t.reference_id || t.id || '').trim().toLowerCase();
+      const desc = String(t.description || t.notes || '');
+      const refType = String(t.reference_type || t.referenceType || '').toUpperCase();
+
+      if (
+        refType === 'SALES_INVOICE' ||
+        knownInvoiceRefs.has(refNo) ||
+        desc.includes('فاتورة مبيعات') ||
+        desc.includes('نقطة البيع')
+      ) {
+        return; // Skip duplicate invoice transaction
       }
+
+      rawTxs.push({
+        ...t,
+        currency: t.currency || currency,
+        exchange_rate: 1.0,
+        date: String(t.date || t.created_at || new Date().toISOString()).split('T')[0],
+      });
+    }
+  });
+
+  // 3. Gather standalone payments (skip invoice-paired payments)
+  mockPaymentsList.forEach((pmt) => {
+    const isCustomerPayment =
+      (pmt.type === 'CUSTOMER_PAYMENT' || pmt.voucher_type === 'RECEIPT') &&
+      (pmt.customer_id === cust.id || pmt.customer_name === cust.name || pmt.party_id === cust.id || pmt.party_name === cust.name);
+
+    if (isCustomerPayment) {
+      const pRef = String(pmt.reference_no || pmt.referenceNo || pmt.reference_id || pmt.referenceId || '').trim().toLowerCase();
+      const pVouch = String(pmt.voucher_number || pmt.payment_number || '').trim().toLowerCase();
+      const desc = String(pmt.notes || pmt.description || '');
+      const refType = String(pmt.reference_type || pmt.referenceType || '').toUpperCase();
+
+      if (
+        refType === 'SALES_INVOICE' ||
+        (pRef && knownInvoiceRefs.has(pRef)) ||
+        (pVouch && knownInvoiceRefs.has(pVouch.replace(/^rec-/, ''))) ||
+        desc.includes('فاتورة مبيعات') ||
+        desc.includes('نقطة البيع') ||
+        desc.includes('تحصيل مبيعات فاتورة')
+      ) {
+        return; // Skip invoice paired payment
+      }
+
+      const pmtDate = String(pmt.payment_date || pmt.date || pmt.created_at || new Date().toISOString()).split('T')[0];
+      rawTxs.push({
+        id: `tx-pmt-${pmt.id}`,
+        party_id: cust.id,
+        party_type: 'CUSTOMER',
+        type: 'PAYMENT',
+        amount: Number(pmt.amount || 0),
+        currency: pmt.currency || currency,
+        exchange_rate: 1.0,
+        date: pmtDate,
+        description: pmt.description || pmt.notes || `سند قبض نقدي ${pmt.voucher_number || pmt.id}`,
+        reference_no: pmt.voucher_number || pmt.id,
+        created_at: pmtDate,
+      });
     }
   });
 
@@ -981,66 +1040,123 @@ enterpriseRouter.get('/suppliers/:id/statement', (req: Request, res: Response) =
     return res.status(404).json({ success: false, error: 'Supplier not found' });
   }
 
-  const opBalance = Number(supp.opening_balance !== undefined ? supp.opening_balance : (supp.openingBalance !== undefined ? supp.openingBalance : (supp.balance || 0)));
+  const opBalance = Number(supp.opening_balance !== undefined ? supp.opening_balance : (supp.openingBalance !== undefined ? supp.openingBalance : 0));
   const currency = supp.currency || 'YER';
 
   const fromDate = req.query.from_date ? String(req.query.from_date).split('T')[0] : (req.query.from ? String(req.query.from).split('T')[0] : '');
   const toDate = req.query.to_date ? String(req.query.to_date).split('T')[0] : (req.query.to ? String(req.query.to).split('T')[0] : '');
 
-  // 1. Gather all transactions recorded directly in mockAccountTransactions
-  const rawTxs: any[] = mockAccountTransactions.filter(
-    (t) => t.party_id === supp.id || (t.party_type === 'SUPPLIER' && t.party_id === supp.name)
-  ).map((t) => ({ ...t }));
+  const rawTxs: any[] = [];
+  const knownPurchaseRefs = new Set<string>();
 
-  // 2. Gather purchase invoices for this supplier not yet in rawTxs
+  // 1. Gather purchase invoices for this supplier and pair payments for cash/partial amounts
   mockPurchaseInvoicesList.forEach((pur) => {
     const isMatching = pur.supplier_id === supp.id || pur.supplier_name === supp.name;
     if (isMatching) {
-      const alreadyIncluded = rawTxs.some(
-        (t) => t.reference_no === pur.invoice_number || t.id === pur.id || (t.reference_no && t.reference_no === pur.id)
-      );
-      if (!alreadyIncluded) {
-        const purDate = String(pur.invoice_date || pur.created_at || new Date().toISOString()).split('T')[0];
+      const purNum = String(pur.invoice_number || pur.invoiceNumber || pur.id || '').trim();
+      if (pur.id) knownPurchaseRefs.add(String(pur.id).trim().toLowerCase());
+      if (pur.invoice_number) knownPurchaseRefs.add(String(pur.invoice_number).trim().toLowerCase());
+      if (pur.invoiceNumber) knownPurchaseRefs.add(String(pur.invoiceNumber).trim().toLowerCase());
+
+      const purDate = String(pur.invoice_date || pur.date || pur.created_at || new Date().toISOString()).split('T')[0];
+      const totalAmt = Number(pur.total || pur.grandTotal || 0);
+      const paidAmt = Number(pur.paid_amount ?? pur.paidAmount ?? pur.paid ?? 0);
+
+      // Add CREDIT row for total
+      rawTxs.push({
+        id: `stx-pur-${pur.id}`,
+        party_id: supp.id,
+        party_type: 'SUPPLIER',
+        type: 'CREDIT',
+        amount: totalAmt,
+        currency: pur.currency || currency,
+        exchange_rate: 1.0,
+        date: purDate,
+        description: `فاتورة مشتريات وتوريد ${purNum}`,
+        reference_no: purNum,
+        created_at: purDate,
+      });
+
+      // If paid_amount > 0, immediately add paired DEBIT (PAYMENT) row so cash purchase has 0 net balance impact
+      if (paidAmt > 0) {
         rawTxs.push({
-          id: `stx-pur-${pur.id}`,
+          id: `stx-pmt-pur-${pur.id}`,
           party_id: supp.id,
           party_type: 'SUPPLIER',
-          type: 'CREDIT',
-          amount: Number(pur.total || 0),
+          type: 'PAYMENT',
+          amount: paidAmt,
           currency: pur.currency || currency,
           exchange_rate: 1.0,
           date: purDate,
-          description: `فاتورة مشتريات وتوريد ${pur.invoice_number || pur.id}`,
-          reference_no: pur.invoice_number || pur.id,
+          description: `سداد دفعة لفاتورة مشتريات ${purNum}`,
+          reference_no: `PAY-${purNum}`,
           created_at: purDate,
         });
       }
     }
   });
 
-  // 3. Gather supplier payments for this supplier not yet in rawTxs
-  mockPaymentsList.forEach((pmt) => {
-    const isSupplierPayment = pmt.type === 'SUPPLIER_PAYMENT' && (pmt.supplier_id === supp.id || pmt.supplier_name === supp.name);
-    if (isSupplierPayment) {
-      const alreadyIncluded = rawTxs.some(
-        (t) => t.reference_no === pmt.voucher_number || t.id === pmt.id
-      );
-      if (!alreadyIncluded) {
-        const pmtDate = String(pmt.payment_date || pmt.created_at || new Date().toISOString()).split('T')[0];
-        rawTxs.push({
-          id: `stx-pmt-${pmt.id}`,
-          party_id: supp.id,
-          party_type: 'SUPPLIER',
-          type: 'PAYMENT',
-          amount: Number(pmt.amount || 0),
-          currency: pmt.currency || currency,
-          exchange_rate: 1.0,
-          date: pmtDate,
-          description: `سند صرف للمورد ${pmt.voucher_number || pmt.id}`,
-          reference_no: pmt.voucher_number || pmt.id,
-          created_at: pmtDate,
-        });
+  // 2. Gather standalone account transactions (skip purchase-paired transactions)
+  mockAccountTransactions.forEach((t) => {
+    const isMatching = t.party_id === supp.id || (t.party_type === 'SUPPLIER' && t.party_id === supp.name);
+    if (isMatching) {
+      const refNo = String(t.reference_no || t.reference_id || t.id || '').trim().toLowerCase();
+      const desc = String(t.description || t.notes || '');
+      const refType = String(t.reference_type || t.referenceType || '').toUpperCase();
+
+      if (
+        refType === 'PURCHASE_INVOICE' ||
+        knownPurchaseRefs.has(refNo) ||
+        desc.includes('فاتورة مشتريات')
+      ) {
+        return; // Skip duplicate purchase transaction
       }
+
+      rawTxs.push({
+        ...t,
+        currency: t.currency || currency,
+        exchange_rate: 1.0,
+        date: String(t.date || t.created_at || new Date().toISOString()).split('T')[0],
+      });
+    }
+  });
+
+  // 3. Gather standalone supplier payments (skip purchase-paired payments)
+  mockPaymentsList.forEach((pmt) => {
+    const isSupplierPayment =
+      (pmt.type === 'SUPPLIER_PAYMENT' || pmt.voucher_type === 'PAYMENT') &&
+      (pmt.supplier_id === supp.id || pmt.supplier_name === supp.name || pmt.party_id === supp.id || pmt.party_name === supp.name);
+
+    if (isSupplierPayment) {
+      const pRef = String(pmt.reference_no || pmt.referenceNo || pmt.reference_id || pmt.referenceId || '').trim().toLowerCase();
+      const pVouch = String(pmt.voucher_number || pmt.payment_number || '').trim().toLowerCase();
+      const desc = String(pmt.notes || pmt.description || '');
+      const refType = String(pmt.reference_type || pmt.referenceType || '').toUpperCase();
+
+      if (
+        refType === 'PURCHASE_INVOICE' ||
+        (pRef && knownPurchaseRefs.has(pRef)) ||
+        (pVouch && knownPurchaseRefs.has(pVouch.replace(/^pay-/, ''))) ||
+        desc.includes('فاتورة مشتريات') ||
+        desc.includes('سداد مشتريات فاتورة')
+      ) {
+        return; // Skip purchase paired payment
+      }
+
+      const pmtDate = String(pmt.payment_date || pmt.date || pmt.created_at || new Date().toISOString()).split('T')[0];
+      rawTxs.push({
+        id: `stx-pmt-${pmt.id}`,
+        party_id: supp.id,
+        party_type: 'SUPPLIER',
+        type: 'PAYMENT',
+        amount: Number(pmt.amount || 0),
+        currency: pmt.currency || currency,
+        exchange_rate: 1.0,
+        date: pmtDate,
+        description: pmt.description || pmt.notes || `سند صرف للمورد ${pmt.voucher_number || pmt.id}`,
+        reference_no: pmt.voucher_number || pmt.id,
+        created_at: pmtDate,
+      });
     }
   });
 
@@ -1381,8 +1497,13 @@ enterpriseRouter.post('/purchase-invoices', (req: Request, res: Response) => {
       journal_entry_id: atomicResult.purchaseJournal?.id,
     };
 
-    mockPurchaseInvoicesList.unshift(newPur);
-    persistAllToDisk();
+    const alreadyInsertedPur = mockPurchaseInvoicesList.some(
+      (pur) => String(pur.id) === String(newPur.id) || String(pur.invoice_number) === String(invoiceNumber) || String(pur.invoiceNumber) === String(invoiceNumber)
+    );
+    if (!alreadyInsertedPur) {
+      mockPurchaseInvoicesList.unshift(newPur);
+      persistAllToDisk();
+    }
 
     res.status(201).json({
       success: true,
@@ -1661,8 +1782,13 @@ enterpriseRouter.post(['/pos/checkout', '/pos/sales', '/pos/sale'], (req: Reques
       journal_entry_id: atomicResult.revenueJournal?.id,
       cogs_journal_entry_id: atomicResult.cogsJournal?.id,
     };
-    mockInvoicesList.unshift(posInvoice as any);
-    persistAllToDisk();
+    const alreadyInsertedInv = mockInvoicesList.some(
+      (inv) => String(inv.id) === String(posInvoice.id) || String(inv.invoice_number) === String(invoiceNum) || String(inv.invoiceNumber) === String(invoiceNum)
+    );
+    if (!alreadyInsertedInv) {
+      mockInvoicesList.unshift(posInvoice as any);
+      persistAllToDisk();
+    }
 
     const receipt = {
       id: posInvoice.id,

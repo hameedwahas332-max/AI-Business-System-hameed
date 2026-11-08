@@ -89,12 +89,16 @@ export const InvoicesTab: React.FC = () => {
         if (stored) {
           const localInvs: any[] = JSON.parse(stored);
           if (Array.isArray(localInvs) && localInvs.length > 0) {
-            const serverIds = new Set(loadedInvoices.map((i: any) => i.id));
-            const newLocal = localInvs.filter((i: any) => !serverIds.has(i.id));
-            const localMap = new Map(localInvs.map((i: any) => [i.id, i]));
+            const serverIds = new Set(
+              loadedInvoices.map((i: any) => String(i.id || i.invoice_number || i.invoiceNumber))
+            );
+            // Only include offline local invoices that do not exist on the server; server invoices take strict precedence
+            const newLocal = localInvs.filter(
+              (i: any) => !serverIds.has(String(i.id)) && !serverIds.has(String(i.invoice_number || i.invoiceNumber))
+            );
             loadedInvoices = [
+              ...loadedInvoices,
               ...newLocal,
-              ...loadedInvoices.map((i: any) => localMap.get(i.id) || i),
             ];
           }
         }

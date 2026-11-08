@@ -1429,6 +1429,12 @@ app.post(['/api/v1/payments', '/api/payments'], (req: Request, res: Response) =>
       description: pmt.description || pmt.notes || `سند ${type === 'RECEIPT' ? 'قبض' : 'صرف'}`,
       date: pmt.payment_date || pmt.date,
       created_by: pmt.created_by_name || pmt.createdBy || 'حميد وهاس',
+      referenceType: pmt.reference_type || pmt.referenceType,
+      reference_type: pmt.reference_type || pmt.referenceType,
+      referenceNo: pmt.reference_no || pmt.referenceNo || pmt.reference_id || pmt.referenceId,
+      reference_no: pmt.reference_no || pmt.referenceNo || pmt.reference_id || pmt.referenceId,
+      referenceId: pmt.reference_id || pmt.referenceId || pmt.reference_no || pmt.referenceNo,
+      reference_id: pmt.reference_id || pmt.referenceId || pmt.reference_no || pmt.referenceNo,
     });
 
     res.status(201).json({

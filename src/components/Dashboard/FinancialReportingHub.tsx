@@ -30,29 +30,102 @@ export const FinancialReportingHub: React.FC = () => {
   const [activeSection, setActiveSection] = useState<'overview' | 'reports' | 'forecast'>('overview');
   const [isRatesOpen, setIsRatesOpen] = useState(false);
   const [dataVersion, setDataVersion] = useState(0);
+  const [backendMetrics, setBackendMetrics] = useState<any>(null);
 
   const currSym = getActiveCurrencySymbol();
 
-  // Reload handler for demo wiped or inventory updated
+  // Reload handler for demo wiped or inventory updated and fetch backend unified metrics
   useEffect(() => {
     const handleUpdate = () => {
       setDataVersion((v) => v + 1);
     };
 
+    const fetchMetrics = async () => {
+      try {
+        const res = await fetch('/api/v1/dashboard', {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-company-id': localStorage.getItem('erp_company_id') || 'comp_001',
+          },
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json?.data) {
+            setBackendMetrics(json.data);
+          }
+        }
+      } catch (err) {
+        console.warn('Backend metrics fetch note:', err);
+      }
+    };
+
+    fetchMetrics();
+
     window.addEventListener('erp-demo-data-wiped', handleUpdate);
     window.addEventListener('erp-inventory-updated', handleUpdate);
+    window.addEventListener('erp-data-updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
 
     return () => {
       window.removeEventListener('erp-demo-data-wiped', handleUpdate);
       window.removeEventListener('erp-inventory-updated', handleUpdate);
+      window.removeEventListener('erp-data-updated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };
-  }, []);
+  }, [dataVersion]);
 
-  // Compute live financial metrics from local system stores
+  // Compute live financial metrics from backend unified metrics or fallback to local stores
   const financialData = useMemo(() => {
     const isClean = localStorage.getItem('erp_clean_production_mode_v1') === 'true';
+
+    if (backendMetrics) {
+      const salesRevenue = Number(backendMetrics.salesTotal ?? backendMetrics.revenue ?? 0);
+      const cogs = Number(backendMetrics.cogsTotal ?? backendMetrics.cogs ?? 0);
+      const grossProfit = Number(backendMetrics.grossProfit ?? Math.max(0, salesRevenue - cogs));
+      const operatingExpenses = Number(backendMetrics.operatingExpenses ?? 0);
+      const netIncome = Number(backendMetrics.netProfit ?? backendMetrics.netIncome ?? (grossProfit - operatingExpenses));
+      const grossMargin = salesRevenue > 0 ? Number(((grossProfit / salesRevenue) * 100).toFixed(1)) : 0;
+      const netMargin = salesRevenue > 0 ? Number(((netIncome / salesRevenue) * 100).toFixed(1)) : 0;
+      const accountsReceivable = Number(backendMetrics.receivables ?? 0);
+      const accountsPayable = Number(backendMetrics.payables ?? 0);
+      const inventoryValuation = Number(backendMetrics.inventoryValuation ?? 0);
+      const cashAndBank = Number(backendMetrics.cashBalance ?? 0);
+      const vatPayable = Number(backendMetrics.vatPayable ?? 0);
+      const totalCurrentAssets = cashAndBank + accountsReceivable + inventoryValuation;
+      const totalCurrentLiabilities = accountsPayable + vatPayable;
+      const workingCapital = totalCurrentAssets - totalCurrentLiabilities;
+      const currentRatio = totalCurrentLiabilities > 0 ? Number((totalCurrentAssets / totalCurrentLiabilities).toFixed(2)) : (totalCurrentAssets > 0 ? 99 : 1);
+
+      return {
+        isClean,
+        hasData: salesRevenue > 0 || accountsReceivable > 0 || accountsPayable > 0 || inventoryValuation > 0,
+        salesRevenue,
+        cogs,
+        grossProfit,
+        grossMargin,
+        operatingExpenses,
+        salaries: 0,
+        netIncome,
+        netMargin,
+        cashAndBank,
+        accountsReceivable,
+        inventoryValuation,
+        totalCurrentAssets,
+        accountsPayable,
+        vatPayable,
+        totalCurrentLiabilities,
+        workingCapital,
+        cashInflow: cashAndBank,
+        cashOutflow: operatingExpenses,
+        netCashFlow: cashAndBank - operatingExpenses,
+        currentRatio,
+        vatOutput: vatPayable,
+        vatInput: 0,
+        netVat: vatPayable,
+        zakatBase: Math.max(0, workingCapital),
+        zakatDue: Math.max(0, Math.round(workingCapital * 0.025)),
+      };
+    }
 
     let invoices: any[] = [];
     let purchases: any[] = [];
@@ -220,7 +293,7 @@ export const FinancialReportingHub: React.FC = () => {
       zakatBase,
       zakatDue,
     };
-  }, [dataVersion]);
+  }, [dataVersion, backendMetrics]);
 
   const handlePrintOverview = () => {
     window.print();

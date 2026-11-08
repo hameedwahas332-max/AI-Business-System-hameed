@@ -506,7 +506,7 @@ export function printInvoiceDocument(inv?: any, options?: { title?: string; curr
     : (invoice.previous_balance !== undefined ? Number(invoice.previous_balance) : undefined);
   const currentInvoiceAmount = total;
   const newTotalBalance = previousBalance !== undefined 
-    ? Number((previousBalance + (remaining > 0 ? remaining : total)).toFixed(2))
+    ? Number((previousBalance + remaining).toFixed(2))
     : (invoice.newBalance !== undefined ? Number(invoice.newBalance) : (invoice.new_balance !== undefined ? Number(invoice.new_balance) : undefined));
 
   // --- 80MM COMPACT THERMAL LAYOUT ---
