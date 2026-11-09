@@ -1091,7 +1091,16 @@ class ApiClient {
       headers,
       body: formData,
     });
-    return res.json();
+    if (res.headers.get('content-type')?.includes('application/json')) {
+      return res.json();
+    }
+    const text = await res.text();
+    return {
+      success: res.ok,
+      status: res.status,
+      message: res.ok ? 'تم رفع المستند بنجاح' : (text || 'خطأ في معالجة المستند'),
+      data: null,
+    };
   }
 
   async getOCRDocuments() {

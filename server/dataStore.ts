@@ -1,6 +1,24 @@
 import fs from 'fs';
 import path from 'path';
 import { hashPassword, verifyPassword, isPasswordHashed, getCurrentTenantId } from './security.js';
+import {
+  tenantAccountsMap,
+  tenantJournalEntriesMap,
+  serializeAccountingMaps,
+  hydrateAccountingMaps,
+} from './accountingEngine.js';
+
+export let activeDbPool: any = null;
+
+export function setDatabasePool(pool: any): void {
+  if (pool) {
+    activeDbPool = pool;
+  }
+}
+
+export function getDatabasePool(): any {
+  return activeDbPool;
+}
 
 /**
  * Centralized Enterprise In-Memory & Persistent Data Store
@@ -168,12 +186,23 @@ export interface InvoiceItem {
   paid?: number;
   remaining_amount?: number;
   remainingAmount?: number;
+  tax_amount?: number;
+  tax?: number;
+  discount_amount?: number;
+  discount?: number;
   status: string;
   payment_method?: string;
   paymentMethod?: string;
   currency?: string;
   items?: any[];
   notes?: string;
+  original_invoice_number?: string;
+  originalInvoiceNumber?: string;
+  reference_type?: string;
+  reference_id?: string;
+  invoice_type?: string;
+  type?: string;
+  subtotal?: number;
   created_at?: string;
 }
 
@@ -193,6 +222,8 @@ export interface PurchaseInvoiceItem {
   totalAmount?: number;
   grandTotal?: number;
   amount?: number;
+  tax?: number;
+  tax_amount?: number;
   paid_amount: number;
   paidAmount?: number;
   paid?: number;
@@ -309,6 +340,8 @@ export interface ExpenseItem {
   id: string;
   company_id?: string;
   voucherNumber: string;
+  expense_number?: string;
+  voucher_number?: string;
   date: string;
   category: string;
   costCenter: string;
@@ -318,7 +351,9 @@ export interface ExpenseItem {
   exchangeRate?: number;
   baseCurrencyAmount?: number;
   paymentMethod: string;
+  payment_method?: string;
   treasury: string;
+  status?: string;
   referenceNumber?: string;
   description: string;
   notes?: string;
@@ -1600,6 +1635,8 @@ export function persistAllToDisk(): void {
       users: Array.from(permanentUsersMap.values()),
       companies: Array.from(permanentCompaniesMap.values()),
       tenantDataStores: tenantStoresObj,
+      tenantAccounts: Object.fromEntries(tenantAccountsMap),
+      tenantJournalEntries: Object.fromEntries(tenantJournalEntriesMap),
       // Fallback mirrors for comp_001
       products: getTenantCollections('comp_001').products,
       inventoryMovements: getTenantCollections('comp_001').movements,
@@ -1619,6 +1656,40 @@ export function persistAllToDisk(): void {
       tenantSnapshots: Object.fromEntries(tenantSnapshotsMap),
     };
     fs.writeFileSync(STORE_FILE, JSON.stringify(payload, null, 2), 'utf-8');
+
+    // If dbPool is active during persistAllToDisk(), asynchronously upsert the tenant's accounting & store snapshot
+    if (activeDbPool) {
+      const accKeys = typeof tenantAccountsMap !== 'undefined' ? Array.from(tenantAccountsMap.keys()) : [];
+      const compIds = new Set<string>([
+        ...Array.from(permanentCompaniesMap.keys()),
+        ...Array.from(tenantDataStoresMap.keys()),
+        ...accKeys,
+        'comp_001',
+      ]);
+
+      for (const cid of compIds) {
+        const store = tenantDataStoresMap.get(cid) || getTenantCollections(cid);
+        const accounts = typeof tenantAccountsMap !== 'undefined' ? (tenantAccountsMap.get(cid) || []) : [];
+        const journals = typeof tenantJournalEntriesMap !== 'undefined' ? (tenantJournalEntriesMap.get(cid) || []) : [];
+        const snapshotPayload = {
+          companyId: cid,
+          tenantStore: store,
+          tenantAccounts: accounts,
+          tenantJournalEntries: journals,
+          updated_at: new Date().toISOString(),
+        };
+
+        activeDbPool.query(
+          `INSERT INTO erp_permanent_tenant_data (company_id, data_type, payload, updated_at)
+           VALUES ($1, 'tenant_snapshot', $2, CURRENT_TIMESTAMP)
+           ON CONFLICT (company_id, data_type) 
+           DO UPDATE SET payload = EXCLUDED.payload, updated_at = CURRENT_TIMESTAMP`,
+          [cid, JSON.stringify(snapshotPayload)]
+        ).catch((err: any) => {
+          // Asynchronous persistence error, non-blocking
+        });
+      }
+    }
   } catch (err: any) {
     console.warn('[DISK_PERSIST_WARN]', err?.message);
   }
@@ -1740,6 +1811,12 @@ export function initPermanentDiskStore(): void {
             tenantSnapshotsMap.set(k, v);
           });
         }
+        if (data.tenantAccounts || data.tenantJournalEntries) {
+          hydrateAccountingMaps({
+            tenantAccounts: data.tenantAccounts,
+            tenantJournalEntries: data.tenantJournalEntries,
+          });
+        }
         console.log('[PERMANENT_STORE_RESTORED] Loaded from disk successfully.');
       }
     }
@@ -1750,6 +1827,9 @@ export function initPermanentDiskStore(): void {
 
 // PostgreSQL Persistent Schema Initializer
 export async function initPermanentPostgresTables(pool: any): Promise<void> {
+  if (pool) {
+    activeDbPool = pool;
+  }
   if (!pool) return;
   try {
     await pool.query(`
@@ -1815,6 +1895,13 @@ export async function initPermanentPostgresTables(pool: any): Promise<void> {
           }
         } else if (row.data_type === 'tenant_snapshot' && row.company_id && row.payload) {
           tenantSnapshotsMap.set(row.company_id, row.payload);
+          const snap = row.payload;
+          if (snap.tenantAccounts && Array.isArray(snap.tenantAccounts) && typeof tenantAccountsMap !== 'undefined') {
+            tenantAccountsMap.set(row.company_id, snap.tenantAccounts);
+          }
+          if (snap.tenantJournalEntries && Array.isArray(snap.tenantJournalEntries) && typeof tenantJournalEntriesMap !== 'undefined') {
+            tenantJournalEntriesMap.set(row.company_id, snap.tenantJournalEntries);
+          }
         }
       }
       console.log(`[PG_TENANT_DATA_LOADED] Loaded ${tenantDataRes.rows.length} permanent tenant records.`);
@@ -2011,6 +2098,16 @@ export async function rehydrateTenantData(payload: any, pool?: any): Promise<{ s
   }
   if (payload.whatsappState || payload.whatsapp_state) {
     await saveTenantWhatsAppState(companyId, payload.whatsappState || payload.whatsapp_state, pool);
+  }
+
+  // 4. Rehydrate tenant accounting maps
+  if (payload.tenantAccounts || payload.tenantJournalEntries) {
+    hydrateAccountingMaps({
+      tenantAccounts: payload.tenantAccounts,
+      tenantJournalEntries: payload.tenantJournalEntries,
+    });
+  } else if (payload.accounts && Array.isArray(payload.accounts)) {
+    tenantAccountsMap.set(companyId, payload.accounts);
   }
 
   persistAllToDisk();

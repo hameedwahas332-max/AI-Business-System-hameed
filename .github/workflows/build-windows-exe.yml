@@ -33,7 +33,7 @@ jobs:
           COMMIT_SHA: ${{ github.sha }}
         run: |
           RUN_NUM="${RUN_NUM:-1}"
-          DYNAMIC_VERSION="1.0.${RUN_NUM}"
+          DYNAMIC_VERSION="1.1.${RUN_NUM}"
           export DYNAMIC_VERSION
           echo "DYNAMIC_VERSION=${DYNAMIC_VERSION}" >> $GITHUB_ENV
           echo "AUTHORITATIVE_VERSION=${DYNAMIC_VERSION}" >> $GITHUB_ENV
@@ -45,7 +45,7 @@ jobs:
           node -e "
             const fs = require('fs');
             const runNum = process.env.RUN_NUM || '1';
-            const ver = process.env.DYNAMIC_VERSION || ('1.0.' + runNum);
+            const ver = process.env.DYNAMIC_VERSION || ('1.1.' + runNum);
 
             if (!ver || ver.includes('undefined')) {
               console.error('FATAL: Invalid version string: ' + ver);

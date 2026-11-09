@@ -72,6 +72,67 @@ export function verifyPassword(candidate: string, storedHash: string): boolean {
 }
 
 // ============================================================================
+// 1.1 In-Memory Login Rate Limiter (Brute-Force Protection)
+// ============================================================================
+
+interface RateLimitEntry {
+  count: number;
+  resetAt: number;
+}
+
+const loginRateLimits = new Map<string, RateLimitEntry>();
+const MAX_LOGIN_ATTEMPTS = 10;
+const LOGIN_RATE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
+/**
+ * Checks if the IP has exceeded login attempt limits (10 attempts per 15 minutes).
+ */
+export function checkLoginRateLimit(ip: string): { allowed: boolean; remainingSeconds?: number } {
+  const cleanIp = (ip || 'unknown').trim();
+  const entry = loginRateLimits.get(cleanIp);
+  if (!entry) return { allowed: true };
+
+  const now = Date.now();
+  if (now > entry.resetAt) {
+    loginRateLimits.delete(cleanIp);
+    return { allowed: true };
+  }
+
+  if (entry.count >= MAX_LOGIN_ATTEMPTS) {
+    const remainingSeconds = Math.ceil((entry.resetAt - now) / 1000);
+    return { allowed: false, remainingSeconds };
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Records a failed login attempt for an IP.
+ */
+export function recordFailedLogin(ip: string): void {
+  const cleanIp = (ip || 'unknown').trim();
+  const now = Date.now();
+  const entry = loginRateLimits.get(cleanIp);
+
+  if (!entry || now > entry.resetAt) {
+    loginRateLimits.set(cleanIp, {
+      count: 1,
+      resetAt: now + LOGIN_RATE_WINDOW_MS,
+    });
+  } else {
+    entry.count += 1;
+  }
+}
+
+/**
+ * Resets the failed login counter for an IP upon successful login.
+ */
+export function resetLoginRateLimit(ip: string): void {
+  const cleanIp = (ip || 'unknown').trim();
+  loginRateLimits.delete(cleanIp);
+}
+
+// ============================================================================
 // 2. RFC-7519 HMAC-SHA256 JWT Implementation (Zero external dependencies)
 // ============================================================================
 
@@ -145,8 +206,12 @@ export function generateSignedToken(options: {
 
 /**
  * Verifies an RFC-7519 HMAC-SHA256 JWT token with constant-time signature comparison and revocation check.
+ * Supports optional graceWindowMs allowing signature-verified expired tokens to be accepted within the grace period (e.g. for session restoration).
  */
-export function verifySignedToken(token: string): {
+export function verifySignedToken(
+  token: string,
+  graceWindowMs = 0
+): {
   valid: boolean;
   payload?: TokenPayload;
   reason?: string;
@@ -185,8 +250,9 @@ export function verifySignedToken(token: string): {
     const payloadJson = base64UrlDecode(encodedPayload);
     const payload = JSON.parse(payloadJson) as TokenPayload;
 
-    const now = Math.floor(Date.now() / 1000);
-    if (payload.exp && payload.exp < now) {
+    const nowSec = Math.floor(Date.now() / 1000);
+    const graceSec = Math.max(0, Math.floor(graceWindowMs / 1000));
+    if (payload.exp && payload.exp + graceSec < nowSec) {
       return { valid: false, reason: 'Token has expired' };
     }
 
@@ -340,6 +406,9 @@ export function normalizeRole(roleStr?: string): UserRole {
  * Check if a role possesses the specified permission.
  */
 export function hasPermission(roleStr: string, requiredPermission: string): boolean {
+  if (requiredPermission === 'authenticated:access') {
+    return true;
+  }
   const role = normalizeRole(roleStr);
   const permissions = ROLE_PERMISSIONS[role];
   if (!permissions) return false;
@@ -349,25 +418,27 @@ export function hasPermission(roleStr: string, requiredPermission: string): bool
 
 /**
  * Returns required permission string or null if route is public or universally permitted.
+ * Enforces strict Deny-by-Default for all non-public API endpoints.
  */
 export function resolveRequiredPermissionForRoute(urlPath: string, method: string): string | null {
   const cleanPath = urlPath.split('?')[0].toLowerCase();
+  const normalizedPath = cleanPath.replace(/^\/api(\/v1)?/, '').replace(/^\/v1/, '') || '/';
   const upperMethod = method.toUpperCase();
 
   // Publicly allowed paths (no permission check needed)
   if (
     cleanPath === '/health' ||
     cleanPath === '/api/health' ||
-    cleanPath.startsWith('/auth/login') ||
-    cleanPath.startsWith('/api/auth/login') ||
-    cleanPath.startsWith('/auth/register') ||
-    cleanPath.startsWith('/api/auth/register') ||
-    cleanPath.startsWith('/auth/forgot-password') ||
-    cleanPath.startsWith('/api/auth/forgot-password') ||
-    cleanPath.startsWith('/auth/reset-password') ||
-    cleanPath.startsWith('/api/auth/reset-password') ||
-    cleanPath.startsWith('/whatsapp/webhook') ||
-    cleanPath.startsWith('/api/whatsapp/webhook')
+    cleanPath === '/api/v1/health' ||
+    cleanPath === '/v1/health' ||
+    normalizedPath === '/health' ||
+    normalizedPath.startsWith('/auth/login') ||
+    normalizedPath.startsWith('/auth/register') ||
+    normalizedPath.startsWith('/auth/forgot-password') ||
+    normalizedPath.startsWith('/auth/reset-password') ||
+    normalizedPath.startsWith('/auth/session-restore') ||
+    normalizedPath.startsWith('/auth/rehydrate-account') ||
+    normalizedPath.startsWith('/whatsapp/webhook')
   ) {
     return null;
   }
@@ -388,22 +459,35 @@ export function resolveRequiredPermissionForRoute(urlPath: string, method: strin
     return 'system:write';
   }
 
-  // Financial & Accounting
+  // Financial & Accounting & Payroll
   if (
     cleanPath.includes('/journal') ||
     cleanPath.includes('/ledger') ||
     cleanPath.includes('/financial') ||
     cleanPath.includes('/banking') ||
     cleanPath.includes('/taxes') ||
-    cleanPath.includes('/accounts')
+    cleanPath.includes('/accounts') ||
+    cleanPath.includes('/payments') ||
+    cleanPath.includes('/vouchers') ||
+    cleanPath.includes('/expenses') ||
+    cleanPath.includes('/employees') ||
+    cleanPath.includes('/hr') ||
+    cleanPath.includes('/payroll')
   ) {
     return upperMethod === 'GET' ? 'financial:read' : 'financial:write';
   }
 
-  // Invoices & POS
-  if (cleanPath.includes('/invoices') || cleanPath.includes('/sales')) {
+  // Invoices, Sales, Quotations & Orders
+  if (
+    cleanPath.includes('/invoices') ||
+    cleanPath.includes('/sales') ||
+    cleanPath.includes('/quotations') ||
+    cleanPath.includes('/orders')
+  ) {
     return upperMethod === 'GET' ? 'invoices:read' : 'invoices:write';
   }
+
+  // POS & Held Orders
   if (cleanPath.includes('/pos') || cleanPath.includes('/held')) {
     return upperMethod === 'GET' ? 'pos:read' : 'pos:write';
   }
@@ -428,5 +512,19 @@ export function resolveRequiredPermissionForRoute(urlPath: string, method: strin
     return 'reports:read';
   }
 
-  return null;
+  // Authenticated feature modules
+  if (
+    cleanPath.includes('/whatsapp') ||
+    cleanPath.includes('/ocr') ||
+    cleanPath.includes('/ai') ||
+    cleanPath.includes('/business') ||
+    cleanPath.includes('/fuel-station') ||
+    cleanPath.includes('/customer-success') ||
+    cleanPath.includes('/saas')
+  ) {
+    return 'authenticated:access';
+  }
+
+  // Strict Deny-by-Default Policy: all other API endpoints require authenticated access
+  return 'authenticated:access';
 }

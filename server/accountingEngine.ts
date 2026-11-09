@@ -59,6 +59,10 @@ export interface AccountRecord {
   updated_at: string;
 }
 
+// In-Memory tenant store for Chart of Accounts and Journal Entries
+export const tenantAccountsMap = new Map<string, AccountRecord[]>();
+export const tenantJournalEntriesMap = new Map<string, JournalEntry[]>();
+
 // ============================================================================
 // 2. Standard Chart of Accounts (COA)
 // ============================================================================
@@ -72,16 +76,56 @@ export const STANDARD_CHART_OF_ACCOUNTS: Array<Omit<AccountRecord, 'id' | 'compa
   { code: '2101', name: 'Accounts Payable', name_ar: 'الموردون / الدائنون', type: 'LIABILITY', nature: 'CREDIT', is_active: true },
   { code: '2102', name: 'Output VAT Payable', name_ar: 'ضريبة القيمة المضافة - مخرجات', type: 'LIABILITY', nature: 'CREDIT', is_active: true },
   { code: '2103', name: 'Salaries & Wages Payable', name_ar: 'مستحقات الرواتب والأجور', type: 'LIABILITY', nature: 'CREDIT', is_active: true },
+  { code: '3101', name: 'Capital & Opening Balances', name_ar: 'رأس المال والأرصدة الافتتاحية', type: 'EQUITY', nature: 'CREDIT', is_active: true },
   { code: '4101', name: 'Sales Revenue', name_ar: 'إيرادات المبيعات', type: 'REVENUE', nature: 'CREDIT', is_active: true },
   { code: '4102', name: 'Sales Returns & Allowances', name_ar: 'مردودات ومسموحات المبيعات', type: 'REVENUE', nature: 'DEBIT', is_active: true },
   { code: '5101', name: 'Cost of Goods Sold (COGS)', name_ar: 'تكلفة البضاعة المباعة', type: 'EXPENSE', nature: 'DEBIT', is_active: true },
   { code: '5201', name: 'Salaries & Wages Expense', name_ar: 'مصروفات الرواتب والأجور', type: 'EXPENSE', nature: 'DEBIT', is_active: true },
   { code: '5202', name: 'General & Administrative Expenses', name_ar: 'المصروفات العمومية والإدارية', type: 'EXPENSE', nature: 'DEBIT', is_active: true },
+  { code: '5209', name: 'Inventory Shrinkage & Adjustments', name_ar: 'فروق وعجز التسويات الجردية', type: 'EXPENSE', nature: 'DEBIT', is_active: true },
 ];
 
-// In-Memory tenant store for Chart of Accounts and Journal Entries
-export const tenantAccountsMap = new Map<string, AccountRecord[]>();
-export const tenantJournalEntriesMap = new Map<string, JournalEntry[]>();
+/**
+ * Export in-memory accounting maps as plain JSON-serializable objects
+ */
+export function serializeAccountingMaps(): {
+  tenantAccounts: Record<string, AccountRecord[]>;
+  tenantJournalEntries: Record<string, JournalEntry[]>;
+} {
+  return {
+    tenantAccounts: Object.fromEntries(tenantAccountsMap.entries()),
+    tenantJournalEntries: Object.fromEntries(tenantJournalEntriesMap.entries()),
+  };
+}
+
+/**
+ * Hydrate in-memory accounting maps from stored data safely
+ */
+export function hydrateAccountingMaps(data: any): void {
+  if (!data || typeof data !== 'object') return;
+  try {
+    if (typeof tenantAccountsMap === 'undefined' || typeof tenantJournalEntriesMap === 'undefined') {
+      return;
+    }
+    if (data.tenantAccounts && typeof data.tenantAccounts === 'object') {
+      tenantAccountsMap.clear();
+      for (const [compId, accounts] of Object.entries(data.tenantAccounts)) {
+        if (Array.isArray(accounts)) {
+          tenantAccountsMap.set(compId, accounts as AccountRecord[]);
+        }
+      }
+    }
+
+    if (data.tenantJournalEntries && typeof data.tenantJournalEntries === 'object') {
+      tenantJournalEntriesMap.clear();
+      for (const [compId, entries] of Object.entries(data.tenantJournalEntries)) {
+        if (Array.isArray(entries)) {
+          tenantJournalEntriesMap.set(compId, entries as JournalEntry[]);
+        }
+      }
+    }
+  } catch {}
+}
 
 // ============================================================================
 // 3. Rounding & Validation Helpers
@@ -723,6 +767,85 @@ export function postSalesReturnAtomic(params: SalesReturnParams) {
   const returnNumber = returnData.return_number || returnData.returnNumber || `RET-${Date.now().toString().slice(-6)}`;
   const origInvNum = params.originalInvoiceNumber || returnData.original_invoice_number || returnData.invoiceNumber || 'INV-ORIG';
 
+  // BUG-07: Validate returned item quantities against original invoice sold quantity
+  const origInv = mockInvoicesList.find(
+    (i) => (i.invoice_number === origInvNum || i.id === origInvNum) && (i.company_id === cid || !i.company_id)
+  );
+
+  if (origInv && Array.isArray(origInv.items) && origInv.items.length > 0) {
+    for (const it of items) {
+      const prodId = it.product_id || it.productId || it.id;
+      const factor = Number(it.unitFactor || it.conversionFactor || 1);
+      const returnQty = Math.max(0, Number(it.quantity || 1));
+      const baseReturnQty = returnQty * factor;
+
+      const origItem = origInv.items.find(
+        (oi: any) =>
+          (oi.product_id && oi.product_id === prodId) ||
+          (oi.productId && oi.productId === prodId) ||
+          (oi.id && oi.id === prodId) ||
+          (it.sku && oi.sku === it.sku) ||
+          (it.barcode && oi.barcode === it.barcode)
+      );
+
+      if (!origItem) {
+        const err: any = new Error(`الصنف (${it.name || prodId}) غير موجود في الفاتورة الأصلية #${origInvNum}`);
+        err.status = 400;
+        err.statusCode = 400;
+        err.code = 'EXCEEDS_ORIGINAL_INVOICE_QTY';
+        throw err;
+      }
+
+      const origItemFactor = Number(origItem.unitFactor || origItem.conversionFactor || 1);
+      const origSoldBaseQty = Math.max(0, Number(origItem.quantity || origItem.qty || 0)) * origItemFactor;
+
+      // Sum all previously returned quantities for this product on this original invoice
+      let prevReturnedBaseQty = 0;
+      for (const inv of mockInvoicesList) {
+        if (
+          inv.status !== 'CANCELLED' &&
+          (inv.original_invoice_number === origInvNum || inv.reference_id === origInvNum) &&
+          Array.isArray(inv.items)
+        ) {
+          const matchRet = inv.items.find(
+            (ri: any) =>
+              (ri.product_id && ri.product_id === prodId) ||
+              (ri.productId && ri.productId === prodId) ||
+              (ri.id && ri.id === prodId) ||
+              (it.sku && ri.sku === it.sku)
+          );
+          if (matchRet) {
+            const retFactor = Number(matchRet.unitFactor || matchRet.conversionFactor || 1);
+            prevReturnedBaseQty += Number(matchRet.quantity || matchRet.qty || 0) * retFactor;
+          }
+        }
+      }
+
+      if (prevReturnedBaseQty === 0) {
+        for (const mov of mockInventoryMovements) {
+          if (
+            mov.reference_type === 'SALES_RETURN' &&
+            mov.product_id === prodId &&
+            mov.notes &&
+            mov.notes.includes(origInvNum)
+          ) {
+            prevReturnedBaseQty += Number(mov.quantity || 0);
+          }
+        }
+      }
+
+      if (baseReturnQty + prevReturnedBaseQty > origSoldBaseQty) {
+        const err: any = new Error(
+          `الكمية المرتجعة للصنف (${it.name || prodId}) تتجاوز الكمية المباعة في الفاتورة الأصلية #${origInvNum}`
+        );
+        err.status = 400;
+        err.statusCode = 400;
+        err.code = 'EXCEEDS_ORIGINAL_INVOICE_QTY';
+        throw err;
+      }
+    }
+  }
+
   let totalReturnCogs = 0;
 
   // 1. Restore Stock & Record IN movements
@@ -879,6 +1002,34 @@ export function postSalesReturnAtomic(params: SalesReturnParams) {
     });
   }
 
+  // BUG-07: Record return invoice into mockInvoicesList to enforce cumulative return limits
+  mockInvoicesList.unshift({
+    id: `inv-ret-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    company_id: cid,
+    invoice_number: returnNumber,
+    original_invoice_number: origInvNum,
+    reference_type: 'SALES_RETURN',
+    status: 'RETURNED',
+    date: returnDate,
+    customer_id: cust?.id || params.customerId,
+    customer_name: cust?.name || params.customerName || 'عميل نقدي',
+    items: items.map((it) => ({
+      product_id: it.product_id || it.productId || it.id,
+      name: it.name || it.product_name || 'صنف مرتجع',
+      quantity: Number(it.quantity || 1),
+      unit_price: Number(it.unit_price || it.unitPrice || it.price || 0),
+      total: Number(it.total || 0),
+      unitFactor: Number(it.unitFactor || it.conversionFactor || 1),
+    })),
+    subtotal: netReturnVal,
+    tax: taxRefund,
+    total: totalRefund,
+    amount: totalRefund,
+    paid_amount: totalRefund,
+    payment_method: refundMethod,
+    created_at: new Date().toISOString(),
+  });
+
   persistAllToDisk();
 
   return {
@@ -944,10 +1095,13 @@ export function postPurchaseTransactionAtomic(params: PurchasePostParams) {
       const oldStock = Number(prod.current_stock ?? prod.qty ?? prod.stock ?? 0);
       const oldCost = Number(prod.cost_price ?? prod.purchase_price ?? unitCost);
 
-      // Weighted Average Cost Formula: ((oldStock * oldCost) + (incomingBaseStock * unitCost)) / (oldStock + incomingBaseStock)
+      // Weighted Average Cost Formula: ((oldStock * oldCost) + netLine) / (oldStock + incomingBaseStock)
+      // Free quantities (freeQuantity > 0) and line discounts properly reduce unit cost
       let newCost = unitCost;
       if (oldStock > 0 && oldCost > 0) {
-        newCost = roundMoney(((oldStock * oldCost) + (incomingBaseStock * unitCost)) / (oldStock + incomingBaseStock));
+        newCost = roundMoney(((oldStock * oldCost) + netLine) / (oldStock + incomingBaseStock));
+      } else if (incomingBaseStock > 0) {
+        newCost = roundMoney(netLine / incomingBaseStock);
       } else {
         newCost = roundMoney(unitCost);
       }
@@ -989,7 +1143,7 @@ export function postPurchaseTransactionAtomic(params: PurchasePostParams) {
     paidVal = roundMoney(params.paidAmount);
   } else if (purchaseInvoice.paid_amount !== undefined || purchaseInvoice.paidAmount !== undefined) {
     paidVal = roundMoney(purchaseInvoice.paid_amount ?? purchaseInvoice.paidAmount);
-  } else if (paymentMethod === 'CASH' || paymentMethod === 'BANK') {
+  } else if (['CASH', 'BANK', 'CARD', 'TRANSFER', 'WALLET'].includes(paymentMethod)) {
     paidVal = totalVal;
   } else {
     paidVal = 0;
@@ -1051,7 +1205,7 @@ export function postPurchaseTransactionAtomic(params: PurchasePostParams) {
     });
   }
 
-  const isBank = ['BANK', 'CARD', 'TRANSFER'].includes(paymentMethod);
+  const isBank = ['BANK', 'CARD', 'TRANSFER', 'WALLET'].includes(paymentMethod);
   if (paidVal > 0) {
     if (isBank) {
       purchaseLines.push({
@@ -1607,9 +1761,18 @@ export function computeUnifiedFinancialMetrics(
 
   // Cost of Goods Sold = 5101 balance
   let cogs = roundMoney(accMap.get('5101')?.balance || 0);
-  if (cogs <= 0 && netRevenue > 0 && !isClean) {
-    // Standard commercial gross margin fallback
-    cogs = roundMoney(netRevenue * 0.55);
+  if (cogs <= 0 && mockInvoicesList.length > 0) {
+    let computedItemCogs = 0;
+    for (const inv of mockInvoicesList) {
+      const items: any[] = (inv as any).items || (inv as any).cartData || (inv as any).invoice_items || [];
+      for (const it of items) {
+        const prod = mockProducts.find((p) => String(p.id) === String(it.productId || it.product_id || it.id));
+        const cost = Number(it.cost_price ?? it.cost ?? it.unit_cost ?? prod?.cost_price ?? prod?.purchase_price ?? 0);
+        const qty = Number(it.quantity ?? it.qty ?? 1);
+        computedItemCogs += cost * qty;
+      }
+    }
+    cogs = roundMoney(computedItemCogs);
   }
 
   const grossProfit = roundMoney(Math.max(0, netRevenue - cogs));
@@ -1741,5 +1904,628 @@ export function computeUnifiedFinancialMetrics(
       isBalanced,
       difference: tbDiff,
     },
+  };
+}
+
+// ============================================================================
+// 14. Atomic Reversal on Delete/Cancel of Transactions (BUG-04)
+// ============================================================================
+
+/**
+ * Atomically cancels or deletes a sales invoice, reversing:
+ * 1. Product stock deductions (increments stock back and records 'IN' movement)
+ * 2. Customer credit balance (deducts remaining credit from current_balance)
+ * 3. Linked automatic invoice receipt/payment in mockPaymentsList
+ * 4. General ledger double-entry journals (Sales Revenue, VAT, Cash/Receivables, COGS, Inventory Asset)
+ */
+export function reverseSalesInvoiceAtomic(
+  companyId: string,
+  invoiceIdOrNumber: string,
+  isPermanentDelete = false
+) {
+  const cid = companyId || getCurrentTenantId() || 'comp_001';
+  const targetId = String(invoiceIdOrNumber || '').trim();
+
+  const idx = mockInvoicesList.findIndex(
+    (inv) =>
+      (inv.id === targetId || inv.invoice_number === targetId || (inv as any).invoiceNumber === targetId) &&
+      (inv.company_id === cid || !inv.company_id || cid === 'comp_001')
+  );
+
+  if (idx === -1) {
+    const err: any = new Error('فاتورة المبيعات غير موجودة');
+    err.status = 404;
+    throw err;
+  }
+
+  const invoice = mockInvoicesList[idx];
+
+  if (invoice.status === 'CANCELLED') {
+    const err: any = new Error('فاتورة المبيعات ملغاة مسبقاً');
+    err.status = 400;
+    throw err;
+  }
+
+  const invNo = invoice.invoice_number || (invoice as any).invoiceNumber || invoice.id;
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  // 1. Restore Inventory Stock & Record 'IN' Movements
+  const items = invoice.items || [];
+  let totalCogsToReverse = 0;
+
+  for (const it of items) {
+    const prodId = it.product_id || (it as any).productId || it.id;
+    const prod = mockProducts.find(
+      (p) => p.id === prodId || (p.sku && p.sku === it.sku) || (p.barcode && p.barcode === it.barcode)
+    );
+
+    const qty = Math.max(0, Number(it.quantity ?? (it as any).qty ?? 0));
+    const unitFactor = Number(it.unitFactor || 1);
+    const baseQty = qty * unitFactor;
+
+    const unitCost = Number(it.cost_price ?? (it as any).costPrice ?? (prod ? (prod.cost_price ?? prod.purchase_price ?? 0) : 0));
+    totalCogsToReverse = roundMoney(totalCogsToReverse + (baseQty * unitCost));
+
+    if (prod && baseQty > 0) {
+      const currentStock = Number(prod.current_stock ?? prod.qty ?? prod.stock ?? 0);
+      const restoredStock = currentStock + baseQty;
+      prod.current_stock = restoredStock;
+      prod.qty = restoredStock;
+      prod.stock = restoredStock;
+
+      mockInventoryMovements.unshift({
+        id: `mov-rev-sale-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        company_id: cid,
+        product_id: prod.id,
+        product_name: prod.name,
+        type: 'IN',
+        quantity: baseQty,
+        remaining_stock: restoredStock,
+        reference_type: 'SALES_CANCEL',
+        reference_id: invNo,
+        notes: `إرجاع مخزني لإلغاء/حذف فاتورة مبيعات #${invNo}`,
+        date: todayStr,
+      });
+    }
+  }
+
+  // 2. Customer Debt Reversal (if invoice had unpaid/remaining credit balance)
+  const remainingDebt = roundMoney(
+    invoice.remaining_amount !== undefined
+      ? invoice.remaining_amount
+      : (invoice as any).remainingAmount !== undefined
+      ? (invoice as any).remainingAmount
+      : Math.max(0, (Number(invoice.total || 0) - Number(invoice.paid_amount || (invoice as any).paidAmount || 0)))
+  );
+
+  if (remainingDebt > 0) {
+    const custId = invoice.customer_id || (invoice as any).customerId;
+    const custName = invoice.customer_name || (invoice as any).customerName;
+    const cust = mockCustomersList.find(
+      (c) => (custId && c.id === custId) || (custName && c.name.toLowerCase() === String(custName).toLowerCase())
+    );
+    if (cust) {
+      cust.current_balance = roundMoney(Math.max(0, (cust.current_balance || 0) - remainingDebt));
+      cust.balance = cust.current_balance;
+    }
+  }
+
+  // 3. Cancel Linked Automatic Payment Vouchers in mockPaymentsList
+  for (const pmt of mockPaymentsList) {
+    const pRef = String(pmt.reference_no || (pmt as any).referenceNo || pmt.reference_id || (pmt as any).referenceId || '').trim();
+    if (pRef === invNo || (pmt as any).invoice_id === invoice.id || pRef === invoice.id) {
+      pmt.status = 'CANCELLED';
+    }
+  }
+
+  // 4. Reverse Accounting Journal Entries
+  const totalVal = roundMoney(invoice.total || 0);
+  const taxVal = roundMoney(invoice.tax_amount || (invoice as any).taxAmount || invoice.tax || 0);
+  const discountVal = roundMoney(invoice.discount_amount || (invoice as any).discountAmount || invoice.discount || 0);
+  const paidVal = roundMoney(invoice.paid_amount || (invoice as any).paidAmount || (invoice.payment_method === 'CASH' || invoice.payment_method === 'BANK' ? totalVal : 0));
+  const creditVal = roundMoney(Math.max(0, totalVal - paidVal));
+  const subtotalVal = roundMoney(totalVal - taxVal + discountVal);
+
+  const isBank = invoice.payment_method === 'BANK' || invoice.payment_method === 'CARD' || invoice.payment_method === 'TRANSFER';
+  const cashOrBankCode = isBank ? '1102' : '1101';
+  const cashOrBankName = isBank ? 'البنك / الحسابات البنكية' : 'الصندوق / النقدية';
+
+  const revSalesLines: JournalLine[] = [];
+  if (subtotalVal > 0) {
+    revSalesLines.push({
+      account_code: '4101',
+      account_name: 'إيرادات المبيعات',
+      debit: subtotalVal,
+      credit: 0,
+      description: `إلغاء إيراد فاتورة مبيعات #${invNo}`,
+    });
+  }
+  if (taxVal > 0) {
+    revSalesLines.push({
+      account_code: '2102',
+      account_name: 'ضريبة القيمة المضافة - مخرجات',
+      debit: taxVal,
+      credit: 0,
+      description: `عكس ضريبة مخرجات فاتورة مبيعات #${invNo}`,
+    });
+  }
+  if (discountVal > 0) {
+    revSalesLines.push({
+      account_code: '4102',
+      account_name: 'خصم مسموح به',
+      debit: 0,
+      credit: discountVal,
+      description: `عكس خصم فاتورة مبيعات #${invNo}`,
+    });
+  }
+  if (paidVal > 0) {
+    revSalesLines.push({
+      account_code: cashOrBankCode,
+      account_name: cashOrBankName,
+      debit: 0,
+      credit: paidVal,
+      description: `استرداد نقدي لإلغاء فاتورة مبيعات #${invNo}`,
+    });
+  }
+  if (creditVal > 0) {
+    revSalesLines.push({
+      account_code: '1103',
+      account_name: 'العملاء / المدينون',
+      debit: 0,
+      credit: creditVal,
+      description: `إلغاء مديونية عميل فاتورة #${invNo}`,
+      party_id: invoice.customer_id,
+      party_type: 'CUSTOMER',
+    });
+  }
+
+  if (revSalesLines.length > 0) {
+    postDoubleEntryJournal({
+      companyId: cid,
+      reference_type: 'SALES_CANCEL',
+      reference_id: invNo,
+      description: `قيد عكسي لإلغاء فاتورة مبيعات #${invNo}`,
+      date: todayStr,
+      lines: revSalesLines,
+      created_by: 'النظام المحاسبي (إلغاء عكسي)',
+    });
+  }
+
+  if (totalCogsToReverse > 0) {
+    postDoubleEntryJournal({
+      companyId: cid,
+      reference_type: 'COGS_REVERSAL',
+      reference_id: invNo,
+      description: `قيد عكسي لتكلفة البضاعة المباعة (COGS) فاتورة #${invNo}`,
+      date: todayStr,
+      lines: [
+        {
+          account_code: '1104',
+          account_name: 'المخزون السلعي',
+          debit: totalCogsToReverse,
+          credit: 0,
+          description: `إرجاع المخزون السلعي تكلفة فاتورة #${invNo}`,
+        },
+        {
+          account_code: '5101',
+          account_name: 'تكلفة البضاعة المباعة',
+          debit: 0,
+          credit: totalCogsToReverse,
+          description: `عكس تكلفة البضاعة المباعة فاتورة #${invNo}`,
+        },
+      ],
+      created_by: 'نظام الجرد المستمر (عكس COGS)',
+    });
+  }
+
+  // 5. Update Status or Delete
+  invoice.status = 'CANCELLED';
+  if (isPermanentDelete) {
+    mockInvoicesList.splice(idx, 1);
+  }
+
+  persistAllToDisk();
+
+  return {
+    success: true,
+    invoice,
+    message: isPermanentDelete ? 'تم حذف فاتورة المبيعات وتسوية القيود والمخزون بنجاح' : 'تم إلغاء فاتورة المبيعات وتسوية القيود والمخزون بنجاح',
+  };
+}
+
+/**
+ * Atomically cancels or deletes a purchase invoice, reversing:
+ * 1. Product stock additions (deducts stock and records 'OUT' movement)
+ * 2. Supplier balance (reduces payable balance by remaining_amount)
+ * 3. Linked payment vouchers in mockPaymentsList
+ * 4. General ledger double-entry journals (Merchandise Inventory, Input VAT, Cash/Payables)
+ */
+export function reversePurchaseInvoiceAtomic(
+  companyId: string,
+  purchaseIdOrNumber: string,
+  isPermanentDelete = false
+) {
+  const cid = companyId || getCurrentTenantId() || 'comp_001';
+  const targetId = String(purchaseIdOrNumber || '').trim();
+
+  const idx = mockPurchaseInvoicesList.findIndex(
+    (p) =>
+      (p.id === targetId || p.invoice_number === targetId || (p as any).invoiceNumber === targetId) &&
+      (p.company_id === cid || !p.company_id || cid === 'comp_001')
+  );
+
+  if (idx === -1) {
+    const err: any = new Error('فاتورة المشتريات غير موجودة');
+    err.status = 404;
+    throw err;
+  }
+
+  const purchase = mockPurchaseInvoicesList[idx];
+
+  if (purchase.status === 'CANCELLED') {
+    const err: any = new Error('فاتورة المشتريات ملغاة مسبقاً');
+    err.status = 400;
+    throw err;
+  }
+
+  const invNo = purchase.invoice_number || (purchase as any).invoiceNumber || purchase.id;
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  // 1. Deduct Product Stock & Record 'OUT' Movements
+  const items = purchase.items || [];
+  for (const it of items) {
+    const prodId = it.product_id || (it as any).productId || it.id;
+    const prod = mockProducts.find(
+      (p) => p.id === prodId || (p.sku && p.sku === it.sku) || (p.barcode && p.barcode === it.barcode)
+    );
+
+    const paidQty = Math.max(0, Number(it.quantity || 0));
+    const freeQty = Math.max(0, Number(it.freeQuantity || 0));
+    const totalIncomingUnits = paidQty + freeQty;
+    const unitFactor = Number(it.unitFactor || 1);
+    const baseQty = totalIncomingUnits * unitFactor;
+
+    if (prod && baseQty > 0) {
+      const currentStock = Number(prod.current_stock ?? prod.qty ?? prod.stock ?? 0);
+      const newStock = Math.max(0, currentStock - baseQty);
+      prod.current_stock = newStock;
+      prod.qty = newStock;
+      prod.stock = newStock;
+
+      mockInventoryMovements.unshift({
+        id: `mov-rev-pur-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        company_id: cid,
+        product_id: prod.id,
+        product_name: prod.name,
+        type: 'OUT',
+        quantity: baseQty,
+        remaining_stock: newStock,
+        reference_type: 'PURCHASE_CANCEL',
+        reference_id: invNo,
+        notes: `صرف مخزني لإلغاء/حذف فاتورة مشتريات #${invNo}`,
+        date: todayStr,
+      });
+    }
+  }
+
+  // 2. Reduce Supplier Payable Balance for unpaid portion
+  const totalVal = roundMoney(purchase.total ?? (purchase as any).grandTotal ?? 0);
+  const paidVal = roundMoney(
+    purchase.paid_amount !== undefined
+      ? purchase.paid_amount
+      : (purchase as any).paidAmount !== undefined
+      ? (purchase as any).paidAmount
+      : (purchase.payment_method === 'CASH' || purchase.payment_method === 'BANK' ? totalVal : 0)
+  );
+  const unpaidVal = roundMoney(Math.max(0, totalVal - paidVal));
+
+  if (unpaidVal > 0) {
+    const suppId = purchase.supplier_id || (purchase as any).supplierId;
+    const suppName = purchase.supplier_name || (purchase as any).supplierName;
+    const supp = mockSuppliersList.find(
+      (s) => (suppId && s.id === suppId) || (suppName && s.name.toLowerCase() === String(suppName).toLowerCase())
+    );
+    if (supp) {
+      supp.current_balance = roundMoney(Math.max(0, (supp.current_balance || 0) - unpaidVal));
+      supp.balance = supp.current_balance;
+    }
+  }
+
+  // 3. Cancel Linked Payment Vouchers in mockPaymentsList
+  for (const pmt of mockPaymentsList) {
+    const pRef = String(pmt.reference_no || (pmt as any).referenceNo || pmt.reference_id || (pmt as any).referenceId || '').trim();
+    if (pRef === invNo || (pmt as any).purchase_invoice_id === purchase.id || pRef === purchase.id) {
+      pmt.status = 'CANCELLED';
+    }
+  }
+
+  // 4. Reverse Purchase Accounting Journal Entry
+  const taxVal = roundMoney(purchase.tax ?? (purchase as any).taxAmount ?? 0);
+  const netInventoryVal = roundMoney(Math.max(0, totalVal - taxVal));
+  const isBank = ['BANK', 'CARD', 'TRANSFER'].includes(String(purchase.payment_method || '').toUpperCase());
+  const cashOrBankCode = isBank ? '1102' : '1101';
+  const cashOrBankName = isBank ? 'البنك / الحسابات البنكية' : 'الصندوق / النقدية';
+
+  const revPurLines: JournalLine[] = [];
+  if (paidVal > 0) {
+    revPurLines.push({
+      account_code: cashOrBankCode,
+      account_name: cashOrBankName,
+      debit: paidVal,
+      credit: 0,
+      description: `استرجاع نقدي لإلغاء فاتورة مشتريات #${invNo}`,
+    });
+  }
+  if (unpaidVal > 0) {
+    revPurLines.push({
+      account_code: '2101',
+      account_name: 'الموردون / الدائنون',
+      debit: unpaidVal,
+      credit: 0,
+      description: `إلغاء استحقاق مورد فاتورة مشتريات #${invNo}`,
+      party_id: purchase.supplier_id,
+      party_type: 'SUPPLIER',
+    });
+  }
+  if (netInventoryVal > 0) {
+    revPurLines.push({
+      account_code: '1104',
+      account_name: 'المخزون السلعي',
+      debit: 0,
+      credit: netInventoryVal,
+      description: `عكس توريد بضاعة مخزنية فاتورة مشتريات #${invNo}`,
+    });
+  }
+  if (taxVal > 0) {
+    revPurLines.push({
+      account_code: '1105',
+      account_name: 'ضريبة القيمة المضافة - مدخلات',
+      debit: 0,
+      credit: taxVal,
+      description: `عكس ضريبة مدخلات فاتورة مشتريات #${invNo}`,
+    });
+  }
+
+  if (revPurLines.length > 0) {
+    postDoubleEntryJournal({
+      companyId: cid,
+      reference_type: 'PURCHASE_CANCEL',
+      reference_id: invNo,
+      description: `قيد عكسي لإلغاء فاتورة مشتريات #${invNo}`,
+      date: todayStr,
+      lines: revPurLines,
+      created_by: 'النظام المحاسبي (إلغاء مشتريات)',
+    });
+  }
+
+  // 5. Update Status or Delete
+  purchase.status = 'CANCELLED';
+  if (isPermanentDelete) {
+    mockPurchaseInvoicesList.splice(idx, 1);
+  }
+
+  persistAllToDisk();
+
+  return {
+    success: true,
+    purchaseInvoice: purchase,
+    message: isPermanentDelete ? 'تم حذف فاتورة المشتريات وتسوية القيود والمخزون بنجاح' : 'تم إلغاء فاتورة المبيعات وتسوية القيود والمخزون بنجاح',
+  };
+}
+
+/**
+ * Atomically cancels or deletes a treasury voucher (Receipt or Payment), reversing:
+ * 1. Customer or supplier balance
+ * 2. General ledger double-entry journals (1101/1102 and 1103/2101)
+ */
+export function reverseVoucherAtomic(
+  companyId: string,
+  paymentIdOrNumber: string,
+  isPermanentDelete = false
+) {
+  const cid = companyId || getCurrentTenantId() || 'comp_001';
+  const targetId = String(paymentIdOrNumber || '').trim();
+
+  const idx = mockPaymentsList.findIndex(
+    (p) =>
+      (p.id === targetId ||
+        p.voucher_number === targetId ||
+        (p as any).voucherNumber === targetId ||
+        (p as any).payment_number === targetId ||
+        (p as any).paymentNumber === targetId) &&
+      (p.company_id === cid || !p.company_id || cid === 'comp_001')
+  );
+
+  if (idx === -1) {
+    const err: any = new Error('سند القبض/الصرف غير موجود');
+    err.status = 404;
+    throw err;
+  }
+
+  const pmt = mockPaymentsList[idx];
+
+  if (pmt.status === 'CANCELLED') {
+    const err: any = new Error('السند ملغى مسبقاً');
+    err.status = 400;
+    throw err;
+  }
+
+  const vNum = pmt.voucher_number || (pmt as any).payment_number || pmt.id;
+  const roundAmt = roundMoney(pmt.amount || 0);
+  const todayStr = new Date().toISOString().split('T')[0];
+  const isBank = (pmt as any).payment_method === 'BANK';
+  const cashOrBankCode = isBank ? '1102' : '1101';
+  const cashOrBankName = isBank ? 'البنك / الحسابات البنكية' : 'الصندوق / النقدية';
+
+  const isReceipt = pmt.type === 'CUSTOMER_PAYMENT' || (pmt as any).voucher_type === 'RECEIPT' || (pmt as any).payment_type === 'IN';
+  const lines: JournalLine[] = [];
+
+  if (isReceipt) {
+    // When Receipt was created: Dr Cash/Bank, Cr AR 1103 & reduced customer debt
+    // On Cancel/Delete: Restore customer debt, Dr AR 1103, Cr Cash/Bank
+    const custId = pmt.customer_id || (pmt as any).party_id;
+    const cust = mockCustomersList.find((c) => c.id === custId);
+    if (cust) {
+      cust.current_balance = roundMoney((cust.current_balance || 0) + roundAmt);
+      cust.balance = cust.current_balance;
+    }
+
+    lines.push({
+      account_code: '1103',
+      account_name: 'العملاء / المدينون',
+      debit: roundAmt,
+      credit: 0,
+      description: `إعادة مديونية عميل لإلغاء سند قبض #${vNum}`,
+      party_id: custId,
+      party_type: 'CUSTOMER',
+    });
+    lines.push({
+      account_code: cashOrBankCode,
+      account_name: cashOrBankName,
+      debit: 0,
+      credit: roundAmt,
+      description: `صرف نقدي لإلغاء سند قبض #${vNum}`,
+    });
+  } else {
+    // When Payment was created: Dr AP 2101, Cr Cash/Bank & reduced supplier debt
+    // On Cancel/Delete: Restore supplier debt, Dr Cash/Bank, Cr AP 2101
+    const suppId = (pmt as any).supplier_id || (pmt as any).party_id;
+    const supp = mockSuppliersList.find((s) => s.id === suppId);
+    if (supp) {
+      supp.current_balance = roundMoney((supp.current_balance || 0) + roundAmt);
+      supp.balance = supp.current_balance;
+    }
+
+    lines.push({
+      account_code: cashOrBankCode,
+      account_name: cashOrBankName,
+      debit: roundAmt,
+      credit: 0,
+      description: `استرجاع نقدي لإلغاء سند صرف #${vNum}`,
+    });
+    lines.push({
+      account_code: '2101',
+      account_name: 'الموردون / الدائنون',
+      debit: 0,
+      credit: roundAmt,
+      description: `إعادة استحقاق مورد لإلغاء سند صرف #${vNum}`,
+      party_id: suppId,
+      party_type: 'SUPPLIER',
+    });
+  }
+
+  if (lines.length > 0 && roundAmt > 0) {
+    postDoubleEntryJournal({
+      companyId: cid,
+      reference_type: isReceipt ? 'RECEIPT_CANCEL' : 'PAYMENT_CANCEL',
+      reference_id: vNum,
+      description: `قيد عكسي لإلغاء سند ${isReceipt ? 'القبض' : 'الصرف'} #${vNum}`,
+      date: todayStr,
+      lines,
+      created_by: 'النظام المحاسبي (إلغاء سند)',
+    });
+  }
+
+  pmt.status = 'CANCELLED';
+  if (isPermanentDelete) {
+    mockPaymentsList.splice(idx, 1);
+  }
+
+  persistAllToDisk();
+
+  return {
+    success: true,
+    payment: pmt,
+    message: isPermanentDelete ? 'تم حذف السند وإلغاء أثره المالي بنجاح' : 'تم إلغاء السند وإلغاء أثره المالي بنجاح',
+  };
+}
+
+/**
+ * Atomically cancels or deletes an expense voucher, reversing:
+ * 1. Treasury / Bank cash balances (Dr Cash/Bank, Cr Expense)
+ * 2. General ledger double-entry journals
+ */
+export function reverseExpenseAtomic(
+  companyId: string,
+  expenseIdOrNumber: string,
+  isPermanentDelete = false
+) {
+  const cid = companyId || getCurrentTenantId() || 'comp_001';
+  const targetId = String(expenseIdOrNumber || '').trim();
+
+  const idx = mockExpensesList.findIndex(
+    (e) =>
+      (e.id === targetId ||
+        e.expense_number === targetId ||
+        (e as any).voucher_number === targetId) &&
+      (e.company_id === cid || !e.company_id || cid === 'comp_001')
+  );
+
+  if (idx === -1) {
+    const err: any = new Error('المصروف غير موجود');
+    err.status = 404;
+    throw err;
+  }
+
+  const exp = mockExpensesList[idx];
+
+  if (exp.status === 'CANCELLED') {
+    const err: any = new Error('المصروف ملغى مسبقاً');
+    err.status = 400;
+    throw err;
+  }
+
+  const vNum = exp.expense_number || (exp as any).voucher_number || exp.id;
+  const roundAmt = roundMoney(exp.amount || 0);
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  const isPayroll = String(exp.category || '').includes('رواتب') || String(exp.category || '').toLowerCase().includes('salary');
+  const expenseCode = isPayroll ? '5201' : '5202';
+  const expenseName = isPayroll ? 'مصروفات الرواتب والأجور' : 'المصروفات العمومية والإدارية';
+
+  const isBank = (exp.paymentMethod || exp.payment_method) === 'BANK';
+  const cashOrBankCode = isBank ? '1102' : '1101';
+  const cashOrBankName = isBank ? 'البنك / الحسابات البنكية' : 'الصندوق / النقدية';
+
+  // Original expense: Dr Expense (5201/5202), Cr Cash/Bank (1101/1102)
+  // Reversal: Dr Cash/Bank (1101/1102), Cr Expense (5201/5202)
+  if (roundAmt > 0) {
+    postDoubleEntryJournal({
+      companyId: cid,
+      reference_type: 'EXPENSE_CANCEL',
+      reference_id: vNum,
+      description: `قيد عكسي لإلغاء مصروف #${vNum} (${exp.description || ''})`,
+      date: todayStr,
+      lines: [
+        {
+          account_code: cashOrBankCode,
+          account_name: cashOrBankName,
+          debit: roundAmt,
+          credit: 0,
+          description: `إرجاع نقدي للخزينة لإلغاء مصروف #${vNum}`,
+        },
+        {
+          account_code: expenseCode,
+          account_name: expenseName,
+          debit: 0,
+          credit: roundAmt,
+          description: `عكس مصروف #${vNum}`,
+        },
+      ],
+      created_by: 'النظام المحاسبي (إلغاء مصروف)',
+    });
+  }
+
+  exp.status = 'CANCELLED';
+  if (isPermanentDelete) {
+    mockExpensesList.splice(idx, 1);
+  }
+
+  persistAllToDisk();
+
+  return {
+    success: true,
+    expense: exp,
+    message: isPermanentDelete ? 'تم حذف المصروف واسترجاع المبلغ للخزينة بنجاح' : 'تم إلغاء المصروف واسترجاع المبلغ للخزينة بنجاح',
   };
 }

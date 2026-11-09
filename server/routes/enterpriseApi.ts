@@ -52,6 +52,10 @@ import {
   getTenantJournalEntries,
   postDoubleEntryJournal,
   roundMoney,
+  reverseSalesInvoiceAtomic,
+  reversePurchaseInvoiceAtomic,
+  reverseVoucherAtomic,
+  reverseExpenseAtomic,
 } from '../accountingEngine.js';
 
 export {
@@ -631,7 +635,93 @@ enterpriseRouter.post('/customers', (req: Request, res: Response) => {
     created_at: new Date().toISOString(),
   };
   mockCustomersList.unshift(newCust);
+
+  // BUG-05: Post opening balance journal entry to General Ledger
+  if (opVal > 0) {
+    const companyId = resolveCompanyId(req);
+    postDoubleEntryJournal({
+      companyId,
+      reference_type: 'OPENING_BALANCE',
+      reference_id: newCust.id,
+      description: `إثبات رصيد افتتاحي للعميل (${newCust.name})`,
+      date: new Date().toISOString().split('T')[0],
+      lines: [
+        {
+          account_code: '1103',
+          account_name: 'العملاء / المدينون',
+          debit: opVal,
+          credit: 0,
+          description: `رصيد افتتاحي للعميل ${newCust.name}`,
+          party_id: newCust.id,
+          party_type: 'CUSTOMER',
+        },
+        {
+          account_code: '3101',
+          account_name: 'رأس المال والأرصدة الافتتاحية',
+          debit: 0,
+          credit: opVal,
+          description: `رصيد افتتاحي مقابل رأس المال - عميل ${newCust.name}`,
+        },
+      ],
+      created_by: 'النظام المحاسبي (أرصدة افتتاحية)',
+    });
+  }
+
   res.status(201).json({ success: true, data: newCust, message: 'تم إضافة العميل وتحديد العملة والرصيد الافتتاحي بنجاح' });
+});
+
+enterpriseRouter.post(['/customers/merge', '/customers/action/merge'], (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const body = req.body || {};
+  const sourceId = String(body.sourceCustomerId || body.sourceId || '');
+  const targetId = String(body.targetCustomerId || body.targetId || '');
+
+  if (!sourceId || !targetId || sourceId === targetId) {
+    return res.status(400).json({ success: false, error: 'معرّفات دمج الحساب غير صالحة', message: 'يرجى تحديد حساب المصدر وحساب الهدف بشكل صحيح' });
+  }
+
+  const sourceIdx = mockCustomersList.findIndex((c) => String(c.id) === sourceId);
+  const targetIdx = mockCustomersList.findIndex((c) => String(c.id) === targetId);
+
+  if (sourceIdx === -1 || targetIdx === -1) {
+    return res.status(404).json({ success: false, error: 'أحد الحسابين المطلوب دمجهما غير موجود', message: 'أحد حسابات العملاء غير موجود' });
+  }
+
+  const source = mockCustomersList[sourceIdx];
+  const target = mockCustomersList[targetIdx];
+
+  // Transfer balance
+  const sourceBalance = Number(source.balance || source.current_balance || 0);
+  target.balance = roundMoney(Number(target.balance || target.current_balance || 0) + sourceBalance);
+  target.current_balance = target.balance;
+
+  // Reassign invoices
+  for (const inv of mockInvoicesList) {
+    if (String(inv.customer_id || (inv as any).customerId) === sourceId || String(inv.customer_name || (inv as any).customerName || '').trim() === source.name.trim()) {
+      inv.customer_id = target.id;
+      inv.customer_name = target.name;
+    }
+  }
+
+  // Reassign payments
+  for (const p of mockPaymentsList) {
+    if (String(p.customer_id || p.party_id) === sourceId || String(p.customer_name || p.party_name || '').trim() === source.name.trim()) {
+      p.customer_id = target.id;
+      p.customer_name = target.name;
+      if (p.party_id === sourceId) p.party_id = target.id;
+      if (p.party_name && p.party_name.trim() === source.name.trim()) p.party_name = target.name;
+    }
+  }
+
+  // Remove source customer
+  mockCustomersList.splice(sourceIdx, 1);
+  persistAllToDisk();
+
+  res.json({
+    success: true,
+    data: target,
+    message: `تم دمج حساب "${source.name}" في حساب "${target.name}" وترحيل الرصيد (${sourceBalance}) بنجاح`,
+  });
 });
 
 enterpriseRouter.get('/customers/:id', (req: Request, res: Response) => {
@@ -996,6 +1086,38 @@ enterpriseRouter.post('/suppliers', (req: Request, res: Response) => {
     created_at: new Date().toISOString(),
   };
   mockSuppliersList.unshift(newSupp);
+
+  // BUG-05: Post opening balance journal entry to General Ledger
+  if (opVal > 0) {
+    const companyId = resolveCompanyId(req);
+    postDoubleEntryJournal({
+      companyId,
+      reference_type: 'OPENING_BALANCE',
+      reference_id: newSupp.id,
+      description: `إثبات رصيد افتتاحي للمورد (${newSupp.name})`,
+      date: new Date().toISOString().split('T')[0],
+      lines: [
+        {
+          account_code: '3101',
+          account_name: 'رأس المال والأرصدة الافتتاحية',
+          debit: opVal,
+          credit: 0,
+          description: `رصيد افتتاحي مقابل رأس المال - مورد ${newSupp.name}`,
+        },
+        {
+          account_code: '2101',
+          account_name: 'الموردون / الدائنون',
+          debit: 0,
+          credit: opVal,
+          description: `رصيد افتتاحي للمورد ${newSupp.name}`,
+          party_id: newSupp.id,
+          party_type: 'SUPPLIER',
+        },
+      ],
+      created_by: 'النظام المحاسبي (أرصدة افتتاحية)',
+    });
+  }
+
   res.status(201).json({ success: true, data: newSupp, message: 'تم إضافة المورد وتحديد العملة والرصيد الافتتاحي بنجاح' });
 });
 
@@ -1334,46 +1456,56 @@ enterpriseRouter.get('/invoices/returns', (_req: Request, res: Response) => {
   });
 });
 
-enterpriseRouter.get('/invoices/stats', (_req: Request, res: Response) => {
+enterpriseRouter.get('/invoices/stats', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const invoices = mockInvoicesList.filter(
+    (inv) => (!inv.company_id || inv.company_id === companyId) && inv.status !== 'CANCELLED'
+  );
+  const totalInvoices = invoices.length;
+  let totalSales = 0;
+  let totalPaid = 0;
+  let totalUnpaid = 0;
+
+  for (const inv of invoices) {
+    const total = Number(inv.total || inv.grandTotal || inv.amount || 0);
+    const paid = Number(inv.paid_amount ?? inv.paidAmount ?? (inv.status === 'PAID' ? total : 0));
+    const remaining = Number(inv.remaining_amount ?? inv.remainingAmount ?? Math.max(0, total - paid));
+    totalSales += total;
+    totalPaid += paid;
+    totalUnpaid += remaining;
+  }
+
+  totalSales = roundMoney(totalSales);
+  totalPaid = roundMoney(totalPaid);
+  totalUnpaid = roundMoney(totalUnpaid);
+  const averageInvoiceValue = totalInvoices > 0 ? roundMoney(totalSales / totalInvoices) : 0;
+
   res.json({
     success: true,
     data: {
-      totalInvoices: 142,
-      totalSales: 284500,
-      totalPaid: 248000,
-      totalUnpaid: 36500,
-      averageInvoiceValue: 2003.52,
+      totalInvoices,
+      totalSales,
+      totalPaid,
+      totalUnpaid,
+      averageInvoiceValue,
     },
   });
 });
 
 enterpriseRouter.get('/invoices/:id', (req: Request, res: Response) => {
-  res.json({
-    success: true,
-    data: {
-      id: req.params.id,
-      invoice_number: req.params.id,
-      customer_id: '1',
-      customer_name: 'مؤسسة الأفق للتجارة',
-      date: '2026-10-18',
-      due_date: '2026-11-18',
-      subtotal: 1450.0,
-      tax_amount: 217.5,
-      total: 1667.5,
-      paid_amount: 1667.5,
-      remaining_amount: 0,
-      status: 'مدفوعة',
-      currency: 'SAR',
-      items: [
-        { id: 'item-1', product_id: 'prod-1', product_name: 'شاي سيلاني فاخر 100 كيس', quantity: 20, unit_price: 25.0, subtotal: 500.0, tax_rate: 15, tax_amount: 75.0, total: 575.0 },
-        { id: 'item-2', product_id: 'prod-4', product_name: 'بطارية هانكوك 70 أمبير', quantity: 3, unit_price: 316.67, subtotal: 950.0, tax_rate: 15, tax_amount: 142.5, total: 1092.5 },
-      ],
-      qr_code: 'AQhzYWFsYXJhYmEHMzEwMDAwMDAwMDIwMjYtMTAtMThUMTI6MDA6MDANCjE2NjcuNTAFDjIxNy41MA==',
-      zatca_status: 'REPORTED',
-      warehouse_id: 'WH-MAIN',
-      warehouse_name: 'المستودع الرئيسي - الرياض',
-    },
-  });
+  const companyId = resolveCompanyId(req);
+  const idOrNum = req.params.id;
+  const inv = mockInvoicesList.find(
+    (i) =>
+      (i.id === idOrNum || i.invoice_number === idOrNum || (i as any).invoiceNumber === idOrNum) &&
+      (!i.company_id || i.company_id === companyId)
+  );
+
+  if (!inv) {
+    return res.status(404).json({ success: false, error: 'Invoice not found', message: 'الفاتورة غير موجودة' });
+  }
+
+  res.json({ success: true, data: inv });
 });
 
 enterpriseRouter.put('/invoices/:id', (req: Request, res: Response) => {
@@ -1381,11 +1513,31 @@ enterpriseRouter.put('/invoices/:id', (req: Request, res: Response) => {
 });
 
 enterpriseRouter.delete('/invoices/:id', (req: Request, res: Response) => {
-  res.json({ success: true, message: 'تم حذف الفاتورة' });
+  try {
+    const companyId = resolveCompanyId(req);
+    const result = reverseSalesInvoiceAtomic(companyId, req.params.id, true);
+    res.json(result);
+  } catch (err: any) {
+    res.status(err.status || 400).json({
+      success: false,
+      message: err.message || 'فشل حذف فاتورة المبيعات',
+      error: err.message,
+    });
+  }
 });
 
 enterpriseRouter.post('/invoices/:id/cancel', (req: Request, res: Response) => {
-  res.json({ success: true, message: 'تم إلغاء الفاتورة الضريبية وتوليد الإشعار الدائن' });
+  try {
+    const companyId = resolveCompanyId(req);
+    const result = reverseSalesInvoiceAtomic(companyId, req.params.id, false);
+    res.json(result);
+  } catch (err: any) {
+    res.status(err.status || 400).json({
+      success: false,
+      message: err.message || 'فشل إلغاء فاتورة المبيعات',
+      error: err.message,
+    });
+  }
 });
 
 enterpriseRouter.post('/invoices/:id/return', (req: Request, res: Response) => {
@@ -1522,11 +1674,31 @@ enterpriseRouter.put('/purchase-invoices/:id', (req: Request, res: Response) => 
 });
 
 enterpriseRouter.delete('/purchase-invoices/:id', (req: Request, res: Response) => {
-  res.json({ success: true, message: 'تم حذف فاتورة المشتريات' });
+  try {
+    const companyId = resolveCompanyId(req);
+    const result = reversePurchaseInvoiceAtomic(companyId, req.params.id, true);
+    res.json(result);
+  } catch (err: any) {
+    res.status(err.status || 400).json({
+      success: false,
+      message: err.message || 'فشل حذف فاتورة المشتريات',
+      error: err.message,
+    });
+  }
 });
 
 enterpriseRouter.post('/purchase-invoices/:id/cancel', (req: Request, res: Response) => {
-  res.json({ success: true, message: 'تم إلغاء فاتورة الشراء' });
+  try {
+    const companyId = resolveCompanyId(req);
+    const result = reversePurchaseInvoiceAtomic(companyId, req.params.id, false);
+    res.json(result);
+  } catch (err: any) {
+    res.status(err.status || 400).json({
+      success: false,
+      message: err.message || 'فشل إلغاء فاتورة المشتريات',
+      error: err.message,
+    });
+  }
 });
 
 enterpriseRouter.get('/purchase-invoices/:id/payments', (req: Request, res: Response) => {
@@ -1541,39 +1713,95 @@ enterpriseRouter.get('/purchase-invoices/:id/payments', (req: Request, res: Resp
 // ==========================================
 // 7. Payments & Vouchers Extensions
 // ==========================================
-enterpriseRouter.get('/payments/stats', (_req: Request, res: Response) => {
+enterpriseRouter.get('/payments/stats', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const payments = mockPaymentsList.filter(
+    (p) => (!p.company_id || p.company_id === companyId) && p.status !== 'CANCELLED'
+  );
+
+  let totalCollected = 0;
+  let totalDisbursed = 0;
+  let cashCount = 0;
+  let bankTransferCount = 0;
+
+  for (const p of payments) {
+    const amt = Number(p.amount || 0);
+    const type = String(p.voucher_type || p.type || p.payment_type || '').toUpperCase();
+    const isDisbursement = type.includes('PAY') || type.includes('EXPENSE') || type.includes('DEBT_PAY') || type.includes('SUPPLIER');
+
+    if (isDisbursement) {
+      totalDisbursed += amt;
+    } else {
+      totalCollected += amt;
+    }
+
+    const method = String(p.payment_method || '').toUpperCase();
+    if (['CASH', 'نقدي'].includes(method)) {
+      cashCount++;
+    } else {
+      bankTransferCount++;
+    }
+  }
+
+  totalCollected = roundMoney(totalCollected);
+  totalDisbursed = roundMoney(totalDisbursed);
+  const netCashflow = roundMoney(totalCollected - totalDisbursed);
+
   res.json({
     success: true,
     data: {
-      totalCollected: 248000,
-      totalDisbursed: 112000,
-      netCashflow: 136000,
-      cashCount: 84,
-      bankTransferCount: 42,
+      totalCollected,
+      totalDisbursed,
+      netCashflow,
+      cashCount,
+      bankTransferCount,
+      totalPayments: payments.length,
     },
   });
 });
 
 enterpriseRouter.get('/payments/:id', (req: Request, res: Response) => {
-  res.json({
-    success: true,
-    data: {
-      id: req.params.id,
-      voucher_number: req.params.id,
-      type: 'CUSTOMER_PAYMENT',
-      customer_name: 'مؤسسة الأفق للتجارة',
-      amount: 5000,
-      currency: 'SAR',
-      payment_method: 'CASH',
-      payment_date: '2026-10-18',
-      status: 'CONFIRMED',
-      notes: 'تحصيل دفعة نقدية تحت الحساب',
-    },
-  });
+  const companyId = resolveCompanyId(req);
+  const idOrNum = req.params.id;
+  const p = mockPaymentsList.find(
+    (item) =>
+      (item.id === idOrNum || (item as any).payment_number === idOrNum || (item as any).voucher_number === idOrNum || item.reference_id === idOrNum) &&
+      (!item.company_id || item.company_id === companyId)
+  );
+
+  if (!p) {
+    return res.status(404).json({ success: false, error: 'Payment voucher not found', message: 'سند الدفع أو التحصيل غير موجود' });
+  }
+
+  res.json({ success: true, data: p });
+});
+
+enterpriseRouter.delete('/payments/:id', (req: Request, res: Response) => {
+  try {
+    const companyId = resolveCompanyId(req);
+    const result = reverseVoucherAtomic(companyId, req.params.id, true);
+    res.json(result);
+  } catch (err: any) {
+    res.status(err.status || 400).json({
+      success: false,
+      message: err.message || 'فشل حذف سند القبض/الصرف',
+      error: err.message,
+    });
+  }
 });
 
 enterpriseRouter.post('/payments/:id/cancel', (req: Request, res: Response) => {
-  res.json({ success: true, message: 'تم إلغاء سند الصرف/القبض بنجاح' });
+  try {
+    const companyId = resolveCompanyId(req);
+    const result = reverseVoucherAtomic(companyId, req.params.id, false);
+    res.json(result);
+  } catch (err: any) {
+    res.status(err.status || 400).json({
+      success: false,
+      message: err.message || 'فشل إلغاء سند القبض/الصرف',
+      error: err.message,
+    });
+  }
 });
 
 // ==========================================
@@ -2937,17 +3165,10 @@ enterpriseRouter.get('/business/dashboard', (req: Request, res: Response) => {
 enterpriseRouter.get('/business/bank-accounts', (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   const isClean = isTenantCleanProductionMode(companyId);
+  const metrics = computeUnifiedFinancialMetrics(companyId);
+  const bankBalance = roundMoney(metrics.bankBalance || 0);
 
-  const cashIn = mockPaymentsList
-    .filter((p: any) => p.type === 'CUSTOMER_PAYMENT' || p.type === 'RECEIPT' || p.payment_type === 'IN' || p.voucher_type === 'RECEIPT')
-    .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-  const cashOut = mockPaymentsList
-    .filter((p: any) => p.type === 'SUPPLIER_PAYMENT' || p.type === 'EXPENSE' || p.payment_type === 'OUT' || p.voucher_type === 'PAYMENT')
-    .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-  const totalCash = Math.max(0, cashIn - cashOut);
-  const bankBalance = Math.round(totalCash * 0.6);
-
-  if (isClean && mockPaymentsList.length === 0) {
+  if (isClean && bankBalance === 0 && mockPaymentsList.length === 0) {
     return res.json({ success: true, data: [] });
   }
 
@@ -2966,17 +3187,10 @@ enterpriseRouter.post('/business/bank-accounts', (req: Request, res: Response) =
 enterpriseRouter.get('/business/cash-accounts', (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   const isClean = isTenantCleanProductionMode(companyId);
+  const metrics = computeUnifiedFinancialMetrics(companyId);
+  const cashOnHand = roundMoney(metrics.cashBalance || 0);
 
-  const cashIn = mockPaymentsList
-    .filter((p: any) => p.type === 'CUSTOMER_PAYMENT' || p.type === 'RECEIPT' || p.payment_type === 'IN' || p.voucher_type === 'RECEIPT')
-    .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-  const cashOut = mockPaymentsList
-    .filter((p: any) => p.type === 'SUPPLIER_PAYMENT' || p.type === 'EXPENSE' || p.payment_type === 'OUT' || p.voucher_type === 'PAYMENT')
-    .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-  const totalCash = Math.max(0, cashIn - cashOut);
-  const cashOnHand = Math.round(totalCash * 0.4);
-
-  if (isClean && mockPaymentsList.length === 0) {
+  if (isClean && cashOnHand === 0 && mockPaymentsList.length === 0) {
     return res.json({ success: true, data: [] });
   }
 
@@ -4285,19 +4499,31 @@ enterpriseRouter.put('/expenses/:id', (req: Request, res: Response) => {
 });
 
 enterpriseRouter.delete('/expenses/:id', (req: Request, res: Response) => {
-  const { id } = req.params;
-  const index = mockExpensesList.findIndex((e) => e.id === id);
-  if (index === -1) {
-    return res.status(404).json({ success: false, message: 'سند المصروف غير موجود' });
+  try {
+    const companyId = resolveCompanyId(req);
+    const result = reverseExpenseAtomic(companyId, req.params.id, true);
+    res.json(result);
+  } catch (err: any) {
+    res.status(err.status || 400).json({
+      success: false,
+      message: err.message || 'فشل حذف سند المصروف',
+      error: err.message,
+    });
   }
+});
 
-  mockExpensesList.splice(index, 1);
-  persistAllToDisk();
-
-  res.json({
-    success: true,
-    message: 'تم حذف سند المصروف بنجاح',
-  });
+enterpriseRouter.post('/expenses/:id/cancel', (req: Request, res: Response) => {
+  try {
+    const companyId = resolveCompanyId(req);
+    const result = reverseExpenseAtomic(companyId, req.params.id, false);
+    res.json(result);
+  } catch (err: any) {
+    res.status(err.status || 400).json({
+      success: false,
+      message: err.message || 'فشل إلغاء سند المصروف',
+      error: err.message,
+    });
+  }
 });
 
 // ==========================================

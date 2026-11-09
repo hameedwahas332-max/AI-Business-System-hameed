@@ -57,6 +57,9 @@ import {
   verifyPassword,
   hashPassword,
   isPasswordHashed,
+  checkLoginRateLimit,
+  recordFailedLogin,
+  resetLoginRateLimit,
 } from './server/security.js';
 import {
   postSalesTransactionAtomic,
@@ -71,6 +74,10 @@ import {
   getTenantJournalEntries,
   postDoubleEntryJournal,
   roundMoney,
+  reverseSalesInvoiceAtomic,
+  reversePurchaseInvoiceAtomic,
+  reverseVoucherAtomic,
+  reverseExpenseAtomic,
 } from './server/accountingEngine.js';
 
 const { Pool } = pg;
@@ -347,19 +354,18 @@ app.use('/api', (req: Request, res: Response, next: any) => {
     }
   }
 
-  // ANTI-SPOOFING: Lock companyId to authenticated identity
+  // ANTI-SPOOFING: Lock companyId strictly to authenticated identity.
+  // NEVER accept req.headers['x-company-id'] from unauthenticated clients.
   if (tenantContext.isAuthenticated) {
     (req as any).user = tenantContext;
     (req as any).companyId = tenantContext.companyId;
   } else {
-    const headerComp = req.headers['x-company-id'] as string;
-    if (headerComp && typeof headerComp === 'string' && headerComp.trim()) {
-      tenantContext.companyId = headerComp.trim();
-    }
+    tenantContext.companyId = 'comp_001';
+    (req as any).companyId = 'comp_001';
   }
 
   // RBAC Permission Check
-  const requiredPerm = resolveRequiredPermissionForRoute(req.path, req.method);
+  const requiredPerm = resolveRequiredPermissionForRoute(req.originalUrl || req.path, req.method);
   if (requiredPerm) {
     if (!tenantContext.isAuthenticated) {
       return res.status(401).json({
@@ -466,6 +472,19 @@ app.post('/api/v1/auth/register', async (req: Request, res: Response) => {
 });
 
 app.post('/api/v1/auth/login', async (req: Request, res: Response) => {
+  const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || '127.0.0.1';
+
+  // Brute-force rate limiting check (10 attempts per 15 min per IP)
+  const rateLimit = checkLoginRateLimit(clientIp);
+  if (!rateLimit.allowed) {
+    return res.status(429).json({
+      success: false,
+      error: 'TOO_MANY_REQUESTS',
+      message: `تم تجاوز الحد المسموح به لمحاولات تسجيل الدخول. يرجى المحاولة بعد ${rateLimit.remainingSeconds || 900} ثانية`,
+      retryAfter: rateLimit.remainingSeconds,
+    });
+  }
+
   const { email, password } = req.body || {};
   const normalizedEmail = (email || '').trim().toLowerCase();
 
@@ -480,9 +499,11 @@ app.post('/api/v1/auth/login', async (req: Request, res: Response) => {
   // Verify password using scrypt
   if (permUser) {
     if (!password) {
+      recordFailedLogin(clientIp);
       return res.status(400).json({ success: false, message: 'كلمة المرور مطلوبة' });
     }
     if (!verifyPassword(password, permUser.password_hash)) {
+      recordFailedLogin(clientIp);
       return res.status(401).json({
         success: false,
         message: 'كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى',
@@ -531,13 +552,17 @@ app.post('/api/v1/auth/login', async (req: Request, res: Response) => {
       created_at: new Date().toISOString(),
     };
   } else {
-    // Return 404 if account not found
+    // Record failed attempt and return 404
+    recordFailedLogin(clientIp);
     return res.status(404).json({
       success: false,
       not_found: true,
       message: 'هذا الحساب غير مسجل في النظام، يرجى إنشاء حساب جديد أولاً',
     });
   }
+
+  // Reset failed login counter on successful authentication
+  resetLoginRateLimit(clientIp);
 
   const token = generatePermanentToken(user.id, company.id, user.email, user.role);
   const oneYearMs = 365 * 24 * 60 * 60 * 1000;
@@ -721,50 +746,51 @@ app.post(['/api/v1/auth/session-restore', '/api/auth/session-restore'], async (r
   const authHeader = req.headers['authorization'] || '';
   const tokenCandidate = clientToken || extractBearerToken(authHeader) || (req.headers['x-auth-token'] as string) || '';
 
+  // Strict check: token is mandatory for session restoration
+  if (!tokenCandidate || typeof tokenCandidate !== 'string' || !tokenCandidate.trim()) {
+    return res.status(401).json({
+      success: false,
+      message: 'جلسة غير صالحة أو غير موثقة، يرجى تسجيل الدخول',
+    });
+  }
+
+  const cleanToken = tokenCandidate.trim();
   let normalizedEmail = (user?.email || '').trim().toLowerCase();
   let hasValidSessionOrToken = false;
+  let verifiedClaims: any = null;
 
-  if (tokenCandidate) {
-    const existing = activeSessions.get(tokenCandidate);
-    if (existing && existing.expiresAt > Date.now()) {
+  const existing = activeSessions.get(cleanToken);
+  if (existing && existing.expiresAt > Date.now()) {
+    hasValidSessionOrToken = true;
+    if (!normalizedEmail) {
+      normalizedEmail = existing.user.email.trim().toLowerCase();
+    }
+  } else {
+    // 30-day grace period for validly signed expired tokens
+    const verified = verifySignedToken(cleanToken, 30 * 24 * 60 * 60 * 1000);
+    if (verified.valid && verified.payload?.email) {
       hasValidSessionOrToken = true;
+      verifiedClaims = verified.payload;
       if (!normalizedEmail) {
-        normalizedEmail = existing.user.email.trim().toLowerCase();
-      }
-    } else {
-      const verified = verifySignedToken(tokenCandidate);
-      if (verified.valid && verified.payload?.email) {
-        hasValidSessionOrToken = true;
-        if (!normalizedEmail) {
-          normalizedEmail = verified.payload.email.trim().toLowerCase();
-        }
+        normalizedEmail = verified.payload.email.trim().toLowerCase();
       }
     }
   }
 
-  let finalUser: PersistentTenantUser | null = null;
-  let finalCompany: PersistentTenantCompany | null = null;
-  const permUser = normalizedEmail ? permanentUsersMap.get(normalizedEmail) : undefined;
-
-  // Check valid password verification if neither active session nor signed token is valid
-  let isPasswordVerified = false;
-  const candidatePass = password || user?.password;
-  if (permUser && candidatePass && permUser.password_hash) {
-    if (verifyPassword(candidatePass, permUser.password_hash)) {
-      isPasswordVerified = true;
-    }
-  }
-
-  // Require a valid session or valid signed token or valid password verification
-  if (!hasValidSessionOrToken && !isPasswordVerified) {
+  // Reject unsigned, forged, or invalid tokens immediately
+  if (!hasValidSessionOrToken) {
     return res.status(401).json({
       success: false,
       message: 'جلسة غير صالحة، يرجى تسجيل الدخول',
     });
   }
 
+  let finalUser: PersistentTenantUser | null = null;
+  let finalCompany: PersistentTenantCompany | null = null;
+  const permUser = normalizedEmail ? permanentUsersMap.get(normalizedEmail) : undefined;
+
   if (normalizedEmail && permUser) {
-    const compId = permUser.company_id || company?.id || 'comp_001';
+    const compId = permUser.company_id || company?.id || verifiedClaims?.cid || 'comp_001';
     finalCompany = permanentCompaniesMap.get(compId) || tenantCompaniesById.get(compId) || {
       id: compId,
       name: permUser.company_name || company?.name || 'المؤسسة التجارية',
@@ -779,13 +805,13 @@ app.post(['/api/v1/auth/session-restore', '/api/auth/session-restore'], async (r
       username: permUser.email.split('@')[0] || 'admin',
       full_name: permUser.name || user?.full_name || 'المدير العام',
       email: normalizedEmail,
-      role: permUser.role || 'ADMIN',
+      role: permUser.role || (verifiedClaims?.role as any) || existing?.user?.role || 'ADMIN',
       company_id: compId,
       is_active: true,
       created_at: permUser.created_at,
     };
   } else if (user && user.email) {
-    const compId = company?.id || user.company_id || `comp_${(normalizedEmail.split('@')[0] || 'merchant').replace(/[^a-z0-9]/g, '_')}`;
+    const compId = company?.id || user.company_id || verifiedClaims?.cid || `comp_${(normalizedEmail.split('@')[0] || 'merchant').replace(/[^a-z0-9]/g, '_')}`;
     finalCompany = company || {
       id: compId,
       name: 'المؤسسة التجارية',
@@ -798,25 +824,30 @@ app.post(['/api/v1/auth/session-restore', '/api/auth/session-restore'], async (r
       username: user.username || normalizedEmail.split('@')[0] || 'admin',
       full_name: user.full_name || 'المدير العام',
       email: normalizedEmail,
-      role: user.role || 'ADMIN',
+      role: (verifiedClaims?.role as any) || existing?.user?.role || user.role || 'ADMIN',
       company_id: compId,
       is_active: true,
       created_at: user.created_at || new Date().toISOString(),
     };
-    if (normalizedEmail && candidatePass) {
-      const newPermUser: PermanentUserRecord = {
-        id: finalUser.id,
-        email: normalizedEmail,
-        password_hash: hashPassword(candidatePass),
-        name: finalUser.full_name,
-        role: finalUser.role,
-        company_id: compId,
-        company_name: finalCompany.name,
-        created_at: finalUser.created_at,
-      };
-      permanentUsersMap.set(normalizedEmail, newPermUser);
-      saveUserToPermanentStore(newPermUser, dbPool).catch(() => {});
-    }
+  } else if (verifiedClaims) {
+    const compId = verifiedClaims.cid || 'comp_001';
+    finalCompany = permanentCompaniesMap.get(compId) || tenantCompaniesById.get(compId) || {
+      id: compId,
+      name: 'المؤسسة التجارية',
+      currency: 'YER',
+      status: 'ACTIVE',
+      created_at: new Date().toISOString(),
+    };
+    finalUser = {
+      id: verifiedClaims.sub || `usr_${Date.now()}`,
+      username: verifiedClaims.email?.split('@')[0] || 'admin',
+      full_name: 'المدير العام',
+      email: verifiedClaims.email || normalizedEmail,
+      role: (verifiedClaims.role as any) || 'ADMIN',
+      company_id: compId,
+      is_active: true,
+      created_at: new Date().toISOString(),
+    };
   }
 
   if (!finalUser || !finalCompany) {
@@ -1141,8 +1172,8 @@ app.post('/api/v1/products', (req: Request, res: Response) => {
     halfWholesalePrice: Number(body.halfWholesalePrice || 0),
     wholesalePrice: Number(body.wholesalePrice || 0),
     vipPrice: Number(body.vipPrice || 0),
-    purchase_price: Number(body.purchasePrice || body.cost_price || 0),
-    cost_price: Number(body.purchasePrice || body.cost_price || 0),
+    purchase_price: Number(body.costPrice || body.cost_price || body.purchasePrice || body.purchase_price || body.cost || 0),
+    cost_price: Number(body.costPrice || body.cost_price || body.purchasePrice || body.purchase_price || body.cost || 0),
     qty: Number(body.currentStock || body.qty || 0),
     current_stock: Number(body.currentStock || body.qty || 0),
     min_stock_level: Number(body.minStockLevel || body.min_stock_level || 5),
@@ -1194,6 +1225,109 @@ app.delete('/api/v1/products/:id', (req: Request, res: Response) => {
   res.json({ success: true, message: 'Product deleted' });
 });
 
+app.post(['/api/v1/inventory/adjustments', '/api/v1/inventory-adjustments'], (req: Request, res: Response) => {
+  const body = req.body || {};
+  const productId = body.productId || body.product_id || body.id;
+  const product = mockProducts.find((p) => p.id === productId || (p.sku && p.sku === body.sku) || (p.barcode && p.barcode === body.barcode));
+
+  if (!product) {
+    return res.status(404).json({ success: false, error: 'Product not found', message: 'الصنف غير موجود' });
+  }
+
+  const oldStock = Number(product.current_stock ?? product.qty ?? 0);
+  let diffQty = 0;
+  if (body.quantity !== undefined) {
+    diffQty = Number(body.quantity);
+  } else if (body.diffQty !== undefined || body.diff_quantity !== undefined) {
+    diffQty = Number(body.diffQty !== undefined ? body.diffQty : body.diff_quantity);
+  } else if (body.newStock !== undefined || body.new_quantity !== undefined) {
+    const targetStock = Number(body.newStock !== undefined ? body.newStock : body.new_quantity);
+    diffQty = targetStock - oldStock;
+  }
+
+  const newStock = Math.max(0, oldStock + diffQty);
+  product.current_stock = newStock;
+  product.qty = newStock;
+  product.stock = newStock;
+
+  const adjId = `ADJ-${Date.now()}`;
+  const mov = {
+    id: `mov-${Date.now()}`,
+    product_id: product.id,
+    product_name: product.name,
+    type: diffQty >= 0 ? 'IN' : 'ADJUSTMENT',
+    quantity: Math.abs(diffQty),
+    remaining_stock: newStock,
+    reference_type: 'STOCK_ADJUSTMENT',
+    reference_id: adjId,
+    date: new Date().toISOString(),
+    notes: body.reason || body.notes || 'تسوية جردية للمخزون',
+  };
+  mockInventoryMovements.unshift(mov);
+
+  // BUG-09: Post balanced double-entry journal between 1104 and 5209
+  const unitCost = Number(body.unitCost || body.costPrice || body.cost_price || product.cost_price || product.purchase_price || 0);
+  const diffCost = roundMoney(Math.abs(diffQty) * unitCost);
+  let journalEntry = null;
+
+  if (diffCost > 0) {
+    const companyId = resolveCompanyId(req);
+    journalEntry = postDoubleEntryJournal({
+      companyId,
+      reference_type: 'STOCK_ADJUSTMENT',
+      reference_id: adjId,
+      description: `تسوية جردية لصنف (${product.name}) - ${diffQty > 0 ? 'زيادة' : 'عجز'} مخزني: ${Math.abs(diffQty)} وحدة`,
+      date: new Date().toISOString().split('T')[0],
+      lines: diffQty > 0 ? [
+        {
+          account_code: '1104',
+          account_name: 'المخزون السلعي',
+          debit: diffCost,
+          credit: 0,
+          description: `إثبات زيادة جردية بالمخزون - صنف ${product.name}`,
+        },
+        {
+          account_code: '5209',
+          account_name: 'فروق وعجز التسويات الجردية',
+          debit: 0,
+          credit: diffCost,
+          description: `أرباح / فروق تسوية جردية - صنف ${product.name}`,
+        },
+      ] : [
+        {
+          account_code: '5209',
+          account_name: 'فروق وعجز التسويات الجردية',
+          debit: diffCost,
+          credit: 0,
+          description: `عجز وتسوية جردية للمخزون - صنف ${product.name}`,
+        },
+        {
+          account_code: '1104',
+          account_name: 'المخزون السلعي',
+          debit: 0,
+          credit: diffCost,
+          description: `تخفيض المخزون لعجز جردي - صنف ${product.name}`,
+        },
+      ],
+      created_by: 'النظام المحاسبي (تسوية جردية)',
+    });
+  }
+
+  res.status(201).json({
+    success: true,
+    data: {
+      product,
+      movement: mov,
+      journalEntry,
+      diffQty,
+      diffCost,
+      newStock,
+      oldStock,
+    },
+    message: 'تم تسجيل التسوية الجردية وترحيل القيد المحاسبي بنجاح',
+  });
+});
+
 app.post('/api/v1/products/:productId/adjust-stock', (req: Request, res: Response) => {
   const { productId } = req.params;
   const { quantity, reason, type } = req.body || {};
@@ -1203,26 +1337,77 @@ app.post('/api/v1/products/:productId/adjust-stock', (req: Request, res: Respons
     return res.status(404).json({ success: false, error: 'Product not found' });
   }
 
-  const oldStock = product.current_stock || 0;
-  const newStock = Math.max(0, oldStock + Number(quantity || 0));
+  const oldStock = Number(product.current_stock ?? product.qty ?? 0);
+  const diffQty = Number(quantity || 0);
+  const newStock = Math.max(0, oldStock + diffQty);
   product.current_stock = newStock;
   product.qty = newStock;
+  product.stock = newStock;
 
+  const adjId = `ADJ-${Date.now()}`;
   const mov = {
     id: `mov-${Date.now()}`,
     product_id: product.id,
     product_name: product.name,
-    type: type || (quantity >= 0 ? 'IN' : 'ADJUSTMENT'),
-    quantity: Math.abs(Number(quantity || 0)),
+    type: type || (diffQty >= 0 ? 'IN' : 'ADJUSTMENT'),
+    quantity: Math.abs(diffQty),
     remaining_stock: newStock,
     reference_type: 'STOCK_ADJUSTMENT',
-    reference_id: `ADJ-${Date.now()}`,
+    reference_id: adjId,
     date: new Date().toISOString(),
     notes: reason || 'تسوية يدوية للمخزون',
   };
   mockInventoryMovements.unshift(mov);
 
-  res.json({ success: true, data: { product, movement: mov } });
+  // BUG-09: Post balanced double-entry journal between 1104 and 5209
+  const unitCost = Number(req.body.unitCost || req.body.costPrice || req.body.cost_price || product.cost_price || product.purchase_price || 0);
+  const diffCost = roundMoney(Math.abs(diffQty) * unitCost);
+  let journalEntry = null;
+
+  if (diffCost > 0) {
+    const companyId = resolveCompanyId(req);
+    journalEntry = postDoubleEntryJournal({
+      companyId,
+      reference_type: 'STOCK_ADJUSTMENT',
+      reference_id: adjId,
+      description: `تسوية جردية لصنف (${product.name}) - ${diffQty > 0 ? 'زيادة' : 'عجز'} مخزني: ${Math.abs(diffQty)} وحدة`,
+      date: new Date().toISOString().split('T')[0],
+      lines: diffQty > 0 ? [
+        {
+          account_code: '1104',
+          account_name: 'المخزون السلعي',
+          debit: diffCost,
+          credit: 0,
+          description: `إثبات زيادة جردية بالمخزون - صنف ${product.name}`,
+        },
+        {
+          account_code: '5209',
+          account_name: 'فروق وعجز التسويات الجردية',
+          debit: 0,
+          credit: diffCost,
+          description: `أرباح / فروق تسوية جردية - صنف ${product.name}`,
+        },
+      ] : [
+        {
+          account_code: '5209',
+          account_name: 'فروق وعجز التسويات الجردية',
+          debit: diffCost,
+          credit: 0,
+          description: `عجز وتسوية جردية للمخزون - صنف ${product.name}`,
+        },
+        {
+          account_code: '1104',
+          account_name: 'المخزون السلعي',
+          debit: 0,
+          credit: diffCost,
+          description: `تخفيض المخزون لعجز جردي - صنف ${product.name}`,
+        },
+      ],
+      created_by: 'النظام المحاسبي (تسوية جردية)',
+    });
+  }
+
+  res.json({ success: true, data: { product, movement: mov, journalEntry, diffCost } });
 });
 
 app.get('/api/v1/inventory', (req: Request, res: Response) => {
@@ -1292,10 +1477,31 @@ app.post(['/api/v1/invoices', '/api/invoices'], (req: Request, res: Response) =>
 });
 
 app.delete('/api/v1/invoices/:id', (req: Request, res: Response) => {
-  const { id } = req.params;
-  const idx = mockInvoicesList.findIndex((inv) => inv.id === id);
-  if (idx !== -1) mockInvoicesList.splice(idx, 1);
-  res.json({ success: true, message: 'Invoice deleted' });
+  try {
+    const companyId = resolveCompanyId(req);
+    const result = reverseSalesInvoiceAtomic(companyId, req.params.id, true);
+    res.json(result);
+  } catch (err: any) {
+    res.status(err.status || 400).json({
+      success: false,
+      message: err.message || 'فشل حذف فاتورة المبيعات',
+      error: err.message,
+    });
+  }
+});
+
+app.post(['/api/v1/invoices/:id/cancel', '/api/invoices/:id/cancel'], (req: Request, res: Response) => {
+  try {
+    const companyId = resolveCompanyId(req);
+    const result = reverseSalesInvoiceAtomic(companyId, req.params.id, false);
+    res.json(result);
+  } catch (err: any) {
+    res.status(err.status || 400).json({
+      success: false,
+      message: err.message || 'فشل إلغاء فاتورة المبيعات',
+      error: err.message,
+    });
+  }
 });
 
 app.get('/api/v1/purchase-invoices', (_req: Request, res: Response) => {
@@ -1385,13 +1591,31 @@ app.post(['/api/v1/sales-returns', '/api/v1/invoices/returns', '/api/sales-retur
 });
 
 app.delete('/api/v1/purchase-invoices/:id', (req: Request, res: Response) => {
-  const { id } = req.params;
-  const idx = mockPurchaseInvoicesList.findIndex((p) => p.id === id);
-  if (idx !== -1) {
-    mockPurchaseInvoicesList.splice(idx, 1);
-    persistAllToDisk();
+  try {
+    const companyId = resolveCompanyId(req);
+    const result = reversePurchaseInvoiceAtomic(companyId, req.params.id, true);
+    res.json(result);
+  } catch (err: any) {
+    res.status(err.status || 400).json({
+      success: false,
+      message: err.message || 'فشل حذف فاتورة المشتريات',
+      error: err.message,
+    });
   }
-  res.json({ success: true, message: 'Purchase invoice deleted' });
+});
+
+app.post(['/api/v1/purchase-invoices/:id/cancel', '/api/purchase-invoices/:id/cancel'], (req: Request, res: Response) => {
+  try {
+    const companyId = resolveCompanyId(req);
+    const result = reversePurchaseInvoiceAtomic(companyId, req.params.id, false);
+    res.json(result);
+  } catch (err: any) {
+    res.status(err.status || 400).json({
+      success: false,
+      message: err.message || 'فشل إلغاء فاتورة المشتريات',
+      error: err.message,
+    });
+  }
 });
 
 app.get('/api/v1/payments', (_req: Request, res: Response) => {
@@ -1483,6 +1707,34 @@ app.post(['/api/v1/expenses', '/api/expenses'], (req: Request, res: Response) =>
       success: false,
       error: err.message || 'فشل تسجيل المصروف',
       message: err.message || 'فشل تسجيل المصروف',
+    });
+  }
+});
+
+app.delete(['/api/v1/expenses/:id', '/api/expenses/:id'], (req: Request, res: Response) => {
+  try {
+    const companyId = resolveCompanyId(req);
+    const result = reverseExpenseAtomic(companyId, req.params.id, true);
+    res.json(result);
+  } catch (err: any) {
+    res.status(err.status || 400).json({
+      success: false,
+      message: err.message || 'فشل حذف المصروف',
+      error: err.message,
+    });
+  }
+});
+
+app.post(['/api/v1/expenses/:id/cancel', '/api/expenses/:id/cancel'], (req: Request, res: Response) => {
+  try {
+    const companyId = resolveCompanyId(req);
+    const result = reverseExpenseAtomic(companyId, req.params.id, false);
+    res.json(result);
+  } catch (err: any) {
+    res.status(err.status || 400).json({
+      success: false,
+      message: err.message || 'فشل إلغاء المصروف',
+      error: err.message,
     });
   }
 });
@@ -1586,10 +1838,31 @@ app.get(['/api/v1/accounts', '/api/accounts'], (req: Request, res: Response) => 
 });
 
 app.delete('/api/v1/payments/:id', (req: Request, res: Response) => {
-  const { id } = req.params;
-  const idx = mockPaymentsList.findIndex((p) => p.id === id);
-  if (idx !== -1) mockPaymentsList.splice(idx, 1);
-  res.json({ success: true, message: 'Payment voucher deleted' });
+  try {
+    const companyId = resolveCompanyId(req);
+    const result = reverseVoucherAtomic(companyId, req.params.id, true);
+    res.json(result);
+  } catch (err: any) {
+    res.status(err.status || 400).json({
+      success: false,
+      message: err.message || 'فشل حذف سند القبض/الصرف',
+      error: err.message,
+    });
+  }
+});
+
+app.post(['/api/v1/payments/:id/cancel', '/api/payments/:id/cancel'], (req: Request, res: Response) => {
+  try {
+    const companyId = resolveCompanyId(req);
+    const result = reverseVoucherAtomic(companyId, req.params.id, false);
+    res.json(result);
+  } catch (err: any) {
+    res.status(err.status || 400).json({
+      success: false,
+      message: err.message || 'فشل إلغاء سند القبض/الصرف',
+      error: err.message,
+    });
+  }
 });
 
 app.get('/api/v1/financial-health', (_req: Request, res: Response) => {
@@ -2408,7 +2681,7 @@ app.get('/api/v1/whatsapp/webhook', (req: Request, res: Response) => {
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
 
-  if (mode === 'subscribe' && (token === 'erp_whatsapp_verify_token' || token)) {
+  if (mode === 'subscribe' && token === (process.env.WHATSAPP_VERIFY_TOKEN || 'erp_whatsapp_verify_token')) {
     return res.status(200).send(challenge);
   }
   return res.sendStatus(403);
@@ -2424,24 +2697,28 @@ app.use('/api/v1', enterpriseRouter);
 app.get('/api/v1/audit-logs', (_req: Request, res: Response) => {
   res.json({
     success: true,
-    data: [
-      { id: 'log-1', username: 'admin', action: 'CREATE_INVOICE', resource_type: 'INVOICE', resource_id: 'INV-2026-0042', details: 'إصدار فاتورة ضريبية', ip_address: '127.0.0.1', created_at: new Date().toISOString() },
-      { id: 'log-2', username: 'admin', action: 'RECORD_PAYMENT', resource_type: 'PAYMENT', resource_id: 'PMT-001', details: 'تحصيل سند قبض 5000 ر.س', ip_address: '127.0.0.1', created_at: new Date(Date.now() - 3600000).toISOString() },
-    ],
+    data: mockAuditLogsList,
+    auditLogs: mockAuditLogsList,
+    total: mockAuditLogsList.length,
   });
 });
 
-app.get('/api/v1/backups', async (_req: Request, res: Response) => {
+app.get('/api/v1/backups', async (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const tenantBackups = mockBackupsDatabase.filter(
+    (b: any) => b.company_id === companyId || (!b.company_id && companyId === 'comp_001')
+  );
+
   res.json({
     success: true,
     provider: 'b2',
     bucket: b2Bucket,
     region: b2Region,
     configured: Boolean(s3Client),
-    lastBackup: mockBackupsDatabase.length > 0 ? mockBackupsDatabase[0].created_at : new Date().toISOString(),
-    data: mockBackupsDatabase,
-    backups: mockBackupsDatabase,
-    total: mockBackupsDatabase.length,
+    lastBackup: tenantBackups.length > 0 ? tenantBackups[0].created_at : new Date().toISOString(),
+    data: tenantBackups,
+    backups: tenantBackups,
+    total: tenantBackups.length,
   });
 });
 
@@ -2452,6 +2729,18 @@ app.all('/api/*', (req: Request, res: Response) => {
     error: `API route ${req.method} ${req.path} not found`,
     status: 404,
   });
+});
+
+// Global Express Error Handler: Ensures /api/* never returns an HTML error page
+app.use((err: any, req: Request, res: Response, next: any) => {
+  if (req.path.startsWith('/api')) {
+    return res.status(err.status || err.statusCode || 500).json({
+      success: false,
+      error: err.code || 'SERVER_ERROR',
+      message: err.message || 'خطأ في الخادم',
+    });
+  }
+  next(err);
 });
 
 // 2. Resilient Static Serving & SPA Fallback

@@ -2955,14 +2955,96 @@ async function internalHandleLocalDesktopApiFallback(
       }
     } catch {}
 
+    const origInvNum = bodyData.originalInvoiceNumber || bodyData.original_invoice_number || bodyData.invoiceNumber || bodyData.invoice_number || bodyData.originalInvoiceId || bodyData.invoice_id;
+    const returnItems: any[] = bodyData.items || [];
+
+    // BUG-07: Validate returned item quantities against original invoice
+    if (origInvNum) {
+      const existingInvoices = getLocalItem<any[]>('erp_invoices_v1', []);
+      const origInv = existingInvoices.find(
+        (i: any) => String(i.invoice_number) === String(origInvNum) || String(i.invoiceNumber) === String(origInvNum) || String(i.id) === String(origInvNum)
+      );
+
+      if (origInv && Array.isArray(origInv.items) && origInv.items.length > 0) {
+        const existingReturns = getLocalItem<any[]>('erp_sales_returns_v1', []);
+        for (const it of returnItems) {
+          const prodId = it.product_id || it.productId || it.id;
+          const factor = Number(it.unitFactor || it.conversionFactor || 1);
+          const returnQty = Math.max(0, Number(it.quantity || it.qty || 1));
+          const baseReturnQty = returnQty * factor;
+
+          const origItem = origInv.items.find(
+            (oi: any) =>
+              (oi.product_id && oi.product_id === prodId) ||
+              (oi.productId && oi.productId === prodId) ||
+              (oi.id && oi.id === prodId) ||
+              (it.sku && oi.sku === it.sku) ||
+              (it.barcode && oi.barcode === it.barcode)
+          );
+
+          if (!origItem) {
+            return {
+              ok: false,
+              success: false,
+              status: 400,
+              code: 'EXCEEDS_ORIGINAL_INVOICE_QTY',
+              message: `الصنف (${it.name || prodId}) غير موجود في الفاتورة الأصلية #${origInvNum}`,
+              error: `الصنف (${it.name || prodId}) غير موجود في الفاتورة الأصلية #${origInvNum}`,
+              data: null,
+            };
+          }
+
+          const origItemFactor = Number(origItem.unitFactor || origItem.conversionFactor || 1);
+          const origSoldBaseQty = Math.max(0, Number(origItem.quantity || origItem.qty || 0)) * origItemFactor;
+
+          // Sum previously returned quantity for this product from this original invoice
+          let prevReturnedBaseQty = 0;
+          for (const ret of existingReturns) {
+            const matchesInv =
+              String(ret.invoice_id) === String(origInv.id) ||
+              String(ret.invoice_number) === String(origInvNum) ||
+              String(ret.originalInvoiceNumber) === String(origInvNum) ||
+              String(ret.original_invoice_number) === String(origInvNum);
+            if (matchesInv && Array.isArray(ret.items)) {
+              const matchedRetItem = ret.items.find(
+                (ri: any) =>
+                  (ri.product_id && ri.product_id === prodId) ||
+                  (ri.productId && ri.productId === prodId) ||
+                  (ri.id && ri.id === prodId) ||
+                  (it.sku && ri.sku === it.sku)
+              );
+              if (matchedRetItem) {
+                const retFactor = Number(matchedRetItem.unitFactor || matchedRetItem.conversionFactor || 1);
+                prevReturnedBaseQty += Number(matchedRetItem.quantity || matchedRetItem.qty || 0) * retFactor;
+              }
+            }
+          }
+
+          if (baseReturnQty + prevReturnedBaseQty > origSoldBaseQty) {
+            return {
+              ok: false,
+              success: false,
+              status: 400,
+              code: 'EXCEEDS_ORIGINAL_INVOICE_QTY',
+              message: `الكمية المرتجعة للصنف (${it.name || prodId}) تتجاوز الكمية المباعة في الفاتورة الأصلية #${origInvNum}`,
+              error: `الكمية المرتجعة للصنف (${it.name || prodId}) تتجاوز الكمية المباعة في الفاتورة الأصلية #${origInvNum}`,
+              data: null,
+            };
+          }
+        }
+      }
+    }
+
     const returnId = `ret_${Date.now()}`;
     const returnNumber = `RET-${Date.now().toString().slice(-6)}`;
     const returnRecord = {
       id: returnId,
       return_number: returnNumber,
       returnNumber,
-      invoice_id: bodyData.originalInvoiceId || bodyData.invoice_id || null,
-      items: bodyData.items || [],
+      invoice_id: origInvNum || bodyData.originalInvoiceId || bodyData.invoice_id || null,
+      original_invoice_number: origInvNum,
+      originalInvoiceNumber: origInvNum,
+      items: returnItems,
       total: Number(bodyData.totalRefund || bodyData.refundAmount || bodyData.total || 0),
       totalRefund: Number(bodyData.totalRefund || bodyData.refundAmount || bodyData.total || 0),
       refund_method: bodyData.refundMethod || bodyData.refund_method || 'CASH',
@@ -2971,6 +3053,51 @@ async function internalHandleLocalDesktopApiFallback(
       date: new Date().toISOString(),
       created_at: new Date().toISOString(),
     };
+
+    // Restore stock and record IN movements in offline mode
+    const products = getLocalItem<any[]>('erp_products_v1', []);
+    const movements = getLocalItem<any[]>('erp_inventory_movements_v1', []);
+    let totalReturnCogs = 0;
+
+    for (const it of returnItems) {
+      const prodId = it.product_id || it.productId || it.id;
+      const factor = Number(it.unitFactor || it.conversionFactor || 1);
+      const qty = Math.max(0, Number(it.quantity || it.qty || 1));
+      const baseQty = qty * factor;
+
+      const pIdx = products.findIndex(
+        (p: any) => String(p.id) === String(prodId) || (p.sku && p.sku === it.sku) || (p.barcode && p.barcode === it.barcode)
+      );
+
+      if (pIdx !== -1 && baseQty > 0) {
+        const prod = products[pIdx];
+        const oldStock = Number(prod.current_stock ?? prod.qty ?? prod.stock ?? 0);
+        const newStock = oldStock + baseQty;
+        prod.current_stock = newStock;
+        prod.qty = newStock;
+        prod.stock = newStock;
+        prod.totalSold = Math.max(0, (Number(prod.totalSold) || 0) - baseQty);
+
+        const unitCost = Number(prod.cost_price || prod.purchase_price || it.cost_price || 0);
+        totalReturnCogs = roundMoney(totalReturnCogs + baseQty * unitCost);
+
+        movements.unshift({
+          id: `mov_ret_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+          product_id: prod.id,
+          product_name: prod.name,
+          type: 'IN',
+          quantity: baseQty,
+          remaining_stock: newStock,
+          reference_type: 'SALES_RETURN',
+          reference_id: returnNumber,
+          notes: `مردودات مبيعات من فاتورة #${origInvNum || 'INV-ORIG'}`,
+          date: new Date().toISOString(),
+        });
+      }
+    }
+
+    setLocalItem('erp_products_v1', products, companyId);
+    setLocalItem('erp_inventory_movements_v1', movements, companyId);
 
     // Store in return logs
     const existingReturns = getLocalItem('erp_sales_returns_v1', []);
@@ -2993,6 +3120,84 @@ async function internalHandleLocalDesktopApiFallback(
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('erp-customers-updated'));
       }
+    }
+
+    // Post double-entry journals for Sales Return & COGS reversal in offline mode
+    const totalRefund = returnRecord.totalRefund;
+    const taxRefund = Number(bodyData.taxRefund || bodyData.tax || 0);
+    const netReturnVal = Math.max(0, totalRefund - taxRefund);
+    const isBank = ['BANK', 'CARD', 'TRANSFER', 'WALLET'].includes(String(returnRecord.refundMethod).toUpperCase());
+    const isCredit = ['CUSTOMER_CREDIT', 'CREDIT_NOTE', 'CREDIT'].includes(String(returnRecord.refundMethod).toUpperCase());
+
+    const returnLines: Array<{ account_code: string; account_name: string; debit: number; credit: number; description?: string }> = [
+      {
+        account_code: '4102',
+        account_name: 'مردودات ومسموحات المبيعات',
+        debit: netReturnVal,
+        credit: 0,
+        description: `إثبات مردودات مبيعات مرتجع #${returnNumber}`,
+      },
+    ];
+    if (taxRefund > 0) {
+      returnLines.push({
+        account_code: '2102',
+        account_name: 'ضريبة القيمة المضافة - مخرجات',
+        debit: taxRefund,
+        credit: 0,
+        description: `عكس ضريبة مخرجات مردودات مبيعات #${returnNumber}`,
+      });
+    }
+    if (isCredit) {
+      returnLines.push({
+        account_code: '1103',
+        account_name: 'العملاء / المدينون',
+        debit: 0,
+        credit: totalRefund,
+        description: `إشعار دائن لحساب العميل بمردودات #${returnNumber}`,
+      });
+    } else {
+      returnLines.push({
+        account_code: isBank ? '1102' : '1101',
+        account_name: isBank ? 'البنك / الحسابات المصرفية' : 'الصندوق / النقدية',
+        debit: 0,
+        credit: totalRefund,
+        description: `رد قيمة مردودات مبيعات #${returnNumber}`,
+      });
+    }
+
+    postLocalDoubleEntryJournal({
+      company_id: companyId,
+      reference_type: 'SALES_RETURN',
+      reference_id: returnNumber,
+      description: `مردودات مبيعات مرتجع #${returnNumber} للفاتورة #${origInvNum || 'INV-ORIG'}`,
+      date: new Date().toISOString().split('T')[0],
+      lines: returnLines,
+    });
+
+    if (totalReturnCogs > 0) {
+      postLocalDoubleEntryJournal({
+        company_id: companyId,
+        reference_type: 'INVENTORY_RETURN_COGS',
+        reference_id: returnNumber,
+        description: `عكس تكلفة البضاعة المباعة لمردودات مبيعات #${returnNumber}`,
+        date: new Date().toISOString().split('T')[0],
+        lines: [
+          {
+            account_code: '1104',
+            account_name: 'المخزون السلعي',
+            debit: totalReturnCogs,
+            credit: 0,
+            description: `إرجاع بضاعة مردودة إلى المخزون #${returnNumber}`,
+          },
+          {
+            account_code: '5101',
+            account_name: 'تكلفة البضاعة المباعة',
+            debit: 0,
+            credit: totalReturnCogs,
+            description: `عكس تكلفة البضاعة المباعة مرتجع #${returnNumber}`,
+          },
+        ],
+      });
     }
 
     if (typeof window !== 'undefined') {
@@ -4190,6 +4395,9 @@ async function internalHandleLocalDesktopApiFallback(
           const unitFactor = Number(it.unitFactor || it.conversionFactor || 1);
           const incomingBaseQty = totalIncomingUnits * unitFactor;
           const unitCost = Math.max(0, Number(it.unit_cost !== undefined ? it.unit_cost : (it.unitPrice || it.price || it.cost || 0)));
+          const lineSubtotal = paidQty * unitCost;
+          const lineDiscount = Math.max(0, Number(it.discount || it.discountAmount || 0));
+          const netLine = Math.max(0, lineSubtotal - lineDiscount);
 
           const pIdx = products.findIndex(
             (p) => String(p.id) === String(prodId) || (p.sku && p.sku === it.sku) || (p.barcode && p.barcode === it.barcode)
@@ -4199,10 +4407,13 @@ async function internalHandleLocalDesktopApiFallback(
             const oldStock = Number(prod.current_stock ?? prod.stock ?? prod.qty ?? 0);
             const oldCost = Number(prod.cost_price ?? prod.purchase_price ?? unitCost);
 
-            // Weighted Average Cost Formula: ((oldStock * oldCost) + (incomingBaseQty * unitCost)) / (oldStock + incomingBaseQty)
+            // Weighted Average Cost Formula: ((oldStock * oldCost) + netLine) / (oldStock + incomingBaseQty)
+            // Free quantities (freeQuantity > 0) and line discounts properly reduce unit cost
             let newCost = unitCost;
             if (oldStock > 0 && oldCost > 0) {
-              newCost = roundMoney(((oldStock * oldCost) + (incomingBaseQty * unitCost)) / (oldStock + incomingBaseQty));
+              newCost = roundMoney(((oldStock * oldCost) + netLine) / (oldStock + incomingBaseQty));
+            } else if (incomingBaseQty > 0) {
+              newCost = roundMoney(netLine / incomingBaseQty);
             } else {
               newCost = roundMoney(unitCost);
             }
@@ -4236,10 +4447,14 @@ async function internalHandleLocalDesktopApiFallback(
         const grandTotal = roundMoney(sanitized.total || sanitized.grandTotal || sanitized.totalAmount || 0);
         const taxAmount = roundMoney(sanitized.tax || sanitized.tax_amount || sanitized.taxAmount || 0);
         const netInventoryVal = roundMoney(Math.max(0, grandTotal - taxAmount));
-        const paidAmount = roundMoney(sanitized.paid_amount ?? sanitized.paidAmount ?? (sanitized.payment_method === 'CASH' ? grandTotal : 0));
+        const paymentMethod = String(sanitized.payment_method || sanitized.paymentMethod || (bodyData.remainingAmount === 0 || bodyData.remaining_amount === 0 ? 'CASH' : 'CREDIT')).toUpperCase();
+        const paidAmount = roundMoney(
+          sanitized.paid_amount ??
+          sanitized.paidAmount ??
+          (['CASH', 'BANK', 'CARD', 'TRANSFER', 'WALLET'].includes(paymentMethod) ? grandTotal : 0)
+        );
         const remainingAmount = roundMoney(sanitized.remaining_amount ?? sanitized.remainingAmount ?? Math.max(0, grandTotal - paidAmount));
-        const paymentMethod = String(sanitized.payment_method || sanitized.paymentMethod || (remainingAmount <= 0 ? 'CASH' : 'CREDIT')).toUpperCase();
-        const isBank = ['BANK', 'CARD', 'TRANSFER'].includes(paymentMethod);
+        const isBank = ['BANK', 'CARD', 'TRANSFER', 'WALLET'].includes(paymentMethod);
 
         // Update supplier balance ONLY if remainingAmount > 0 (never deducting cash purchases from prior supplier balance!)
         if (remainingAmount > 0 && (supplierId || supplierName)) {
@@ -4302,6 +4517,70 @@ async function internalHandleLocalDesktopApiFallback(
           date: invoiceDate,
           lines: purchaseLines,
         });
+      }
+
+      // BUG-05: Opening Balance Journal Entry for newly created Customer
+      if (matchedEntityKey === 'customers') {
+        const openingBal = roundMoney(
+          sanitized.opening_balance ?? sanitized.openingBalance ?? sanitized.current_balance ?? sanitized.balance ?? 0
+        );
+        if (openingBal > 0) {
+          postLocalDoubleEntryJournal({
+            company_id: companyId,
+            reference_type: 'OPENING_BALANCE',
+            reference_id: sanitized.id,
+            description: `إثبات رصيد افتتاحي للعميل (${sanitized.name})`,
+            date: sanitized.date || new Date().toISOString().split('T')[0],
+            lines: [
+              {
+                account_code: '1103',
+                account_name: 'العملاء والمدينون التجاريون',
+                debit: openingBal,
+                credit: 0,
+                description: `رصيد افتتاحي للعميل ${sanitized.name}`,
+              },
+              {
+                account_code: '3101',
+                account_name: 'رأس المال والأرصدة الافتتاحية',
+                debit: 0,
+                credit: openingBal,
+                description: `رصيد افتتاحي مقابل رأس المال - عميل ${sanitized.name}`,
+              },
+            ],
+          });
+        }
+      }
+
+      // BUG-05: Opening Balance Journal Entry for newly created Supplier
+      if (matchedEntityKey === 'suppliers') {
+        const openingBal = roundMoney(
+          sanitized.opening_balance ?? sanitized.openingBalance ?? sanitized.current_balance ?? sanitized.balance ?? 0
+        );
+        if (openingBal > 0) {
+          postLocalDoubleEntryJournal({
+            company_id: companyId,
+            reference_type: 'OPENING_BALANCE',
+            reference_id: sanitized.id,
+            description: `إثبات رصيد افتتاحي للمورد (${sanitized.name})`,
+            date: sanitized.date || new Date().toISOString().split('T')[0],
+            lines: [
+              {
+                account_code: '3101',
+                account_name: 'رأس المال والأرصدة الافتتاحية',
+                debit: openingBal,
+                credit: 0,
+                description: `رصيد افتتاحي مقابل رأس المال - مورد ${sanitized.name}`,
+              },
+              {
+                account_code: '2101',
+                account_name: 'الموردون والدائنون التجاريون',
+                debit: 0,
+                credit: openingBal,
+                description: `رصيد افتتاحي للمورد ${sanitized.name}`,
+              },
+            ],
+          });
+        }
       }
 
       // Clear clean mode flags to ensure newly entered live production data is rendered
