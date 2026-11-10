@@ -185,19 +185,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
 
       let backendDashboard: any = null;
       try {
-        const token = api.getToken ? api.getToken() : (typeof localStorage !== 'undefined' ? localStorage.getItem('erp_token') : null);
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-          'x-company-id': (typeof localStorage !== 'undefined' ? localStorage.getItem('erp_company_id') : null) || 'comp_001',
-        };
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-        const dRes = await fetch('/api/v1/dashboard', { headers });
-        if (dRes.ok) {
-          const dJson = await dRes.json();
-          backendDashboard = dJson?.data;
-        }
+        const dRes = await api.request<any>('/reports/comprehensive').catch(() => null);
+        backendDashboard = dRes?.data || dRes;
       } catch {}
 
       const netProfit = backendDashboard?.netProfit !== undefined 

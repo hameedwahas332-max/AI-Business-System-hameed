@@ -212,23 +212,20 @@ export const BackupRestoreTab: React.FC = () => {
     // Push states to persistent server endpoints
     try {
       if (fuelStation || extStates.fuel_tanks) {
-        await fetch('/api/v1/fuel-station/state', {
+        await api.request('/fuel-station/state', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(fuelStation || { tanks: extStates.fuel_tanks }),
         }).catch(() => {});
       }
       if (whs || transfers) {
-        await fetch('/api/v1/inventory/warehouses-state', {
+        await api.request('/inventory/warehouses-state', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ warehouses: whs || [], transfers: transfers || [] }),
         }).catch(() => {});
       }
       if (modConfig) {
-        await fetch('/api/v1/settings/module-config', {
+        await api.request('/settings/module-config', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(modConfig),
         }).catch(() => {});
       }
@@ -488,22 +485,19 @@ export const BackupRestoreTab: React.FC = () => {
       // Synchronize states to server endpoints
       try {
         await Promise.all([
-          fetch('/api/v1/fuel-station/state', {
+          api.request('/fuel-station/state', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(extStates.fuel_station),
           }).catch(() => {}),
-          fetch('/api/v1/inventory/warehouses-state', {
+          api.request('/inventory/warehouses-state', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               warehouses: extStates.warehouses,
               transfers: extStates.warehouse_transfers,
             }),
           }).catch(() => {}),
-          fetch('/api/v1/settings/module-config', {
+          api.request('/settings/module-config', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(extStates.erp_module_settings_v1),
           }).catch(() => {}),
         ]);
@@ -577,9 +571,8 @@ export const BackupRestoreTab: React.FC = () => {
           if (api.restoreBackupJson) {
             await api.restoreBackupJson({ full_data: fullData });
           } else {
-            await fetch('/api/v1/backups/restore-json', {
+            await api.request('/backups/restore-json', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ full_data: fullData }),
             });
           }
@@ -589,9 +582,9 @@ export const BackupRestoreTab: React.FC = () => {
       // Re-hydrate extended system states from backend
       try {
         const [fuelRes, whRes, modRes] = await Promise.all([
-          fetch('/api/v1/fuel-station/state').then((r) => r.json()).catch(() => null),
-          fetch('/api/v1/inventory/warehouses-state').then((r) => r.json()).catch(() => null),
-          fetch('/api/v1/settings/module-config').then((r) => r.json()).catch(() => null),
+          api.request<any>('/fuel-station/state').catch(() => null),
+          api.request<any>('/inventory/warehouses-state').catch(() => null),
+          api.request<any>('/settings/module-config').catch(() => null),
         ]);
 
         const combinedStates: any = {};
@@ -657,9 +650,8 @@ export const BackupRestoreTab: React.FC = () => {
             extended_states: ext,
           });
         } else {
-          await fetch('/api/v1/backups/restore-json', {
+          await api.request('/backups/restore-json', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               full_data: fullData,
               extended_states: ext,

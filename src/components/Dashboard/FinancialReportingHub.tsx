@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { DailyExchangeRateModal } from '../Common/DailyExchangeRateModal';
 import { getActiveCurrencySymbol, formatNumber, formatAmount } from '../../lib/formatters';
+import { api } from '../../api';
 
 export const FinancialReportingHub: React.FC = () => {
   const [activeSection, setActiveSection] = useState<'overview' | 'reports' | 'forecast'>('overview');
@@ -42,17 +43,10 @@ export const FinancialReportingHub: React.FC = () => {
 
     const fetchMetrics = async () => {
       try {
-        const res = await fetch('/api/v1/dashboard', {
-          headers: {
-            'Content-Type': 'application/json',
-            'x-company-id': localStorage.getItem('erp_company_id') || 'comp_001',
-          },
-        });
-        if (res.ok) {
-          const json = await res.json();
-          if (json?.data) {
-            setBackendMetrics(json.data);
-          }
+        const res = await api.request<any>('/reports/comprehensive').catch(() => null);
+        const data = res?.data || res;
+        if (data) {
+          setBackendMetrics(data);
         }
       } catch (err) {
         console.warn('Backend metrics fetch note:', err);
