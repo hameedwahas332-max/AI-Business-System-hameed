@@ -296,27 +296,160 @@ export const BackupRestoreTab: React.FC = () => {
     }
   };
 
+  // Helper to extract list from api response
+  const extractList = (res: any): any[] => {
+    if (!res) return [];
+    if (Array.isArray(res)) return res;
+    if (Array.isArray(res.data)) return res.data;
+    if (Array.isArray(res.items)) return res.items;
+    return [];
+  };
+
+  // Collect 100% complete system data across all core ERP collections
+  const collectCompleteSystemData = async () => {
+    const extStates = collectExtendedSystemStates();
+
+    // Fetch live arrays in parallel from API client
+    const [
+      custRes,
+      suppRes,
+      prodRes,
+      invRes,
+      purRes,
+      pmtRes,
+      empRes,
+      movRes,
+      payRes,
+      expRes,
+      accRes,
+      jrnRes,
+    ] = await Promise.all([
+      api.getCustomers ? api.getCustomers().catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+      api.getSuppliers ? api.getSuppliers().catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+      api.getProducts ? api.getProducts().catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+      api.getInvoices ? api.getInvoices().catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+      api.getPurchaseInvoices ? api.getPurchaseInvoices().catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+      api.getPayments ? api.getPayments().catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+      api.getEmployees ? api.getEmployees().catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+      api.getEmployeeMovements ? api.getEmployeeMovements().catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+      api.getPayrollRecords ? api.getPayrollRecords().catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+      api.getExpenses ? api.getExpenses().catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+      api.getAccounts ? api.getAccounts().catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+      api.getJournalEntries ? api.getJournalEntries().catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+    ]);
+
+    const customers = extractList(custRes);
+    const suppliers = extractList(suppRes);
+    const products = extractList(prodRes);
+    const invoices = extractList(invRes);
+    const purchaseInvoices = extractList(purRes);
+    const payments = extractList(pmtRes);
+    const employees = extractList(empRes);
+    const employeeMovements = extractList(movRes);
+    const payrollRecords = extractList(payRes);
+    const expenses = extractList(expRes);
+    const accounts = extractList(accRes);
+    const journalEntries = extractList(jrnRes);
+
+    const fullData = {
+      company_id: localStorage.getItem('erp_company_id') || 'comp_001',
+      timestamp: new Date().toISOString(),
+      customers: customers.length > 0 ? customers : JSON.parse(localStorage.getItem('erp_customers_v1') || '[]'),
+      suppliers: suppliers.length > 0 ? suppliers : JSON.parse(localStorage.getItem('erp_suppliers_v1') || '[]'),
+      products: products.length > 0 ? products : JSON.parse(localStorage.getItem('erp_products_v1') || '[]'),
+      inventory_movements: JSON.parse(localStorage.getItem('erp_inventory_movements_v1') || '[]'),
+      invoices: invoices.length > 0 ? invoices : JSON.parse(localStorage.getItem('erp_invoices_v1') || '[]'),
+      purchase_invoices: purchaseInvoices.length > 0 ? purchaseInvoices : JSON.parse(localStorage.getItem('erp_purchase_invoices_v1') || '[]'),
+      payments: payments.length > 0 ? payments : JSON.parse(localStorage.getItem('erp_payments_v1') || '[]'),
+      employees: employees.length > 0 ? employees : JSON.parse(localStorage.getItem('erp_employees_v1') || '[]'),
+      employee_movements: employeeMovements.length > 0 ? employeeMovements : JSON.parse(localStorage.getItem('erp_employee_movements_v1') || '[]'),
+      payroll_records: payrollRecords.length > 0 ? payrollRecords : JSON.parse(localStorage.getItem('erp_payroll_v1') || '[]'),
+      expenses: expenses.length > 0 ? expenses : JSON.parse(localStorage.getItem('erp_expenses_v1') || '[]'),
+      accounts: accounts.length > 0 ? accounts : JSON.parse(localStorage.getItem('erp_local_accounts_v1') || '[]'),
+      journal_entries: journalEntries.length > 0 ? journalEntries : JSON.parse(localStorage.getItem('erp_local_journal_entries_v1') || '[]'),
+    };
+
+    return { extStates, fullData };
+  };
+
+  // Write restored data into local storage keys
+  const writeFullDataToLocalKeys = (fullData: any) => {
+    if (!fullData || typeof fullData !== 'object') return;
+    try {
+      if (Array.isArray(fullData.customers)) localStorage.setItem('erp_customers_v1', JSON.stringify(fullData.customers));
+      if (Array.isArray(fullData.suppliers)) localStorage.setItem('erp_suppliers_v1', JSON.stringify(fullData.suppliers));
+      if (Array.isArray(fullData.products)) localStorage.setItem('erp_products_v1', JSON.stringify(fullData.products));
+      if (Array.isArray(fullData.inventory_movements)) localStorage.setItem('erp_inventory_movements_v1', JSON.stringify(fullData.inventory_movements));
+      if (Array.isArray(fullData.invoices)) localStorage.setItem('erp_invoices_v1', JSON.stringify(fullData.invoices));
+      if (Array.isArray(fullData.purchase_invoices)) localStorage.setItem('erp_purchase_invoices_v1', JSON.stringify(fullData.purchase_invoices));
+      if (Array.isArray(fullData.payments)) localStorage.setItem('erp_payments_v1', JSON.stringify(fullData.payments));
+      if (Array.isArray(fullData.employees)) {
+        localStorage.setItem('erp_employees_v1', JSON.stringify(fullData.employees));
+        localStorage.setItem('erp_employees_cache', JSON.stringify(fullData.employees));
+      }
+      if (Array.isArray(fullData.employee_movements)) {
+        localStorage.setItem('erp_employee_movements_v1', JSON.stringify(fullData.employee_movements));
+        localStorage.setItem('erp_employee_movements_cache', JSON.stringify(fullData.employee_movements));
+      }
+      if (Array.isArray(fullData.payroll_records)) {
+        localStorage.setItem('erp_payroll_v1', JSON.stringify(fullData.payroll_records));
+        localStorage.setItem('erp_payroll_records_cache', JSON.stringify(fullData.payroll_records));
+      }
+      if (Array.isArray(fullData.expenses)) {
+        localStorage.setItem('erp_expenses_v1', JSON.stringify(fullData.expenses));
+        localStorage.setItem('erp_expenses_cache', JSON.stringify(fullData.expenses));
+      }
+      if (Array.isArray(fullData.accounts)) localStorage.setItem('erp_local_accounts_v1', JSON.stringify(fullData.accounts));
+      if (Array.isArray(fullData.journal_entries)) localStorage.setItem('erp_local_journal_entries_v1', JSON.stringify(fullData.journal_entries));
+    } catch (e) {
+      console.warn('Local restore write error:', e);
+    }
+  };
+
   // Export Complete Local JSON Backup
-  const handleExportFullJSONBackup = () => {
+  const handleExportFullJSONBackup = async () => {
     try {
       setActionLoading('export-json');
-      const extStates = collectExtendedSystemStates();
+      setError(null);
+      setSuccessMessage(null);
+
+      const { extStates, fullData } = await collectCompleteSystemData();
+
       const exportData = {
         backup_type: 'FULL_ENTERPRISE_EXPORT_JSON',
         version: 'v2.5.0-enterprise',
         exported_at: new Date().toISOString(),
-        company_id: 'comp_001',
+        company_id: fullData.company_id || 'comp_001',
         checksum: `sha256_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`,
+        full_data: fullData,
         extended_states: extStates,
         summary: {
+          customersCount: fullData.customers.length,
+          suppliersCount: fullData.suppliers.length,
+          productsCount: fullData.products.length,
+          invoicesCount: fullData.invoices.length,
+          paymentsCount: fullData.payments.length,
+          employeesCount: fullData.employees.length,
+          expensesCount: fullData.expenses.length,
           tanksCount: extStates.fuel_station?.tanks?.length || 0,
-          metersCount: extStates.fuel_station?.meters?.length || 0,
           warehousesCount: extStates.warehouses?.length || 0,
-          transfersCount: extStates.warehouse_transfers?.length || 0,
-          salesRepsCount: extStates.sales_reps?.length || 0,
           businessMode: extStates.erp_module_settings_v1?.businessMode || 'multi_activity',
         },
       };
+
+      // Also call api.createBackup so local exports are logged in the Backup History table
+      try {
+        await api.createBackup({
+          backup_type: 'LOCAL_EXPORT',
+          storage_target: 'LOCAL_DISK',
+          full_data: fullData,
+          extended_states: extStates,
+          file_name: `erp-complete-backup-${new Date().toISOString().slice(0, 10)}.json`,
+        });
+        await fetchData();
+      } catch (logErr) {
+        console.warn('Failed to log backup to history:', logErr);
+      }
 
       const jsonStr = JSON.stringify(exportData, null, 2);
       const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' });
@@ -329,7 +462,7 @@ export const BackupRestoreTab: React.FC = () => {
       URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      setSuccessMessage('تم تصدير وتنزيل ملف النسخة الاحتياطية JSON بنجاح متضمناً كافة الحالات الموسعة وإعدادات الأنشطة وخزانات الوقود والتحويلات.');
+      setSuccessMessage('تم تصدير وتنزيل ملف النسخة الاحتياطية الشامل بنجاح وتسجيله في سجل النسخ الاحتياطية.');
     } catch (err: any) {
       setError(err?.message || 'فشل تصدير ملف النسخة الاحتياطية JSON');
     } finally {
@@ -344,10 +477,11 @@ export const BackupRestoreTab: React.FC = () => {
       setError(null);
       setSuccessMessage(null);
 
-      const extStates = collectExtendedSystemStates();
+      const { extStates, fullData } = await collectCompleteSystemData();
       const res = await api.createBackup({
         backup_type: 'MANUAL',
         storage_target: 'B2_S3',
+        full_data: fullData,
         extended_states: extStates,
       });
 
@@ -375,10 +509,10 @@ export const BackupRestoreTab: React.FC = () => {
         ]);
       } catch {}
 
-      setSuccessMessage(res?.message || 'تم إنشاء النسخة الاحتياطية السحابية (Backblaze B2) وتأمين كافة الحالات الموسعة وتوقيع SHA-256 بنجاح');
+      setSuccessMessage(res?.message || 'تم إنشاء النسخة الاحتياطية وتأمين كافة البيانات الموسعة وتوقيع SHA-256 بنجاح');
       await fetchData();
     } catch (err: any) {
-      setError(err?.message || 'فشل إنشاء النسخة الاحتياطية السحابية');
+      setError(err?.message || 'فشل إنشاء النسخة الاحتياطية');
     } finally {
       setActionLoading(null);
     }
@@ -427,13 +561,30 @@ export const BackupRestoreTab: React.FC = () => {
     setIsRestoreModalOpen(true);
   };
 
-  // Execute Restore from Cloud Backup
+  // Execute Restore from Cloud / History Backup
   const handleExecuteRestore = async () => {
     if (!selectedBackupForRestore) return;
     try {
       setIsRestoring(true);
       setError(null);
       const res = await api.restoreBackup(selectedBackupForRestore.id);
+
+      // If backup has full_data embedded, restore local keys and sync to server
+      const fullData = (selectedBackupForRestore as any).full_data || (selectedBackupForRestore as any).payload?.full_data;
+      if (fullData) {
+        writeFullDataToLocalKeys(fullData);
+        try {
+          if (api.restoreBackupJson) {
+            await api.restoreBackupJson({ full_data: fullData });
+          } else {
+            await fetch('/api/v1/backups/restore-json', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ full_data: fullData }),
+            });
+          }
+        } catch {}
+      }
 
       // Re-hydrate extended system states from backend
       try {
@@ -452,8 +603,12 @@ export const BackupRestoreTab: React.FC = () => {
         await restoreExtendedSystemStates(combinedStates);
       } catch {}
 
+      // Dispatch global events so all modules immediately reflect the restored data
+      window.dispatchEvent(new Event('erp-data-updated'));
+      window.dispatchEvent(new Event('storage'));
+
       setIsRestoreModalOpen(false);
-      setSuccessMessage(res?.message || 'تمت استعادة بيانات النظام والوحدات الموسعة وخزانات الوقود بنجاح من النسخة الاحتياطية');
+      setSuccessMessage(res?.message || 'تمت استعادة كافة بيانات النظام والوحدات الموسعة وخزانات الوقود بنجاح من النسخة الاحتياطية');
       await fetchData();
     } catch (err: any) {
       setError(err?.message || 'فشلت استعادة النسخة الاحتياطية');
@@ -487,11 +642,44 @@ export const BackupRestoreTab: React.FC = () => {
     try {
       setIsRestoring(true);
       setError(null);
+
+      const fullData = jsonUploadData.full_data || jsonUploadData.data || jsonUploadData;
       const ext = jsonUploadData.extended_states || jsonUploadData;
+
+      // 1. Write to local fallback keys
+      writeFullDataToLocalKeys(fullData);
+
+      // 2. Send restored full_data to POST /api/v1/backups/restore-json
+      try {
+        if (api.restoreBackupJson) {
+          await api.restoreBackupJson({
+            full_data: fullData,
+            extended_states: ext,
+          });
+        } else {
+          await fetch('/api/v1/backups/restore-json', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              full_data: fullData,
+              extended_states: ext,
+            }),
+          });
+        }
+      } catch (postErr) {
+        console.warn('Backend JSON restore sync warning:', postErr);
+      }
+
+      // 3. Restore extended states
       const result = await restoreExtendedSystemStates(ext);
+
+      // 4. Dispatch global events
+      window.dispatchEvent(new Event('erp-data-updated'));
+      window.dispatchEvent(new Event('storage'));
+
       setIsJsonRestoreModalOpen(false);
       setJsonUploadData(null);
-      setSuccessMessage(`تمت استعادة ${result.count} عنصراً وسجلاً موسعاً بنجاح (إعدادات الأنشطة، خزانات وعدادات الوقود، المستودعات، والمناديب).`);
+      setSuccessMessage(`تم استيراد واستعادة ملف النسخة الاحتياطية بالكامل وتحديث كافة السجلات المحاسبية والتشغيلية (${result.count} وحدة/حالة) بنجاح.`);
       await fetchData();
     } catch (err: any) {
       setError(err?.message || 'فشلت استعادة ملف النسخة الاحتياطية JSON');

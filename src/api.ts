@@ -928,6 +928,14 @@ class ApiClient {
   }
 
   // ==================== ACCOUNTING LEDGER & REPORTS ====================
+  async getAccounts(params?: any) {
+    return this.request(`/accounts${this.toQueryString(params)}`);
+  }
+
+  async getJournalEntries(params?: any) {
+    return this.request(`/journal-entries${this.toQueryString(params)}`);
+  }
+
   async getLedgerEntries(params?: any) {
     return this.request(`/ledger${this.toQueryString(params)}`);
   }
@@ -1188,6 +1196,13 @@ class ApiClient {
   async restoreBackup(id: string) {
     return this.request(`/backups/${id}/restore`, {
       method: 'POST',
+    });
+  }
+
+  async restoreBackupJson(data: any) {
+    return this.request('/backups/restore-json', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   }
 

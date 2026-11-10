@@ -21,6 +21,7 @@ import {
   mockEmployeeMovementsList,
   mockPayrollRecordsList,
   mockExpensesList,
+  mockAuditLogsList,
   EmployeeItem,
   EmployeeMovementItem,
   PayrollRecordItem,
@@ -49,7 +50,9 @@ import {
   computeUnifiedFinancialMetrics,
   validateBalancedJournalLines,
   getTenantAccounts,
+  saveTenantAccounts,
   getTenantJournalEntries,
+  saveTenantJournalEntries,
   postDoubleEntryJournal,
   roundMoney,
   reverseSalesInvoiceAtomic,
@@ -2597,6 +2600,8 @@ export const mockBackupsDatabase: Array<{
   system_version: string;
   db_version: string;
   payload?: any;
+  full_data?: any;
+  extended_states?: any;
 }> = [
   {
     id: 'bkp-2026-prod-001',
@@ -2634,6 +2639,107 @@ export const mockBackupsDatabase: Array<{
   },
 ];
 
+// Helper to collect ALL real tenant data arrays for 100% full backup
+export function buildCompleteTenantSnapshot(companyId: string) {
+  return {
+    company_id: companyId,
+    timestamp: new Date().toISOString(),
+    customers: [...mockCustomersList],
+    suppliers: [...mockSuppliersList],
+    products: [...mockProducts],
+    inventory_movements: [...mockInventoryMovements],
+    invoices: [...mockInvoicesList],
+    purchase_invoices: [...mockPurchaseInvoicesList],
+    payments: [...mockPaymentsList],
+    employees: [...mockEmployeesList],
+    employee_movements: [...mockEmployeeMovementsList],
+    payroll_records: [...mockPayrollRecordsList],
+    expenses: [...mockExpensesList],
+    audit_logs: [...mockAuditLogsList],
+    accounts: [...getTenantAccounts(companyId)],
+    journal_entries: [...getTenantJournalEntries(companyId)],
+  };
+}
+
+// Helper to overwrite live tenant arrays and persistent storage
+export async function restoreCompleteTenantSnapshot(companyId: string, payload: any) {
+  const fullData = payload.full_data || payload.data || payload;
+
+  if (Array.isArray(fullData.customers)) {
+    mockCustomersList.length = 0;
+    mockCustomersList.push(...fullData.customers);
+  }
+  if (Array.isArray(fullData.suppliers)) {
+    mockSuppliersList.length = 0;
+    mockSuppliersList.push(...fullData.suppliers);
+  }
+  if (Array.isArray(fullData.products)) {
+    mockProducts.length = 0;
+    mockProducts.push(...fullData.products);
+  }
+  if (Array.isArray(fullData.inventory_movements)) {
+    mockInventoryMovements.length = 0;
+    mockInventoryMovements.push(...fullData.inventory_movements);
+  }
+  if (Array.isArray(fullData.invoices)) {
+    mockInvoicesList.length = 0;
+    mockInvoicesList.push(...fullData.invoices);
+  }
+  if (Array.isArray(fullData.purchase_invoices)) {
+    mockPurchaseInvoicesList.length = 0;
+    mockPurchaseInvoicesList.push(...fullData.purchase_invoices);
+  }
+  if (Array.isArray(fullData.payments)) {
+    mockPaymentsList.length = 0;
+    mockPaymentsList.push(...fullData.payments);
+  }
+  if (Array.isArray(fullData.employees)) {
+    mockEmployeesList.length = 0;
+    mockEmployeesList.push(...fullData.employees);
+  }
+  if (Array.isArray(fullData.employee_movements)) {
+    mockEmployeeMovementsList.length = 0;
+    mockEmployeeMovementsList.push(...fullData.employee_movements);
+  }
+  if (Array.isArray(fullData.payroll_records)) {
+    mockPayrollRecordsList.length = 0;
+    mockPayrollRecordsList.push(...fullData.payroll_records);
+  }
+  if (Array.isArray(fullData.expenses)) {
+    mockExpensesList.length = 0;
+    mockExpensesList.push(...fullData.expenses);
+  }
+  if (Array.isArray(fullData.audit_logs)) {
+    mockAuditLogsList.length = 0;
+    mockAuditLogsList.push(...fullData.audit_logs);
+  }
+  if (Array.isArray(fullData.accounts)) {
+    saveTenantAccounts(companyId, fullData.accounts);
+  }
+  if (Array.isArray(fullData.journal_entries)) {
+    saveTenantJournalEntries(companyId, fullData.journal_entries);
+  }
+
+  // Restore extended states if present
+  const ext = payload.extended_states || fullData.extended_states;
+  if (ext) {
+    if (ext.fuel_station) {
+      await saveModuleState(companyId, 'fuel_station', ext.fuel_station);
+    }
+    if (ext.warehouses || ext.warehouse_transfers) {
+      await saveModuleState(companyId, 'inventory_warehouses', {
+        warehouses: ext.warehouses || [],
+        transfers: ext.warehouse_transfers || [],
+      });
+    }
+    if (ext.module_settings) {
+      await saveModuleState(companyId, 'module_config', ext.module_settings);
+    }
+  }
+
+  persistAllToDisk();
+}
+
 enterpriseRouter.get('/backups', (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   const filtered = mockBackupsDatabase.filter((b) => b.company_id === companyId || b.company_id === 'comp_001');
@@ -2668,32 +2774,54 @@ enterpriseRouter.post('/backups/create', async (req: Request, res: Response) => 
     }
   }
 
-  const newBackup = {
+  const fullData = payload.full_data || buildCompleteTenantSnapshot(companyId);
+  const recordsCount =
+    (fullData.customers?.length || 0) +
+    (fullData.suppliers?.length || 0) +
+    (fullData.products?.length || 0) +
+    (fullData.inventory_movements?.length || 0) +
+    (fullData.invoices?.length || 0) +
+    (fullData.purchase_invoices?.length || 0) +
+    (fullData.payments?.length || 0) +
+    (fullData.employees?.length || 0) +
+    (fullData.employee_movements?.length || 0) +
+    (fullData.payroll_records?.length || 0) +
+    (fullData.expenses?.length || 0) +
+    (fullData.audit_logs?.length || 0) +
+    (fullData.accounts?.length || 0) +
+    (fullData.journal_entries?.length || 0);
+
+  const fileSize = Buffer.byteLength(JSON.stringify(fullData), 'utf8');
+
+  const newBackup: any = {
     id: backupId,
     company_id: companyId,
-    file_name: `erp_backup_${companyId}_${now.slice(0, 10).replace(/-/g, '')}_${Date.now().toString().slice(-4)}.json`,
-    file_size: 25400000 + Math.floor(Math.random() * 500000),
+    file_name: payload.file_name || `erp_backup_${companyId}_${now.slice(0, 10).replace(/-/g, '')}_${Date.now().toString().slice(-4)}.json`,
+    file_size: fileSize,
     tables_count: 14,
-    records_count: 4210,
+    records_count: recordsCount,
     status: 'VERIFIED' as const,
     backup_type: payload.backup_type || 'MANUAL',
-    storage_provider: 'Backblaze B2 (AES-256)',
+    storage_provider: payload.storage_target === 'LOCAL_DISK' ? 'Local Disk / IndexedDB (AES-256)' : 'Backblaze B2 (AES-256)',
     checksum,
     created_at: now,
     verified_at: now,
-    initiated_by_name: 'المدير العام',
+    initiated_by_name: payload.initiated_by_name || 'المدير العام',
     system_version: 'v2.5.0-enterprise',
     db_version: 'PostgreSQL 16 (JSONB)',
+    full_data: fullData,
+    extended_states: payload.extended_states || {},
     payload,
   };
 
   mockBackupsDatabase.unshift(newBackup);
+  persistAllToDisk();
 
   res.status(201).json({
     success: true,
     data: newBackup,
     backup: newBackup,
-    message: 'تم إنشاء النسخة الاحتياطية وتأمينها على سحابة Backblaze B2 مع كافة الحالات الموسعة',
+    message: 'تم إنشاء النسخة الاحتياطية وتأمينها بنجاح مع كافة السجلات والحالات الموسعة',
   });
 });
 
@@ -2723,46 +2851,44 @@ enterpriseRouter.get('/backups/:id/download', async (req: Request, res: Response
   const companyId = resolveCompanyId(req);
   const backup = mockBackupsDatabase.find((b) => b.id === req.params.id) || mockBackupsDatabase[0];
   
-  // Assemble full backup payload with extended states
   const fuelStation = await getModuleState(companyId, 'fuel_station', {});
   const warehousesState = await getModuleState(companyId, 'inventory_warehouses', {});
   const moduleConfig = await getModuleState(companyId, 'module_config', {});
+
+  const fullData = backup.full_data || backup.payload?.full_data || buildCompleteTenantSnapshot(companyId);
+  const extendedStates = backup.extended_states || backup.payload?.extended_states || {
+    erp_module_settings_v1: moduleConfig.data,
+    erp_exchange_rates_v1: { YER: 535, SAR: 3.75, USD: 1.0, baseCurrency: 'YER' },
+    fuel_station_state: fuelStation.data,
+    inventory_warehouses_state: warehousesState.data,
+  };
 
   const backupPayload = {
     backup_id: backup.id,
     company_id: companyId,
     timestamp: backup.created_at,
-    system_version: backup.system_version,
-    database_version: backup.db_version,
+    system_version: backup.system_version || 'v2.5.0-enterprise',
+    database_version: backup.db_version || 'PostgreSQL 16 (JSONB)',
     checksum: backup.checksum,
-    extended_states: {
-      erp_module_settings_v1: moduleConfig.data,
-      erp_exchange_rates_v1: { YER: 535, SAR: 3.75, USD: 1.0, baseCurrency: 'YER' },
-      fuel_station_state: fuelStation.data,
-      inventory_warehouses_state: warehousesState.data,
-      sales_reps: [
-        { id: 'rep-1', name: 'أحمد السحابي', phone: '777112233', role: 'مندوب جملة كبار العملاء', active: true },
-        { id: 'rep-2', name: 'خالد المنصوري', phone: '771223344', role: 'مندوب مبيعات زيوت وبطاريات', active: true },
-        { id: 'rep-3', name: 'ياسر اليماني', phone: '773445566', role: 'مندوب كاشير ومواد غذائية', active: true },
-      ],
-      product_extended_attributes: {
-        warrantySupport: true,
-        serialTracking: true,
-        scrapValuation: true,
-        activityModes: ['food', 'battery', 'tire', 'oil', 'fuel', 'general'],
-      },
-      custom_ledger_entries: [],
-    },
+    records_count: backup.records_count,
+    file_size: backup.file_size,
+    full_data: fullData,
+    extended_states: extendedStates,
     tables: {
-      companies: 1,
-      users: 4,
-      products: 148,
-      invoices: 42,
-      payments: 28,
-      fuel_tanks: 4,
-      fuel_meters: 6,
-      warehouses: 3,
-      transfers: 8,
+      customers: fullData.customers?.length || 0,
+      suppliers: fullData.suppliers?.length || 0,
+      products: fullData.products?.length || 0,
+      inventory_movements: fullData.inventory_movements?.length || 0,
+      invoices: fullData.invoices?.length || 0,
+      purchase_invoices: fullData.purchase_invoices?.length || 0,
+      payments: fullData.payments?.length || 0,
+      employees: fullData.employees?.length || 0,
+      employee_movements: fullData.employee_movements?.length || 0,
+      payroll_records: fullData.payroll_records?.length || 0,
+      expenses: fullData.expenses?.length || 0,
+      audit_logs: fullData.audit_logs?.length || 0,
+      accounts: fullData.accounts?.length || 0,
+      journal_entries: fullData.journal_entries?.length || 0,
     },
   };
 
@@ -2783,21 +2909,15 @@ enterpriseRouter.post('/backups/:id/restore', async (req: Request, res: Response
   const companyId = resolveCompanyId(req);
   const backup = mockBackupsDatabase.find((b) => b.id === req.params.id);
 
-  if (backup?.payload?.extended_states) {
-    const ext = backup.payload.extended_states;
-    if (ext.fuel_station) {
-      await saveModuleState(companyId, 'fuel_station', ext.fuel_station);
-    }
-    if (ext.warehouses || ext.warehouse_transfers) {
-      await saveModuleState(companyId, 'inventory_warehouses', {
-        warehouses: ext.warehouses || [],
-        transfers: ext.warehouse_transfers || [],
-      });
-    }
-    if (ext.module_settings) {
-      await saveModuleState(companyId, 'module_config', ext.module_settings);
-    }
+  if (!backup) {
+    return res.status(404).json({ success: false, message: 'النسخة الاحتياطية غير موجودة' });
   }
+
+  const snapshotToRestore = backup.full_data || backup.payload?.full_data || backup.payload || {};
+  await restoreCompleteTenantSnapshot(companyId, {
+    full_data: snapshotToRestore,
+    extended_states: backup.extended_states || backup.payload?.extended_states,
+  });
 
   res.json({
     success: true,
@@ -2805,6 +2925,25 @@ enterpriseRouter.post('/backups/:id/restore', async (req: Request, res: Response
     restoredBackupId: req.params.id,
     restoredAt: new Date().toISOString(),
   });
+});
+
+enterpriseRouter.post('/backups/restore-json', async (req: Request, res: Response) => {
+  try {
+    const companyId = resolveCompanyId(req);
+    const body = req.body || {};
+    await restoreCompleteTenantSnapshot(companyId, body);
+
+    res.json({
+      success: true,
+      message: 'تم استيراد واستعادة ملف النسخة الاحتياطية بالكامل بنجاح',
+      restoredAt: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    res.status(400).json({
+      success: false,
+      message: err.message || 'فشل استيراد النسخة الاحتياطية',
+    });
+  }
 });
 
 enterpriseRouter.post('/backups/:id/verify', (_req: Request, res: Response) => {
