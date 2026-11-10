@@ -78,8 +78,10 @@ const TREASURIES = [
 export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = ({
   initialSubTab = 'employees',
 }) => {
-  const { currentCompany } = useAuth();
-  const companyName = currentCompany?.name || 'المؤسسة التجارية';
+  const { company, currentCompany } = useAuth();
+  const activeCompany = company || currentCompany;
+  const companyName = activeCompany?.name || 'المؤسسة التجارية';
+  const systemCurrency = activeCompany?.currency || localStorage.getItem('erp_currency') || 'YER';
 
   // Navigation State
   const [activeTab, setActiveTab] = useState<'employees' | 'expenses'>(initialSubTab);
@@ -523,7 +525,7 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
               </div>
               <div className="text-2xl font-black text-slate-900 font-mono">
                 {formatNumber(employeeStats.totalBaseSalaries)}{' '}
-                <span className="text-xs font-normal text-slate-500">ر.س</span>
+                <span className="text-xs font-normal text-slate-500">{systemCurrency}</span>
               </div>
               <div className="text-xs text-slate-500 mt-1">قبل البدلات والسلف والاستقطاعات</div>
             </div>
@@ -537,7 +539,7 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
               </div>
               <div className="text-2xl font-black text-amber-600 font-mono">
                 {formatNumber(employeeStats.totalAdvances)}{' '}
-                <span className="text-xs font-normal text-slate-500">ر.س</span>
+                <span className="text-xs font-normal text-slate-500">{systemCurrency}</span>
               </div>
               <div className="text-xs text-amber-700 mt-1">تستقطع تلقائياً من مسير الرواتب</div>
             </div>
@@ -556,7 +558,7 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
                     employeeStats.totalAdvances -
                     employeeStats.totalDeductions
                 )}{' '}
-                <span className="text-xs font-normal text-slate-500">ر.س</span>
+                <span className="text-xs font-normal text-slate-500">{systemCurrency}</span>
               </div>
               <div className="text-xs text-indigo-600 mt-1">شامل البدلات والمكافآت والخصم</div>
             </div>
@@ -1055,7 +1057,7 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
               </div>
               <div className="text-2xl font-black text-slate-900 font-mono">
                 {formatNumber(expenseStats.total)}{' '}
-                <span className="text-xs font-normal text-slate-500">ر.س</span>
+                <span className="text-xs font-normal text-slate-500">{systemCurrency}</span>
               </div>
               <div className="text-xs text-slate-500 mt-1">
                 سجلات الصرف المعتمدة ({expenses.length} سند)
@@ -1071,7 +1073,7 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
               </div>
               <div className="text-2xl font-black text-blue-700 font-mono">
                 {formatNumber(expenseStats.salariesExpense)}{' '}
-                <span className="text-xs font-normal text-slate-500">ر.س</span>
+                <span className="text-xs font-normal text-slate-500">{systemCurrency}</span>
               </div>
               <div className="text-xs text-blue-600 mt-1">ترحيل تلقائي من مسير الرواتب</div>
             </div>
@@ -1085,7 +1087,7 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
               </div>
               <div className="text-2xl font-black text-purple-700 font-mono">
                 {formatNumber(expenseStats.rentAndUtilities)}{' '}
-                <span className="text-xs font-normal text-slate-500">ر.س</span>
+                <span className="text-xs font-normal text-slate-500">{systemCurrency}</span>
               </div>
               <div className="text-xs text-purple-600 mt-1">إيجارات ومولدات وكهرباء ومياه</div>
             </div>
@@ -1101,7 +1103,7 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
                 {expenseStats.topCenter}
               </div>
               <div className="text-xs text-orange-700 font-mono mt-1">
-                {formatNumber(expenseStats.topCenterVal)} ر.س
+                {formatNumber(expenseStats.topCenterVal)} {systemCurrency}
               </div>
             </div>
           </div>
@@ -1410,6 +1412,9 @@ interface EmployeeModalProps {
 }
 
 const EmployeeFormModal: React.FC<EmployeeModalProps> = ({ employee, onClose, onSave }) => {
+  const { company, currentCompany } = useAuth();
+  const activeCompany = company || currentCompany;
+  const systemCurrency = activeCompany?.currency || localStorage.getItem('erp_currency') || 'YER';
   const [name, setName] = useState(employee?.name || '');
   const [code, setCode] = useState(employee?.code || `EMP-${Date.now().toString().slice(-4)}`);
   const [roleTitle, setRoleTitle] = useState(employee?.roleTitle || 'عامل');
@@ -1419,7 +1424,7 @@ const EmployeeFormModal: React.FC<EmployeeModalProps> = ({ employee, onClose, on
     employee?.hireDate ? formatDateOnly(employee.hireDate) : new Date().toISOString().split('T')[0]
   );
   const [baseSalary, setBaseSalary] = useState(String(employee?.baseSalary || 2000));
-  const [currency, setCurrency] = useState(employee?.currency || 'SAR');
+  const [currency, setCurrency] = useState(employee?.currency || systemCurrency);
   const [status, setStatus] = useState(employee?.status || 'نشط');
   const [notes, setNotes] = useState(employee?.notes || '');
 
@@ -1620,12 +1625,15 @@ const MovementFormModal: React.FC<MovementModalProps> = ({
   onClose,
   onSave,
 }) => {
+  const { company, currentCompany } = useAuth();
+  const activeCompany = company || currentCompany;
+  const systemCurrency = activeCompany?.currency || localStorage.getItem('erp_currency') || 'YER';
   const [employeeId, setEmployeeId] = useState(
     preselectedEmployee?.id || employees[0]?.id || ''
   );
   const [type, setType] = useState<'advance' | 'bonus' | 'deduction'>('advance');
   const [amount, setAmount] = useState('200');
-  const [currency, setCurrency] = useState(preselectedEmployee?.currency || 'SAR');
+  const [currency, setCurrency] = useState(preselectedEmployee?.currency || systemCurrency);
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [treasury, setTreasury] = useState(TREASURIES[0]);
   const [description, setDescription] = useState('');
@@ -1999,6 +2007,9 @@ interface ExpenseModalProps {
 }
 
 const ExpenseFormModal: React.FC<ExpenseModalProps> = ({ expense, onClose, onSave }) => {
+  const { company, currentCompany } = useAuth();
+  const activeCompany = company || currentCompany;
+  const systemCurrency = activeCompany?.currency || localStorage.getItem('erp_currency') || 'YER';
   const [voucherNumber, setVoucherNumber] = useState(
     expense?.voucherNumber || `EXP-${Date.now().toString().slice(-5)}`
   );
@@ -2009,7 +2020,7 @@ const ExpenseFormModal: React.FC<ExpenseModalProps> = ({ expense, onClose, onSav
   const [costCenter, setCostCenter] = useState(expense?.costCenter || COST_CENTERS[0]);
   const [beneficiary, setBeneficiary] = useState(expense?.beneficiary || '');
   const [amount, setAmount] = useState(String(expense?.amount || 150));
-  const [currency, setCurrency] = useState(expense?.currency || 'SAR');
+  const [currency, setCurrency] = useState(expense?.currency || systemCurrency);
   const [paymentMethod, setPaymentMethod] = useState(expense?.paymentMethod || 'نقداً');
   const [treasury, setTreasury] = useState(expense?.treasury || TREASURIES[0]);
   const [description, setDescription] = useState(expense?.description || '');

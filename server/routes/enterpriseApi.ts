@@ -4247,7 +4247,7 @@ enterpriseRouter.post('/employees/movements', (req: Request, res: Response) => {
     employeeName: emp ? emp.name : (body.employeeName || 'موظف'),
     type: body.type || 'advance',
     amount: Number(body.amount) || 0,
-    currency: body.currency || 'SAR',
+    currency: (body.currency || 'YER') as any,
     date: body.date || new Date().toISOString().split('T')[0],
     treasury: body.treasury || 'الصندوق النقدي الرئيسي',
     description: body.description || '',
@@ -4258,8 +4258,83 @@ enterpriseRouter.post('/employees/movements', (req: Request, res: Response) => {
 
   mockEmployeeMovementsList.unshift(newMovement);
 
-  // If advance, record an accounting transaction
+  // If advance, record an accounting transaction, update employee advances balance, post journal & payment voucher
   if (newMovement.type === 'advance' && newMovement.amount > 0) {
+    if (emp) {
+      emp.advancesBalance = (emp.advancesBalance || 0) + newMovement.amount;
+    }
+
+    const treasuryUpper = String(newMovement.treasury || '').toUpperCase();
+    const isBankOrWallet =
+      treasuryUpper.includes('BANK') ||
+      treasuryUpper.includes('WALLET') ||
+      treasuryUpper.includes('بنك') ||
+      treasuryUpper.includes('مصرف') ||
+      treasuryUpper.includes('تحويل') ||
+      treasuryUpper.includes('محفظة');
+    const creditAccount = isBankOrWallet ? '1102' : '1101';
+    const creditAccountName = isBankOrWallet ? 'البنك / الحسابات البنكية والمحافظ' : 'الصندوق / النقدية';
+
+    const vNum = `ADV-${Date.now().toString().slice(-6)}`;
+    const tenantId = (req as any).user?.company_id || (req as any).companyId || 'comp_001';
+
+    // Post Double-Entry Journal (Dr 1103/Employee Advances, Cr 1101/1102 based on treasury)
+    postDoubleEntryJournal({
+      companyId: tenantId,
+      reference_type: 'PAYMENT_VOUCHER',
+      reference_id: vNum,
+      description: `صرف سلفة نقدية للموظف: ${newMovement.employeeName} (${newMovement.description || 'سلفة'})`,
+      date: newMovement.date,
+      lines: [
+        {
+          account_code: '1103',
+          account_name: 'سلف وعهد الموظفين والمدينون',
+          debit: newMovement.amount,
+          credit: 0,
+          description: `سلفة نقدية للموظف: ${newMovement.employeeName}`,
+        },
+        {
+          account_code: creditAccount,
+          account_name: creditAccountName,
+          debit: 0,
+          credit: newMovement.amount,
+          description: `صرف سلفة من ${newMovement.treasury}`,
+        },
+      ],
+      created_by: (req as any).user?.username || 'النظام',
+    });
+
+    // Add PAYMENT voucher to mockPaymentsList
+    const newPmt = {
+      id: `PMT-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      company_id: tenantId,
+      payment_number: vNum,
+      voucher_number: vNum,
+      voucherNumber: vNum,
+      amount: newMovement.amount,
+      type: 'EMPLOYEE_ADVANCE',
+      voucher_type: 'PAYMENT',
+      payment_type: 'OUT',
+      party_type: 'EMPLOYEE',
+      party_id: newMovement.employeeId,
+      party_name: newMovement.employeeName,
+      payment_method: isBankOrWallet ? 'BANK' : 'CASH',
+      paymentMethod: isBankOrWallet ? 'BANK' : 'CASH',
+      treasury: newMovement.treasury,
+      currency: newMovement.currency,
+      reference_id: newMovement.id,
+      reference_type: 'EMPLOYEE_ADVANCE',
+      reference_number: vNum,
+      referenceNumber: vNum,
+      date: newMovement.date,
+      payment_date: newMovement.date,
+      description: `سند صرف سلفة للموظف: ${newMovement.employeeName} - ${newMovement.treasury}`,
+      notes: newMovement.notes,
+      status: 'CONFIRMED',
+      created_at: new Date().toISOString(),
+    };
+    mockPaymentsList.unshift(newPmt as any);
+
     mockAccountTransactions.unshift({
       id: `trx_adv_${Date.now()}`,
       party_id: newMovement.employeeId,
@@ -4308,7 +4383,6 @@ enterpriseRouter.post('/payroll/disburse', (req: Request, res: Response) => {
     advancesDeducted = 0,
     otherDeductions = 0,
     netSalary,
-    currency = 'SAR',
     paymentDate,
     treasury = 'الصندوق النقدي الرئيسي',
     notes = '',
@@ -4318,8 +4392,11 @@ enterpriseRouter.post('/payroll/disburse', (req: Request, res: Response) => {
   const employeeName = emp ? emp.name : (body.employeeName || 'موظف');
   const safeDate = paymentDate || new Date().toISOString().split('T')[0];
   const safeMonth = month || safeDate.substring(0, 7);
+  const payCurrency = body.currency || emp?.currency || 'YER';
 
   const calculatedNet = Number(netSalary) || (Number(baseSalary) + Number(bonuses) - Number(advancesDeducted) - Number(otherDeductions));
+  const refVoucher = `VCH-PAY-${Date.now().toString().slice(-6)}`;
+  const tenantId = (req as any).user?.company_id || (req as any).companyId || 'comp_001';
 
   const payrollRec: PayrollRecordItem = {
     id: `pay-${Date.now()}`,
@@ -4331,48 +4408,54 @@ enterpriseRouter.post('/payroll/disburse', (req: Request, res: Response) => {
     advancesDeducted: Number(advancesDeducted) || 0,
     otherDeductions: Number(otherDeductions) || 0,
     netSalary: calculatedNet,
-    currency,
+    currency: payCurrency as any,
     paymentDate: safeDate,
     treasury,
     status: 'paid',
-    referenceVoucher: `VCH-PAY-${Date.now().toString().slice(-6)}`,
+    referenceVoucher: refVoucher,
     notes,
     created_at: new Date().toISOString(),
   };
 
   mockPayrollRecordsList.unshift(payrollRec);
 
-  // Automatically record this in Expenses
-  const expenseRec: ExpenseItem = {
-    id: `exp-${Date.now()}`,
-    voucherNumber: `EXP-${2000 + mockExpensesList.length + 1}`,
-    date: safeDate,
-    category: 'رواتب وأجور وسلف موظفين',
-    costCenter: emp?.branch || 'المحل / المعرض الرئيسي',
-    beneficiary: employeeName,
-    amount: calculatedNet,
-    currency,
-    paymentMethod: treasury.includes('بنك') ? 'تحويل بنكي' : 'نقداً',
-    treasury,
-    referenceNumber: payrollRec.referenceVoucher,
-    description: `صرف راتب شهر ${safeMonth} للموظف: ${employeeName}`,
-    notes: `أساسي: ${baseSalary} | بدلات: ${bonuses} | سلف مستقطعة: ${advancesDeducted} | خصومات: ${otherDeductions}`,
-    created_at: new Date().toISOString(),
-  };
+  // If advances were deducted, reduce the employee's advance balance
+  if (emp && Number(advancesDeducted) > 0) {
+    emp.advancesBalance = Math.max(0, (emp.advancesBalance || 0) - Number(advancesDeducted));
+  }
 
-  mockExpensesList.unshift(expenseRec);
+  // Call postExpenseAtomic so salary disbursement automatically deducts from Cash/Bank (1101/1102),
+  // posts to GL account 5201, creates a payment voucher in mockPaymentsList, and updates Income Statement and Trial Balance
+  let expenseResult: any = null;
+  if (calculatedNet > 0) {
+    expenseResult = postExpenseAtomic({
+      companyId: tenantId,
+      category: 'رواتب وأجور وسلف موظفين',
+      costCenter: emp?.branch || 'المحل / المعرض الرئيسي',
+      treasury,
+      currency: payCurrency,
+      amount: calculatedNet,
+      paymentMethod: treasury.includes('بنك') || treasury.includes('BANK') || treasury.includes('مصرف') || treasury.includes('محفظة') ? 'BANK' : 'CASH',
+      beneficiary: employeeName,
+      date: safeDate,
+      voucherNumber: refVoucher,
+      description: `صرف راتب شهر ${safeMonth} للموظف: ${employeeName}`,
+      notes: `أساسي: ${baseSalary} | بدلات: ${bonuses} | سلف مستقطعة: ${advancesDeducted} | خصومات: ${otherDeductions}${notes ? ` | ${notes}` : ''}`,
+      created_by: (req as any).user?.username || 'النظام',
+    });
+  }
 
-  // Balanced double-entry in General Ledger
+  // Also record in mockAccountTransactions for ledger reference
   mockAccountTransactions.unshift({
     id: `trx_sal_${Date.now()}`,
     party_id: employeeId || 'payroll',
     party_type: 'CUSTOMER',
     type: 'صرف راتب شهري',
     amount: calculatedNet,
-    currency,
+    currency: payCurrency,
     date: safeDate,
     description: `صرف راتب شهر ${safeMonth} للموظف: ${employeeName} من ${treasury}`,
-    reference_no: payrollRec.referenceVoucher,
+    reference_no: refVoucher,
     notes,
     created_at: new Date().toISOString(),
   });
@@ -4383,9 +4466,11 @@ enterpriseRouter.post('/payroll/disburse', (req: Request, res: Response) => {
     success: true,
     data: {
       payrollRecord: payrollRec,
-      expenseRecord: expenseRec,
+      expenseRecord: expenseResult?.expense || expenseResult?.data,
+      payment: expenseResult?.payment,
+      journal: expenseResult?.journal,
     },
-    message: `تم صرف راتب الموظف (${employeeName}) بمبلغ ${calculatedNet} ${currency} بنجاح وترحيله للمصروفات ودفتر الأستاذ`,
+    message: `تم صرف راتب الموظف (${employeeName}) بمبلغ ${calculatedNet} ${payCurrency} بنجاح وترحيله للمصروفات ودفتر الأستاذ`,
   });
 });
 

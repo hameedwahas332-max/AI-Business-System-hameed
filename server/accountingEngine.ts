@@ -1555,11 +1555,19 @@ export interface ExpenseParams {
   category?: string;
   description: string;
   amount: number;
-  paymentMethod?: 'CASH' | 'BANK';
+  paymentMethod?: string;
   beneficiary?: string;
   date?: string;
   voucherNumber?: string;
   created_by?: string;
+  costCenter?: string;
+  cost_center?: string;
+  treasury?: string;
+  currency?: string;
+  referenceNumber?: string;
+  reference_number?: string;
+  referenceNo?: string;
+  notes?: string;
 }
 
 export function postExpenseAtomic(params: ExpenseParams) {
@@ -1576,9 +1584,32 @@ export function postExpenseAtomic(params: ExpenseParams) {
   const expenseCode = isPayroll ? '5201' : '5202';
   const expenseName = isPayroll ? 'مصروفات الرواتب والأجور' : 'المصروفات العمومية والإدارية';
 
-  const isBank = params.paymentMethod === 'BANK';
-  const cashOrBankCode = isBank ? '1102' : '1101';
-  const cashOrBankName = isBank ? 'البنك / الحسابات البنكية' : 'الصندوق / النقدية';
+  const payMethodStr = String(params.paymentMethod || '').toUpperCase();
+  const treasuryStr = String(params.treasury || '').toUpperCase();
+  const isBankOrWallet =
+    payMethodStr.includes('BANK') ||
+    payMethodStr.includes('WALLET') ||
+    payMethodStr.includes('بنك') ||
+    payMethodStr.includes('مصرف') ||
+    payMethodStr.includes('تحويل') ||
+    payMethodStr.includes('محفظة') ||
+    treasuryStr.includes('BANK') ||
+    treasuryStr.includes('WALLET') ||
+    treasuryStr.includes('بنك') ||
+    treasuryStr.includes('مصرف') ||
+    treasuryStr.includes('تحويل') ||
+    treasuryStr.includes('محفظة') ||
+    String(params.paymentMethod || '').includes('بنك') ||
+    String(params.paymentMethod || '').includes('مصرف') ||
+    String(params.paymentMethod || '').includes('تحويل') ||
+    String(params.paymentMethod || '').includes('محفظة') ||
+    String(params.treasury || '').includes('بنك') ||
+    String(params.treasury || '').includes('مصرف') ||
+    String(params.treasury || '').includes('تحويل') ||
+    String(params.treasury || '').includes('محفظة');
+
+  const cashOrBankCode = isBankOrWallet ? '1102' : '1101';
+  const cashOrBankName = isBankOrWallet ? 'البنك / الحسابات البنكية والمحافظ' : 'الصندوق / النقدية';
 
   const vNum = params.voucherNumber || `EXP-${Date.now().toString().slice(-6)}`;
   const dateStr = (params.date || new Date().toISOString()).split('T')[0];
@@ -1610,24 +1641,73 @@ export function postExpenseAtomic(params: ExpenseParams) {
     created_by: params.created_by,
   });
 
+  const costCenter = params.costCenter || params.cost_center || 'المحل / المعرض الرئيسي';
+  const treasury = params.treasury || (isBankOrWallet ? 'الحساب البنكي - بنك التضامن' : 'الصندوق النقدي الرئيسي');
+  const currency = params.currency || 'YER';
+  const referenceNumber = params.referenceNumber || params.reference_number || params.referenceNo || '';
+  const notes = params.notes || '';
+
   const newExp = {
     id: `EXP-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     company_id: cid,
     expense_number: vNum,
     voucher_number: vNum,
+    voucherNumber: vNum,
     category: params.category || 'مصروفات إدارية وعمومية',
-    description,
-    amount: roundAmt,
-    payment_method: params.paymentMethod || 'CASH',
+    costCenter,
+    cost_center: costCenter,
     beneficiary: params.beneficiary || '',
+    amount: roundAmt,
+    currency,
+    payment_method: params.paymentMethod || (isBankOrWallet ? 'تحويل بنكي / محفظة' : 'نقداً'),
+    paymentMethod: params.paymentMethod || (isBankOrWallet ? 'تحويل بنكي / محفظة' : 'نقداً'),
+    treasury,
+    referenceNumber,
+    reference_number: referenceNumber,
+    description,
+    notes,
     date: dateStr,
     status: 'PAID',
     created_at: new Date().toISOString(),
   };
   mockExpensesList.unshift(newExp as any);
 
+  // Push corresponding PAYMENT voucher into mockPaymentsList
+  const newPmt = {
+    id: `PMT-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    company_id: cid,
+    payment_number: vNum,
+    voucher_number: vNum,
+    voucherNumber: vNum,
+    amount: roundAmt,
+    type: 'EXPENSE_PAYMENT',
+    voucher_type: 'PAYMENT',
+    payment_type: 'OUT',
+    party_type: 'OTHER',
+    party_id: newExp.id,
+    party_name: params.beneficiary || newExp.category,
+    beneficiary: params.beneficiary || '',
+    payment_method: isBankOrWallet ? 'BANK' : 'CASH',
+    paymentMethod: isBankOrWallet ? 'BANK' : 'CASH',
+    treasury,
+    costCenter,
+    cost_center: costCenter,
+    currency,
+    reference_id: vNum,
+    reference_type: 'EXPENSE',
+    reference_number: referenceNumber || vNum,
+    referenceNumber: referenceNumber || vNum,
+    date: dateStr,
+    payment_date: dateStr,
+    description: `سند صرف لمصروف: ${description}${params.beneficiary ? ` (${params.beneficiary})` : ''}`,
+    notes,
+    status: 'CONFIRMED',
+    created_at: new Date().toISOString(),
+  };
+  mockPaymentsList.unshift(newPmt as any);
+
   persistAllToDisk();
-  return { voucherNumber: vNum, amount: roundAmt, journal, expense: newExp, data: newExp };
+  return { voucherNumber: vNum, amount: roundAmt, journal, expense: newExp, payment: newPmt, data: newExp };
 }
 
 // ============================================================================
