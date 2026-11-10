@@ -110,26 +110,30 @@ export const ReceivablesPayablesHub: React.FC<ReceivablesPayablesHubProps> = ({
 
   const safeCustomers =
     Array.isArray(customersList) && customersList.length > 0
-      ? customersList.slice(0, 5).map((c, i) => ({
-          id: c.id || `c-${i}`,
-          name: c.name || c.full_name || 'عميل تجاري',
-          phone: c.phone || '0500000000',
-          balance: Number(c.balance || c.current_balance || 0),
-          overdue: Boolean(c.is_overdue || i % 2 === 0),
-          limit: Number(c.credit_limit || 20000),
-        }))
+      ? [...customersList]
+          .sort((a, b) => Number(b.current_balance ?? b.balance ?? 0) - Number(a.current_balance ?? a.balance ?? 0))
+          .map((c, i) => ({
+            id: c.id || `c-${i}`,
+            name: c.name || c.full_name || 'عميل تجاري',
+            phone: c.phone || '0500000000',
+            balance: Number(c.balance || c.current_balance || 0),
+            overdue: Boolean(c.is_overdue || i % 2 === 0),
+            limit: Number(c.credit_limit || 20000),
+          }))
       : (isClean ? [] : fallbackCustomers);
 
   const safeSuppliers =
     Array.isArray(suppliersList) && suppliersList.length > 0
-      ? suppliersList.slice(0, 5).map((s, i) => ({
-          id: s.id || `s-${i}`,
-          name: s.name || 'مورد رئيسي',
-          phone: s.phone || '0500000000',
-          balance: Number(s.balance || s.current_balance || 0),
-          dueDays: (i + 1) * 4,
-          category: s.category || 'توريدات عامة',
-        }))
+      ? [...suppliersList]
+          .sort((a, b) => Number(b.current_balance ?? b.balance ?? 0) - Number(a.current_balance ?? a.balance ?? 0))
+          .map((s, i) => ({
+            id: s.id || `s-${i}`,
+            name: s.name || 'مورد رئيسي',
+            phone: s.phone || '0500000000',
+            balance: Number(s.balance || s.current_balance || 0),
+            dueDays: (i + 1) * 4,
+            category: s.category || 'توريدات عامة',
+          }))
       : (isClean ? [] : fallbackSuppliers);
 
   const handleSendWhatsapp = (name: string) => {
@@ -224,7 +228,7 @@ export const ReceivablesPayablesHub: React.FC<ReceivablesPayablesHubProps> = ({
       </div>
 
       {/* Entity Rows */}
-      <div className="space-y-2.5 flex-1">
+      <div className="space-y-2.5 flex-1 max-h-[420px] overflow-y-auto pr-1">
         {activeTab === 'customers' &&
           (safeCustomers.length === 0 ? (
             <div className="py-8 text-center text-xs text-slate-500 bg-slate-950/40 rounded-2xl border border-slate-800/80">

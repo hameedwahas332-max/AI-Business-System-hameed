@@ -94,6 +94,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
         purchaseInvoicesRes,
         paymentsRes,
         auditLogsRes,
+        comprehensiveRes,
       ] = await Promise.all([
         api.getFinancialHealth ? api.getFinancialHealth().catch(() => ({ data: null })) : Promise.resolve({ data: null }),
         api.getPaymentStats ? api.getPaymentStats().catch(() => ({ data: null })) : Promise.resolve({ data: null }),
@@ -104,6 +105,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
         api.getPurchaseInvoices ? api.getPurchaseInvoices().catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
         api.getPayments ? api.getPayments().catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
         api.getAuditLogs ? api.getAuditLogs({ limit: 10 }).catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+        (api as any).getComprehensiveReport ? (api as any).getComprehensiveReport().catch(() => null) : Promise.resolve(null),
       ]);
 
       const safeCust = extractArray(customersRes);
@@ -114,8 +116,15 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
       const safePmts = extractArray(paymentsRes);
       const safeLogs = extractArray(auditLogsRes);
 
-      setCustomersList(safeCust);
-      setSuppliersList(safeSupp);
+      const sortedCust = [...safeCust].sort(
+        (a: any, b: any) => Number(b.current_balance ?? b.balance ?? 0) - Number(a.current_balance ?? a.balance ?? 0)
+      );
+      const sortedSupp = [...safeSupp].sort(
+        (a: any, b: any) => Number(b.current_balance ?? b.balance ?? 0) - Number(a.current_balance ?? a.balance ?? 0)
+      );
+
+      setCustomersList(sortedCust);
+      setSuppliersList(sortedSupp);
       setProductsList(safeProd);
       setInvoicesList(safeInv);
       setPurchaseInvoicesList(safePurch);
@@ -132,7 +141,26 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
         0
       );
 
-      const realCash = safePmts.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+      const unifiedMetrics = (comprehensiveRes as any)?.data || comprehensiveRes || statsRes?.data;
+      let realCash = 0;
+      const unifiedCash = Number((unifiedMetrics?.cashBalance ?? 0) + (unifiedMetrics?.bankBalance ?? 0)) || Number(unifiedMetrics?.cashAndBankBalance ?? 0);
+
+      if (unifiedCash > 0 || (unifiedMetrics && (unifiedMetrics.cashBalance !== undefined || unifiedMetrics.bankBalance !== undefined))) {
+        realCash = unifiedCash;
+      } else {
+        let receipts = 0;
+        let disbursements = 0;
+        for (const p of safePmts) {
+          const amt = Number(p.amount || 0);
+          const type = String(p.voucher_type || p.type || p.payment_type || '').toUpperCase();
+          if (type.includes('PAY') || type.includes('EXPENSE') || type.includes('DEBT_PAY') || type.includes('SUPPLIER') || type === 'OUT') {
+            disbursements += amt;
+          } else {
+            receipts += amt;
+          }
+        }
+        realCash = Math.max(0, receipts - disbursements);
+      }
 
       const dynamicStats = {
         ...(statsRes?.data || {}),
@@ -143,7 +171,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
         balances: {
           totalReceivables: computedReceivables,
           totalPayables: computedPayables,
-          cashAndBankBalance: isClean ? realCash : (statsRes?.data?.cashAndBankBalance ?? (computedTotalSales > 0 ? computedTotalSales : realCash)),
+          cashAndBankBalance: isClean && safeInv.length === 0 && safePmts.length === 0 ? 0 : realCash,
           inventoryValue: computedInventoryValue,
           overdueReceivables: computedReceivables > 0 ? Math.round(computedReceivables * 0.2) : 0,
           dueThisWeekPayables: computedPayables > 0 ? Math.round(computedPayables * 0.3) : 0,
@@ -157,12 +185,15 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
 
       let backendDashboard: any = null;
       try {
-        const dRes = await fetch('/api/v1/dashboard', {
-          headers: {
-            'Content-Type': 'application/json',
-            'x-company-id': localStorage.getItem('erp_company_id') || 'comp_001',
-          },
-        });
+        const token = api.getToken ? api.getToken() : (typeof localStorage !== 'undefined' ? localStorage.getItem('erp_token') : null);
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          'x-company-id': (typeof localStorage !== 'undefined' ? localStorage.getItem('erp_company_id') : null) || 'comp_001',
+        };
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        const dRes = await fetch('/api/v1/dashboard', { headers });
         if (dRes.ok) {
           const dJson = await dRes.json();
           backendDashboard = dJson?.data;
@@ -177,6 +208,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
         ? String(backendDashboard.marginPercentage)
         : (dynamicStats.totalSales > 0 ? ((netProfit / dynamicStats.totalSales) * 100).toFixed(1) : '0.0');
 
+      setStats(dynamicStats);
+
       setKpis({
         revenue: backendDashboard?.salesTotal !== undefined ? Number(backendDashboard.salesTotal) : dynamicStats.totalSales,
         netProfit: netProfit,
@@ -184,8 +217,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
       });
 
       setTopData({
-        topCustomers: safeCust.slice(0, 5),
-        topSuppliers: safeSupp.slice(0, 5),
+        topCustomers: sortedCust,
+        topSuppliers: sortedSupp,
         topProducts: safeProd.slice(0, 5),
       });
 
