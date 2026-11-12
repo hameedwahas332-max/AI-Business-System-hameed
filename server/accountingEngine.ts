@@ -2030,7 +2030,8 @@ export function computeUnifiedFinancialMetrics(
   const glBank = roundMoney(accMap.get('1102')?.balance || 0);
   const glWallet = roundMoney(accMap.get('1107')?.balance || 0);
 
-  const initialBankBuffer = 500000;
+  const hasAnyBankActivity = bankSalesCollected > 0 || bankReceipts > 0 || bankDisbursements > 0;
+  const initialBankBuffer = (!isClean && hasAnyBankActivity) ? 500000 : 0;
   const netCashFlow = cashSalesCollected + cashReceipts - cashDisbursements;
   const netBankFlow = bankSalesCollected + bankReceipts - bankDisbursements;
   const netWalletFlow = walletSalesCollected + walletReceipts - walletDisbursements;
@@ -2047,7 +2048,7 @@ export function computeUnifiedFinancialMetrics(
   let bankBalance = roundMoney(
     glBank > 0
       ? glBank
-      : Math.max(0, netBankFlow > 0 ? netBankFlow : (initialBankBuffer + netBankFlow > 0 ? initialBankBuffer + netBankFlow : (bankSalesCollected + bankReceipts)))
+      : Math.max(0, netBankFlow > 0 ? netBankFlow : (initialBankBuffer > 0 ? Math.max(0, initialBankBuffer + netBankFlow) : 0))
   );
   if (bankBalance === 0 && (bankSalesCollected > 0 || bankReceipts > 0) && !isClean) {
     bankBalance = roundMoney(bankSalesCollected + bankReceipts);
@@ -2058,6 +2059,18 @@ export function computeUnifiedFinancialMetrics(
       ? glWallet
       : Math.max(0, netWalletFlow > 0 ? netWalletFlow : (walletSalesCollected + walletReceipts))
   );
+
+  const tenantStore = getTenantCollections(cid);
+  const hasRecordedTransactions =
+    (tenantStore.invoices && tenantStore.invoices.length > 0) ||
+    (tenantStore.payments && tenantStore.payments.length > 0) ||
+    (tenantStore.purchaseInvoices && tenantStore.purchaseInvoices.length > 0);
+
+  if (isClean && !hasRecordedTransactions) {
+    cashBalance = 0;
+    bankBalance = 0;
+    walletBalance = 0;
+  }
 
   const totalCashAndBank = roundMoney(cashBalance + bankBalance + walletBalance);
   const cashAndBankBalance = totalCashAndBank;

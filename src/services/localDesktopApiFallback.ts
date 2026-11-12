@@ -380,8 +380,8 @@ export function validateLocalBalancedJournalLines(lines: Array<{ debit?: number;
  * Standard Chart of Accounts
  */
 export const LOCAL_STANDARD_CHART_OF_ACCOUNTS = [
-  { code: '1101', name: 'الخزينة الرئيسية (النقدية)', type: 'ASSET', category: 'CURRENT_ASSET', normal_balance: 'DEBIT', balance: 314000 },
-  { code: '1102', name: 'البنك / الحسابات المصرفية', type: 'ASSET', category: 'CURRENT_ASSET', normal_balance: 'DEBIT', balance: 400000 },
+  { code: '1101', name: 'الخزينة الرئيسية (النقدية)', type: 'ASSET', category: 'CURRENT_ASSET', normal_balance: 'DEBIT', balance: 0 },
+  { code: '1102', name: 'البنك / الحسابات المصرفية', type: 'ASSET', category: 'CURRENT_ASSET', normal_balance: 'DEBIT', balance: 0 },
   { code: '1103', name: 'العملاء والمدينون التجاريون', type: 'ASSET', category: 'CURRENT_ASSET', normal_balance: 'DEBIT', balance: 0 },
   { code: '1104', name: 'مخزون البضائع', type: 'ASSET', category: 'CURRENT_ASSET', normal_balance: 'DEBIT', balance: 0 },
   { code: '1105', name: 'ضريبة القيمة المضافة المدخلة (مستردة)', type: 'ASSET', category: 'CURRENT_ASSET', normal_balance: 'DEBIT', balance: 0 },
@@ -856,7 +856,12 @@ export function computeLocalUnifiedFinancialMetrics(companyId: string) {
   const glBankBalance = Number(glBankAcc?.balance || 0);
   const glWalletBalance = Number(glWalletAcc?.balance || 0);
 
-  const initialBankBuffer = 500000;
+  const isClean =
+    typeof localStorage !== 'undefined' &&
+    (localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
+      localStorage.getItem('erp_sample_data_cleaned') === 'true');
+  const hasAnyBankActivity = bankSalesCollected > 0 || bankReceipts > 0 || bankDisbursements > 0;
+  const initialBankBuffer = (!isClean && hasAnyBankActivity) ? 500000 : 0;
   const netCashFlow = cashSalesCollected + cashReceipts - cashDisbursements;
   const netBankFlow = bankSalesCollected + bankReceipts - bankDisbursements;
   const netWalletFlow = walletSalesCollected + walletReceipts - walletDisbursements;
@@ -866,16 +871,16 @@ export function computeLocalUnifiedFinancialMetrics(companyId: string) {
       ? glCashBalance
       : Math.max(0, netCashFlow > 0 ? netCashFlow : (cashSalesCollected + cashReceipts))
   );
-  if (cashBalance === 0 && (cashSalesCollected > 0 || cashReceipts > 0)) {
+  if (cashBalance === 0 && (cashSalesCollected > 0 || cashReceipts > 0) && !isClean) {
     cashBalance = roundMoney(cashSalesCollected + cashReceipts);
   }
 
   let bankBalance = roundMoney(
     glBankBalance > 0
       ? glBankBalance
-      : Math.max(0, netBankFlow > 0 ? netBankFlow : (initialBankBuffer + netBankFlow > 0 ? initialBankBuffer + netBankFlow : (bankSalesCollected + bankReceipts)))
+      : Math.max(0, netBankFlow > 0 ? netBankFlow : (initialBankBuffer > 0 ? Math.max(0, initialBankBuffer + netBankFlow) : 0))
   );
-  if (bankBalance === 0 && (bankSalesCollected > 0 || bankReceipts > 0)) {
+  if (bankBalance === 0 && (bankSalesCollected > 0 || bankReceipts > 0) && !isClean) {
     bankBalance = roundMoney(bankSalesCollected + bankReceipts);
   }
 
@@ -884,6 +889,19 @@ export function computeLocalUnifiedFinancialMetrics(companyId: string) {
       ? glWalletBalance
       : Math.max(0, netWalletFlow > 0 ? netWalletFlow : (walletSalesCollected + walletReceipts))
   );
+
+  const hasAnyFinancialActivity =
+    invoices.length > 0 ||
+    posSales.length > 0 ||
+    purchases.length > 0 ||
+    payments.length > 0 ||
+    expenses.length > 0;
+
+  if (isClean && !hasAnyFinancialActivity) {
+    cashBalance = 0;
+    bankBalance = 0;
+    walletBalance = 0;
+  }
 
   const cashAndBankBalance = roundMoney(cashBalance + bankBalance + walletBalance);
   const treasuryBreakdown = {
@@ -1767,12 +1785,18 @@ export async function executeLocalSeedDemoData(): Promise<LocalApiResponse> {
   setLocalItem('erp_inventory_movements_v1', inventoryMovements, companyId);
   setLocalItem('erp_journal_entries_v1', journalEntries, companyId);
 
-  const seededAccounts = LOCAL_STANDARD_CHART_OF_ACCOUNTS.map((acc) => ({
-    ...acc,
-    id: `acc_${companyId}_${acc.code}`,
-    company_id: companyId,
-    created_at: now.toISOString(),
-  }));
+  const seededAccounts = LOCAL_STANDARD_CHART_OF_ACCOUNTS.map((acc) => {
+    let demoBalance = acc.balance;
+    if (acc.code === '1101') demoBalance = 314000;
+    if (acc.code === '1102') demoBalance = 400000;
+    return {
+      ...acc,
+      balance: demoBalance,
+      id: `acc_${companyId}_${acc.code}`,
+      company_id: companyId,
+      created_at: now.toISOString(),
+    };
+  });
   setLocalItem('erp_accounts_v1', seededAccounts, companyId);
 
   // Clear clean flags

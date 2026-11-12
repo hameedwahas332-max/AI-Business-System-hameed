@@ -3843,9 +3843,10 @@ enterpriseRouter.get(['/ai/cashflow-forecast', '/cashflow/forecast'], (req: Requ
   const hasTransactions = (
     tenantStore.invoices.length > 0 ||
     tenantStore.payments.length > 0 ||
+    (tenantStore.purchaseInvoices && tenantStore.purchaseInvoices.length > 0) ||
     tenantStore.customers.some((c: any) => Number(c.balance || c.current_balance || 0) > 0) ||
     tenantStore.suppliers.some((s: any) => Number(s.balance || s.current_balance || 0) > 0) ||
-    metrics.totalCashAndBank > 0 ||
+    (!isClean && metrics.totalCashAndBank > 0) ||
     metrics.accountsReceivable > 0 ||
     metrics.accountsPayable > 0
   );
@@ -3974,9 +3975,10 @@ enterpriseRouter.post(['/ai/cashflow-forecast', '/cashflow/forecast'], (req: Req
   const hasTransactions = (
     tenantStore.invoices.length > 0 ||
     tenantStore.payments.length > 0 ||
+    (tenantStore.purchaseInvoices && tenantStore.purchaseInvoices.length > 0) ||
     tenantStore.customers.some((c: any) => Number(c.balance || c.current_balance || 0) > 0) ||
     tenantStore.suppliers.some((s: any) => Number(s.balance || s.current_balance || 0) > 0) ||
-    metrics.totalCashAndBank > 0 ||
+    (!isClean && metrics.totalCashAndBank > 0) ||
     metrics.accountsReceivable > 0 ||
     metrics.accountsPayable > 0
   );
