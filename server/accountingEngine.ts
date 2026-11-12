@@ -1346,9 +1346,34 @@ export interface VoucherParams {
   partyType?: 'CUSTOMER' | 'SUPPLIER' | 'OTHER';
   partyId?: string;
   partyName?: string;
-  paymentMethod?: 'CASH' | 'BANK';
+  paymentMethod?: string;
+  currency?: string;
+  exchangeRate?: number;
+  exchange_rate?: number;
+  reference?: string;
+  notes?: string;
+  bankName?: string;
+  bank_name?: string;
+  bankAccountNumber?: string;
+  bank_account_number?: string;
+  walletProvider?: string;
+  wallet_provider?: string;
+  walletNumber?: string;
+  wallet_number?: string;
+  checkNumber?: string;
+  check_number?: string;
+  checkDueDate?: string;
+  check_due_date?: string;
+  operationNumber?: string;
+  operation_number?: string;
+  senderName?: string;
+  sender_name?: string;
+  transferFee?: number;
+  transfer_fee?: number;
+  allocations?: Array<{ invoice_id?: string; invoiceId?: string; allocated_amount?: number; amount?: number }>;
   description?: string;
   date?: string;
+  payment_date?: string;
   created_by?: string;
   referenceType?: string;
   reference_type?: string;
@@ -1369,10 +1394,28 @@ export function postVoucherAtomic(params: VoucherParams) {
   }
 
   const vNum = params.voucherNumber || `${type === 'RECEIPT' ? 'REC' : 'PAY'}-${Date.now().toString().slice(-6)}`;
-  const dateStr = (params.date || new Date().toISOString()).split('T')[0];
-  const isBank = params.paymentMethod === 'BANK';
+  const dateStr = (params.date || params.payment_date || new Date().toISOString()).split('T')[0];
+  
+  // 1. Resolve partyName automatically from mockCustomersList or mockSuppliersList if not provided
+  let resolvedPartyName = params.partyName;
+  if (!resolvedPartyName && params.partyId) {
+    if (params.partyType === 'CUSTOMER' || type === 'RECEIPT') {
+      const c = mockCustomersList.find((x) => String(x.id) === String(params.partyId));
+      if (c) resolvedPartyName = c.name;
+    } else {
+      const s = mockSuppliersList.find((x) => String(x.id) === String(params.partyId));
+      if (s) resolvedPartyName = s.name;
+    }
+  }
+
+  // 2. Preserve exact payment_method ('CASH', 'BANK', 'WALLET', 'CHECK', etc.)
+  const rawMethod = String(params.paymentMethod || 'CASH').toUpperCase();
+  const paymentMethod = ['BANK', 'WALLET', 'CHECK', 'CARD', 'TRANSFER'].includes(rawMethod)
+    ? rawMethod
+    : 'CASH';
+  const isBank = ['BANK', 'WALLET', 'CHECK', 'CARD', 'TRANSFER'].includes(paymentMethod);
   const cashOrBankCode = isBank ? '1102' : '1101';
-  const cashOrBankName = isBank ? 'البنك / الحسابات البنكية' : 'الصندوق / النقدية';
+  const cashOrBankName = isBank ? 'البنك / الحسابات المصرفية والمحافظ' : 'الصندوق / النقدية';
 
   const refType = String(params.referenceType || params.reference_type || '').toUpperCase();
   const refNo = String(params.referenceNo || params.reference_no || params.referenceId || params.reference_id || '').trim();
@@ -1421,19 +1464,32 @@ export function postVoucherAtomic(params: VoucherParams) {
       type: type === 'RECEIPT' ? 'CUSTOMER_PAYMENT' : 'SUPPLIER_PAYMENT',
       voucher_type: type,
       payment_type: type === 'RECEIPT' ? 'IN' : 'OUT',
-      customer_id: params.partyType === 'CUSTOMER' ? params.partyId : undefined,
-      customer_name: params.partyType === 'CUSTOMER' ? params.partyName : undefined,
-      supplier_id: params.partyType === 'SUPPLIER' ? params.partyId : undefined,
-      supplier_name: params.partyType === 'SUPPLIER' ? params.partyName : undefined,
+      customer_id: params.partyType === 'CUSTOMER' || type === 'RECEIPT' ? params.partyId : undefined,
+      customer_name: params.partyType === 'CUSTOMER' || type === 'RECEIPT' ? resolvedPartyName : undefined,
+      supplier_id: params.partyType === 'SUPPLIER' || type === 'PAYMENT' ? params.partyId : undefined,
+      supplier_name: params.partyType === 'SUPPLIER' || type === 'PAYMENT' ? resolvedPartyName : undefined,
       party_id: params.partyId,
-      party_name: params.partyName,
-      payment_method: params.paymentMethod || 'CASH',
+      party_name: resolvedPartyName,
+      payment_method: paymentMethod,
+      currency: params.currency || 'YER',
+      exchange_rate: Number(params.exchange_rate ?? params.exchangeRate ?? 1.0),
+      reference: params.reference || refNo || undefined,
+      reference_no: params.reference || refNo || undefined,
+      notes: params.notes || desc || undefined,
+      bank_name: params.bank_name || params.bankName || undefined,
+      bank_account_number: params.bank_account_number || params.bankAccountNumber || undefined,
+      wallet_provider: params.wallet_provider || params.walletProvider || undefined,
+      wallet_number: params.wallet_number || params.walletNumber || undefined,
+      check_number: params.check_number || params.checkNumber || undefined,
+      check_due_date: params.check_due_date || params.checkDueDate || undefined,
+      operation_number: params.operation_number || params.operationNumber || undefined,
+      sender_name: params.sender_name || params.senderName || undefined,
+      transfer_fee: Number(params.transfer_fee ?? params.transferFee ?? 0),
+      allocations: Array.isArray(params.allocations) ? params.allocations : undefined,
       reference_type: refType || (type === 'RECEIPT' ? 'SALES_INVOICE' : 'PURCHASE_INVOICE'),
       referenceType: refType || (type === 'RECEIPT' ? 'SALES_INVOICE' : 'PURCHASE_INVOICE'),
       reference_id: refNo,
       referenceId: refNo,
-      reference_no: refNo,
-      referenceNo: refNo,
       date: dateStr,
       payment_date: dateStr,
       description: desc || `سند ${type === 'RECEIPT' ? 'قبض' : 'صرف'} #${vNum}`,
@@ -1460,7 +1516,7 @@ export function postVoucherAtomic(params: VoucherParams) {
       account_name: cashOrBankName,
       debit: roundAmt,
       credit: 0,
-      description: params.description || `سند قبض رقم #${vNum} من ${params.partyName || 'العميل'}`,
+      description: params.description || `سند قبض رقم #${vNum} من ${resolvedPartyName || 'العميل'}`,
     });
     lines.push({
       account_code: '1103',
@@ -1474,7 +1530,7 @@ export function postVoucherAtomic(params: VoucherParams) {
 
     // Decrease Customer Balance
     if (params.partyId) {
-      const cust = mockCustomersList.find((c) => c.id === params.partyId);
+      const cust = mockCustomersList.find((c) => String(c.id) === String(params.partyId));
       if (cust) {
         cust.current_balance = roundMoney(Math.max(0, (cust.current_balance || 0) - roundAmt));
         cust.balance = cust.current_balance;
@@ -1487,7 +1543,7 @@ export function postVoucherAtomic(params: VoucherParams) {
       account_name: 'الموردون / الدائنون',
       debit: roundAmt,
       credit: 0,
-      description: `سداد حساب سند صرف #${vNum} للمورد ${params.partyName || ''}`,
+      description: `سداد حساب سند صرف #${vNum} للمورد ${resolvedPartyName || ''}`,
       party_id: params.partyId,
       party_type: 'SUPPLIER',
     });
@@ -1501,10 +1557,49 @@ export function postVoucherAtomic(params: VoucherParams) {
 
     // Decrease Supplier Balance
     if (params.partyId) {
-      const supp = mockSuppliersList.find((s) => s.id === params.partyId);
+      const supp = mockSuppliersList.find((s) => String(s.id) === String(params.partyId));
       if (supp) {
         supp.current_balance = roundMoney(Math.max(0, (supp.current_balance || 0) - roundAmt));
         supp.balance = supp.current_balance;
+      }
+    }
+  }
+
+  // 3. Update allocated invoices in mockInvoicesList or mockPurchaseInvoicesList
+  if (Array.isArray(params.allocations)) {
+    for (const alloc of params.allocations) {
+      const invId = alloc.invoice_id || (alloc as any).invoiceId;
+      const allocAmt = Number(alloc.allocated_amount ?? (alloc as any).amount ?? 0);
+      if (invId && allocAmt > 0) {
+        if (type === 'RECEIPT') {
+          const inv = mockInvoicesList.find(
+            (i) => String(i.id) === String(invId) || String(i.invoice_number) === String(invId) || String((i as any).invoiceNumber) === String(invId)
+          );
+          if (inv) {
+            const currentPaid = Number(inv.paid_amount || 0);
+            const total = Number(inv.total || (inv as any).total_amount || (inv as any).totalAmount || 0);
+            const newPaid = roundMoney(currentPaid + allocAmt);
+            const newRemaining = roundMoney(Math.max(0, total - newPaid));
+            inv.paid_amount = newPaid;
+            inv.remaining_amount = newRemaining;
+            (inv as any).balance_due = newRemaining;
+            inv.status = (newRemaining <= 0.01 ? 'paid' : 'partial') as any;
+          }
+        } else {
+          const pur = mockPurchaseInvoicesList.find(
+            (p) => String(p.id) === String(invId) || String(p.invoice_number) === String(invId) || String((p as any).invoiceNumber) === String(invId)
+          );
+          if (pur) {
+            const currentPaid = Number(pur.paid_amount || 0);
+            const total = Number(pur.total || (pur as any).total_amount || (pur as any).totalAmount || 0);
+            const newPaid = roundMoney(currentPaid + allocAmt);
+            const newRemaining = roundMoney(Math.max(0, total - newPaid));
+            pur.paid_amount = newPaid;
+            pur.remaining_amount = newRemaining;
+            (pur as any).balance_due = newRemaining;
+            pur.status = (newRemaining <= 0.01 ? 'PAID' : 'partial') as any;
+          }
+        }
       }
     }
   }
@@ -1523,17 +1618,35 @@ export function postVoucherAtomic(params: VoucherParams) {
     id: `PMT-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     company_id: cid,
     voucher_number: vNum,
+    voucherNumber: vNum,
+    payment_number: vNum,
+    paymentNumber: vNum,
     amount: roundAmt,
     type: type === 'RECEIPT' ? 'CUSTOMER_PAYMENT' : 'SUPPLIER_PAYMENT',
     voucher_type: type,
     payment_type: type === 'RECEIPT' ? 'IN' : 'OUT',
-    customer_id: params.partyType === 'CUSTOMER' ? params.partyId : undefined,
-    customer_name: params.partyType === 'CUSTOMER' ? params.partyName : undefined,
-    supplier_id: params.partyType === 'SUPPLIER' ? params.partyId : undefined,
-    supplier_name: params.partyType === 'SUPPLIER' ? params.partyName : undefined,
+    customer_id: params.partyType === 'CUSTOMER' || type === 'RECEIPT' ? params.partyId : undefined,
+    customer_name: params.partyType === 'CUSTOMER' || type === 'RECEIPT' ? resolvedPartyName : undefined,
+    supplier_id: params.partyType === 'SUPPLIER' || type === 'PAYMENT' ? params.partyId : undefined,
+    supplier_name: params.partyType === 'SUPPLIER' || type === 'PAYMENT' ? resolvedPartyName : undefined,
     party_id: params.partyId,
-    party_name: params.partyName,
-    payment_method: params.paymentMethod || 'CASH',
+    party_name: resolvedPartyName,
+    payment_method: paymentMethod,
+    currency: params.currency || 'YER',
+    exchange_rate: Number(params.exchange_rate ?? params.exchangeRate ?? 1.0),
+    reference: params.reference || params.reference_no || params.referenceNo || undefined,
+    reference_no: params.reference || params.reference_no || params.referenceNo || undefined,
+    notes: params.notes || params.description || undefined,
+    bank_name: params.bank_name || params.bankName || undefined,
+    bank_account_number: params.bank_account_number || params.bankAccountNumber || undefined,
+    wallet_provider: params.wallet_provider || params.walletProvider || undefined,
+    wallet_number: params.wallet_number || params.walletNumber || undefined,
+    check_number: params.check_number || params.checkNumber || undefined,
+    check_due_date: params.check_due_date || params.checkDueDate || undefined,
+    operation_number: params.operation_number || params.operationNumber || undefined,
+    sender_name: params.sender_name || params.senderName || undefined,
+    transfer_fee: Number(params.transfer_fee ?? params.transferFee ?? 0),
+    allocations: Array.isArray(params.allocations) ? params.allocations : undefined,
     date: dateStr,
     payment_date: dateStr,
     description: params.description || `سند ${type === 'RECEIPT' ? 'قبض' : 'صرف'} #${vNum}`,
@@ -2433,9 +2546,10 @@ export function reverseVoucherAtomic(
   const vNum = pmt.voucher_number || (pmt as any).payment_number || pmt.id;
   const roundAmt = roundMoney(pmt.amount || 0);
   const todayStr = new Date().toISOString().split('T')[0];
-  const isBank = (pmt as any).payment_method === 'BANK';
+  const rawMethod = String((pmt as any).payment_method || 'CASH').toUpperCase();
+  const isBank = ['BANK', 'WALLET', 'CHECK', 'CARD', 'TRANSFER'].includes(rawMethod);
   const cashOrBankCode = isBank ? '1102' : '1101';
-  const cashOrBankName = isBank ? 'البنك / الحسابات البنكية' : 'الصندوق / النقدية';
+  const cashOrBankName = isBank ? 'البنك / الحسابات المصرفية والمحافظ' : 'الصندوق / النقدية';
 
   const isReceipt = pmt.type === 'CUSTOMER_PAYMENT' || (pmt as any).voucher_type === 'RECEIPT' || (pmt as any).payment_type === 'IN';
   const lines: JournalLine[] = [];
@@ -2444,7 +2558,7 @@ export function reverseVoucherAtomic(
     // When Receipt was created: Dr Cash/Bank, Cr AR 1103 & reduced customer debt
     // On Cancel/Delete: Restore customer debt, Dr AR 1103, Cr Cash/Bank
     const custId = pmt.customer_id || (pmt as any).party_id;
-    const cust = mockCustomersList.find((c) => c.id === custId);
+    const cust = mockCustomersList.find((c) => String(c.id) === String(custId));
     if (cust) {
       cust.current_balance = roundMoney((cust.current_balance || 0) + roundAmt);
       cust.balance = cust.current_balance;
@@ -2470,7 +2584,7 @@ export function reverseVoucherAtomic(
     // When Payment was created: Dr AP 2101, Cr Cash/Bank & reduced supplier debt
     // On Cancel/Delete: Restore supplier debt, Dr Cash/Bank, Cr AP 2101
     const suppId = (pmt as any).supplier_id || (pmt as any).party_id;
-    const supp = mockSuppliersList.find((s) => s.id === suppId);
+    const supp = mockSuppliersList.find((s) => String(s.id) === String(suppId));
     if (supp) {
       supp.current_balance = roundMoney((supp.current_balance || 0) + roundAmt);
       supp.balance = supp.current_balance;
@@ -2492,6 +2606,43 @@ export function reverseVoucherAtomic(
       party_id: suppId,
       party_type: 'SUPPLIER',
     });
+  }
+
+  // Reverse allocated invoice amounts
+  if (Array.isArray((pmt as any).allocations)) {
+    for (const alloc of (pmt as any).allocations) {
+      const invId = alloc.invoice_id || (alloc as any).invoiceId;
+      const allocAmt = Number(alloc.allocated_amount ?? (alloc as any).amount ?? 0);
+      if (invId && allocAmt > 0) {
+        if (isReceipt) {
+          const inv = mockInvoicesList.find(
+            (i) => String(i.id) === String(invId) || String(i.invoice_number) === String(invId) || String((i as any).invoiceNumber) === String(invId)
+          );
+          if (inv) {
+            const newPaid = roundMoney(Math.max(0, Number(inv.paid_amount || 0) - allocAmt));
+            const total = Number(inv.total || (inv as any).total_amount || (inv as any).totalAmount || 0);
+            const newRemaining = roundMoney(Math.max(0, total - newPaid));
+            inv.paid_amount = newPaid;
+            inv.remaining_amount = newRemaining;
+            (inv as any).balance_due = newRemaining;
+            inv.status = (newPaid <= 0.01 ? 'PENDING' : 'partial') as any;
+          }
+        } else {
+          const pur = mockPurchaseInvoicesList.find(
+            (p) => String(p.id) === String(invId) || String(p.invoice_number) === String(invId) || String((p as any).invoiceNumber) === String(invId)
+          );
+          if (pur) {
+            const newPaid = roundMoney(Math.max(0, Number(pur.paid_amount || 0) - allocAmt));
+            const total = Number(pur.total || (pur as any).total_amount || (pur as any).totalAmount || 0);
+            const newRemaining = roundMoney(Math.max(0, total - newPaid));
+            pur.paid_amount = newPaid;
+            pur.remaining_amount = newRemaining;
+            (pur as any).balance_due = newRemaining;
+            pur.status = (newPaid <= 0.01 ? 'PENDING' : 'partial') as any;
+          }
+        }
+      }
+    }
   }
 
   if (lines.length > 0 && roundAmt > 0) {

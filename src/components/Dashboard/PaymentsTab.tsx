@@ -130,8 +130,8 @@ export const PaymentsTab: React.FC = () => {
         api.getPaymentStats(),
         api.getCustomers(),
         api.getSuppliers(),
-        api.getInvoices({ status: 'PENDING' }),
-        api.getPurchaseInvoices({ status: 'PENDING' }),
+        api.getInvoices(),
+        api.getPurchaseInvoices(),
       ]);
 
       let loadedPayments = Array.isArray(payRes) ? payRes : (payRes?.data || payRes?.items || []);
@@ -202,11 +202,19 @@ export const PaymentsTab: React.FC = () => {
   const partyInvoices = useMemo(() => {
     if (!selectedEntityId) return [];
     if (paymentType === 'CUSTOMER_PAYMENT') {
-      return invoices.filter((inv) => inv.customer_id === selectedEntityId && Number(inv.balance_due || inv.remaining_amount || (Number(inv.total_amount || 0) - Number(inv.paid_amount || 0))) > 0);
+      return invoices.filter((inv) => {
+        const matchesParty = inv.customer_id === selectedEntityId || (selectedParty && inv.customer_name === selectedParty.name);
+        const due = Number(inv.remaining_amount ?? inv.balance_due ?? (Number(inv.total ?? inv.total_amount ?? 0) - Number(inv.paid_amount ?? 0)));
+        return matchesParty && due > 0;
+      });
     } else {
-      return purchaseInvoices.filter((inv) => inv.supplier_id === selectedEntityId && Number(inv.balance_due || inv.remaining_amount || (Number(inv.total_amount || 0) - Number(inv.paid_amount || 0))) > 0);
+      return purchaseInvoices.filter((inv) => {
+        const matchesParty = inv.supplier_id === selectedEntityId || (selectedParty && (inv.supplier_name === selectedParty.name || inv.supplier === selectedParty.name));
+        const due = Number(inv.remaining_amount ?? inv.balance_due ?? (Number(inv.total ?? inv.total_amount ?? 0) - Number(inv.paid_amount ?? 0)));
+        return matchesParty && due > 0;
+      });
     }
-  }, [paymentType, selectedEntityId, invoices, purchaseInvoices]);
+  }, [paymentType, selectedEntityId, selectedParty, invoices, purchaseInvoices]);
 
   const handleOpenCreateModal = (type: 'CUSTOMER_PAYMENT' | 'SUPPLIER_PAYMENT') => {
     setPaymentType(type);
@@ -298,7 +306,10 @@ export const PaymentsTab: React.FC = () => {
     const payload = {
       type: paymentType,
       customer_id: paymentType === 'CUSTOMER_PAYMENT' ? selectedEntityId : undefined,
+      customer_name: paymentType === 'CUSTOMER_PAYMENT' ? selectedParty?.name : undefined,
       supplier_id: paymentType === 'SUPPLIER_PAYMENT' ? selectedEntityId : undefined,
+      supplier_name: paymentType === 'SUPPLIER_PAYMENT' ? selectedParty?.name : undefined,
+      party_name: selectedParty?.name,
       amount: parsedAmount,
       currency: currency || 'YER',
       exchange_rate: Number(exchangeRate) || 1.0,
@@ -429,10 +440,44 @@ export const PaymentsTab: React.FC = () => {
   // Filtered payments list
   const filteredPayments = useMemo(() => {
     return payments.filter((p) => {
+      // 1. activeTab filter
+      if (activeTab === 'CUSTOMER_PAYMENT') {
+        const isReceipt = p.type === 'CUSTOMER_PAYMENT' || p.voucher_type === 'RECEIPT' || p.payment_type === 'IN';
+        if (!isReceipt) return false;
+      } else if (activeTab === 'SUPPLIER_PAYMENT') {
+        const isPayment = p.type === 'SUPPLIER_PAYMENT' || p.voucher_type === 'PAYMENT' || p.payment_type === 'OUT';
+        if (!isPayment) return false;
+      }
+
+      // 2. statusFilter
+      if (statusFilter && (p.status || 'CONFIRMED') !== statusFilter) {
+        return false;
+      }
+
+      // 3. methodFilter
+      if (methodFilter && !String(p.payment_method || 'CASH').toUpperCase().includes(methodFilter)) {
+        return false;
+      }
+
+      // 4. currencyFilter
+      if (currencyFilter && (p.currency || 'YER') !== currencyFilter) {
+        return false;
+      }
+
+      // 5. Date filters
+      const pDate = String(p.payment_date || p.date || '').split('T')[0];
+      if (startDate && pDate && pDate < startDate) {
+        return false;
+      }
+      if (endDate && pDate && pDate > endDate) {
+        return false;
+      }
+
+      // 6. Search query
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         const vNum = (p.voucher_number || '').toLowerCase();
-        const name = (p.customer_name || p.supplier_name || '').toLowerCase();
+        const name = (p.customer_name || p.supplier_name || p.party_name || '').toLowerCase();
         const ref = (p.reference || '').toLowerCase();
         const op = (p.operation_number || '').toLowerCase();
         const notes = (p.notes || '').toLowerCase();
@@ -442,17 +487,17 @@ export const PaymentsTab: React.FC = () => {
       }
       return true;
     });
-  }, [payments, searchQuery]);
+  }, [payments, activeTab, statusFilter, methodFilter, currencyFilter, startDate, endDate, searchQuery]);
 
   const totalReceipts = useMemo(() => {
     return filteredPayments
-      .filter((p) => p.type === 'CUSTOMER_PAYMENT' && p.status !== 'CANCELLED')
+      .filter((p) => (p.type === 'CUSTOMER_PAYMENT' || p.voucher_type === 'RECEIPT' || p.payment_type === 'IN') && p.status !== 'CANCELLED')
       .reduce((sum, p) => sum + Number(p.amount || 0), 0);
   }, [filteredPayments]);
 
   const totalDisbursements = useMemo(() => {
     return filteredPayments
-      .filter((p) => p.type === 'SUPPLIER_PAYMENT' && p.status !== 'CANCELLED')
+      .filter((p) => (p.type === 'SUPPLIER_PAYMENT' || p.voucher_type === 'PAYMENT' || p.payment_type === 'OUT') && p.status !== 'CANCELLED')
       .reduce((sum, p) => sum + Number(p.amount || 0), 0);
   }, [filteredPayments]);
 

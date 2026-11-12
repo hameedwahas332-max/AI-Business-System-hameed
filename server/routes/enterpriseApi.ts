@@ -1722,20 +1722,39 @@ enterpriseRouter.get('/payments/stats', (req: Request, res: Response) => {
     (p) => (!p.company_id || p.company_id === companyId) && p.status !== 'CANCELLED'
   );
 
+  const todayStr = new Date().toISOString().split('T')[0];
+  const monthPrefix = todayStr.slice(0, 7);
+
   let totalCollected = 0;
   let totalDisbursed = 0;
+  let todayReceipts = 0;
+  let todayDisbursements = 0;
+  let monthReceipts = 0;
+  let monthDisbursements = 0;
   let cashCount = 0;
   let bankTransferCount = 0;
 
   for (const p of payments) {
     const amt = Number(p.amount || 0);
-    const type = String(p.voucher_type || p.type || p.payment_type || '').toUpperCase();
-    const isDisbursement = type.includes('PAY') || type.includes('EXPENSE') || type.includes('DEBT_PAY') || type.includes('SUPPLIER');
+    const isReceipt = p.type === 'CUSTOMER_PAYMENT' || p.voucher_type === 'RECEIPT' || p.payment_type === 'IN';
+    const pDate = String(p.payment_date || p.date || '').split('T')[0];
 
-    if (isDisbursement) {
-      totalDisbursed += amt;
-    } else {
+    if (isReceipt) {
       totalCollected += amt;
+      if (pDate === todayStr) {
+        todayReceipts += amt;
+      }
+      if (pDate.startsWith(monthPrefix)) {
+        monthReceipts += amt;
+      }
+    } else {
+      totalDisbursed += amt;
+      if (pDate === todayStr) {
+        todayDisbursements += amt;
+      }
+      if (pDate.startsWith(monthPrefix)) {
+        monthDisbursements += amt;
+      }
     }
 
     const method = String(p.payment_method || '').toUpperCase();
@@ -1748,14 +1767,30 @@ enterpriseRouter.get('/payments/stats', (req: Request, res: Response) => {
 
   totalCollected = roundMoney(totalCollected);
   totalDisbursed = roundMoney(totalDisbursed);
+  todayReceipts = roundMoney(todayReceipts);
+  todayDisbursements = roundMoney(todayDisbursements);
+  monthReceipts = roundMoney(monthReceipts);
+  monthDisbursements = roundMoney(monthDisbursements);
   const netCashflow = roundMoney(totalCollected - totalDisbursed);
 
   res.json({
     success: true,
     data: {
+      today: {
+        receipts: todayReceipts,
+        payments: todayDisbursements,
+        net: roundMoney(todayReceipts - todayDisbursements),
+      },
+      month: {
+        receipts: monthReceipts,
+        payments: monthDisbursements,
+        net: roundMoney(monthReceipts - monthDisbursements),
+      },
       totalCollected,
       totalDisbursed,
       netCashflow,
+      todayReceipts,
+      todayDisbursements,
       cashCount,
       bankTransferCount,
       totalPayments: payments.length,

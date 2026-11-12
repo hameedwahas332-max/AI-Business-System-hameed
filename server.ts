@@ -1649,9 +1649,24 @@ app.post(['/api/v1/payments', '/api/payments'], (req: Request, res: Response) =>
       partyType,
       partyId,
       partyName,
-      paymentMethod: (pmt.payment_method === 'BANK' || pmt.paymentMethod === 'BANK') ? 'BANK' : 'CASH',
+      paymentMethod: pmt.payment_method || pmt.paymentMethod || 'CASH',
+      currency: pmt.currency || 'YER',
+      exchange_rate: Number(pmt.exchange_rate ?? pmt.exchangeRate ?? 1.0),
+      reference: pmt.reference || pmt.reference_no || pmt.referenceNo,
+      notes: pmt.notes || pmt.description,
+      bank_name: pmt.bank_name || pmt.bankName,
+      bank_account_number: pmt.bank_account_number || pmt.bankAccountNumber,
+      wallet_provider: pmt.wallet_provider || pmt.walletProvider,
+      wallet_number: pmt.wallet_number || pmt.walletNumber,
+      check_number: pmt.check_number || pmt.checkNumber,
+      check_due_date: pmt.check_due_date || pmt.checkDueDate,
+      operation_number: pmt.operation_number || pmt.operationNumber,
+      sender_name: pmt.sender_name || pmt.senderName,
+      transfer_fee: Number(pmt.transfer_fee ?? pmt.transferFee ?? 0),
+      allocations: Array.isArray(pmt.allocations) ? pmt.allocations : undefined,
       description: pmt.description || pmt.notes || `سند ${type === 'RECEIPT' ? 'قبض' : 'صرف'}`,
       date: pmt.payment_date || pmt.date,
+      payment_date: pmt.payment_date || pmt.date,
       created_by: pmt.created_by_name || pmt.createdBy || 'حميد وهاس',
       referenceType: pmt.reference_type || pmt.referenceType,
       reference_type: pmt.reference_type || pmt.referenceType,
@@ -1897,15 +1912,70 @@ app.get('/api/v1/financial-health', (_req: Request, res: Response) => {
   });
 });
 
-app.get('/api/v1/payment-stats', (_req: Request, res: Response) => {
-  const customerPayments = mockPaymentsList.filter((p) => p.type === 'CUSTOMER_PAYMENT');
-  const supplierPayments = mockPaymentsList.filter((p) => p.type === 'SUPPLIER_PAYMENT');
-  const todayReceipts = customerPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
-  const todayDisbursements = supplierPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
+app.get(['/api/v1/payment-stats', '/api/payment-stats'], (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const payments = mockPaymentsList.filter(
+    (p) => (!p.company_id || p.company_id === companyId) && p.status !== 'CANCELLED'
+  );
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const monthPrefix = todayStr.slice(0, 7);
+
+  let totalCollected = 0;
+  let totalDisbursed = 0;
+  let todayReceipts = 0;
+  let todayDisbursements = 0;
+  let monthReceipts = 0;
+  let monthDisbursements = 0;
+
+  for (const p of payments) {
+    const amt = Number(p.amount || 0);
+    const isReceipt = p.type === 'CUSTOMER_PAYMENT' || p.voucher_type === 'RECEIPT' || p.payment_type === 'IN';
+    const pDate = String(p.payment_date || p.date || '').split('T')[0];
+
+    if (isReceipt) {
+      totalCollected += amt;
+      if (pDate === todayStr) {
+        todayReceipts += amt;
+      }
+      if (pDate.startsWith(monthPrefix)) {
+        monthReceipts += amt;
+      }
+    } else {
+      totalDisbursed += amt;
+      if (pDate === todayStr) {
+        todayDisbursements += amt;
+      }
+      if (pDate.startsWith(monthPrefix)) {
+        monthDisbursements += amt;
+      }
+    }
+  }
+
+  totalCollected = roundMoney(totalCollected);
+  totalDisbursed = roundMoney(totalDisbursed);
+  todayReceipts = roundMoney(todayReceipts);
+  todayDisbursements = roundMoney(todayDisbursements);
+  monthReceipts = roundMoney(monthReceipts);
+  monthDisbursements = roundMoney(monthDisbursements);
+  const netCashflow = roundMoney(totalCollected - totalDisbursed);
 
   res.json({
     success: true,
     data: {
+      today: {
+        receipts: todayReceipts,
+        payments: todayDisbursements,
+        net: roundMoney(todayReceipts - todayDisbursements),
+      },
+      month: {
+        receipts: monthReceipts,
+        payments: monthDisbursements,
+        net: roundMoney(monthReceipts - monthDisbursements),
+      },
+      totalCollected,
+      totalDisbursed,
+      netCashflow,
       todayReceipts,
       todayDisbursements,
       todayExpenses: 0,

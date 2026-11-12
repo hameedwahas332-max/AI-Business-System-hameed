@@ -2372,8 +2372,7 @@ async function internalHandleLocalDesktopApiFallback(
     cleanUrl.includes('/reports/overview') ||
     cleanUrl.includes('/business/dashboard') ||
     cleanUrl.endsWith('/dashboard') ||
-    cleanUrl.includes('/financial-health') ||
-    cleanUrl.includes('/payment-stats')
+    cleanUrl.includes('/financial-health')
   ) {
     const metrics = computeLocalUnifiedFinancialMetrics(companyId);
     const tb = {
@@ -4121,6 +4120,271 @@ async function internalHandleLocalDesktopApiFallback(
     };
   }
 
+  // 13.7. Payments Stats Handler for Windows Desktop / Offline Mode
+  if (cleanUrl.includes('/payments/stats') || cleanUrl.includes('/payment-stats')) {
+    const payments = getLocalItem<any[]>('erp_payments_v1', [], companyId).filter(
+      (p) => (!p.company_id || p.company_id === companyId) && p.status !== 'CANCELLED'
+    );
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const monthPrefix = todayStr.slice(0, 7);
+
+    let totalCollected = 0;
+    let totalDisbursed = 0;
+    let todayReceipts = 0;
+    let todayDisbursements = 0;
+    let monthReceipts = 0;
+    let monthDisbursements = 0;
+    let cashCount = 0;
+    let bankTransferCount = 0;
+
+    for (const p of payments) {
+      const amt = Number(p.amount || 0);
+      const isReceipt = p.type === 'CUSTOMER_PAYMENT' || p.voucher_type === 'RECEIPT' || p.payment_type === 'IN';
+      const pDate = String(p.payment_date || p.date || '').split('T')[0];
+
+      if (isReceipt) {
+        totalCollected += amt;
+        if (pDate === todayStr) {
+          todayReceipts += amt;
+        }
+        if (pDate.startsWith(monthPrefix)) {
+          monthReceipts += amt;
+        }
+      } else {
+        totalDisbursed += amt;
+        if (pDate === todayStr) {
+          todayDisbursements += amt;
+        }
+        if (pDate.startsWith(monthPrefix)) {
+          monthDisbursements += amt;
+        }
+      }
+
+      const method = String(p.payment_method || '').toUpperCase();
+      if (['CASH', 'نقدي'].includes(method)) {
+        cashCount++;
+      } else {
+        bankTransferCount++;
+      }
+    }
+
+    totalCollected = roundMoney(totalCollected);
+    totalDisbursed = roundMoney(totalDisbursed);
+    todayReceipts = roundMoney(todayReceipts);
+    todayDisbursements = roundMoney(todayDisbursements);
+    monthReceipts = roundMoney(monthReceipts);
+    monthDisbursements = roundMoney(monthDisbursements);
+    const netCashflow = roundMoney(totalCollected - totalDisbursed);
+
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: {
+        today: {
+          receipts: todayReceipts,
+          payments: todayDisbursements,
+          net: roundMoney(todayReceipts - todayDisbursements),
+        },
+        month: {
+          receipts: monthReceipts,
+          payments: monthDisbursements,
+          net: roundMoney(monthReceipts - monthDisbursements),
+        },
+        totalCollected,
+        totalDisbursed,
+        netCashflow,
+        todayReceipts,
+        todayDisbursements,
+        cashCount,
+        bankTransferCount,
+        totalPayments: payments.length,
+      },
+    };
+  }
+
+  // 13.8. Payments Cancel Handler for Windows Desktop / Offline Mode
+  if (method === 'POST' && cleanUrl.includes('/payments/') && cleanUrl.endsWith('/cancel')) {
+    const parts = cleanUrl.split('/').filter(Boolean);
+    const cancelIdx = parts.findIndex((p) => p === 'cancel');
+    const paymentId = cancelIdx > 0 ? parts[cancelIdx - 1] : '';
+
+    const payments = getLocalItem<any[]>('erp_payments_v1', [], companyId);
+    const pmtIdx = payments.findIndex(
+      (p) => String(p.id) === String(paymentId) || String(p.voucher_number) === String(paymentId) || String(p.voucherNumber) === String(paymentId)
+    );
+
+    if (pmtIdx === -1) {
+      return {
+        ok: false,
+        success: false,
+        status: 404,
+        data: null,
+        message: 'سند القبض/الصرف غير موجود',
+      };
+    }
+
+    const pmt = payments[pmtIdx];
+    if (pmt.status === 'CANCELLED') {
+      return {
+        ok: false,
+        success: false,
+        status: 400,
+        data: null,
+        message: 'السند ملغى مسبقاً',
+      };
+    }
+
+    const roundAmt = roundMoney(Number(pmt.amount || 0));
+    const todayStr = new Date().toISOString().split('T')[0];
+    const rawMethod = String(pmt.payment_method || 'CASH').toUpperCase();
+    const isBank = ['BANK', 'WALLET', 'CHECK', 'CARD', 'TRANSFER'].includes(rawMethod);
+    const cashOrBankCode = isBank ? '1102' : '1101';
+    const cashOrBankName = isBank ? 'البنك / الحسابات المصرفية والمحافظ' : 'الصندوق / النقدية';
+    const isReceipt = pmt.type === 'CUSTOMER_PAYMENT' || pmt.voucher_type === 'RECEIPT' || pmt.payment_type === 'IN';
+    const vNum = pmt.voucher_number || pmt.voucherNumber || pmt.id;
+
+    // 1. Restore Customer or Supplier Balance
+    if (isReceipt) {
+      const custId = pmt.customer_id || pmt.customerId || pmt.party_id || pmt.partyId;
+      const customers = getLocalItem<any[]>('erp_customers_v1', [], companyId);
+      const cIdx = customers.findIndex((c) => String(c.id) === String(custId));
+      if (cIdx !== -1) {
+        customers[cIdx].current_balance = roundMoney((customers[cIdx].current_balance || customers[cIdx].balance || 0) + roundAmt);
+        customers[cIdx].balance = customers[cIdx].current_balance;
+        setLocalItem('erp_customers_v1', customers, companyId);
+      }
+    } else {
+      const suppId = pmt.supplier_id || pmt.supplierId || pmt.party_id || pmt.partyId;
+      const suppliers = getLocalItem<any[]>('erp_suppliers_v1', [], companyId);
+      const sIdx = suppliers.findIndex((s) => String(s.id) === String(suppId));
+      if (sIdx !== -1) {
+        suppliers[sIdx].current_balance = roundMoney((suppliers[sIdx].current_balance || suppliers[sIdx].balance || 0) + roundAmt);
+        suppliers[sIdx].balance = suppliers[sIdx].current_balance;
+        setLocalItem('erp_suppliers_v1', suppliers, companyId);
+      }
+    }
+
+    // 2. Reverse allocated invoice amounts
+    if (Array.isArray(pmt.allocations)) {
+      if (isReceipt) {
+        const invoices = getLocalItem<any[]>('erp_invoices_v1', [], companyId);
+        for (const alloc of pmt.allocations) {
+          const invId = alloc.invoice_id || alloc.invoiceId;
+          const allocAmt = Number(alloc.allocated_amount ?? alloc.amount ?? 0);
+          if (invId && allocAmt > 0) {
+            const invIdx = invoices.findIndex(
+              (i) => String(i.id) === String(invId) || String(i.invoice_number) === String(invId) || String(i.invoiceNumber) === String(invId)
+            );
+            if (invIdx !== -1) {
+              const currentPaid = Number(invoices[invIdx].paid_amount || 0);
+              const total = Number(invoices[invIdx].total || invoices[invIdx].total_amount || 0);
+              const newPaid = roundMoney(Math.max(0, currentPaid - allocAmt));
+              const newRemaining = roundMoney(Math.max(0, total - newPaid));
+              invoices[invIdx].paid_amount = newPaid;
+              invoices[invIdx].remaining_amount = newRemaining;
+              invoices[invIdx].balance_due = newRemaining;
+              invoices[invIdx].status = newPaid <= 0.01 ? 'PENDING' : 'partial';
+            }
+          }
+        }
+        setLocalItem('erp_invoices_v1', invoices, companyId);
+      } else {
+        const purchaseInvoices = getLocalItem<any[]>('erp_purchase_invoices_v1', [], companyId);
+        for (const alloc of pmt.allocations) {
+          const invId = alloc.invoice_id || alloc.invoiceId;
+          const allocAmt = Number(alloc.allocated_amount ?? alloc.amount ?? 0);
+          if (invId && allocAmt > 0) {
+            const purIdx = purchaseInvoices.findIndex(
+              (p) => String(p.id) === String(invId) || String(p.invoice_number) === String(invId) || String(p.invoiceNumber) === String(invId)
+            );
+            if (purIdx !== -1) {
+              const currentPaid = Number(purchaseInvoices[purIdx].paid_amount || 0);
+              const total = Number(purchaseInvoices[purIdx].total || purchaseInvoices[purIdx].total_amount || 0);
+              const newPaid = roundMoney(Math.max(0, currentPaid - allocAmt));
+              const newRemaining = roundMoney(Math.max(0, total - newPaid));
+              purchaseInvoices[purIdx].paid_amount = newPaid;
+              purchaseInvoices[purIdx].remaining_amount = newRemaining;
+              purchaseInvoices[purIdx].balance_due = newRemaining;
+              purchaseInvoices[purIdx].status = newPaid <= 0.01 ? 'PENDING' : 'partial';
+            }
+          }
+        }
+        setLocalItem('erp_purchase_invoices_v1', purchaseInvoices, companyId);
+      }
+    }
+
+    // 3. Post reversing double-entry journal
+    if (roundAmt > 0) {
+      const revLines: any[] = [];
+      if (isReceipt) {
+        revLines.push({
+          account_code: '1103',
+          account_name: 'العملاء / المدينون',
+          debit: roundAmt,
+          credit: 0,
+          description: `إعادة مديونية عميل لإلغاء سند قبض #${vNum}`,
+        });
+        revLines.push({
+          account_code: cashOrBankCode,
+          account_name: cashOrBankName,
+          debit: 0,
+          credit: roundAmt,
+          description: `صرف نقدي لإلغاء سند قبض #${vNum}`,
+        });
+      } else {
+        revLines.push({
+          account_code: cashOrBankCode,
+          account_name: cashOrBankName,
+          debit: roundAmt,
+          credit: 0,
+          description: `استرجاع نقدي لإلغاء سند صرف #${vNum}`,
+        });
+        revLines.push({
+          account_code: '2101',
+          account_name: 'الموردون / الدائنون',
+          debit: 0,
+          credit: roundAmt,
+          description: `إعادة استحقاق مورد لإلغاء سند صرف #${vNum}`,
+        });
+      }
+
+      postLocalDoubleEntryJournal({
+        company_id: companyId,
+        reference_type: isReceipt ? 'RECEIPT_CANCEL' : 'PAYMENT_CANCEL',
+        reference_id: vNum,
+        description: `قيد عكسي لإلغاء سند ${isReceipt ? 'القبض' : 'الصرف'} #${vNum}`,
+        date: todayStr,
+        lines: revLines,
+      });
+    }
+
+    // 4. Mark status CANCELLED
+    pmt.status = 'CANCELLED';
+    pmt.cancelled_at = new Date().toISOString();
+    payments[pmtIdx] = pmt;
+    setLocalItem('erp_payments_v1', payments, companyId);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('erp-payments-updated'));
+      window.dispatchEvent(new Event('erp-customers-updated'));
+      window.dispatchEvent(new Event('erp-suppliers-updated'));
+      window.dispatchEvent(new Event('erp-ledger-updated'));
+      window.dispatchEvent(new Event('erp-data-updated'));
+      window.dispatchEvent(new Event('storage'));
+    }
+
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: pmt,
+      payment: pmt,
+      message: 'تم إلغاء السند وإلغاء أثره المالي والمحاسبي بنجاح',
+    };
+  }
+
   // 14. Comprehensive Entity CRUD Router
   const ENTITY_CONFIG: Record<
     string,
@@ -5123,6 +5387,138 @@ async function internalHandleLocalDesktopApiFallback(
                 description: `صرف سلفة الموظف ${empName}`,
               },
             ],
+          });
+        }
+      }
+
+      // Generic POST: Treasury Payments & Receipt Vouchers (Parity with postVoucherAtomic)
+      if (matchedEntityKey === 'payments') {
+        const roundAmt = roundMoney(Number(sanitized.amount || 0));
+        const rawMethod = String(sanitized.payment_method || sanitized.paymentMethod || 'CASH').toUpperCase();
+        const isBank = ['BANK', 'WALLET', 'CHECK', 'CARD', 'TRANSFER'].includes(rawMethod);
+        const cashOrBankCode = isBank ? '1102' : '1101';
+        const cashOrBankName = isBank ? 'البنك / الحسابات المصرفية والمحافظ' : 'الصندوق / النقدية';
+        const isReceipt = sanitized.type === 'CUSTOMER_PAYMENT' || sanitized.voucher_type === 'RECEIPT' || sanitized.payment_type === 'IN';
+        const vNum = sanitized.voucher_number || sanitized.voucherNumber || sanitized.id;
+        const pDate = sanitized.payment_date || sanitized.date || new Date().toISOString().split('T')[0];
+
+        // 1. Update customer or supplier balance
+        if (isReceipt) {
+          const custId = sanitized.customer_id || sanitized.customerId || sanitized.party_id || sanitized.partyId;
+          const customers = getLocalItem<any[]>('erp_customers_v1', [], companyId);
+          const cIdx = customers.findIndex(
+            (c) => String(c.id) === String(custId) || (sanitized.customer_name && c.name === sanitized.customer_name)
+          );
+          if (cIdx !== -1) {
+            customers[cIdx].current_balance = roundMoney(Math.max(0, (customers[cIdx].current_balance || customers[cIdx].balance || 0) - roundAmt));
+            customers[cIdx].balance = customers[cIdx].current_balance;
+            setLocalItem('erp_customers_v1', customers, companyId);
+          }
+        } else {
+          const suppId = sanitized.supplier_id || sanitized.supplierId || sanitized.party_id || sanitized.partyId;
+          const suppliers = getLocalItem<any[]>('erp_suppliers_v1', [], companyId);
+          const sIdx = suppliers.findIndex(
+            (s) => String(s.id) === String(suppId) || (sanitized.supplier_name && s.name === sanitized.supplier_name)
+          );
+          if (sIdx !== -1) {
+            suppliers[sIdx].current_balance = roundMoney(Math.max(0, (suppliers[sIdx].current_balance || suppliers[sIdx].balance || 0) - roundAmt));
+            suppliers[sIdx].balance = suppliers[sIdx].current_balance;
+            setLocalItem('erp_suppliers_v1', suppliers, companyId);
+          }
+        }
+
+        // 2. Update allocated invoices in erp_invoices_v1 or erp_purchase_invoices_v1
+        const allocs = sanitized.allocations || bodyData.allocations;
+        if (Array.isArray(allocs)) {
+          if (isReceipt) {
+            const invoices = getLocalItem<any[]>('erp_invoices_v1', [], companyId);
+            for (const alloc of allocs) {
+              const invId = alloc.invoice_id || alloc.invoiceId;
+              const allocAmt = Number(alloc.allocated_amount ?? alloc.amount ?? 0);
+              if (invId && allocAmt > 0) {
+                const invIdx = invoices.findIndex(
+                  (i) => String(i.id) === String(invId) || String(i.invoice_number) === String(invId) || String(i.invoiceNumber) === String(invId)
+                );
+                if (invIdx !== -1) {
+                  const currentPaid = Number(invoices[invIdx].paid_amount || 0);
+                  const total = Number(invoices[invIdx].total || invoices[invIdx].total_amount || 0);
+                  const newPaid = roundMoney(currentPaid + allocAmt);
+                  const newRemaining = roundMoney(Math.max(0, total - newPaid));
+                  invoices[invIdx].paid_amount = newPaid;
+                  invoices[invIdx].remaining_amount = newRemaining;
+                  invoices[invIdx].balance_due = newRemaining;
+                  invoices[invIdx].status = newRemaining <= 0.01 ? 'paid' : 'partial';
+                }
+              }
+            }
+            setLocalItem('erp_invoices_v1', invoices, companyId);
+          } else {
+            const purchaseInvoices = getLocalItem<any[]>('erp_purchase_invoices_v1', [], companyId);
+            for (const alloc of allocs) {
+              const invId = alloc.invoice_id || alloc.invoiceId;
+              const allocAmt = Number(alloc.allocated_amount ?? alloc.amount ?? 0);
+              if (invId && allocAmt > 0) {
+                const purIdx = purchaseInvoices.findIndex(
+                  (p) => String(p.id) === String(invId) || String(p.invoice_number) === String(invId) || String(p.invoiceNumber) === String(invId)
+                );
+                if (purIdx !== -1) {
+                  const currentPaid = Number(purchaseInvoices[purIdx].paid_amount || 0);
+                  const total = Number(purchaseInvoices[purIdx].total || purchaseInvoices[purIdx].total_amount || 0);
+                  const newPaid = roundMoney(currentPaid + allocAmt);
+                  const newRemaining = roundMoney(Math.max(0, total - newPaid));
+                  purchaseInvoices[purIdx].paid_amount = newPaid;
+                  purchaseInvoices[purIdx].remaining_amount = newRemaining;
+                  purchaseInvoices[purIdx].balance_due = newRemaining;
+                  purchaseInvoices[purIdx].status = newRemaining <= 0.01 ? 'PAID' : 'partial';
+                }
+              }
+            }
+            setLocalItem('erp_purchase_invoices_v1', purchaseInvoices, companyId);
+          }
+        }
+
+        // 3. Post double-entry journal (1101/1102 vs 1103/2101)
+        if (roundAmt > 0) {
+          const lines: any[] = [];
+          if (isReceipt) {
+            lines.push({
+              account_code: cashOrBankCode,
+              account_name: cashOrBankName,
+              debit: roundAmt,
+              credit: 0,
+              description: `تحصيل سند قبض #${vNum} (${sanitized.customer_name || sanitized.party_name || 'عميل'})`,
+            });
+            lines.push({
+              account_code: '1103',
+              account_name: 'العملاء / المدينون',
+              debit: 0,
+              credit: roundAmt,
+              description: `تسوية حساب العميل سند قبض #${vNum}`,
+            });
+          } else {
+            lines.push({
+              account_code: '2101',
+              account_name: 'الموردون / الدائنون',
+              debit: roundAmt,
+              credit: 0,
+              description: `سداد حساب المورد سند صرف #${vNum}`,
+            });
+            lines.push({
+              account_code: cashOrBankCode,
+              account_name: cashOrBankName,
+              debit: 0,
+              credit: roundAmt,
+              description: `صرف نقدي سند #${vNum} (${sanitized.supplier_name || sanitized.party_name || 'مورد'})`,
+            });
+          }
+
+          postLocalDoubleEntryJournal({
+            company_id: companyId,
+            reference_type: isReceipt ? 'RECEIPT_VOUCHER' : 'PAYMENT_VOUCHER',
+            reference_id: vNum,
+            description: `إثبات سند ${isReceipt ? 'القبض' : 'الصرف'} #${vNum}`,
+            date: pDate,
+            lines,
           });
         }
       }
