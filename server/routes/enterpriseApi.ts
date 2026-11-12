@@ -16,6 +16,7 @@ import {
   isSampleDataSeeded,
   isTenantCleanProductionMode,
   setTenantCleanProductionMode,
+  getTenantCollections,
   persistAllToDisk,
   mockEmployeesList,
   mockEmployeeMovementsList,
@@ -1858,12 +1859,40 @@ export const mockLedgerEntries = [
   ]},
 ];
 
-enterpriseRouter.get('/ledger', (_req: Request, res: Response) => {
+enterpriseRouter.get('/ledger', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const isClean = isTenantCleanProductionMode(companyId);
+  const tenantJournals = getTenantJournalEntries(companyId);
+
+  if (isClean && tenantJournals.length === 0 && mockLedgerEntries.length === 0) {
+    return res.json({
+      success: true,
+      data: [],
+      entries: [],
+      total: 0,
+    });
+  }
+
+  const mappedTenantJournals = tenantJournals.map((j) => ({
+    id: j.id,
+    entry_number: j.entry_number,
+    date: j.date,
+    description: j.description,
+    debit: roundMoney(j.lines.reduce((s, l) => s + Number(l.debit || 0), 0)),
+    credit: roundMoney(j.lines.reduce((s, l) => s + Number(l.credit || 0), 0)),
+    status: 'POSTED',
+    lines: j.lines,
+  }));
+
+  const allEntries = isClean
+    ? mappedTenantJournals
+    : [...mappedTenantJournals, ...mockLedgerEntries];
+
   res.json({
     success: true,
-    data: mockLedgerEntries,
-    entries: mockLedgerEntries,
-    total: mockLedgerEntries.length,
+    data: allEntries,
+    entries: allEntries,
+    total: allEntries.length,
   });
 });
 
@@ -2439,8 +2468,31 @@ enterpriseRouter.get('/financial-reports/ap-aging', (req: Request, res: Response
   });
 });
 
-enterpriseRouter.get('/financial-reports/general-ledger', (_req: Request, res: Response) => {
-  res.json({ success: true, data: mockLedgerEntries });
+enterpriseRouter.get('/financial-reports/general-ledger', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const isClean = isTenantCleanProductionMode(companyId);
+  const tenantJournals = getTenantJournalEntries(companyId);
+
+  if (isClean && tenantJournals.length === 0 && mockLedgerEntries.length === 0) {
+    return res.json({ success: true, data: [] });
+  }
+
+  const mappedTenantJournals = tenantJournals.map((j) => ({
+    id: j.id,
+    entry_number: j.entry_number,
+    date: j.date,
+    description: j.description,
+    debit: roundMoney(j.lines.reduce((s, l) => s + Number(l.debit || 0), 0)),
+    credit: roundMoney(j.lines.reduce((s, l) => s + Number(l.credit || 0), 0)),
+    status: 'POSTED',
+    lines: j.lines,
+  }));
+
+  const allEntries = isClean
+    ? mappedTenantJournals
+    : [...mappedTenantJournals, ...mockLedgerEntries];
+
+  res.json({ success: true, data: allEntries });
 });
 
 enterpriseRouter.get('/financial-reports/inventory-valuation', (_req: Request, res: Response) => {
@@ -3597,8 +3649,9 @@ enterpriseRouter.post('/saas/sample-data/seed', (req: Request, res: Response) =>
   });
 });
 
-enterpriseRouter.post(['/saas/sample-data/cleanup', '/production-onboarding/purge-sample-data'], async (req: Request, res: Response) => {
+enterpriseRouter.post(['/saas/sample-data/cleanup', '/production-onboarding/purge-sample-data', '/system/wipe-demo-data'], async (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
+  mockLedgerEntries.length = 0;
   // Clear in-memory enterprise module states for sample keys
   for (const key of ['fuel_station', 'fuel_tanks', 'fuel_meter_records', 'sales_reps', 'custom_ledger', 'battery_warranties', 'tire_records', 'inventory_warehouses']) {
     inMemoryEnterpriseStates.delete(`${companyId}::${key}`);
@@ -3783,7 +3836,65 @@ enterpriseRouter.post('/setup/production-data', (req: Request, res: Response) =>
 // ==========================================
 enterpriseRouter.get(['/ai/cashflow-forecast', '/cashflow/forecast'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
+  const isClean = isTenantCleanProductionMode(companyId);
+  const tenantStore = getTenantCollections(companyId);
   const metrics = computeUnifiedFinancialMetrics(companyId);
+
+  const hasTransactions = (
+    tenantStore.invoices.length > 0 ||
+    tenantStore.payments.length > 0 ||
+    tenantStore.customers.some((c: any) => Number(c.balance || c.current_balance || 0) > 0) ||
+    tenantStore.suppliers.some((s: any) => Number(s.balance || s.current_balance || 0) > 0) ||
+    metrics.totalCashAndBank > 0 ||
+    metrics.accountsReceivable > 0 ||
+    metrics.accountsPayable > 0
+  );
+
+  if (isClean && !hasTransactions) {
+    return res.json({
+      success: true,
+      data: {
+        currentCash: 0,
+        currentCashPosition: 0,
+        cashBalance: 0,
+        bankBalance: 0,
+        walletBalance: 0,
+        cashAndBankBalance: 0,
+        treasuryBreakdown: { cash: 0, bank: 0, wallet: 0, total: 0 },
+        forecast30Days: 0,
+        forecast60Days: 0,
+        forecast90Days: 0,
+        totalReceivables: 0,
+        totalPayables: 0,
+        confidence: 0,
+        currency: 'YER',
+        recommendations: [],
+        weeklyTrend: [],
+        facts: {
+          currentCashPosition: 0,
+          cashBalance: 0,
+          bankBalance: 0,
+          walletBalance: 0,
+          cashAndBankBalance: 0,
+          treasuryBreakdown: { cash: 0, bank: 0, wallet: 0, total: 0 },
+          totalReceivables: 0,
+          totalPayables: 0,
+          recentAverageInflow: 0,
+          recentAverageOutflow: 0,
+        },
+        calculations: {
+          workingCapital: 0,
+          receivablesCoverageRatio: 0,
+          historicalDaysAnalyzed: 0,
+        },
+        forecast: {
+          days30: { expected: 0, lowerBound: 0, upperBound: 0, confidence: 0 },
+          days60: { expected: 0, lowerBound: 0, upperBound: 0, confidence: 0 },
+          days90: { expected: 0, lowerBound: 0, upperBound: 0, confidence: 0 },
+        },
+      },
+    });
+  }
 
   const currentCash = metrics.cashAndBankBalance;
   const cashBalance = metrics.cashBalance;
@@ -3840,13 +3951,69 @@ enterpriseRouter.get(['/ai/cashflow-forecast', '/cashflow/forecast'], (req: Requ
         recentAverageInflow: Math.round((metrics.revenue || currentCash) / 30),
         recentAverageOutflow: Math.round(((metrics.cogs || 0) + (metrics.operatingExpenses || 0)) / 30),
       },
+      calculations: {
+        workingCapital: currentCash + totalReceivables + (metrics.inventoryValuation || 0) - totalPayables,
+        receivablesCoverageRatio: totalPayables > 0 ? Number(((currentCash + totalReceivables) / totalPayables).toFixed(2)) : 2.5,
+        historicalDaysAnalyzed: 90,
+      },
+      forecast: {
+        days30: { expected: forecast30Days, lowerBound: Math.round(forecast30Days * 0.85), upperBound: Math.round(forecast30Days * 1.15), confidence: 92 },
+        days60: { expected: forecast60Days, lowerBound: Math.round(forecast60Days * 0.80), upperBound: Math.round(forecast60Days * 1.20), confidence: 86 },
+        days90: { expected: forecast90Days, lowerBound: Math.round(forecast90Days * 0.75), upperBound: Math.round(forecast90Days * 1.25), confidence: 80 },
+      },
     },
   });
 });
 
 enterpriseRouter.post(['/ai/cashflow-forecast', '/cashflow/forecast'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
+  const isClean = isTenantCleanProductionMode(companyId);
+  const tenantStore = getTenantCollections(companyId);
   const metrics = computeUnifiedFinancialMetrics(companyId);
+
+  const hasTransactions = (
+    tenantStore.invoices.length > 0 ||
+    tenantStore.payments.length > 0 ||
+    tenantStore.customers.some((c: any) => Number(c.balance || c.current_balance || 0) > 0) ||
+    tenantStore.suppliers.some((s: any) => Number(s.balance || s.current_balance || 0) > 0) ||
+    metrics.totalCashAndBank > 0 ||
+    metrics.accountsReceivable > 0 ||
+    metrics.accountsPayable > 0
+  );
+
+  if (isClean && !hasTransactions) {
+    return res.json({
+      success: true,
+      data: {
+        currentCash: 0,
+        currentCashPosition: 0,
+        cashBalance: 0,
+        bankBalance: 0,
+        walletBalance: 0,
+        cashAndBankBalance: 0,
+        treasuryBreakdown: { cash: 0, bank: 0, wallet: 0, total: 0 },
+        forecast30Days: 0,
+        forecast60Days: 0,
+        forecast90Days: 0,
+        totalReceivables: 0,
+        totalPayables: 0,
+        confidence: 0,
+        currency: 'YER',
+        recommendations: [],
+        weeklyTrend: [],
+        facts: {
+          currentCashPosition: 0,
+          cashBalance: 0,
+          bankBalance: 0,
+          walletBalance: 0,
+          cashAndBankBalance: 0,
+          treasuryBreakdown: { cash: 0, bank: 0, wallet: 0, total: 0 },
+          totalReceivables: 0,
+          totalPayables: 0,
+        },
+      },
+    });
+  }
 
   const currentCash = metrics.cashAndBankBalance;
   const cashBalance = metrics.cashBalance;

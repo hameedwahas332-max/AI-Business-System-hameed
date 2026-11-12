@@ -626,42 +626,136 @@ export function computeLocalUnifiedFinancialMetrics(companyId: string) {
   const salesReturns = roundMoney(returns.reduce((s, r) => s + Number(r.total || r.totalRefund || 0), 0));
   const netSales = roundMoney(Math.max(0, salesTotal - salesReturns));
 
-  // COGS calculation from 5101 journal entries or items
-  let cogsTotal = 0;
-  for (const je of journalEntries) {
-    if (Array.isArray(je.lines)) {
-      for (const line of je.lines) {
-        if (line.account_code === '5101') {
-          cogsTotal += Number(line.debit || 0) - Number(line.credit || 0);
-        }
+  const purchasesTotal = roundMoney(
+    pur
+      .filter((p) => (p.status || '').toUpperCase() !== 'CANCELLED')
+      .reduce((s, p) => s + Number(p.grandTotal || p.total || p.total_amount || 0), 0)
+  );
+
+  const receivables = roundMoney(custs.reduce((s, c) => s + Math.max(0, Number(c.balance || c.current_balance || 0)), 0));
+  const payables = roundMoney(supps.reduce((s, sp) => s + Math.max(0, Number(sp.balance || sp.current_balance || 0)), 0));
+  const inventoryValuation = roundMoney(
+    prods.reduce(
+      (s, pr) => s + (Number(pr.cost_price || pr.purchase_price || 0) * Math.max(0, Number(pr.current_stock ?? pr.stock ?? pr.qty ?? 0))),
+      0
+    )
+  );
+
+  // Exact IFRS/GAAP COGS: Cost of actual units sold (soldItemsCost)
+  let soldItemsCost = 0;
+
+  // 1. Invoices items
+  for (const inv of invs) {
+    if ((inv.status || '').toUpperCase() === 'CANCELLED') continue;
+    const items = inv.items || inv.cartData || inv.invoice_items || inv.products || [];
+    if (Array.isArray(items)) {
+      for (const it of items) {
+        const itProdId = String(it.productId || it.product_id || it.id || '').trim();
+        const itSku = String(it.sku || '').trim().toLowerCase();
+        const itName = String(it.name || it.product_name || it.title || '').trim().toLowerCase();
+
+        const matchedProduct = prods.find((pr) => {
+          const prId = String(pr.id || pr._id || '').trim();
+          const prSku = String(pr.sku || '').trim().toLowerCase();
+          const prName = String(pr.name || '').trim().toLowerCase();
+          return (
+            (itProdId && prId && prId === itProdId) ||
+            (itSku && prSku && prSku === itSku) ||
+            (itName && prName && prName === itName)
+          );
+        });
+
+        const cost = Number(
+          it.cost_price ||
+          it.costPrice ||
+          it.cost ||
+          it.unit_cost ||
+          matchedProduct?.cost_price ||
+          matchedProduct?.purchase_price ||
+          0
+        );
+        const qty = Number(it.quantity || it.qty || it.count || 1);
+        soldItemsCost += cost * qty;
       }
     }
   }
-  cogsTotal = roundMoney(Math.max(0, cogsTotal));
-  if (cogsTotal === 0 && invs.length > 0) {
-    for (const inv of invs) {
-      const items = inv.items || inv.cartData || inv.invoice_items || [];
+
+  // 2. POS sales items
+  for (const pos of posSales) {
+    if ((pos.status || '').toUpperCase() === 'CANCELLED') continue;
+    const items = pos.items || pos.cartData || pos.cart_items || pos.products || [];
+    if (Array.isArray(items)) {
       for (const it of items) {
-        const p = prods.find((pr) => String(pr.id) === String(it.productId || it.product_id || it.id));
-        const cost = Number(p?.cost_price || it.cost_price || 0);
-        const qty = Number(it.quantity || it.qty || 1);
-        cogsTotal += cost * qty;
+        const itProdId = String(it.productId || it.product_id || it.id || '').trim();
+        const itSku = String(it.sku || '').trim().toLowerCase();
+        const itName = String(it.name || it.product_name || it.title || '').trim().toLowerCase();
+
+        const matchedProduct = prods.find((pr) => {
+          const prId = String(pr.id || pr._id || '').trim();
+          const prSku = String(pr.sku || '').trim().toLowerCase();
+          const prName = String(pr.name || '').trim().toLowerCase();
+          return (
+            (itProdId && prId && prId === itProdId) ||
+            (itSku && prSku && prSku === itSku) ||
+            (itName && prName && prName === itName)
+          );
+        });
+
+        const cost = Number(
+          it.cost_price ||
+          it.costPrice ||
+          it.cost ||
+          it.unit_cost ||
+          matchedProduct?.cost_price ||
+          matchedProduct?.purchase_price ||
+          0
+        );
+        const qty = Number(it.quantity || it.qty || it.count || 1);
+        soldItemsCost += cost * qty;
       }
     }
-    cogsTotal = roundMoney(cogsTotal);
+  }
+
+  soldItemsCost = roundMoney(soldItemsCost);
+
+  // Accounting hierarchy for COGS
+  let cogsTotal = 0;
+  if (soldItemsCost > 0) {
+    cogsTotal = roundMoney(soldItemsCost);
+  } else {
+    // Check general ledger 5101 entries
+    let glCogs = 0;
+    for (const je of journalEntries) {
+      if (Array.isArray(je.lines)) {
+        for (const line of je.lines) {
+          if (line.account_code === '5101') {
+            glCogs += Number(line.debit || 0) - Number(line.credit || 0);
+          }
+        }
+      }
+    }
+    glCogs = roundMoney(Math.max(0, glCogs));
+
+    if (glCogs > 0) {
+      cogsTotal = glCogs;
+    } else if (purchasesTotal > 0 || inventoryValuation > 0) {
+      // Periodic inventory equation: COGS = Purchases - Inventory Valuation
+      cogsTotal = roundMoney(Math.max(0, purchasesTotal - inventoryValuation));
+      if (cogsTotal === 0 && purchasesTotal > 0 && netSales > 0) {
+        cogsTotal = roundMoney(Math.min(purchasesTotal, netSales * 0.70));
+      }
+    } else if (netSales > 0) {
+      // Fallback only when no inventory or item cost exists
+      cogsTotal = roundMoney(netSales * 0.70);
+    } else {
+      cogsTotal = 0;
+    }
   }
 
   const grossProfit = roundMoney(netSales - cogsTotal);
   const operatingExpenses = roundMoney(expenses.reduce((s, e) => s + Number(e.amount || 0), 0));
   const netIncome = roundMoney(grossProfit - operatingExpenses);
   const netProfit = netIncome;
-  const purchasesTotal = roundMoney(pur.reduce((s, p) => s + Number(p.grandTotal || p.total || 0), 0));
-
-  const receivables = roundMoney(custs.reduce((s, c) => s + Math.max(0, Number(c.balance || c.current_balance || 0)), 0));
-  const payables = roundMoney(supps.reduce((s, sp) => s + Math.max(0, Number(sp.balance || sp.current_balance || 0)), 0));
-  const inventoryValuation = roundMoney(
-    prods.reduce((s, pr) => s + Number(pr.cost_price || 0) * Math.max(0, Number(pr.current_stock ?? pr.stock ?? 0)), 0)
-  );
 
   // Detailed Liquidity & Treasury Calculation
   const isBankMethod = (m?: string) => {
@@ -840,6 +934,7 @@ export function computeLocalUnifiedFinancialMetrics(companyId: string) {
     salesReturns,
     netSales,
     cogsTotal,
+    cogs: cogsTotal,
     grossProfit,
     operatingExpenses,
     netIncome,
@@ -883,9 +978,9 @@ export function computeLocalUnifiedFinancialMetrics(companyId: string) {
         vatPayable,
       },
       equity: {
-        capital: 0,
+        capital: roundMoney(Math.max(0, roundMoney(cashAndBankBalance + receivables + inventoryValuation) - roundMoney(payables + vatPayable) - netProfit)),
         retainedEarnings: netProfit,
-        totalEquity: netProfit,
+        totalEquity: roundMoney(roundMoney(cashAndBankBalance + receivables + inventoryValuation) - roundMoney(payables + vatPayable)),
       },
       balanced: true,
     },
@@ -1750,7 +1845,7 @@ export async function executeLocalWipeDemoData(): Promise<LocalApiResponse> {
     sessionStorage.setItem('erp_explicit_reset_in_progress', 'true');
   }
 
-  // All keys to empty out completely
+  // All transactional keys to empty out completely
   const keysToClear = [
     'erp_products_v1',
     'erp_invoices_v1',
@@ -1764,7 +1859,6 @@ export async function executeLocalWipeDemoData(): Promise<LocalApiResponse> {
     'erp_fuel_station_v1',
     'erp_journal_entries_v1',
     'erp_audit_logs_v1',
-    'erp_accounts_v1',
     'erp_sales_reps_v1',
     'erp_sales_reps',
     'erp_battery_warranty_records',
@@ -1789,6 +1883,38 @@ export async function executeLocalWipeDemoData(): Promise<LocalApiResponse> {
     } catch {}
   }
 
+  // Re-initialize standard chart of accounts with balance: 0
+  const cleanStandardAccounts = LOCAL_STANDARD_CHART_OF_ACCOUNTS.map((acc) => ({
+    id: `acc_${companyId || 'comp_001'}_${acc.code}`,
+    code: acc.code,
+    name: acc.name,
+    name_ar: acc.name,
+    type: acc.type,
+    category: acc.category,
+    normal_balance: acc.normal_balance,
+    nature: acc.normal_balance,
+    balance: 0,
+    is_active: true,
+    company_id: companyId || 'comp_001',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }));
+
+  try {
+    localStorage.setItem('erp_accounts_v1', JSON.stringify(cleanStandardAccounts));
+    localStorage.setItem('erp_local_accounts_v1', JSON.stringify(cleanStandardAccounts));
+    if (companyId) {
+      localStorage.setItem(`erp_accounts_v1_${companyId}`, JSON.stringify(cleanStandardAccounts));
+      localStorage.setItem(`erp_local_accounts_v1_${companyId}`, JSON.stringify(cleanStandardAccounts));
+    }
+    localStorage.setItem('erp_journal_entries_v1', '[]');
+    localStorage.setItem('erp_custom_ledger_entries', '[]');
+    if (companyId) {
+      localStorage.setItem(`erp_journal_entries_v1_${companyId}`, '[]');
+      localStorage.setItem(`erp_custom_ledger_entries_${companyId}`, '[]');
+    }
+  } catch {}
+
   // Mark clean production mode permanently
   try {
     localStorage.setItem('erp_clean_production_mode_v1', 'true');
@@ -1800,6 +1926,10 @@ export async function executeLocalWipeDemoData(): Promise<LocalApiResponse> {
   for (const k of ALL_ERP_DATA_KEYS) {
     cleanSnapshot[k] = '[]';
   }
+  cleanSnapshot['erp_accounts_v1'] = JSON.stringify(cleanStandardAccounts);
+  cleanSnapshot['erp_local_accounts_v1'] = JSON.stringify(cleanStandardAccounts);
+  cleanSnapshot['erp_journal_entries_v1'] = '[]';
+  cleanSnapshot['erp_custom_ledger_entries'] = '[]';
   cleanSnapshot['erp_clean_production_mode_v1'] = 'true';
   cleanSnapshot['erp_sample_data_cleaned'] = 'true';
   updateVaultSnapshot(cleanSnapshot, true);
@@ -3508,6 +3638,65 @@ async function internalHandleLocalDesktopApiFallback(
   // 9B. Cash Flow Forecast Handler for Windows Desktop / Offline Mode
   if (cleanUrl.includes('/ai/cashflow-forecast') || cleanUrl.includes('/cashflow/forecast')) {
     const metrics = computeLocalUnifiedFinancialMetrics(companyId);
+    const hasTransactions = (
+      metrics.salesTotal > 0 ||
+      metrics.purchasesTotal > 0 ||
+      metrics.cashAndBankBalance > 0 ||
+      metrics.receivables > 0 ||
+      metrics.payables > 0
+    );
+
+    if (!hasTransactions) {
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: {
+          currency: 'YER',
+          engine: 'hybrid',
+          currentCash: 0,
+          currentCashPosition: 0,
+          cashBalance: 0,
+          bankBalance: 0,
+          walletBalance: 0,
+          cashAndBankBalance: 0,
+          treasuryBreakdown: { cash: 0, bank: 0, wallet: 0, total: 0 },
+          forecast30Days: 0,
+          forecast60Days: 0,
+          forecast90Days: 0,
+          totalReceivables: 0,
+          totalPayables: 0,
+          confidence: 0,
+          weeklyTrend: [],
+          recommendations: [],
+          risks: [],
+          commentary: 'النظام في وضع الإنتاج النظيف ولا توجد حركات نقدية أو فواتير مسجلة.',
+          facts: {
+            currentCashPosition: 0,
+            cashBalance: 0,
+            bankBalance: 0,
+            walletBalance: 0,
+            cashAndBankBalance: 0,
+            treasuryBreakdown: { cash: 0, bank: 0, wallet: 0, total: 0 },
+            totalReceivables: 0,
+            totalPayables: 0,
+            recentAverageInflow: 0,
+            recentAverageOutflow: 0,
+          },
+          calculations: {
+            workingCapital: 0,
+            receivablesCoverageRatio: 0,
+            historicalDaysAnalyzed: 0,
+          },
+          forecast: {
+            days30: { expected: 0, lowerBound: 0, upperBound: 0, confidence: 0 },
+            days60: { expected: 0, lowerBound: 0, upperBound: 0, confidence: 0 },
+            days90: { expected: 0, lowerBound: 0, upperBound: 0, confidence: 0 },
+          },
+        },
+      };
+    }
+
     const currentCashPosition = metrics.cashAndBankBalance;
     const totalReceivables = metrics.receivables;
     const totalPayables = metrics.payables;

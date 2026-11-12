@@ -84,7 +84,11 @@ export const BackupRestoreTab: React.FC = () => {
       warehouseTransfers = JSON.parse(localStorage.getItem('erp_warehouse_transfers') || '[]');
     } catch {}
     try {
-      salesReps = JSON.parse(localStorage.getItem('erp_sales_reps') || '[]');
+      salesReps = JSON.parse(
+        localStorage.getItem('erp_sales_reps_v1') ||
+        localStorage.getItem('erp_sales_reps') ||
+        '[]'
+      );
     } catch {}
     try {
       customLedger = JSON.parse(localStorage.getItem('erp_custom_ledger_entries') || '[]');
@@ -107,13 +111,6 @@ export const BackupRestoreTab: React.FC = () => {
         { id: 'wh-main', code: 'WH-01', name: 'المستودع المركزي الرئيسي - صنعاء', location: 'صنعاء - شارع الستين', isDefault: true },
         { id: 'wh-branch', code: 'WH-02', name: 'مستودع فرع التجزئة والمبيعات', location: 'صنعاء - شارع حدة', isDefault: false },
         { id: 'wh-spare', code: 'WH-03', name: 'مستودع قطع الغيار والبطاريات والزيوت', location: 'صنعاء - الحصبة', isDefault: false },
-      ];
-    }
-    if (!salesReps || salesReps.length === 0) {
-      salesReps = [
-        { id: 'rep-1', name: 'أحمد السحابي', phone: '777112233', role: 'مندوب جملة كبار العملاء', active: true },
-        { id: 'rep-2', name: 'خالد المنصوري', phone: '771223344', role: 'مندوب مبيعات زيوت وبطاريات', active: true },
-        { id: 'rep-3', name: 'ياسر اليماني', phone: '773445566', role: 'مندوب كاشير ومواد غذائية', active: true },
       ];
     }
 
@@ -190,8 +187,9 @@ export const BackupRestoreTab: React.FC = () => {
     }
 
     // 5. Sales Reps
-    const reps = extStates.sales_reps || extStates.salesReps;
+    const reps = extStates.sales_reps || extStates.salesReps || extStates.erp_sales_reps_v1;
     if (reps) {
+      localStorage.setItem('erp_sales_reps_v1', JSON.stringify(reps));
       localStorage.setItem('erp_sales_reps', JSON.stringify(reps));
       restoredEntities += Array.isArray(reps) ? reps.length : 1;
     }

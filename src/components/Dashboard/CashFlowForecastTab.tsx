@@ -94,13 +94,25 @@ export const CashFlowForecastTab: React.FC = () => {
         0
       );
 
-      const resolvedRecentInflow = Number(payload?.facts?.recentAverageInflow ?? (Math.round(resolvedReceivables / 30) || 5000));
-      const resolvedRecentOutflow = Number(payload?.facts?.recentAverageOutflow ?? (Math.round(resolvedPayables / 30) || 3500));
+      const isCleanMode =
+        typeof localStorage !== 'undefined' &&
+        (localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
+         localStorage.getItem('erp_sample_data_cleaned') === 'true');
+
+      const isZeroState =
+        resolvedTotalCash === 0 && resolvedReceivables === 0 && resolvedPayables === 0;
+
+      const resolvedRecentInflow = isZeroState
+        ? 0
+        : Number(payload?.facts?.recentAverageInflow ?? (Math.round(resolvedReceivables / 30) || 0));
+      const resolvedRecentOutflow = isZeroState
+        ? 0
+        : Number(payload?.facts?.recentAverageOutflow ?? (Math.round(resolvedPayables / 30) || 0));
 
       // 30 / 60 / 90 forecast calculations starting directly from resolvedTotalCash
-      const expected30 = Number(payload?.forecast?.days30?.expected ?? Math.round(resolvedTotalCash + (resolvedReceivables * 0.45) - (resolvedPayables * 0.35)));
-      const expected60 = Number(payload?.forecast?.days60?.expected ?? Math.round(resolvedTotalCash + (resolvedReceivables * 0.70) - (resolvedPayables * 0.60)));
-      const expected90 = Number(payload?.forecast?.days90?.expected ?? Math.round(resolvedTotalCash + (resolvedReceivables * 0.90) - (resolvedPayables * 0.85)));
+      const expected30 = isZeroState ? 0 : Number(payload?.forecast?.days30?.expected ?? Math.round(resolvedTotalCash + (resolvedReceivables * 0.45) - (resolvedPayables * 0.35)));
+      const expected60 = isZeroState ? 0 : Number(payload?.forecast?.days60?.expected ?? Math.round(resolvedTotalCash + (resolvedReceivables * 0.70) - (resolvedPayables * 0.60)));
+      const expected90 = isZeroState ? 0 : Number(payload?.forecast?.days90?.expected ?? Math.round(resolvedTotalCash + (resolvedReceivables * 0.90) - (resolvedPayables * 0.85)));
 
       const normalizedData = {
         currency: payload?.currency || company?.currency || 'YER',
@@ -120,47 +132,57 @@ export const CashFlowForecastTab: React.FC = () => {
             payload?.calculations?.workingCapital ??
             (resolvedTotalCash + resolvedReceivables - resolvedPayables)
           ),
-          receivablesCoverageRatio: Number(
-            payload?.calculations?.receivablesCoverageRatio ??
-            (resolvedPayables > 0 ? (resolvedReceivables / resolvedPayables).toFixed(2) : 1.5)
-          ),
-          historicalDaysAnalyzed: Number(payload?.calculations?.historicalDaysAnalyzed ?? 90),
+          receivablesCoverageRatio: isZeroState
+            ? 0
+            : Number(
+                payload?.calculations?.receivablesCoverageRatio ??
+                (resolvedPayables > 0 ? (resolvedReceivables / resolvedPayables).toFixed(2) : (resolvedReceivables > 0 ? 1.5 : 0))
+              ),
+          historicalDaysAnalyzed: isZeroState ? 0 : Number(payload?.calculations?.historicalDaysAnalyzed ?? 90),
         },
         forecast: {
           days30: {
             expected: expected30,
-            lowerBound: Number(payload?.forecast?.days30?.lowerBound ?? Math.round(expected30 * 0.85)),
-            upperBound: Number(payload?.forecast?.days30?.upperBound ?? Math.round(expected30 * 1.15)),
-            confidence: Number(payload?.forecast?.days30?.confidence ?? 90),
+            lowerBound: isZeroState ? 0 : Number(payload?.forecast?.days30?.lowerBound ?? Math.round(expected30 * 0.85)),
+            upperBound: isZeroState ? 0 : Number(payload?.forecast?.days30?.upperBound ?? Math.round(expected30 * 1.15)),
+            confidence: isZeroState ? 0 : Number(payload?.forecast?.days30?.confidence ?? 90),
           },
           days60: {
             expected: expected60,
-            lowerBound: Number(payload?.forecast?.days60?.lowerBound ?? Math.round(expected60 * 0.80)),
-            upperBound: Number(payload?.forecast?.days60?.upperBound ?? Math.round(expected60 * 1.20)),
-            confidence: Number(payload?.forecast?.days60?.confidence ?? 85),
+            lowerBound: isZeroState ? 0 : Number(payload?.forecast?.days60?.lowerBound ?? Math.round(expected60 * 0.80)),
+            upperBound: isZeroState ? 0 : Number(payload?.forecast?.days60?.upperBound ?? Math.round(expected60 * 1.20)),
+            confidence: isZeroState ? 0 : Number(payload?.forecast?.days60?.confidence ?? 85),
           },
           days90: {
             expected: expected90,
-            lowerBound: Number(payload?.forecast?.days90?.lowerBound ?? Math.round(expected90 * 0.75)),
-            upperBound: Number(payload?.forecast?.days90?.upperBound ?? Math.round(expected90 * 1.25)),
-            confidence: Number(payload?.forecast?.days90?.confidence ?? 80),
+            lowerBound: isZeroState ? 0 : Number(payload?.forecast?.days90?.lowerBound ?? Math.round(expected90 * 0.75)),
+            upperBound: isZeroState ? 0 : Number(payload?.forecast?.days90?.upperBound ?? Math.round(expected90 * 1.25)),
+            confidence: isZeroState ? 0 : Number(payload?.forecast?.days90?.confidence ?? 80),
           },
         },
-        commentary: payload?.commentary || 'تم تحليل التدفقات النقدية وفق السجلات المحاسبية وأرصدة الصناديق والبنوك والمحافظ المعتمدة.',
-        risks: Array.isArray(payload?.risks) && payload.risks.length > 0 ? payload.risks : [
+        commentary: isZeroState
+          ? 'النظام في وضع التشغيل الفعلي النظيف — لا توجد حركات مالية أو ذمم مسجلة حالياً لبناء التوقعات النقدية.'
+          : (payload?.commentary || 'تم تحليل التدفقات النقدية وفق السجلات المحاسبية وأرصدة الصناديق والبنوك والمحافظ المعتمدة.'),
+        risks: isZeroState ? [] : (Array.isArray(payload?.risks) && payload.risks.length > 0 ? payload.risks : [
           {
             title: 'تركز المستحقات والسيولة النقدية',
             severity: 'MEDIUM',
             description: `يتطلب الحفاظ على تدفق نقدي مستقر تسريع متابعة تحصيل الذمم المدينة البالغة ${formatAmount(resolvedReceivables)} قبل حلول مواعيد التزامات الموردين.`
           }
-        ],
-        recommendations: Array.isArray(payload?.recommendations) && payload.recommendations.length > 0 ? payload.recommendations : [
+        ]),
+        recommendations: isZeroState ? [
+          {
+            title: 'بدء تسجيل العمليات المالية الحقيقية',
+            priority: 'HIGH',
+            description: 'ابدأ بتسجيل فواتير المبيعات والمشتريات وسندات القبض والصرف لتفعيل التوقعات النقدية التلقائية والذكاء المالي بدقة.'
+          }
+        ] : (Array.isArray(payload?.recommendations) && payload.recommendations.length > 0 ? payload.recommendations : [
           {
             title: 'إدارة أرصدة الصناديق والبنوك',
             priority: 'HIGH',
             description: `توزيع السيولة المتاحة (${formatAmount(resolvedTotalCash)}) بين الصندوق الرئيسي والحسابات البنكية لضمان تغطية الدفعات التشغيلية بسلاسة.`
           }
-        ],
+        ]),
       };
       
       setForecastData(normalizedData);
@@ -182,9 +204,17 @@ export const CashFlowForecastTab: React.FC = () => {
     };
     window.addEventListener('erp-demo-data-wiped', handleSync);
     window.addEventListener('erp-inventory-updated', handleSync);
+    window.addEventListener('erp-payments-updated', handleSync);
+    window.addEventListener('erp-invoices-updated', handleSync);
+    window.addEventListener('erp-purchases-updated', handleSync);
+    window.addEventListener('erp-data-updated', handleSync);
     return () => {
       window.removeEventListener('erp-demo-data-wiped', handleSync);
       window.removeEventListener('erp-inventory-updated', handleSync);
+      window.removeEventListener('erp-payments-updated', handleSync);
+      window.removeEventListener('erp-invoices-updated', handleSync);
+      window.removeEventListener('erp-purchases-updated', handleSync);
+      window.removeEventListener('erp-data-updated', handleSync);
     };
   }, [authLoading, isAuthenticated]);
 

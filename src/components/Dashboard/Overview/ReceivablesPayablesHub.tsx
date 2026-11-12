@@ -97,14 +97,21 @@ export const ReceivablesPayablesHub: React.FC<ReceivablesPayablesHubProps> = ({
     },
   ];
 
-  let savedReps: any[] = [];
+  let savedReps: any[] | null = null;
   try {
     const rawReps = typeof window !== 'undefined' ? localStorage.getItem('erp_sales_reps_v1') : null;
-    if (rawReps) savedReps = JSON.parse(rawReps);
+    if (rawReps !== null) {
+      savedReps = JSON.parse(rawReps);
+    } else {
+      const rawRepsLegacy = typeof window !== 'undefined' ? localStorage.getItem('erp_sales_reps') : null;
+      if (rawRepsLegacy !== null) {
+        savedReps = JSON.parse(rawRepsLegacy);
+      }
+    }
   } catch (e) {}
 
   const salesRepresentatives =
-    Array.isArray(savedReps) && savedReps.length > 0
+    savedReps !== null
       ? savedReps
       : (isClean ? [] : fallbackSalesRepresentatives);
 
@@ -221,7 +228,7 @@ export const ReceivablesPayablesHub: React.FC<ReceivablesPayablesHubProps> = ({
               ? totalReceivables
               : activeTab === 'suppliers'
               ? totalPayables
-              : 114500
+              : salesRepresentatives.reduce((sum: number, r: any) => sum + Number(r.achievedSales ?? r.salesMonth ?? 0), 0)
           )}{' '}
           {currency}
         </span>

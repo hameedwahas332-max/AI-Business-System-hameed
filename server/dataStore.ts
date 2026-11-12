@@ -4,6 +4,7 @@ import { hashPassword, verifyPassword, isPasswordHashed, getCurrentTenantId } fr
 import {
   tenantAccountsMap,
   tenantJournalEntriesMap,
+  wipeAllJournalEntriesAndResetAccounts,
   serializeAccountingMaps,
   hydrateAccountingMaps,
 } from './accountingEngine.js';
@@ -1133,10 +1134,56 @@ export async function cleanupAllSampleData(companyId?: string, pool?: any): Prom
   tenantStore.payrollRecords.length = 0;
   tenantStore.expenses.length = 0;
 
-  if (cid === 'comp_001') {
-    isSampleDataSeeded = false;
+  // If companyId is not comp_001, clear comp_001 collections as well to avoid sample data leakage
+  if (cid !== 'comp_001') {
+    const defaultStore = getTenantCollections('comp_001');
+    defaultStore.products.length = 0;
+    defaultStore.movements.length = 0;
+    defaultStore.customers.length = 0;
+    defaultStore.suppliers.length = 0;
+    defaultStore.accountTransactions.length = 0;
+    defaultStore.invoices.length = 0;
+    defaultStore.purchaseInvoices.length = 0;
+    defaultStore.payments.length = 0;
+    defaultStore.auditLogs.length = 0;
+    defaultStore.employees.length = 0;
+    defaultStore.employeeMovements.length = 0;
+    defaultStore.payrollRecords.length = 0;
+    defaultStore.expenses.length = 0;
   }
+
+  // Clear global proxy arrays directly
+  mockProducts.length = 0;
+  mockCustomersList.length = 0;
+  mockSuppliersList.length = 0;
+  mockInvoicesList.length = 0;
+  mockPurchaseInvoicesList.length = 0;
+  mockPaymentsList.length = 0;
+  mockInventoryMovements.length = 0;
+  mockAccountTransactions.length = 0;
+  mockExpensesList.length = 0;
+  mockEmployeesList.length = 0;
+  mockEmployeeMovementsList.length = 0;
+  mockPayrollRecordsList.length = 0;
+  mockAuditLogsList.length = 0;
+
+  // Clear journal entries and reset account balances
+  wipeAllJournalEntriesAndResetAccounts(cid);
+  tenantJournalEntriesMap.set(cid, []);
+  tenantJournalEntriesMap.clear();
+
+  for (const [_, accs] of tenantAccountsMap.entries()) {
+    if (Array.isArray(accs)) {
+      for (const a of accs) {
+        a.balance = 0;
+        a.updated_at = new Date().toISOString();
+      }
+    }
+  }
+
+  isSampleDataSeeded = false;
   tenantCleanProductionModeMap.set(cid, true);
+  tenantCleanProductionModeMap.set('comp_001', true);
 
   // Reset tenant WhatsApp conversations/messages/logs (preserving gateway/API config)
   const existingWsState = mockWhatsAppStateMap.get(cid);

@@ -40,6 +40,7 @@ import {
   MapPin,
   X,
   Eye,
+  Trash2,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { renderAndPrintDocument } from '../../lib/exportUtils';
@@ -238,13 +239,23 @@ export const RealBusinessOperationsTab: React.FC = () => {
   // 10. Sales Representatives & Commissions State
   const [salesReps, setSalesReps] = useState<SalesRep[]>(() => {
     try {
-      const isClean =
-        typeof window !== 'undefined' &&
-        (localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
-          localStorage.getItem('erp_sample_data_cleaned') === 'true');
-      const saved = localStorage.getItem('erp_sales_reps_v1');
-      if (saved) return JSON.parse(saved);
-      if (isClean) return [];
+      if (typeof window !== 'undefined') {
+        const isClean =
+          localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
+          localStorage.getItem('erp_sample_data_cleaned') === 'true';
+
+        const saved = localStorage.getItem('erp_sales_reps_v1');
+        if (saved !== null) {
+          return JSON.parse(saved);
+        }
+        const savedLegacy = localStorage.getItem('erp_sales_reps');
+        if (savedLegacy !== null) {
+          return JSON.parse(savedLegacy);
+        }
+        if (isClean) {
+          return [];
+        }
+      }
     } catch {}
     const isClean =
       typeof window !== 'undefined' &&
@@ -357,7 +368,28 @@ export const RealBusinessOperationsTab: React.FC = () => {
 
     setSalesReps(updated);
     localStorage.setItem('erp_sales_reps_v1', JSON.stringify(updated));
+    localStorage.setItem('erp_sales_reps', JSON.stringify(updated));
+    window.dispatchEvent(new Event('erp-sales-reps-updated'));
     setIsRepModalOpen(false);
+  };
+
+  const handleDeleteRep = (repId: string, repName: string) => {
+    if (!window.confirm(`هل أنت متأكد من حذف مندوب المبيعات (${repName})؟`)) return;
+    const updated = salesReps.filter((r) => r.id !== repId);
+    setSalesReps(updated);
+    localStorage.setItem('erp_sales_reps_v1', JSON.stringify(updated));
+    localStorage.setItem('erp_sales_reps', JSON.stringify(updated));
+    window.dispatchEvent(new Event('erp-sales-reps-updated'));
+    showFeedback('success', `تم حذف المندوب (${repName}) بنجاح`);
+  };
+
+  const handleClearAllReps = () => {
+    if (!window.confirm('هل أنت متأكد من تصفير وحذف كافة مناديب التوزيع الميداني؟')) return;
+    setSalesReps([]);
+    localStorage.setItem('erp_sales_reps_v1', '[]');
+    localStorage.setItem('erp_sales_reps', '[]');
+    window.dispatchEvent(new Event('erp-sales-reps-updated'));
+    showFeedback('success', 'تم تصفير وحذف كافة مناديب التوزيع الميداني بنجاح');
   };
 
   const handlePrintRepStatement = (rep: SalesRep) => {
@@ -467,6 +499,10 @@ export const RealBusinessOperationsTab: React.FC = () => {
 
     const handleWiped = () => {
       setSalesReps([]);
+      try {
+        localStorage.setItem('erp_sales_reps_v1', '[]');
+        localStorage.setItem('erp_sales_reps', '[]');
+      } catch {}
       setOpeningBalances([]);
       setExpenses([]);
       setSalesReturns([]);
@@ -2132,13 +2168,25 @@ export const RealBusinessOperationsTab: React.FC = () => {
               </p>
             </div>
 
-            <button
-              onClick={handleOpenCreateRep}
-              className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-950/60 flex items-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              <span>+ تسجيل مندوب جديد</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {salesReps.length > 0 && (
+                <button
+                  onClick={handleClearAllReps}
+                  className="px-3 py-2.5 bg-rose-950/60 hover:bg-rose-900 border border-rose-800/60 text-rose-300 hover:text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shrink-0"
+                  title="تصفير وحذف كافة مناديب التوزيع"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>تصفير كافة المناديب</span>
+                </button>
+              )}
+              <button
+                onClick={handleOpenCreateRep}
+                className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-950/60 flex items-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ تسجيل مندوب جديد</span>
+              </button>
+            </div>
           </div>
 
           {/* KPI Summary Cards */}
@@ -2147,7 +2195,7 @@ export const RealBusinessOperationsTab: React.FC = () => {
               <span className="text-slate-400 text-[11px] font-bold">إجمالي مبيعات المناديب:</span>
               <div className="text-lg font-bold font-mono text-emerald-400 mt-1">
                 {formatNumber(salesReps.reduce((s, r) => s + r.achievedSales, 0))}
-                <span className="text-[10px] text-slate-400 mr-1">YER</span>
+                <span className="text-[10px] text-slate-400 mr-1">{currSym}</span>
               </div>
             </div>
 
@@ -2155,7 +2203,7 @@ export const RealBusinessOperationsTab: React.FC = () => {
               <span className="text-slate-400 text-[11px] font-bold">إجمالي النقدية الموردة:</span>
               <div className="text-lg font-bold font-mono text-blue-400 mt-1">
                 {formatNumber(salesReps.reduce((s, r) => s + r.collectedCash, 0))}
-                <span className="text-[10px] text-slate-400 mr-1">YER</span>
+                <span className="text-[10px] text-slate-400 mr-1">{currSym}</span>
               </div>
             </div>
 
@@ -2163,7 +2211,7 @@ export const RealBusinessOperationsTab: React.FC = () => {
               <span className="text-slate-400 text-[11px] font-bold">الذمم الآجلة المعلقة:</span>
               <div className="text-lg font-bold font-mono text-amber-400 mt-1">
                 {formatNumber(salesReps.reduce((s, r) => s + r.pendingReceivables, 0))}
-                <span className="text-[10px] text-slate-400 mr-1">YER</span>
+                <span className="text-[10px] text-slate-400 mr-1">{currSym}</span>
               </div>
             </div>
 
@@ -2171,7 +2219,7 @@ export const RealBusinessOperationsTab: React.FC = () => {
               <span className="text-emerald-300 text-[11px] font-bold">إجمالي العمولات المستحقة:</span>
               <div className="text-lg font-bold font-mono text-emerald-300 mt-1">
                 {formatNumber(salesReps.reduce((s, r) => s + r.earnedCommission, 0))}
-                <span className="text-[10px] text-emerald-400/80 mr-1">YER</span>
+                <span className="text-[10px] text-emerald-400/80 mr-1">{currSym}</span>
               </div>
             </div>
           </div>
@@ -2196,94 +2244,109 @@ export const RealBusinessOperationsTab: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 font-mono">
-                  {salesReps.map((rep) => {
-                    const achievementPct = rep.monthlyTarget > 0 ? (rep.achievedSales / rep.monthlyTarget) * 100 : 0;
-                    return (
-                      <tr key={rep.id} className="hover:bg-slate-800/40 transition-colors">
-                        <td className="py-3.5 px-4 font-sans">
-                          <div className="font-bold text-white text-xs">{rep.name}</div>
-                          <div className="text-[10px] text-slate-400 font-mono">
-                            {rep.code} • {rep.phone}
-                          </div>
-                        </td>
-
-                        <td className="py-3.5 px-4 font-sans">
-                          <div className="text-slate-200">{rep.territory}</div>
-                          <div className="text-[10px] text-slate-400">{rep.vehicle}</div>
-                        </td>
-
-                        <td className="py-3.5 px-4 text-center font-bold text-slate-300">
-                          {formatNumber(rep.monthlyTarget)}
-                        </td>
-
-                        <td className="py-3.5 px-4 text-center font-bold text-emerald-400">
-                          {formatNumber(rep.achievedSales)}
-                        </td>
-
-                        <td className="py-3.5 px-4 text-center">
-                          <div className="space-y-1">
-                            <span className="font-bold text-[11px] text-slate-200">
-                              {achievementPct.toFixed(1)}%
-                            </span>
-                            <div className="w-16 h-1.5 bg-slate-800 rounded-full mx-auto overflow-hidden">
-                              <div
-                                style={{ width: `${Math.min(100, achievementPct)}%` }}
-                                className="h-full bg-emerald-500 rounded-full"
-                              />
+                  {salesReps.length === 0 ? (
+                    <tr>
+                      <td colSpan={11} className="py-8 text-center text-slate-400 text-xs font-sans">
+                        لا يوجد مناديب توزيع مسجلين حالياً. اضغط على «+ تسجيل مندوب جديد» لإضافة مندوب ميداني.
+                      </td>
+                    </tr>
+                  ) : (
+                    salesReps.map((rep) => {
+                      const achievementPct = rep.monthlyTarget > 0 ? (rep.achievedSales / rep.monthlyTarget) * 100 : 0;
+                      return (
+                        <tr key={rep.id} className="hover:bg-slate-800/40 transition-colors">
+                          <td className="py-3.5 px-4 font-sans">
+                            <div className="font-bold text-white text-xs">{rep.name}</div>
+                            <div className="text-[10px] text-slate-400 font-mono">
+                              {rep.code} • {rep.phone}
                             </div>
-                          </div>
-                        </td>
+                          </td>
 
-                        <td className="py-3.5 px-4 text-center text-blue-300 font-bold">
-                          {formatNumber(rep.collectedCash)}
-                        </td>
+                          <td className="py-3.5 px-4 font-sans">
+                            <div className="text-slate-200">{rep.territory}</div>
+                            <div className="text-[10px] text-slate-400">{rep.vehicle}</div>
+                          </td>
 
-                        <td className="py-3.5 px-4 text-center text-amber-300 font-bold">
-                          {formatNumber(rep.pendingReceivables)}
-                        </td>
+                          <td className="py-3.5 px-4 text-center font-bold text-slate-300">
+                            {formatNumber(rep.monthlyTarget)}
+                          </td>
 
-                        <td className="py-3.5 px-4 text-center text-slate-300 font-bold">
-                          {rep.commissionRate}%
-                        </td>
+                          <td className="py-3.5 px-4 text-center font-bold text-emerald-400">
+                            {formatNumber(rep.achievedSales)}
+                          </td>
 
-                        <td className="py-3.5 px-4 text-center text-emerald-300 font-black text-xs">
-                          {formatNumber(rep.earnedCommission)} YER
-                        </td>
+                          <td className="py-3.5 px-4 text-center">
+                            <div className="space-y-1">
+                              <span className="font-bold text-[11px] text-slate-200">
+                                {achievementPct.toFixed(1)}%
+                              </span>
+                              <div className="w-16 h-1.5 bg-slate-800 rounded-full mx-auto overflow-hidden">
+                                <div
+                                  style={{ width: `${Math.min(100, achievementPct)}%` }}
+                                  className="h-full bg-emerald-500 rounded-full"
+                                />
+                              </div>
+                            </div>
+                          </td>
 
-                        <td className="py-3.5 px-4 text-center font-sans">
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              rep.status === 'ACTIVE'
-                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                : 'bg-slate-800 text-slate-400'
-                            }`}
-                          >
-                            {rep.status === 'ACTIVE' ? 'نشط في الميدان' : 'متوقف'}
-                          </span>
-                        </td>
+                          <td className="py-3.5 px-4 text-center text-blue-300 font-bold">
+                            {formatNumber(rep.collectedCash)}
+                          </td>
 
-                        <td className="py-3.5 px-4 text-center font-sans">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <button
-                              onClick={() => handleOpenEditRep(rep)}
-                              title="تعديل بيانات المندوب والهدف"
-                              className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
+                          <td className="py-3.5 px-4 text-center text-amber-300 font-bold">
+                            {formatNumber(rep.pendingReceivables)}
+                          </td>
+
+                          <td className="py-3.5 px-4 text-center text-slate-300 font-bold">
+                            {rep.commissionRate}%
+                          </td>
+
+                          <td className="py-3.5 px-4 text-center text-emerald-300 font-black text-xs">
+                            {formatNumber(rep.earnedCommission)} {currSym}
+                          </td>
+
+                          <td className="py-3.5 px-4 text-center font-sans">
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                rep.status === 'ACTIVE'
+                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                  : 'bg-slate-800 text-slate-400'
+                              }`}
                             >
-                              تعديل
-                            </button>
-                            <button
-                              onClick={() => handlePrintRepStatement(rep)}
-                              title="طباعة كشف أداء وتصفية عمولة المندوب"
-                              className="p-1.5 bg-emerald-950/60 hover:bg-emerald-800 text-emerald-300 hover:text-white rounded-lg border border-emerald-700/40 transition-colors cursor-pointer flex items-center gap-1"
-                            >
-                              <Printer className="w-3.5 h-3.5" />
-                              <span className="text-[10px]">كشف</span>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                              {rep.status === 'ACTIVE' ? 'نشط في الميدان' : 'متوقف'}
+                            </span>
+                          </td>
+
+                          <td className="py-3.5 px-4 text-center font-sans">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                onClick={() => handleOpenEditRep(rep)}
+                                title="تعديل بيانات المندوب والهدف"
+                                className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
+                              >
+                                تعديل
+                              </button>
+                              <button
+                                onClick={() => handlePrintRepStatement(rep)}
+                                title="طباعة كشف أداء وتصفية عمولة المندوب"
+                                className="p-1.5 bg-emerald-950/60 hover:bg-emerald-800 text-emerald-300 hover:text-white rounded-lg border border-emerald-700/40 transition-colors cursor-pointer flex items-center gap-1"
+                              >
+                                <Printer className="w-3.5 h-3.5" />
+                                <span className="text-[10px]">كشف</span>
+                              </button>
+                              <button
+                                onClick={() => handleDeleteRep(rep.id, rep.name)}
+                                title="حذف مندوب المبيعات"
+                                className="p-1.5 bg-rose-950/50 hover:bg-rose-900 border border-rose-800/40 text-rose-400 hover:text-rose-200 rounded-lg transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>

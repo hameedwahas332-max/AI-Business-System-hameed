@@ -187,14 +187,6 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
       const suppData = Array.isArray(suppRes)
         ? suppRes
         : (suppRes?.data || suppRes?.items || suppRes?.suppliers || []);
-
-      if (custData.length > 0 || suppData.length > 0) {
-        try {
-          localStorage.removeItem('erp_clean_production_mode_v1');
-          localStorage.removeItem('erp_sample_data_cleaned');
-        } catch {}
-      }
-
       setCustomers(custData);
       setSuppliers(suppData);
     } catch (err: any) {

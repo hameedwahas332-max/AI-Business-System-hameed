@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../api';
-import { formatAmount } from '../../lib/formatters';
+import { useAuth } from '../../context/AuthContext';
+import { formatAmount, getActiveCurrencySymbol } from '../../lib/formatters';
 import { ExportActions } from '../Common/ExportActions';
 import { TableExportConfig } from '../../lib/exportUtils';
 import {
@@ -15,6 +16,8 @@ import {
 } from 'lucide-react';
 
 export const LedgerTab: React.FC = () => {
+  const { company } = useAuth();
+  const currency = getActiveCurrencySymbol(company?.currency);
   const [ledgerEntries, setLedgerEntries] = useState<any[]>([]);
   const [summary, setSummary] = useState({ totalDebit: 0, totalCredit: 0 });
   const [loading, setLoading] = useState(true);
@@ -37,78 +40,8 @@ export const LedgerTab: React.FC = () => {
         (localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
           localStorage.getItem('erp_sample_data_cleaned') === 'true');
 
-      // Balanced Operational Journal Entries for Fuel Station & Stocktaking Inventory (only in demo mode)
-      const operationalJournals = isClean ? [] : [
-        // 1. Fuel Station Shift Sales Balanced Entry
-        {
-          id: 'fs-shift-debit-1',
-          transaction_date: new Date().toISOString(),
-          account_type: 'CASH_BANK',
-          reference_type: 'وردية محطة الوقود P-01',
-          entry_number: 'JRN-FS-101',
-          debit: 7323500,
-          credit: 0,
-          description: 'إيداع نقدي - إيرادات مبيعات وردية طرمبات الوقود والغاز المسائية',
-          created_by_name: 'كاشير المحطة',
-        },
-        {
-          id: 'fs-shift-credit-1',
-          transaction_date: new Date().toISOString(),
-          account_type: 'FUEL_PUMP_SHIFT',
-          reference_type: 'وردية محطة الوقود P-01',
-          entry_number: 'JRN-FS-101',
-          debit: 0,
-          credit: 7323500,
-          description: 'إثبات مبيعات محطة الوقود (بنزين 91/95، ديزل، غاز) بموجب قراءات العدادات المعتمدة',
-          created_by_name: 'كاشير المحطة',
-        },
-        // 2. Fuel Tank Refill Balanced Entry
-        {
-          id: 'fs-refill-debit-1',
-          transaction_date: new Date(Date.now() - 86400000).toISOString(),
-          account_type: 'FUEL_TANK_REFILL',
-          reference_type: 'تفريغ شحنة خزان T-01',
-          entry_number: 'JRN-FS-102',
-          debit: 4250000,
-          credit: 0,
-          description: 'تغذية وإيداع مخزون بترول ممتاز 5000 لتر في الخزان الأرضي الرئيسي T-01',
-          created_by_name: 'مدير المحطة',
-        },
-        {
-          id: 'fs-refill-credit-1',
-          transaction_date: new Date(Date.now() - 86400000).toISOString(),
-          account_type: 'ACCOUNTS_PAYABLE',
-          reference_type: 'تفريغ شحنة خزان T-01',
-          entry_number: 'JRN-FS-102',
-          debit: 0,
-          credit: 4250000,
-          description: 'استحقاق مورد - فاتورة توريد وقود من شركة توزيع المنتجات النفطية',
-          created_by_name: 'مدير المحطة',
-        },
-        // 3. Stocktaking Inventory Adjustment Balanced Entry (Surplus/Deficit)
-        {
-          id: 'st-adj-debit-1',
-          transaction_date: new Date(Date.now() - 172800000).toISOString(),
-          account_type: 'INVENTORY_ADJUSTMENT',
-          reference_type: 'محضر جرد مخزني #ST-2026',
-          entry_number: 'JRN-INV-201',
-          debit: 85000,
-          credit: 0,
-          description: 'تسوية مخزنية - إثبات فروقات جرد دفتري مع المخزون الفعلي (أغذية وزيوت)',
-          created_by_name: 'أمين المستودع',
-        },
-        {
-          id: 'st-adj-credit-1',
-          transaction_date: new Date(Date.now() - 172800000).toISOString(),
-          account_type: 'SALES_REVENUE',
-          reference_type: 'محضر جرد مخزني #ST-2026',
-          entry_number: 'JRN-INV-201',
-          debit: 0,
-          credit: 85000,
-          description: 'أرباح تسوية جرد بضاعة فائضة مطابقة للجرد الفعلي المعتمد',
-          created_by_name: 'أمين المستودع',
-        },
-      ];
+      // Only actual recorded operational journal entries
+      const operationalJournals: any[] = [];
 
       // Add live balanced journal entries for recorded operating expenses and payroll
       try {
@@ -145,12 +78,14 @@ export const LedgerTab: React.FC = () => {
         }
       } catch {}
 
-      // Read custom postings from local storage if available
+      // Read custom postings from local storage if available (only if not clean mode)
       let localCustomPostings: any[] = [];
-      try {
-        const saved = localStorage.getItem('erp_custom_ledger_entries');
-        if (saved) localCustomPostings = JSON.parse(saved);
-      } catch {}
+      if (!isClean) {
+        try {
+          const saved = localStorage.getItem('erp_custom_ledger_entries');
+          if (saved) localCustomPostings = JSON.parse(saved);
+        } catch {}
+      }
 
       let combined = [...backendEntries, ...operationalJournals, ...localCustomPostings];
 
@@ -199,12 +134,12 @@ export const LedgerTab: React.FC = () => {
       ...(accountTypeFilter ? [{ label: 'نوع الحساب', value: accountTypeFilter }] : []),
     ],
     summaryCards: [
-      { label: 'إجمالي الحركات المدينة', value: `${formatAmount(summary.totalDebit)} YER` },
-      { label: 'إجمالي الحركات الدائنة', value: `${formatAmount(summary.totalCredit)} YER` },
+      { label: 'إجمالي الحركات المدينة', value: `${formatAmount(summary.totalDebit)} ${currency}` },
+      { label: 'إجمالي الحركات الدائنة', value: `${formatAmount(summary.totalCredit)} ${currency}` },
       { label: 'توازن الدفتر المحاسبي', value: Math.abs(summary.totalDebit - summary.totalCredit) < 0.01 ? 'متوازن 100%' : 'فارق' },
       { label: 'عدد القيود المعروضة', value: ledgerEntries.length },
     ],
-    headers: ['التاريخ', 'الحساب المحاسبي', 'نوع المرجع', 'مدين Debit (YER)', 'دائن Credit (YER)', 'البيان المحاسبي', 'المستخدم'],
+    headers: ['التاريخ', 'الحساب المحاسبي', 'نوع المرجع', `مدين Debit (${currency})`, `دائن Credit (${currency})`, 'البيان المحاسبي', 'المستخدم'],
     rows: ledgerEntries.map((l) => [
       l.transaction_date ? new Date(l.transaction_date).toLocaleDateString('ar-YE') : (l.date || '-'),
       l.account_type === 'ACCOUNTS_RECEIVABLE'
@@ -275,7 +210,7 @@ export const LedgerTab: React.FC = () => {
           <div>
             <span className="text-xs text-slate-400 font-semibold block mb-1">إجمالي الحركات المدينة (Total Debit)</span>
             <span className="font-mono font-bold text-lg text-emerald-400">
-              {formatAmount(summary.totalDebit)} YER
+              {formatAmount(summary.totalDebit)} {currency}
             </span>
           </div>
           <div className="p-3 bg-emerald-950/80 border border-emerald-800 text-emerald-400 rounded-xl">
@@ -287,7 +222,7 @@ export const LedgerTab: React.FC = () => {
           <div>
             <span className="text-xs text-slate-400 font-semibold block mb-1">إجمالي الحركات الدائنة (Total Credit)</span>
             <span className="font-mono font-bold text-lg text-teal-400">
-              {formatAmount(summary.totalCredit)} YER
+              {formatAmount(summary.totalCredit)} {currency}
             </span>
           </div>
           <div className="p-3 bg-teal-950/80 border border-teal-800 text-teal-400 rounded-xl">
@@ -388,10 +323,10 @@ export const LedgerTab: React.FC = () => {
                     <td className="p-3.5">{getAccountBadge(l.account_type)}</td>
                     <td className="p-3.5 font-mono text-slate-300 font-semibold">{l.reference_type}</td>
                     <td className="p-3.5 font-mono font-bold text-emerald-400">
-                      {Number(l.debit) > 0 ? `${formatAmount(l.debit)} YER` : '-'}
+                      {Number(l.debit) > 0 ? `${formatAmount(l.debit)} ${currency}` : '-'}
                     </td>
                     <td className="p-3.5 font-mono font-bold text-teal-300">
-                      {Number(l.credit) > 0 ? `${formatAmount(l.credit)} YER` : '-'}
+                      {Number(l.credit) > 0 ? `${formatAmount(l.credit)} ${currency}` : '-'}
                     </td>
                     <td className="p-3.5 font-semibold text-slate-200">{l.description || '-'}</td>
                     <td className="p-3.5 text-slate-400">{l.created_by_name || 'النظام'}</td>

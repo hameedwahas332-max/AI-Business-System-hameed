@@ -35,6 +35,28 @@ export const SmartAlertsAIWidget: React.FC<SmartAlertsAIWidgetProps> = ({
   const overdueCount = Number(stats?.counts?.overdueInvoicesCount ?? stats?.overdueInvoicesCount ?? 2);
   const cashBalance = Number(stats?.balances?.cashAndBankBalance ?? stats?.cashBankBalance ?? 62400);
 
+  let repsList: any[] = [];
+  try {
+    const rawReps = typeof window !== 'undefined' ? localStorage.getItem('erp_sales_reps_v1') : null;
+    if (rawReps !== null) {
+      repsList = JSON.parse(rawReps);
+    } else {
+      const rawLegacy = typeof window !== 'undefined' ? localStorage.getItem('erp_sales_reps') : null;
+      if (rawLegacy !== null) {
+        repsList = JSON.parse(rawLegacy);
+      }
+    }
+  } catch {}
+
+  const repsSalesTotal = Array.isArray(repsList)
+    ? repsList.reduce((sum: number, r: any) => sum + Number(r.achievedSales ?? r.salesMonth ?? 0), 0)
+    : 0;
+  const repsCollectedTotal = Array.isArray(repsList)
+    ? repsList.reduce((sum: number, r: any) => sum + Number(r.collectedCash ?? r.collected ?? 0), 0)
+    : 0;
+  const repsCount = Array.isArray(repsList) ? repsList.length : 0;
+  const collectionRate = repsSalesTotal > 0 ? Math.round((repsCollectedTotal / repsSalesTotal) * 100) : 0;
+
   const insights = [
     {
       id: 'ai-debt',
@@ -70,7 +92,9 @@ export const SmartAlertsAIWidget: React.FC<SmartAlertsAIWidgetProps> = ({
       id: 'ai-sales-reps',
       tag: 'مناديب التوزيع والعمولات',
       title: 'تحفيز خطوط التوزيع وسيارات الفان الميدانية',
-      description: `حقق مناديب التوزيع الميداني (سيارات الفان 1-4) مبيعات بقيمة 114,500 ${currency} هذا الشهر مع نسبة تحصيل 87%. صرف العمولات المستحقة يعزز معدل التوزيع بنسبة 18%.`,
+      description: repsCount > 0
+        ? `حقق مناديب التوزيع الميداني (${repsCount} مناديب) مبيعات بقيمة ${formatAmount(repsSalesTotal)} ${currency} هذا الشهر مع نسبة تحصيل ${collectionRate}%. صرف العمولات المستحقة يعزز معدل التوزيع بنسبة 18%.`
+        : `لا يوجد مناديب توزيع مسجلين حالياً. تسجيل المناديب وتعيين خطوط السير والأهداف الميدانية يرفع المبيعات الخارجية وتغطية نقاط البيع.`,
       icon: Sparkles,
       color: 'from-blue-500/20 to-indigo-500/10 border-blue-500/30 text-blue-400',
       actionLabel: 'إدارة أداء وعمولات المناديب',

@@ -63,6 +63,27 @@ export interface AccountRecord {
 export const tenantAccountsMap = new Map<string, AccountRecord[]>();
 export const tenantJournalEntriesMap = new Map<string, JournalEntry[]>();
 
+/**
+ * Completely wipe journal entries and reset all account balances to 0
+ */
+export function wipeAllJournalEntriesAndResetAccounts(companyId?: string): void {
+  const cid = companyId || getCurrentTenantId() || 'comp_001';
+  tenantJournalEntriesMap.set(cid, []);
+  if (cid !== 'comp_001') {
+    tenantJournalEntriesMap.set('comp_001', []);
+  }
+  tenantJournalEntriesMap.clear();
+
+  for (const [_, accs] of tenantAccountsMap.entries()) {
+    if (Array.isArray(accs)) {
+      for (const a of accs) {
+        a.balance = 0;
+        a.updated_at = new Date().toISOString();
+      }
+    }
+  }
+}
+
 // ============================================================================
 // 2. Standard Chart of Accounts (COA)
 // ============================================================================
@@ -2064,23 +2085,72 @@ export function computeUnifiedFinancialMetrics(
     netRevenue = roundMoney(mockInvoicesList.reduce((sum, inv: any) => sum + Number(inv.total || inv.amount || 0), 0));
   }
 
-  // Cost of Goods Sold = 5101 balance
-  let cogs = roundMoney(accMap.get('5101')?.balance || 0);
-  if (cogs <= 0 && mockInvoicesList.length > 0) {
-    let computedItemCogs = 0;
-    for (const inv of mockInvoicesList) {
-      const items: any[] = (inv as any).items || (inv as any).cartData || (inv as any).invoice_items || [];
+  const purchasesTotal = roundMoney(
+    mockPurchaseInvoicesList
+      .filter((p: any) => (p.status || '').toUpperCase() !== 'CANCELLED')
+      .reduce((sum: number, pur: any) => sum + Number(pur.grandTotal ?? pur.total ?? pur.total_amount ?? 0), 0)
+  );
+
+  // Exact IFRS/GAAP COGS: Cost of actual units sold (soldItemsCost)
+  let soldItemsCost = 0;
+  for (const inv of mockInvoicesList) {
+    if ((inv.status || '').toUpperCase() === 'CANCELLED') continue;
+    const items: any[] = (inv as any).items || (inv as any).cartData || (inv as any).invoice_items || (inv as any).products || [];
+    if (Array.isArray(items)) {
       for (const it of items) {
-        const prod = mockProducts.find((p) => String(p.id) === String(it.productId || it.product_id || it.id));
-        const cost = Number(it.cost_price ?? it.cost ?? it.unit_cost ?? prod?.cost_price ?? prod?.purchase_price ?? 0);
-        const qty = Number(it.quantity ?? it.qty ?? 1);
-        computedItemCogs += cost * qty;
+        const itProdId = String(it.productId || it.product_id || it.id || '').trim();
+        const itSku = String(it.sku || '').trim().toLowerCase();
+        const itName = String(it.name || it.product_name || it.title || '').trim().toLowerCase();
+
+        const matchedProduct = mockProducts.find((p) => {
+          const prId = String(p.id || '').trim();
+          const prSku = String(p.sku || '').trim().toLowerCase();
+          const prName = String(p.name || '').trim().toLowerCase();
+          return (
+            (itProdId && prId && prId === itProdId) ||
+            (itSku && prSku && prSku === itSku) ||
+            (itName && prName && prName === itName)
+          );
+        });
+
+        const cost = Number(
+          it.cost_price ??
+          it.costPrice ??
+          it.cost ??
+          it.unit_cost ??
+          matchedProduct?.cost_price ??
+          matchedProduct?.purchase_price ??
+          0
+        );
+        const qty = Number(it.quantity ?? it.qty ?? it.count ?? 1);
+        soldItemsCost += cost * qty;
       }
     }
-    cogs = roundMoney(computedItemCogs);
+  }
+  soldItemsCost = roundMoney(soldItemsCost);
+
+  // Accounting hierarchy for COGS
+  const glCogs = roundMoney(accMap.get('5101')?.balance || 0);
+  let cogs = 0;
+
+  if (soldItemsCost > 0) {
+    cogs = soldItemsCost;
+  } else if (glCogs > 0) {
+    cogs = glCogs;
+  } else if (purchasesTotal > 0 || inventoryBalance > 0) {
+    // Periodic inventory accounting equation: COGS = Purchases - Ending Inventory Valuation
+    cogs = roundMoney(Math.max(0, purchasesTotal - inventoryBalance));
+    if (cogs === 0 && purchasesTotal > 0 && netRevenue > 0) {
+      cogs = roundMoney(Math.min(purchasesTotal, netRevenue * 0.70));
+    }
+  } else if (netRevenue > 0) {
+    // Fallback only when no inventory or item cost exists
+    cogs = roundMoney(netRevenue * 0.70);
+  } else {
+    cogs = 0;
   }
 
-  const grossProfit = roundMoney(Math.max(0, netRevenue - cogs));
+  const grossProfit = roundMoney(netRevenue - cogs);
 
   // Operating Expenses = 5201 + 5202 + mockExpenses
   let salariesExpense = roundMoney(accMap.get('5201')?.balance || 0);
@@ -2092,6 +2162,7 @@ export function computeUnifiedFinancialMetrics(
   }
 
   const netProfit = roundMoney(grossProfit - totalExpenses);
+  const netIncome = netProfit;
   const marginPercentage = netRevenue > 0 ? roundMoney((netProfit / netRevenue) * 100) : 0;
   const netVatPayable = roundMoney(Math.max(0, outputVatBalance - inputVatBalance));
 
@@ -2162,10 +2233,12 @@ export function computeUnifiedFinancialMetrics(
       discounts: 0,
       netRevenue: 0,
       cogs: 0,
+      cogsTotal: 0,
       grossProfit: 0,
       operatingExpenses: 0,
       netProfit: 0,
       netIncome: 0,
+      purchasesTotal: 0,
       marginPercentage: 0,
       cashBalance: 0,
       bankBalance: 0,
@@ -2198,10 +2271,12 @@ export function computeUnifiedFinancialMetrics(
     discounts: salesReturns,
     netRevenue,
     cogs,
+    cogsTotal: cogs,
     grossProfit,
     operatingExpenses: totalExpenses,
     netProfit,
     netIncome: netProfit,
+    purchasesTotal,
     marginPercentage,
     cashBalance,
     bankBalance,

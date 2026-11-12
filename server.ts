@@ -11,6 +11,7 @@ import {
   mockSuppliersList,
   setEnterpriseDbPool,
   mockBackupsDatabase,
+  mockLedgerEntries,
   resolveCompanyId,
   inMemoryEnterpriseStates,
 } from './server/routes/enterpriseApi';
@@ -2486,6 +2487,7 @@ app.get('/api/v1/system/clean-mode-status', (req: Request, res: Response) => {
 app.post(['/api/v1/system/wipe-demo-data', '/api/v1/production/initialize-clean', '/api/v1/sandbox/purge'], async (req: Request, res: Response) => {
   try {
     const companyId = resolveCompanyId(req);
+    mockLedgerEntries.length = 0;
     // Delete in-memory enterprise module states
     for (const key of ['fuel_station', 'fuel_tanks', 'fuel_meter_records', 'inventory_warehouses', 'sales_reps', 'custom_ledger', 'battery_warranties', 'tire_records']) {
       inMemoryEnterpriseStates.delete(`${companyId}::${key}`);

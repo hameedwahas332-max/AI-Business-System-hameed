@@ -27,6 +27,7 @@ import {
   Info
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { executeLocalWipeDemoData } from '../../services/localDesktopApiFallback';
 
 type SubTab = 'onboarding' | 'invitations' | 'health_activation' | 'sample_data' | 'support_tickets' | 'pilot_program';
 
@@ -299,6 +300,12 @@ export const CustomerSuccessTab: React.FC = () => {
     if (!window.confirm('هل أنت متأكد من رغبتك في حذف وتصفير البيانات التجريبية (Sandbox) لبدء تشغيل النظام ببياناتك الحقيقية الفعلية؟ لن يتم حذف حسابك أو اسم المنشأة أو إعدادات الربط أو أسعار الصرف.')) return;
     setLoading(true);
     try {
+      try {
+        await executeLocalWipeDemoData();
+      } catch (localErr) {
+        console.warn('Local wipe fallback warning:', localErr);
+      }
+
       const res = await safeFetchJson('/api/v1/system/wipe-demo-data', { method: 'POST', headers: authHeaders });
       if (res.ok && res.data?.success) {
         // Clear cached demo localStorage items
@@ -312,7 +319,7 @@ export const CustomerSuccessTab: React.FC = () => {
           'erp_pos_shift_history',
           'erp_pos_shift_history_v1',
           'erp_custom_ledger_entries',
-          'erp_sales_reps_v1',
+          'erp_journal_entries_v1',
           'erp_battery_warranty_records',
           'erp_tire_dot_records',
         ];
@@ -325,6 +332,10 @@ export const CustomerSuccessTab: React.FC = () => {
         });
         localStorage.setItem('erp_clean_production_mode_v1', 'true');
         localStorage.setItem('erp_sample_data_cleaned', 'true');
+        localStorage.setItem('erp_journal_entries_v1', '[]');
+        localStorage.setItem('erp_custom_ledger_entries', '[]');
+        localStorage.setItem('erp_sales_reps_v1', '[]');
+        localStorage.setItem('erp_sales_reps', '[]');
 
         // Update eternal accounts vault snapshot with clean arrays while strictly preserving user and company
         try {

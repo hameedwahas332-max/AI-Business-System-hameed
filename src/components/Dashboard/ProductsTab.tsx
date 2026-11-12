@@ -169,13 +169,6 @@ export const ProductsTab: React.FC = () => {
         ? res
         : (res?.data || res?.items || res?.products || []);
 
-      if (items.length > 0) {
-        try {
-          localStorage.removeItem('erp_clean_production_mode_v1');
-          localStorage.removeItem('erp_sample_data_cleaned');
-        } catch {}
-      }
-
       setProducts(items);
     } catch (err: any) {
       setError(err.message || 'فشل جلب دليل المنتجات');
