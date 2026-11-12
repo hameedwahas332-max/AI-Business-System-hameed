@@ -2041,67 +2041,123 @@ app.post('/api/v1/saas/sample-data/seed', (_req: Request, res: Response) => {
   });
 });
 
-app.get('/api/v1/reports/sales', (req: Request, res: Response) => {
+app.get(['/api/v1/reports/sales', '/api/reports/sales'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   const isClean = isTenantCleanProductionMode(companyId);
 
-  if (isClean && mockInvoicesList.length === 0) {
+  const startDate = (req.query.start_date || req.query.startDate || '') as string;
+  const endDate = (req.query.end_date || req.query.endDate || '') as string;
+  const groupBy = (req.query.group_by || req.query.groupBy || 'by_month') as string;
+
+  const validInvoices = mockInvoicesList.filter((inv) => {
+    if (!inv || inv.status === 'CANCELLED' || inv.status === 'VOID') return false;
+    const rawDate = inv.date || inv.issue_date || inv.created_at || '';
+    const dateStr = typeof rawDate === 'string' ? rawDate.split('T')[0] : '';
+    if (startDate && dateStr && dateStr < startDate) return false;
+    if (endDate && dateStr && dateStr > endDate) return false;
+    return true;
+  });
+
+  if (isClean && validInvoices.length === 0) {
     return res.json({ success: true, data: [] });
   }
 
-  const groupBy = req.query.group_by || 'by_month';
-  let rows: any[] = [];
+  interface AggregatedGroup {
+    groupName: string;
+    subtotal: number;
+    discount: number;
+    tax: number;
+    total: number;
+    paid: number;
+    outstanding: number;
+  }
 
-  if (mockInvoicesList.length > 0) {
-    if (groupBy === 'by_product') {
-      const prodMap: Record<string, { subtotal: number; discount: number; tax: number; total: number; paid: number; outstanding: number }> = {};
-      for (const inv of mockInvoicesList) {
-        const items = inv.items || [];
+  const groupMap: Record<string, AggregatedGroup> = {};
+
+  const addToGroup = (name: string, sub: number, disc: number, tx: number, tot: number, pd: number) => {
+    if (!groupMap[name]) {
+      groupMap[name] = { groupName: name, subtotal: 0, discount: 0, tax: 0, total: 0, paid: 0, outstanding: 0 };
+    }
+    groupMap[name].subtotal += roundMoney(sub);
+    groupMap[name].discount += roundMoney(disc);
+    groupMap[name].tax += roundMoney(tx);
+    groupMap[name].total += roundMoney(tot);
+    groupMap[name].paid += roundMoney(pd);
+    groupMap[name].outstanding = Math.max(0, roundMoney(groupMap[name].total - groupMap[name].paid));
+  };
+
+  if (groupBy === 'by_product') {
+    for (const inv of validInvoices) {
+      const items = inv.items || [];
+      const tot = Number(inv.total || inv.grandTotal || inv.amount || 0);
+      const paid = Number(
+        inv.paid_amount ??
+        inv.paidAmount ??
+        (inv.payment_status === 'PAID' || inv.status === 'paid' ? tot : 0)
+      );
+      const paidRatio = tot > 0 ? Math.min(1, paid / tot) : 1;
+
+      if (Array.isArray(items) && items.length > 0) {
         for (const it of items) {
-          const name = it.product_name || it.name || 'صنف';
-          if (!prodMap[name]) prodMap[name] = { subtotal: 0, discount: 0, tax: 0, total: 0, paid: 0, outstanding: 0 };
-          const lineTotal = Number(it.total || (it.quantity * it.unit_price) || 0);
-          prodMap[name].subtotal += lineTotal;
-          prodMap[name].total += lineTotal;
-          prodMap[name].paid += lineTotal;
+          const name = it.product_name || it.productName || it.name || 'صنف عام';
+          const qty = Number(it.quantity ?? it.qty ?? 1);
+          const price = Number(it.unit_price ?? it.price ?? 0);
+          const sub = Number(it.subtotal ?? (qty * price));
+          const disc = Number(it.discount ?? 0);
+          const tx = Number(it.tax ?? 0);
+          const itemTotal = Number(it.total ?? (sub - disc + tx));
+          const itemPaid = roundMoney(itemTotal * paidRatio);
+          addToGroup(name, sub, disc, tx, itemTotal, itemPaid);
         }
-      }
-      rows = Object.entries(prodMap).map(([groupName, data]) => ({ groupName, ...data }));
-    } else if (groupBy === 'by_customer') {
-      const custMap: Record<string, { subtotal: number; discount: number; tax: number; total: number; paid: number; outstanding: number }> = {};
-      for (const inv of mockInvoicesList) {
-        const name = inv.customer_name || 'عميل';
-        if (!custMap[name]) custMap[name] = { subtotal: 0, discount: 0, tax: 0, total: 0, paid: 0, outstanding: 0 };
-        const tot = Number(inv.total || inv.amount || 0);
-        const disc = Number(inv.discount || 0);
+      } else {
+        const name = inv.description || 'مبيعات مباشرة';
+        const sub = Number(inv.subtotal ?? (tot - Number(inv.tax || 0)));
+        const disc = Number(inv.discount ?? 0);
         const tx = Number(inv.tax || 0);
-        custMap[name].subtotal += tot - tx + disc;
-        custMap[name].discount += disc;
-        custMap[name].tax += tx;
-        custMap[name].total += tot;
-        custMap[name].paid += inv.payment_status === 'PAID' ? tot : 0;
-        custMap[name].outstanding += inv.payment_status !== 'PAID' ? tot : 0;
+        addToGroup(name, sub, disc, tx, tot, paid);
       }
-      rows = Object.entries(custMap).map(([groupName, data]) => ({ groupName, ...data }));
-    } else {
-      // by_month
-      const monthMap: Record<string, { subtotal: number; discount: number; tax: number; total: number; paid: number; outstanding: number }> = {};
-      for (const inv of mockInvoicesList) {
-        const m = (inv.issue_date || inv.date || new Date().toISOString()).slice(0, 7);
-        if (!monthMap[m]) monthMap[m] = { subtotal: 0, discount: 0, tax: 0, total: 0, paid: 0, outstanding: 0 };
-        const tot = Number(inv.total || inv.amount || 0);
-        const disc = Number(inv.discount || 0);
-        const tx = Number(inv.tax || 0);
-        monthMap[m].subtotal += tot - tx + disc;
-        monthMap[m].discount += disc;
-        monthMap[m].tax += tx;
-        monthMap[m].total += tot;
-        monthMap[m].paid += inv.payment_status === 'PAID' ? tot : 0;
-        monthMap[m].outstanding += inv.payment_status !== 'PAID' ? tot : 0;
+    }
+  } else {
+    for (const inv of validInvoices) {
+      const rawDate = inv.date || inv.issue_date || inv.created_at || new Date().toISOString();
+      const dateStr = typeof rawDate === 'string' ? rawDate.split('T')[0] : '';
+      let groupName = 'غير محدد';
+
+      if (groupBy === 'by_month') {
+        groupName = dateStr.slice(0, 7) || 'غير محدد';
+      } else if (groupBy === 'by_day') {
+        groupName = dateStr || 'غير محدد';
+      } else if (groupBy === 'by_customer') {
+        groupName = inv.customer_name || inv.customerName || inv.clientName || 'عميل نقدي عام';
+      } else {
+        groupName = dateStr.slice(0, 7) || 'غير محدد';
       }
-      rows = Object.entries(monthMap).map(([groupName, data]) => ({ groupName, ...data }));
+
+      const tot = Number(inv.total || inv.grandTotal || inv.amount || 0);
+      const disc = Number(inv.discount || 0);
+      const tx = Number(inv.tax || 0);
+      const sub = Number(inv.subtotal ?? (tot - tx + disc));
+      const paid = Number(
+        inv.paid_amount ??
+        inv.paidAmount ??
+        (inv.payment_status === 'PAID' || inv.status === 'paid' ? tot : 0)
+      );
+
+      addToGroup(groupName, sub, disc, tx, tot, paid);
     }
   }
+
+  const rows = Object.values(groupMap).map((r) => ({
+    groupName: r.groupName,
+    subtotal: roundMoney(r.subtotal),
+    discount: roundMoney(r.discount),
+    tax: roundMoney(r.tax),
+    total: roundMoney(r.total),
+    paid: roundMoney(r.paid),
+    outstanding: roundMoney(r.outstanding),
+  }));
+
+  rows.sort((a, b) => b.total - a.total);
 
   res.json({
     success: true,
@@ -2109,34 +2165,123 @@ app.get('/api/v1/reports/sales', (req: Request, res: Response) => {
   });
 });
 
-app.get('/api/v1/reports/purchases', (req: Request, res: Response) => {
+app.get(['/api/v1/reports/purchases', '/api/reports/purchases'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   const isClean = isTenantCleanProductionMode(companyId);
 
-  if (isClean && mockPurchaseInvoicesList.length === 0) {
+  const startDate = (req.query.start_date || req.query.startDate || '') as string;
+  const endDate = (req.query.end_date || req.query.endDate || '') as string;
+  const groupBy = (req.query.group_by || req.query.groupBy || 'by_month') as string;
+
+  const validPurchases = mockPurchaseInvoicesList.filter((pi) => {
+    if (!pi || pi.status === 'CANCELLED' || pi.status === 'VOID') return false;
+    const rawDate = pi.date || pi.issue_date || pi.invoiceDate || pi.created_at || '';
+    const dateStr = typeof rawDate === 'string' ? rawDate.split('T')[0] : '';
+    if (startDate && dateStr && dateStr < startDate) return false;
+    if (endDate && dateStr && dateStr > endDate) return false;
+    return true;
+  });
+
+  if (isClean && validPurchases.length === 0) {
     return res.json({ success: true, data: [] });
   }
 
-  const groupBy = req.query.group_by || 'by_month';
-  let rows: any[] = [];
-
-  if (mockPurchaseInvoicesList.length > 0) {
-    const suppMap: Record<string, { subtotal: number; discount: number; tax: number; total: number; paid: number; outstanding: number }> = {};
-    for (const pi of mockPurchaseInvoicesList) {
-      const name = groupBy === 'by_supplier' ? (pi.supplierName || 'مورد') : (pi.invoiceDate || new Date().toISOString()).slice(0, 7);
-      if (!suppMap[name]) suppMap[name] = { subtotal: 0, discount: 0, tax: 0, total: 0, paid: 0, outstanding: 0 };
-      const tot = Number(pi.grandTotal || pi.total || 0);
-      const disc = Number(pi.invoiceDiscount || pi.discount || 0);
-      const tx = Number(pi.taxAmount || 0);
-      suppMap[name].subtotal += tot - tx + disc;
-      suppMap[name].discount += disc;
-      suppMap[name].tax += tx;
-      suppMap[name].total += tot;
-      suppMap[name].paid += pi.paymentStatus === 'PAID' ? tot : 0;
-      suppMap[name].outstanding += pi.paymentStatus !== 'PAID' ? tot : 0;
-    }
-    rows = Object.entries(suppMap).map(([groupName, data]) => ({ groupName, ...data }));
+  interface AggregatedGroup {
+    groupName: string;
+    subtotal: number;
+    discount: number;
+    tax: number;
+    total: number;
+    paid: number;
+    outstanding: number;
   }
+
+  const groupMap: Record<string, AggregatedGroup> = {};
+
+  const addToGroup = (name: string, sub: number, disc: number, tx: number, tot: number, pd: number) => {
+    if (!groupMap[name]) {
+      groupMap[name] = { groupName: name, subtotal: 0, discount: 0, tax: 0, total: 0, paid: 0, outstanding: 0 };
+    }
+    groupMap[name].subtotal += roundMoney(sub);
+    groupMap[name].discount += roundMoney(disc);
+    groupMap[name].tax += roundMoney(tx);
+    groupMap[name].total += roundMoney(tot);
+    groupMap[name].paid += roundMoney(pd);
+    groupMap[name].outstanding = Math.max(0, roundMoney(groupMap[name].total - groupMap[name].paid));
+  };
+
+  if (groupBy === 'by_product') {
+    for (const pi of validPurchases) {
+      const items = pi.items || [];
+      const tot = Number(pi.grandTotal || pi.total || pi.total_amount || 0);
+      const paid = Number(
+        pi.paid_amount ??
+        pi.paidAmount ??
+        (pi.paymentStatus === 'PAID' || pi.payment_status === 'PAID' || pi.status === 'paid' ? tot : 0)
+      );
+      const paidRatio = tot > 0 ? Math.min(1, paid / tot) : 1;
+
+      if (Array.isArray(items) && items.length > 0) {
+        for (const it of items) {
+          const name = it.product_name || it.productName || it.name || 'صنف مشتريات';
+          const qty = Number(it.quantity ?? it.qty ?? 1);
+          const price = Number(it.unit_cost ?? it.cost ?? it.unit_price ?? it.price ?? 0);
+          const sub = Number(it.subtotal ?? (qty * price));
+          const disc = Number(it.discount ?? 0);
+          const tx = Number(it.tax ?? 0);
+          const itemTotal = Number(it.total ?? (sub - disc + tx));
+          const itemPaid = roundMoney(itemTotal * paidRatio);
+          addToGroup(name, sub, disc, tx, itemTotal, itemPaid);
+        }
+      } else {
+        const name = pi.description || 'مشتريات مباشرة';
+        const sub = Number(pi.subtotal ?? (tot - Number(pi.taxAmount || pi.tax || 0)));
+        const disc = Number(pi.invoiceDiscount ?? pi.discount ?? 0);
+        const tx = Number(pi.taxAmount ?? pi.tax ?? 0);
+        addToGroup(name, sub, disc, tx, tot, paid);
+      }
+    }
+  } else {
+    for (const pi of validPurchases) {
+      const rawDate = pi.date || pi.issue_date || pi.invoiceDate || pi.created_at || new Date().toISOString();
+      const dateStr = typeof rawDate === 'string' ? rawDate.split('T')[0] : '';
+      let groupName = 'غير محدد';
+
+      if (groupBy === 'by_month') {
+        groupName = dateStr.slice(0, 7) || 'غير محدد';
+      } else if (groupBy === 'by_day') {
+        groupName = dateStr || 'غير محدد';
+      } else if (groupBy === 'by_customer' || groupBy === 'by_supplier') {
+        groupName = pi.supplierName || pi.supplier_name || 'مورد عام';
+      } else {
+        groupName = dateStr.slice(0, 7) || 'غير محدد';
+      }
+
+      const tot = Number(pi.grandTotal || pi.total || pi.total_amount || 0);
+      const disc = Number(pi.invoiceDiscount ?? pi.discount ?? 0);
+      const tx = Number(pi.taxAmount ?? pi.tax ?? 0);
+      const sub = Number(pi.subtotal ?? (tot - tx + disc));
+      const paid = Number(
+        pi.paid_amount ??
+        pi.paidAmount ??
+        (pi.paymentStatus === 'PAID' || pi.payment_status === 'PAID' || pi.status === 'paid' ? tot : 0)
+      );
+
+      addToGroup(groupName, sub, disc, tx, tot, paid);
+    }
+  }
+
+  const rows = Object.values(groupMap).map((r) => ({
+    groupName: r.groupName,
+    subtotal: roundMoney(r.subtotal),
+    discount: roundMoney(r.discount),
+    tax: roundMoney(r.tax),
+    total: roundMoney(r.total),
+    paid: roundMoney(r.paid),
+    outstanding: roundMoney(r.outstanding),
+  }));
+
+  rows.sort((a, b) => b.total - a.total);
 
   res.json({
     success: true,
@@ -2160,26 +2305,78 @@ app.get(['/api/v1/reports/profit-loss', '/api/reports/profit-loss'], (req: Reque
   });
 });
 
-app.get('/api/v1/reports/receivables', (req: Request, res: Response) => {
+app.get(['/api/v1/reports/receivables', '/api/reports/receivables'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   const isClean = isTenantCleanProductionMode(companyId);
 
-  const customerAging = mockCustomersList
-    .filter((c) => Number(c.balance || c.current_balance || 0) > 0)
-    .map((c) => {
-      const bal = Number(c.balance || c.current_balance || 0);
-      return {
-        name: c.name,
-        phone: c.phone || '-',
-        currentBalance: bal,
-        b0_30: bal,
-        b31_60: 0,
-        b61_90: 0,
-        b90_plus: 0,
-      };
-    });
+  const now = Date.now();
+  const validInvoices = mockInvoicesList.filter(
+    (inv) => inv && inv.status !== 'CANCELLED' && inv.status !== 'VOID'
+  );
 
-  const totalReceivables = customerAging.reduce((s, c) => s + c.currentBalance, 0);
+  const customerAging = mockCustomersList
+    .map((c) => {
+      const custId = String(c.id || '');
+      const custName = c.name || 'عميل';
+      const bal = roundMoney(Math.max(0, Number(c.balance || c.current_balance || c.currentBalance || 0)));
+
+      const custInvs = validInvoices.filter(
+        (inv) =>
+          (String(inv.customer_id || inv.customerId || '') === custId ||
+            inv.customer_name === custName ||
+            inv.customerName === custName) &&
+          inv.payment_status !== 'PAID' &&
+          inv.status !== 'paid'
+      );
+
+      let b0_30 = 0;
+      let b31_60 = 0;
+      let b61_90 = 0;
+      let b90_plus = 0;
+
+      for (const inv of custInvs) {
+        const tot = Number(inv.total || inv.grandTotal || inv.amount || 0);
+        const pd = Number(inv.paid_amount ?? inv.paidAmount ?? 0);
+        const rem = roundMoney(Math.max(0, Number(inv.remaining_amount ?? inv.remainingAmount ?? tot - pd)));
+
+        if (rem <= 0) continue;
+
+        const rawDate = inv.date || inv.issue_date || inv.created_at;
+        const invTime = rawDate ? new Date(rawDate).getTime() : now;
+        const diffDays = Math.max(0, Math.floor((now - invTime) / (1000 * 60 * 60 * 24)));
+
+        if (diffDays <= 30) b0_30 += rem;
+        else if (diffDays <= 60) b31_60 += rem;
+        else if (diffDays <= 90) b61_90 += rem;
+        else b90_plus += rem;
+      }
+
+      const assignedTotal = b0_30 + b31_60 + b61_90 + b90_plus;
+      if (bal > assignedTotal) {
+        b0_30 += bal - assignedTotal;
+      } else if (bal < assignedTotal && assignedTotal > 0) {
+        const factor = bal / assignedTotal;
+        b0_30 = roundMoney(b0_30 * factor);
+        b31_60 = roundMoney(b31_60 * factor);
+        b61_90 = roundMoney(b61_90 * factor);
+        b90_plus = roundMoney(Math.max(0, bal - b0_30 - b31_60 - b61_90));
+      }
+
+      return {
+        id: custId,
+        name: custName,
+        phone: c.phone || '-',
+        currentBalance: roundMoney(bal),
+        b0_30: roundMoney(b0_30),
+        b31_60: roundMoney(b31_60),
+        b61_90: roundMoney(b61_90),
+        b90_plus: roundMoney(b90_plus),
+      };
+    })
+    .filter((c) => c.currentBalance > 0);
+
+  customerAging.sort((a, b) => b.currentBalance - a.currentBalance);
+  const totalReceivables = roundMoney(customerAging.reduce((s, c) => s + c.currentBalance, 0));
 
   res.json({
     success: true,
@@ -2190,26 +2387,79 @@ app.get('/api/v1/reports/receivables', (req: Request, res: Response) => {
   });
 });
 
-app.get('/api/v1/reports/payables', (req: Request, res: Response) => {
+app.get(['/api/v1/reports/payables', '/api/reports/payables'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   const isClean = isTenantCleanProductionMode(companyId);
 
-  const supplierAging = mockSuppliersList
-    .filter((s) => Number(s.balance || s.current_balance || 0) > 0)
-    .map((s) => {
-      const bal = Number(s.balance || s.current_balance || 0);
-      return {
-        name: s.name,
-        phone: s.phone || '-',
-        currentBalance: bal,
-        b0_30: bal,
-        b31_60: 0,
-        b61_90: 0,
-        b90_plus: 0,
-      };
-    });
+  const now = Date.now();
+  const validPurchases = mockPurchaseInvoicesList.filter(
+    (pi) => pi && pi.status !== 'CANCELLED' && pi.status !== 'VOID'
+  );
 
-  const totalPayables = supplierAging.reduce((s, sp) => s + sp.currentBalance, 0);
+  const supplierAging = mockSuppliersList
+    .map((s) => {
+      const suppId = String(s.id || '');
+      const suppName = s.name || 'مورد';
+      const bal = roundMoney(Math.max(0, Number(s.balance || s.current_balance || s.currentBalance || 0)));
+
+      const suppInvs = validPurchases.filter(
+        (pi) =>
+          (String(pi.supplier_id || pi.supplierId || '') === suppId ||
+            pi.supplier_name === suppName ||
+            pi.supplierName === suppName) &&
+          pi.paymentStatus !== 'PAID' &&
+          pi.payment_status !== 'PAID' &&
+          pi.status !== 'paid'
+      );
+
+      let b0_30 = 0;
+      let b31_60 = 0;
+      let b61_90 = 0;
+      let b90_plus = 0;
+
+      for (const pi of suppInvs) {
+        const tot = Number(pi.grandTotal || pi.total || pi.total_amount || 0);
+        const pd = Number(pi.paid_amount ?? pi.paidAmount ?? 0);
+        const rem = roundMoney(Math.max(0, Number(pi.remaining_amount ?? pi.remainingAmount ?? tot - pd)));
+
+        if (rem <= 0) continue;
+
+        const rawDate = pi.date || pi.issue_date || pi.invoiceDate || pi.created_at;
+        const piTime = rawDate ? new Date(rawDate).getTime() : now;
+        const diffDays = Math.max(0, Math.floor((now - piTime) / (1000 * 60 * 60 * 24)));
+
+        if (diffDays <= 30) b0_30 += rem;
+        else if (diffDays <= 60) b31_60 += rem;
+        else if (diffDays <= 90) b61_90 += rem;
+        else b90_plus += rem;
+      }
+
+      const assignedTotal = b0_30 + b31_60 + b61_90 + b90_plus;
+      if (bal > assignedTotal) {
+        b0_30 += bal - assignedTotal;
+      } else if (bal < assignedTotal && assignedTotal > 0) {
+        const factor = bal / assignedTotal;
+        b0_30 = roundMoney(b0_30 * factor);
+        b31_60 = roundMoney(b31_60 * factor);
+        b61_90 = roundMoney(b61_90 * factor);
+        b90_plus = roundMoney(Math.max(0, bal - b0_30 - b31_60 - b61_90));
+      }
+
+      return {
+        id: suppId,
+        name: suppName,
+        phone: s.phone || '-',
+        currentBalance: roundMoney(bal),
+        b0_30: roundMoney(b0_30),
+        b31_60: roundMoney(b31_60),
+        b61_90: roundMoney(b61_90),
+        b90_plus: roundMoney(b90_plus),
+      };
+    })
+    .filter((s) => s.currentBalance > 0);
+
+  supplierAging.sort((a, b) => b.currentBalance - a.currentBalance);
+  const totalPayables = roundMoney(supplierAging.reduce((s, sp) => s + sp.currentBalance, 0));
 
   res.json({
     success: true,
@@ -2383,16 +2633,81 @@ app.get(['/api/v1/reports/income-statement', '/api/reports/income-statement'], (
 app.get(['/api/v1/reports/tax', '/api/reports/tax'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   const metrics = computeUnifiedFinancialMetrics(companyId);
-  const outputVat = roundMoney(metrics.salesRevenue * 0.15);
-  const inputVat = roundMoney(metrics.cogs * 0.15);
+
+  const startDate = (req.query.start_date || req.query.startDate || '') as string;
+  const endDate = (req.query.end_date || req.query.endDate || '') as string;
+
+  const isDateMatch = (item: any) => {
+    const rawDate = item.date || item.issue_date || item.invoiceDate || item.created_at || '';
+    const dateStr = typeof rawDate === 'string' ? rawDate.split('T')[0] : '';
+    if (startDate && dateStr && dateStr < startDate) return false;
+    if (endDate && dateStr && dateStr > endDate) return false;
+    return true;
+  };
+
+  const validInvoices = mockInvoicesList.filter(
+    (inv) => inv && inv.status !== 'CANCELLED' && inv.status !== 'VOID' && isDateMatch(inv)
+  );
+
+  const validPurchases = mockPurchaseInvoicesList.filter(
+    (pi) => pi && pi.status !== 'CANCELLED' && pi.status !== 'VOID' && isDateMatch(pi)
+  );
+
+  let outputVat = 0;
+  let taxableSales = 0;
+  for (const inv of validInvoices) {
+    const tot = Number(inv.total || inv.grandTotal || inv.amount || 0);
+    const tx = Number(inv.tax || 0);
+    outputVat += tx;
+    taxableSales += tot - tx;
+  }
+
+  let inputVat = 0;
+  let taxablePurchases = 0;
+  for (const pi of validPurchases) {
+    const tot = Number(pi.grandTotal || pi.total || 0);
+    const tx = Number(pi.taxAmount || pi.tax || 0);
+    inputVat += tx;
+    taxablePurchases += tot - tx;
+  }
+
+  if (outputVat === 0 && (taxableSales > 0 || metrics.salesRevenue > 0)) {
+    outputVat = roundMoney((taxableSales || metrics.salesRevenue) * 0.15);
+  }
+  if (inputVat === 0 && (taxablePurchases > 0 || metrics.cogs > 0)) {
+    inputVat = roundMoney((taxablePurchases || metrics.cogs) * 0.15);
+  }
+
+  taxableSales = roundMoney(taxableSales || metrics.salesRevenue);
+  outputVat = roundMoney(outputVat);
+  taxablePurchases = roundMoney(taxablePurchases || metrics.cogs);
+  inputVat = roundMoney(inputVat);
+  const netVatPayable = roundMoney(outputVat - inputVat);
+
+  const taxableInvoices = validInvoices.map((inv) => ({
+    id: inv.id,
+    invoiceNumber: inv.invoice_number || inv.invoiceNumber || '-',
+    customerName: inv.customer_name || inv.customerName || 'عميل',
+    date: inv.date || inv.issue_date || inv.created_at,
+    subtotal: roundMoney(Number(inv.subtotal ?? (Number(inv.total || 0) - Number(inv.tax || 0)))),
+    tax: roundMoney(Number(inv.tax || 0)),
+    total: roundMoney(Number(inv.total || inv.grandTotal || 0)),
+  }));
+
   res.json({
     success: true,
     data: {
-      taxableSales: metrics.salesRevenue,
+      taxableSales,
       outputVat,
-      taxablePurchases: metrics.cogs,
+      taxablePurchases,
       inputVat,
-      netVatPayable: metrics.vatPayable,
+      netVatPayable,
+      vatOutput: outputVat,
+      vatInput: inputVat,
+      netVat: netVatPayable,
+      taxRate: 15,
+      taxableInvoices,
+      period: 'الفترة الضريبية الحالية',
     },
   });
 });

@@ -2259,19 +2259,31 @@ enterpriseRouter.get(['/financial-reports/income-statement', '/reports/income-st
     success: true,
     data: {
       period: 'الفترة المالية الحالية',
-      revenue: {
-        salesRevenue: metrics.salesRevenue,
-        discounts: metrics.discounts,
-        netRevenue: metrics.netRevenue,
-      },
+      // Top-level fields for ReportsTab.tsx & FinancialReportingHub.tsx
+      salesRevenue: metrics.salesRevenue,
+      netRevenue: metrics.netRevenue,
+      cogs: metrics.cogs,
+      grossProfit: metrics.grossProfit,
+      operatingExpensesTotal: metrics.operatingExpenses,
+      netProfit: metrics.netProfit,
+      operatingIncome: metrics.netProfit,
+      netIncome: metrics.netProfit,
+      marginPercentage: metrics.marginPercentage,
+      // Retained fields for FinancialReportingHub.tsx & ReportsTab.tsx
+      revenue: metrics.netRevenue,
       costOfGoodsSold: {
         openingInventory: 0,
         purchases: metrics.cogs,
         closingInventory: metrics.inventoryValuation,
         totalCOGS: metrics.cogs,
       },
-      grossProfit: metrics.grossProfit,
-      operatingExpenses: {
+      operatingExpenses: metrics.operatingExpenses,
+      revenueDetails: {
+        salesRevenue: metrics.salesRevenue,
+        discounts: metrics.discounts,
+        netRevenue: metrics.netRevenue,
+      },
+      operatingExpensesBreakdown: {
         salaries: Math.round(metrics.operatingExpenses * 0.6),
         rent: Math.round(metrics.operatingExpenses * 0.2),
         utilities: Math.round(metrics.operatingExpenses * 0.1),
@@ -2279,9 +2291,6 @@ enterpriseRouter.get(['/financial-reports/income-statement', '/reports/income-st
         depreciation: Math.round(metrics.operatingExpenses * 0.05),
         totalOperatingExpenses: metrics.operatingExpenses,
       },
-      operatingIncome: metrics.netProfit,
-      netIncome: metrics.netProfit,
-      marginPercentage: metrics.marginPercentage,
     },
   });
 });
@@ -2328,15 +2337,23 @@ enterpriseRouter.get(['/financial-reports/cash-flow', '/reports/cash-flow'], (re
   const companyId = resolveCompanyId(req);
   const metrics = computeUnifiedFinancialMetrics(companyId);
 
+  const inflows = metrics.netRevenue;
+  const outflows = roundMoney(metrics.cogs + metrics.operatingExpenses);
+
   res.json({
     success: true,
     data: {
+      inflows,
+      outflows,
       operatingActivities: metrics.netProfit,
       investingActivities: 0,
       financingActivities: 0,
       netCashFlow: metrics.totalCashAndBank,
       openingCash: 0,
       closingCash: metrics.totalCashAndBank,
+      cashInflow: inflows,
+      cashOutflow: outflows,
+      netCash: metrics.totalCashAndBank,
     },
   });
 });

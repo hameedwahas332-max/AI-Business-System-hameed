@@ -2514,6 +2514,884 @@ async function internalHandleLocalDesktopApiFallback(
     };
   }
 
+  // 8B. Reports & Tax Hub Handlers (Full Offline / Desktop Parity)
+
+  // 8B-1. Sales Report (/reports/sales)
+  if (cleanUrl.includes('/reports/sales')) {
+    const qStr = url.includes('?') ? url.split('?')[1] : '';
+    const searchParams = new URLSearchParams(qStr);
+    const startDate = searchParams.get('start_date') || searchParams.get('startDate') || '';
+    const endDate = searchParams.get('end_date') || searchParams.get('endDate') || '';
+    const groupBy = searchParams.get('group_by') || searchParams.get('groupBy') || 'by_month';
+
+    const rawInvoices = getLocalItem<any[]>('erp_invoices_v1', [], companyId);
+    const validInvoices = (Array.isArray(rawInvoices) ? rawInvoices : []).filter(
+      (inv: any) => inv && inv.status !== 'CANCELLED' && inv.status !== 'VOID'
+    );
+
+    const posSales = getLocalItem<any[]>('erp_pos_sales_log_v1', [], companyId);
+    const invoiceIds = new Set(
+      validInvoices.map((i: any) => String(i.id || i.invoice_number || i.invoiceNumber || ''))
+    );
+    const nonDupPosSales = (Array.isArray(posSales) ? posSales : []).filter((pos: any) => {
+      if (!pos || pos.status === 'CANCELLED' || pos.status === 'VOID') return false;
+      const posId = String(pos.id || pos.invoice_number || pos.invoiceNumber || pos.invoiceId || '');
+      return !invoiceIds.has(posId);
+    });
+
+    const allSales = [...validInvoices, ...nonDupPosSales];
+
+    // Filter by date range
+    const filteredSales = allSales.filter((sale: any) => {
+      const rawDate =
+        sale.date ||
+        sale.issue_date ||
+        sale.issueDate ||
+        sale.created_at ||
+        sale.createdAt ||
+        sale.timestamp ||
+        '';
+      const dateStr = typeof rawDate === 'string' ? rawDate.split('T')[0] : '';
+      if (startDate && dateStr && dateStr < startDate) return false;
+      if (endDate && dateStr && dateStr > endDate) return false;
+      return true;
+    });
+
+    // Customer map for fallback names
+    const customers = getLocalItem<any[]>('erp_customers_v1', [], companyId);
+    const custMap = new Map<string, string>();
+    for (const c of customers) {
+      if (c && c.id) custMap.set(String(c.id), c.name || c.trade_name || 'عميل');
+    }
+
+    interface AggregatedGroup {
+      groupName: string;
+      subtotal: number;
+      discount: number;
+      tax: number;
+      total: number;
+      paid: number;
+      outstanding: number;
+    }
+
+    const groupMap = new Map<string, AggregatedGroup>();
+
+    const addToGroup = (
+      name: string,
+      sub: number,
+      disc: number,
+      tx: number,
+      tot: number,
+      pd: number
+    ) => {
+      const existing = groupMap.get(name) || {
+        groupName: name,
+        subtotal: 0,
+        discount: 0,
+        tax: 0,
+        total: 0,
+        paid: 0,
+        outstanding: 0,
+      };
+      existing.subtotal += roundMoney(sub);
+      existing.discount += roundMoney(disc);
+      existing.tax += roundMoney(tx);
+      existing.total += roundMoney(tot);
+      existing.paid += roundMoney(pd);
+      existing.outstanding = Math.max(0, roundMoney(existing.total - existing.paid));
+      groupMap.set(name, existing);
+    };
+
+    if (groupBy === 'by_product') {
+      for (const sale of filteredSales) {
+        const items = sale.items || sale.line_items || sale.products || [];
+        const saleTot = Number(sale.total ?? sale.grandTotal ?? sale.total_amount ?? sale.amount ?? 0);
+        const salePaid = Number(
+          sale.paid_amount ??
+            sale.paidAmount ??
+            (sale.payment_status === 'PAID' || sale.status === 'PAID' ? saleTot : 0)
+        );
+        const paidRatio = saleTot > 0 ? Math.min(1, salePaid / saleTot) : 1;
+
+        if (Array.isArray(items) && items.length > 0) {
+          for (const item of items) {
+            const pName =
+              item.product_name ||
+              item.productName ||
+              item.name ||
+              item.title ||
+              item.product?.name ||
+              'صنف عام';
+            const itemQty = Number(item.quantity ?? item.qty ?? 1);
+            const itemPrice = Number(item.unit_price ?? item.price ?? item.unitPrice ?? 0);
+            const itemSub = Number(item.subtotal ?? itemQty * itemPrice);
+            const itemDisc = Number(item.discount ?? item.discount_amount ?? 0);
+            const itemTax = Number(
+              item.tax ??
+                item.tax_amount ??
+                (Number(item.tax_rate || 0) > 0 ? itemSub * (item.tax_rate / 100) : 0)
+            );
+            const itemTot = Number(item.total ?? itemSub - itemDisc + itemTax);
+            const itemPd = roundMoney(itemTot * paidRatio);
+            addToGroup(pName, itemSub, itemDisc, itemTax, itemTot, itemPd);
+          }
+        } else {
+          const pName = sale.description || 'مبيعات مباشرة';
+          const sub = Number(sale.subtotal ?? sale.subTotal ?? saleTot - Number(sale.tax || 0));
+          const disc = Number(sale.discount ?? 0);
+          const tx = Number(sale.tax ?? 0);
+          addToGroup(pName, sub, disc, tx, saleTot, salePaid);
+        }
+      }
+    } else {
+      for (const sale of filteredSales) {
+        const rawDate =
+          sale.date ||
+          sale.issue_date ||
+          sale.issueDate ||
+          sale.created_at ||
+          sale.createdAt ||
+          sale.timestamp ||
+          '';
+        const dateStr = typeof rawDate === 'string' ? rawDate.split('T')[0] : '';
+        let groupName = 'غير محدد';
+
+        if (groupBy === 'by_month') {
+          groupName = dateStr ? dateStr.substring(0, 7) : 'غير محدد';
+        } else if (groupBy === 'by_day') {
+          groupName = dateStr || 'غير محدد';
+        } else if (groupBy === 'by_customer') {
+          groupName =
+            sale.customer_name ||
+            sale.customerName ||
+            sale.customer?.name ||
+            (sale.customer_id ? custMap.get(String(sale.customer_id)) : null) ||
+            'عميل نقدي عام';
+        } else {
+          groupName = dateStr ? dateStr.substring(0, 7) : 'غير محدد';
+        }
+
+        const saleTot = Number(sale.total ?? sale.grandTotal ?? sale.total_amount ?? sale.amount ?? 0);
+        const sub = Number(
+          sale.subtotal ??
+            sale.subTotal ??
+            saleTot - Number(sale.tax || 0) + Number(sale.discount || 0)
+        );
+        const disc = Number(sale.discount ?? sale.discount_amount ?? 0);
+        const tx = Number(sale.tax ?? sale.tax_amount ?? 0);
+        const pd = Number(
+          sale.paid_amount ??
+            sale.paidAmount ??
+            (sale.payment_status === 'PAID' || sale.status === 'PAID' ? saleTot : 0)
+        );
+
+        addToGroup(groupName, sub, disc, tx, saleTot, pd);
+      }
+    }
+
+    const reportRows = Array.from(groupMap.values()).map((g) => ({
+      groupName: g.groupName,
+      subtotal: roundMoney(g.subtotal),
+      discount: roundMoney(g.discount),
+      tax: roundMoney(g.tax),
+      total: roundMoney(g.total),
+      paid: roundMoney(g.paid),
+      outstanding: roundMoney(g.outstanding),
+    }));
+
+    reportRows.sort((a, b) => b.total - a.total);
+
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: reportRows,
+      items: reportRows,
+    };
+  }
+
+  // 8B-2. Purchases Report (/reports/purchases)
+  if (cleanUrl.includes('/reports/purchases')) {
+    const qStr = url.includes('?') ? url.split('?')[1] : '';
+    const searchParams = new URLSearchParams(qStr);
+    const startDate = searchParams.get('start_date') || searchParams.get('startDate') || '';
+    const endDate = searchParams.get('end_date') || searchParams.get('endDate') || '';
+    const groupBy = searchParams.get('group_by') || searchParams.get('groupBy') || 'by_month';
+
+    const rawPurchases = getLocalItem<any[]>('erp_purchase_invoices_v1', [], companyId);
+    const validPurchases = (Array.isArray(rawPurchases) ? rawPurchases : []).filter(
+      (pi: any) => pi && pi.status !== 'CANCELLED' && pi.status !== 'VOID'
+    );
+
+    const filteredPurchases = validPurchases.filter((pi: any) => {
+      const rawDate =
+        pi.date || pi.issue_date || pi.issueDate || pi.created_at || pi.createdAt || '';
+      const dateStr = typeof rawDate === 'string' ? rawDate.split('T')[0] : '';
+      if (startDate && dateStr && dateStr < startDate) return false;
+      if (endDate && dateStr && dateStr > endDate) return false;
+      return true;
+    });
+
+    const suppliers = getLocalItem<any[]>('erp_suppliers_v1', [], companyId);
+    const suppMap = new Map<string, string>();
+    for (const s of suppliers) {
+      if (s && s.id) suppMap.set(String(s.id), s.name || s.trade_name || 'مورد');
+    }
+
+    interface AggregatedGroup {
+      groupName: string;
+      subtotal: number;
+      discount: number;
+      tax: number;
+      total: number;
+      paid: number;
+      outstanding: number;
+    }
+
+    const groupMap = new Map<string, AggregatedGroup>();
+
+    const addToGroup = (
+      name: string,
+      sub: number,
+      disc: number,
+      tx: number,
+      tot: number,
+      pd: number
+    ) => {
+      const existing = groupMap.get(name) || {
+        groupName: name,
+        subtotal: 0,
+        discount: 0,
+        tax: 0,
+        total: 0,
+        paid: 0,
+        outstanding: 0,
+      };
+      existing.subtotal += roundMoney(sub);
+      existing.discount += roundMoney(disc);
+      existing.tax += roundMoney(tx);
+      existing.total += roundMoney(tot);
+      existing.paid += roundMoney(pd);
+      existing.outstanding = Math.max(0, roundMoney(existing.total - existing.paid));
+      groupMap.set(name, existing);
+    };
+
+    if (groupBy === 'by_product') {
+      for (const pi of filteredPurchases) {
+        const items = pi.items || pi.line_items || pi.products || [];
+        const piTot = Number(pi.total ?? pi.grandTotal ?? pi.total_amount ?? pi.amount ?? 0);
+        const piPaid = Number(
+          pi.paid_amount ??
+            pi.paidAmount ??
+            (pi.payment_status === 'PAID' || pi.paymentStatus === 'PAID' || pi.status === 'PAID'
+              ? piTot
+              : 0)
+        );
+        const paidRatio = piTot > 0 ? Math.min(1, piPaid / piTot) : 1;
+
+        if (Array.isArray(items) && items.length > 0) {
+          for (const item of items) {
+            const pName =
+              item.product_name ||
+              item.productName ||
+              item.name ||
+              item.title ||
+              item.product?.name ||
+              'صنف مشتريات عام';
+            const itemQty = Number(item.quantity ?? item.qty ?? 1);
+            const itemPrice = Number(
+              item.unit_cost ?? item.unit_price ?? item.cost ?? item.price ?? 0
+            );
+            const itemSub = Number(item.subtotal ?? itemQty * itemPrice);
+            const itemDisc = Number(item.discount ?? item.discount_amount ?? 0);
+            const itemTax = Number(
+              item.tax ??
+                item.tax_amount ??
+                (Number(item.tax_rate || 0) > 0 ? itemSub * (item.tax_rate / 100) : 0)
+            );
+            const itemTot = Number(item.total ?? itemSub - itemDisc + itemTax);
+            const itemPd = roundMoney(itemTot * paidRatio);
+            addToGroup(pName, itemSub, itemDisc, itemTax, itemTot, itemPd);
+          }
+        } else {
+          const pName = pi.description || 'مشتريات مباشرة';
+          const sub = Number(pi.subtotal ?? pi.subTotal ?? piTot - Number(pi.tax || 0));
+          const disc = Number(pi.discount ?? 0);
+          const tx = Number(pi.tax ?? 0);
+          addToGroup(pName, sub, disc, tx, piTot, piPaid);
+        }
+      }
+    } else {
+      for (const pi of filteredPurchases) {
+        const rawDate =
+          pi.date || pi.issue_date || pi.issueDate || pi.created_at || pi.createdAt || '';
+        const dateStr = typeof rawDate === 'string' ? rawDate.split('T')[0] : '';
+        let groupName = 'غير محدد';
+
+        if (groupBy === 'by_month') {
+          groupName = dateStr ? dateStr.substring(0, 7) : 'غير محدد';
+        } else if (groupBy === 'by_day') {
+          groupName = dateStr || 'غير محدد';
+        } else if (groupBy === 'by_customer' || groupBy === 'by_supplier') {
+          groupName =
+            pi.supplier_name ||
+            pi.supplierName ||
+            pi.supplier?.name ||
+            (pi.supplier_id ? suppMap.get(String(pi.supplier_id)) : null) ||
+            'مورد عام';
+        } else {
+          groupName = dateStr ? dateStr.substring(0, 7) : 'غير محدد';
+        }
+
+        const piTot = Number(pi.total ?? pi.grandTotal ?? pi.total_amount ?? pi.amount ?? 0);
+        const sub = Number(
+          pi.subtotal ??
+            pi.subTotal ??
+            piTot - Number(pi.tax || 0) + Number(pi.discount || 0)
+        );
+        const disc = Number(pi.discount ?? pi.discount_amount ?? 0);
+        const tx = Number(pi.tax ?? pi.tax_amount ?? 0);
+        const pd = Number(
+          pi.paid_amount ??
+            pi.paidAmount ??
+            (pi.payment_status === 'PAID' || pi.paymentStatus === 'PAID' || pi.status === 'PAID'
+              ? piTot
+              : 0)
+        );
+
+        addToGroup(groupName, sub, disc, tx, piTot, pd);
+      }
+    }
+
+    const reportRows = Array.from(groupMap.values()).map((g) => ({
+      groupName: g.groupName,
+      subtotal: roundMoney(g.subtotal),
+      discount: roundMoney(g.discount),
+      tax: roundMoney(g.tax),
+      total: roundMoney(g.total),
+      paid: roundMoney(g.paid),
+      outstanding: roundMoney(g.outstanding),
+    }));
+
+    reportRows.sort((a, b) => b.total - a.total);
+
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: reportRows,
+      items: reportRows,
+    };
+  }
+
+  // 8B-3A. Receivables Aging Report (/reports/receivables)
+  if (cleanUrl.includes('/reports/receivables')) {
+    const customers = getLocalItem<any[]>('erp_customers_v1', [], companyId);
+    const invoices = getLocalItem<any[]>('erp_invoices_v1', [], companyId);
+    const validInvoices = (Array.isArray(invoices) ? invoices : []).filter(
+      (inv: any) => inv && inv.status !== 'CANCELLED' && inv.status !== 'VOID'
+    );
+
+    const now = Date.now();
+    let totalReceivables = 0;
+
+    const customerAging = (Array.isArray(customers) ? customers : []).map((c: any) => {
+      const custId = String(c.id || '');
+      const custName = c.name || c.trade_name || 'عميل';
+      const custPhone = c.phone || c.mobile || '';
+      const currentBalance = roundMoney(
+        Math.max(0, Number(c.balance || c.current_balance || c.currentBalance || 0))
+      );
+
+      // Find all unpaid invoices for this customer
+      const custInvs = validInvoices.filter(
+        (inv: any) =>
+          (String(inv.customer_id || inv.customerId || '') === custId ||
+            inv.customer_name === custName ||
+            inv.customerName === custName) &&
+          inv.payment_status !== 'PAID'
+      );
+
+      let b0_30 = 0;
+      let b31_60 = 0;
+      let b61_90 = 0;
+      let b90_plus = 0;
+
+      for (const inv of custInvs) {
+        const tot = Number(inv.total ?? inv.grandTotal ?? inv.total_amount ?? 0);
+        const pd = Number(inv.paid_amount ?? inv.paidAmount ?? 0);
+        const rem = roundMoney(
+          Math.max(0, Number(inv.remaining_amount ?? inv.remainingAmount ?? tot - pd))
+        );
+
+        if (rem <= 0) continue;
+
+        const rawDate =
+          inv.date || inv.issue_date || inv.issueDate || inv.created_at || inv.createdAt;
+        const invTime = rawDate ? new Date(rawDate).getTime() : now;
+        const diffDays = Math.max(0, Math.floor((now - invTime) / (1000 * 60 * 60 * 24)));
+
+        if (diffDays <= 30) b0_30 += rem;
+        else if (diffDays <= 60) b31_60 += rem;
+        else if (diffDays <= 90) b61_90 += rem;
+        else b90_plus += rem;
+      }
+
+      const invoiceAssignedTotal = b0_30 + b31_60 + b61_90 + b90_plus;
+      if (currentBalance > invoiceAssignedTotal) {
+        const extra = currentBalance - invoiceAssignedTotal;
+        b0_30 += extra;
+      } else if (currentBalance < invoiceAssignedTotal && invoiceAssignedTotal > 0) {
+        const factor = currentBalance / invoiceAssignedTotal;
+        b0_30 = roundMoney(b0_30 * factor);
+        b31_60 = roundMoney(b31_60 * factor);
+        b61_90 = roundMoney(b61_90 * factor);
+        b90_plus = roundMoney(Math.max(0, currentBalance - b0_30 - b31_60 - b61_90));
+      }
+
+      totalReceivables += currentBalance;
+
+      return {
+        id: custId,
+        name: custName,
+        phone: custPhone,
+        currentBalance: roundMoney(currentBalance),
+        b0_30: roundMoney(b0_30),
+        b31_60: roundMoney(b31_60),
+        b61_90: roundMoney(b61_90),
+        b90_plus: roundMoney(b90_plus),
+      };
+    });
+
+    const activeAging = customerAging.filter((c) => c.currentBalance > 0);
+    const resultAging = activeAging.length > 0 ? activeAging : customerAging;
+    resultAging.sort((a, b) => b.currentBalance - a.currentBalance);
+
+    totalReceivables = roundMoney(totalReceivables);
+
+    const payload = {
+      totalReceivables,
+      customerAging: resultAging,
+    };
+
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: payload,
+      totalReceivables,
+      customerAging: resultAging,
+    };
+  }
+
+  // 8B-3B. Payables Aging Report (/reports/payables)
+  if (cleanUrl.includes('/reports/payables')) {
+    const suppliers = getLocalItem<any[]>('erp_suppliers_v1', [], companyId);
+    const purchases = getLocalItem<any[]>('erp_purchase_invoices_v1', [], companyId);
+    const validPurchases = (Array.isArray(purchases) ? purchases : []).filter(
+      (pi: any) => pi && pi.status !== 'CANCELLED' && pi.status !== 'VOID'
+    );
+
+    const now = Date.now();
+    let totalPayables = 0;
+
+    const supplierAging = (Array.isArray(suppliers) ? suppliers : []).map((s: any) => {
+      const suppId = String(s.id || '');
+      const suppName = s.name || s.trade_name || 'مورد';
+      const suppPhone = s.phone || s.mobile || '';
+      const currentBalance = roundMoney(
+        Math.max(0, Number(s.balance || s.current_balance || s.currentBalance || 0))
+      );
+
+      // Find all unpaid purchase invoices for this supplier
+      const suppInvs = validPurchases.filter(
+        (pi: any) =>
+          (String(pi.supplier_id || pi.supplierId || '') === suppId ||
+            pi.supplier_name === suppName ||
+            pi.supplierName === suppName) &&
+          pi.payment_status !== 'PAID' &&
+          pi.paymentStatus !== 'PAID'
+      );
+
+      let b0_30 = 0;
+      let b31_60 = 0;
+      let b61_90 = 0;
+      let b90_plus = 0;
+
+      for (const pi of suppInvs) {
+        const tot = Number(pi.total ?? pi.grandTotal ?? pi.total_amount ?? 0);
+        const pd = Number(pi.paid_amount ?? pi.paidAmount ?? 0);
+        const rem = roundMoney(
+          Math.max(0, Number(pi.remaining_amount ?? pi.remainingAmount ?? tot - pd))
+        );
+
+        if (rem <= 0) continue;
+
+        const rawDate =
+          pi.date || pi.issue_date || pi.issueDate || pi.created_at || pi.createdAt;
+        const piTime = rawDate ? new Date(rawDate).getTime() : now;
+        const diffDays = Math.max(0, Math.floor((now - piTime) / (1000 * 60 * 60 * 24)));
+
+        if (diffDays <= 30) b0_30 += rem;
+        else if (diffDays <= 60) b31_60 += rem;
+        else if (diffDays <= 90) b61_90 += rem;
+        else b90_plus += rem;
+      }
+
+      const invoiceAssignedTotal = b0_30 + b31_60 + b61_90 + b90_plus;
+      if (currentBalance > invoiceAssignedTotal) {
+        const extra = currentBalance - invoiceAssignedTotal;
+        b0_30 += extra;
+      } else if (currentBalance < invoiceAssignedTotal && invoiceAssignedTotal > 0) {
+        const factor = currentBalance / invoiceAssignedTotal;
+        b0_30 = roundMoney(b0_30 * factor);
+        b31_60 = roundMoney(b31_60 * factor);
+        b61_90 = roundMoney(b61_90 * factor);
+        b90_plus = roundMoney(Math.max(0, currentBalance - b0_30 - b31_60 - b61_90));
+      }
+
+      totalPayables += currentBalance;
+
+      return {
+        id: suppId,
+        name: suppName,
+        phone: suppPhone,
+        currentBalance: roundMoney(currentBalance),
+        b0_30: roundMoney(b0_30),
+        b31_60: roundMoney(b31_60),
+        b61_90: roundMoney(b61_90),
+        b90_plus: roundMoney(b90_plus),
+      };
+    });
+
+    const activeAging = supplierAging.filter((s) => s.currentBalance > 0);
+    const resultAging = activeAging.length > 0 ? activeAging : supplierAging;
+    resultAging.sort((a, b) => b.currentBalance - a.currentBalance);
+
+    totalPayables = roundMoney(totalPayables);
+
+    const payload = {
+      totalPayables,
+      supplierAging: resultAging,
+    };
+
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: payload,
+      totalPayables,
+      supplierAging: resultAging,
+    };
+  }
+
+  // 8B-4A. Cash Flow Report (/reports/cash-flow & /financial-reports/cash-flow)
+  if (cleanUrl.includes('/reports/cash-flow') || cleanUrl.includes('/financial-reports/cash-flow')) {
+    const qStr = url.includes('?') ? url.split('?')[1] : '';
+    const searchParams = new URLSearchParams(qStr);
+    const startDate = searchParams.get('start_date') || searchParams.get('startDate') || '';
+    const endDate = searchParams.get('end_date') || searchParams.get('endDate') || '';
+
+    const metrics = computeLocalUnifiedFinancialMetrics(companyId);
+
+    const invoices = getLocalItem<any[]>('erp_invoices_v1', [], companyId);
+    const posSales = getLocalItem<any[]>('erp_pos_sales_log_v1', [], companyId);
+    const purchases = getLocalItem<any[]>('erp_purchase_invoices_v1', [], companyId);
+    const payments = getLocalItem<any[]>('erp_payments_v1', [], companyId);
+    const expenses = getLocalItem<any[]>('erp_expenses_v1', [], companyId);
+
+    const isDateMatch = (item: any) => {
+      const rawDate =
+        item.date ||
+        item.issue_date ||
+        item.issueDate ||
+        item.created_at ||
+        item.createdAt ||
+        item.timestamp ||
+        '';
+      const dateStr = typeof rawDate === 'string' ? rawDate.split('T')[0] : '';
+      if (startDate && dateStr && dateStr < startDate) return false;
+      if (endDate && dateStr && dateStr > endDate) return false;
+      return true;
+    };
+
+    // 1. Inflows: Cash sales collected + receipt vouchers
+    let cashSalesCollected = 0;
+    const allSales = [
+      ...(Array.isArray(invoices) ? invoices : []),
+      ...(Array.isArray(posSales) ? posSales : []),
+    ];
+    for (const inv of allSales) {
+      if (!inv || inv.status === 'CANCELLED' || inv.status === 'VOID') continue;
+      if (!isDateMatch(inv)) continue;
+      const pd = Number(
+        inv.paid_amount ??
+          inv.paidAmount ??
+          (inv.payment_method === 'CASH' ||
+          inv.paymentMethod === 'CASH' ||
+          inv.payment_status === 'PAID'
+            ? inv.total ?? inv.grandTotal ?? 0
+            : 0)
+      );
+      cashSalesCollected += pd;
+    }
+
+    let receiptVouchers = 0;
+    let disbursementVouchers = 0;
+    for (const p of Array.isArray(payments) ? payments : []) {
+      if (!p || p.status === 'CANCELLED') continue;
+      if (!isDateMatch(p)) continue;
+      const amt = Number(p.amount || 0);
+      const isReceipt =
+        p.type === 'CUSTOMER_PAYMENT' ||
+        p.voucher_type === 'RECEIPT' ||
+        p.payment_type === 'IN' ||
+        p.payment_type === 'RECEIPT';
+      const isDisbursement =
+        p.type === 'SUPPLIER_PAYMENT' ||
+        p.voucher_type === 'PAYMENT' ||
+        p.payment_type === 'OUT' ||
+        p.payment_type === 'PAYMENT' ||
+        p.type === 'EXPENSE';
+
+      if (isReceipt) receiptVouchers += amt;
+      else if (isDisbursement) disbursementVouchers += amt;
+    }
+
+    // 2. Outflows: Paid purchases + payment vouchers + expenses
+    let purchasesPaid = 0;
+    for (const pi of Array.isArray(purchases) ? purchases : []) {
+      if (!pi || pi.status === 'CANCELLED' || pi.status === 'VOID') continue;
+      if (!isDateMatch(pi)) continue;
+      const pd = Number(
+        pi.paid_amount ??
+          pi.paidAmount ??
+          (pi.payment_method === 'CASH' ||
+          pi.paymentMethod === 'CASH' ||
+          pi.payment_status === 'PAID'
+            ? pi.total ?? pi.grandTotal ?? 0
+            : 0)
+      );
+      purchasesPaid += pd;
+    }
+
+    let expensesTotal = 0;
+    for (const e of Array.isArray(expenses) ? expenses : []) {
+      if (!e) continue;
+      if (!isDateMatch(e)) continue;
+      expensesTotal += Number(e.amount || e.total || 0);
+    }
+
+    let inflows = roundMoney(cashSalesCollected + receiptVouchers);
+    let outflows = roundMoney(purchasesPaid + disbursementVouchers + expensesTotal);
+
+    if (inflows === 0 && !startDate && !endDate && metrics.netSales > 0) {
+      inflows = roundMoney(metrics.cashAndBankBalance || metrics.netSales);
+    }
+    if (outflows === 0 && !startDate && !endDate && metrics.cogsTotal > 0) {
+      outflows = roundMoney(metrics.cogsTotal + metrics.operatingExpenses);
+    }
+
+    const netCashFlow = roundMoney(inflows - outflows);
+
+    const payload = {
+      inflows,
+      outflows,
+      netCashFlow,
+      operatingActivities: netCashFlow,
+      investingActivities: 0,
+      financingActivities: 0,
+      openingCash: 0,
+      closingCash: roundMoney(metrics.cashAndBankBalance || metrics.cashBalance),
+      cashInflow: inflows,
+      cashOutflow: outflows,
+      netCash: netCashFlow,
+    };
+
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: payload,
+      ...payload,
+    };
+  }
+
+  // 8B-4B. Inventory Analytics Report (/reports/inventory & /financial-reports/inventory-valuation)
+  if (
+    cleanUrl.includes('/reports/inventory') ||
+    cleanUrl.includes('/financial-reports/inventory-valuation')
+  ) {
+    const products = getLocalItem<any[]>('erp_products_v1', [], companyId);
+    const validProducts = Array.isArray(products) ? products : [];
+
+    const totalProductsCount = validProducts.length;
+    let totalValuation = 0;
+    let lowStockCount = 0;
+
+    const detailedProducts = validProducts.map((p: any) => {
+      const stock = Number(p.stock ?? p.quantity ?? p.qty ?? 0);
+      const cost = Number(p.cost ?? p.buy_price ?? p.buyPrice ?? p.purchase_price ?? p.price ?? 0);
+      const price = Number(p.sale_price ?? p.salePrice ?? p.price ?? cost);
+      const reorder = Number(p.reorder_point ?? p.reorderPoint ?? p.min_stock ?? p.minStock ?? 5);
+      const val = roundMoney(stock * cost);
+
+      totalValuation += val;
+      if (stock <= reorder) {
+        lowStockCount++;
+      }
+
+      return {
+        id: p.id,
+        name: p.name || p.title || 'منتج',
+        sku: p.sku || p.barcode || '-',
+        category: p.category || 'عام',
+        stock,
+        unitCost: cost,
+        unitPrice: price,
+        valuation: val,
+        isLowStock: stock <= reorder,
+      };
+    });
+
+    totalValuation = roundMoney(totalValuation);
+
+    const payload = {
+      totalProductsCount,
+      totalValuation,
+      lowStockCount,
+      products: detailedProducts,
+      items: detailedProducts,
+    };
+
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: payload,
+      ...payload,
+    };
+  }
+
+  // 8B-4C. Tax Report (/reports/tax & /financial-reports/tax-summary)
+  if (
+    cleanUrl.includes('/reports/tax') ||
+    cleanUrl.includes('/financial-reports/tax-summary')
+  ) {
+    const qStr = url.includes('?') ? url.split('?')[1] : '';
+    const searchParams = new URLSearchParams(qStr);
+    const startDate = searchParams.get('start_date') || searchParams.get('startDate') || '';
+    const endDate = searchParams.get('end_date') || searchParams.get('endDate') || '';
+
+    const invoices = getLocalItem<any[]>('erp_invoices_v1', [], companyId);
+    const posSales = getLocalItem<any[]>('erp_pos_sales_log_v1', [], companyId);
+    const purchases = getLocalItem<any[]>('erp_purchase_invoices_v1', [], companyId);
+
+    const isDateMatch = (item: any) => {
+      const rawDate =
+        item.date ||
+        item.issue_date ||
+        item.issueDate ||
+        item.created_at ||
+        item.createdAt ||
+        item.timestamp ||
+        '';
+      const dateStr = typeof rawDate === 'string' ? rawDate.split('T')[0] : '';
+      if (startDate && dateStr && dateStr < startDate) return false;
+      if (endDate && dateStr && dateStr > endDate) return false;
+      return true;
+    };
+
+    let taxableSales = 0;
+    let outputVat = 0;
+    const allSales = [
+      ...(Array.isArray(invoices) ? invoices : []),
+      ...(Array.isArray(posSales) ? posSales : []),
+    ];
+
+    for (const inv of allSales) {
+      if (!inv || inv.status === 'CANCELLED' || inv.status === 'VOID') continue;
+      if (!isDateMatch(inv)) continue;
+      const tot = Number(inv.total ?? inv.grandTotal ?? inv.total_amount ?? inv.amount ?? 0);
+      const tx = Number(inv.tax ?? inv.tax_amount ?? inv.taxAmount ?? 0);
+      outputVat += tx;
+      taxableSales += tot - tx;
+    }
+
+    let taxablePurchases = 0;
+    let inputVat = 0;
+    for (const pi of Array.isArray(purchases) ? purchases : []) {
+      if (!pi || pi.status === 'CANCELLED' || pi.status === 'VOID') continue;
+      if (!isDateMatch(pi)) continue;
+      const tot = Number(pi.total ?? pi.grandTotal ?? pi.total_amount ?? pi.amount ?? 0);
+      const tx = Number(pi.tax ?? pi.tax_amount ?? pi.taxAmount ?? 0);
+      inputVat += tx;
+      taxablePurchases += tot - tx;
+    }
+
+    taxableSales = roundMoney(taxableSales);
+    outputVat = roundMoney(outputVat);
+    taxablePurchases = roundMoney(taxablePurchases);
+    inputVat = roundMoney(inputVat);
+    const netVatPayable = roundMoney(outputVat - inputVat);
+
+    const metrics = computeLocalUnifiedFinancialMetrics(companyId);
+    const zakatDue = roundMoney(
+      Math.max(0, Number(metrics.netProfit || taxableSales - taxablePurchases)) * 0.025
+    );
+
+    const payload = {
+      taxableSales,
+      outputVat,
+      taxablePurchases,
+      inputVat,
+      netVatPayable,
+      vatOutput: outputVat,
+      vatInput: inputVat,
+      netVat: netVatPayable,
+      zakatDue,
+      taxRate: 15,
+      taxExemptSales: 0,
+      taxExemptPurchases: 0,
+      period: 'الفترة الضريبية الحالية',
+    };
+
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: payload,
+      ...payload,
+    };
+  }
+
+  // 8B-4D. Tax Periods & Adjustments
+  if (cleanUrl.includes('/financial-reports/tax-periods')) {
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: [
+        {
+          id: 'TAX-2026-Q4',
+          period_name: 'الربع الرابع 2026',
+          status: 'OPEN',
+          start_date: '2026-10-01',
+          end_date: '2026-12-31',
+          due_date: '2027-01-31',
+        },
+      ],
+    };
+  }
+  if (cleanUrl.includes('/financial-reports/tax-adjustments')) {
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: [],
+    };
+  }
+
   // 9. Financial Reports & Intelligence Endpoints (Unified Parity with Server)
   if (
     cleanUrl.includes('/reports/comprehensive') ||

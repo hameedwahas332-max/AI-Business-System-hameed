@@ -30,6 +30,7 @@ type SubReportType =
   | 'sales'
   | 'purchases'
   | 'profit_loss'
+  | 'tax'
   | 'receivables'
   | 'payables'
   | 'cash_flow'
@@ -68,32 +69,112 @@ export const ReportsTab: React.FC = () => {
         res = await api.getPurchaseReport({ start_date: startDate, end_date: endDate, group_by: groupBy });
       } else if (activeReport === 'profit_loss') {
         const plRes = await api.getProfitLossReport({ start_date: startDate, end_date: endDate });
-        // Retrieve operating expenses and payments
+        let actualExpensesList: any[] = [];
         let expensesTotal = 0;
         try {
           const expRes = await api.getExpenses();
           if (expRes?.success && Array.isArray(expRes.data)) {
-            expensesTotal = expRes.data.reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
-          }
-          const pStats = await api.getPaymentStats();
-          if (pStats?.data?.totalDisbursed) {
-            expensesTotal = Math.max(expensesTotal, Number(pStats.data.totalDisbursed));
+            actualExpensesList = expRes.data.filter((e: any) => e && e.status !== 'CANCELLED');
+            expensesTotal = actualExpensesList.reduce((sum: number, e: any) => sum + (Number(e.amount || e.total) || 0), 0);
           }
         } catch {}
 
-        const basePl = plRes?.data || { revenue: 0, cogs: 0, grossProfit: 0, operatingExpenses: 0, netProfit: 0 };
-        const operatingExp = Math.max(Number(basePl.operatingExpenses || 0), expensesTotal);
-        const gross = Number(basePl.revenue || 0) - Number(basePl.cogs || 0);
+        const basePl = plRes?.data || {};
+        const rev = Number(
+          typeof basePl.revenue === 'object'
+            ? (basePl.revenue?.netRevenue ?? basePl.revenue?.salesRevenue ?? 0)
+            : (basePl.netRevenue ?? basePl.revenue ?? 0)
+        );
+        const cogsVal = Number(basePl.cogs ?? basePl.costOfGoodsSold?.totalCOGS ?? 0);
+        const baseOpEx = Number(
+          typeof basePl.operatingExpenses === 'object'
+            ? (basePl.operatingExpenses?.totalOperatingExpenses ?? 0)
+            : (basePl.operatingExpensesTotal ?? basePl.operatingExpenses ?? 0)
+        );
+
+        const operatingExp = expensesTotal > 0 ? expensesTotal : baseOpEx;
+        const gross = rev - cogsVal;
         const net = gross - operatingExp;
 
         res = {
           data: {
             ...basePl,
+            revenue: rev,
+            cogs: cogsVal,
             operatingExpenses: operatingExp,
             grossProfit: gross,
             netProfit: net,
+            expensesList: actualExpensesList,
           },
         };
+      } else if (activeReport === 'tax') {
+        try {
+          res = await api.getTaxReport({ start_date: startDate, end_date: endDate });
+        } catch (taxErr) {
+          console.warn('api.getTaxReport failed, calculating locally:', taxErr);
+        }
+
+        if (!res || !res.data) {
+          let taxableSales = 0;
+          let outputVat = 0;
+          let taxablePurchases = 0;
+          let inputVat = 0;
+          const taxableInvoices: any[] = [];
+
+          try {
+            const invsRes = await api.getInvoices({ limit: 500 });
+            const invs = Array.isArray(invsRes?.data?.invoices)
+              ? invsRes.data.invoices
+              : Array.isArray(invsRes?.data)
+              ? invsRes.data
+              : [];
+            for (const inv of invs) {
+              if (!inv || inv.status === 'CANCELLED' || inv.status === 'VOID') continue;
+              const tot = Number(inv.total || inv.grandTotal || inv.amount || 0);
+              const tx = Number(inv.tax || 0);
+              outputVat += tx;
+              taxableSales += tot - tx;
+              taxableInvoices.push({
+                id: inv.id,
+                invoiceNumber: inv.invoice_number || inv.invoiceNumber || '-',
+                customerName: inv.customer_name || inv.customerName || 'عميل',
+                date: inv.date || inv.issue_date || inv.created_at || '',
+                subtotal: tot - tx,
+                tax: tx,
+                total: tot,
+              });
+            }
+
+            const piRes = await api.getPurchaseInvoices({ limit: 500 });
+            const pis = Array.isArray(piRes?.data?.invoices)
+              ? piRes.data.invoices
+              : Array.isArray(piRes?.data)
+              ? piRes.data
+              : [];
+            for (const pi of pis) {
+              if (!pi || pi.status === 'CANCELLED' || pi.status === 'VOID') continue;
+              const tot = Number(pi.grandTotal || pi.total || 0);
+              const tx = Number(pi.taxAmount || pi.tax || 0);
+              inputVat += tx;
+              taxablePurchases += tot - tx;
+            }
+          } catch {}
+
+          if (outputVat === 0 && taxableSales > 0) outputVat = Math.round(taxableSales * 0.15);
+          if (inputVat === 0 && taxablePurchases > 0) inputVat = Math.round(taxablePurchases * 0.15);
+
+          res = {
+            data: {
+              taxableSales,
+              outputVat,
+              taxablePurchases,
+              inputVat,
+              netVatPayable: outputVat - inputVat,
+              taxableInvoices,
+              period: 'الفترة الضريبية الحالية',
+            },
+          };
+        }
       } else if (activeReport === 'receivables') {
         res = await api.getReceivablesReport();
       } else if (activeReport === 'payables') {
@@ -195,6 +276,25 @@ export const ReportsTab: React.FC = () => {
           ['(-) المصاريف التشغيلية (Operating Expenses)', `${formatAmount(reportData?.operatingExpenses || 0)} ${currency}`],
           ['صافي الربح النهائي (Net Profit)', `${formatAmount(reportData?.netProfit || 0)} ${currency}`],
         ];
+      } else if (activeReport === 'tax') {
+        title = 'تقرير الإقرار الضريبي وضريبة القيمة المضافة (VAT)';
+        headers = ['رقم الفاتورة / البند', 'العميل', 'التاريخ', 'المبلغ قبل الضريبة', 'الضريبة (VAT)', 'الإجمالي'];
+        const summaryRows = [
+          ['[ملخص] إجمالي المبيعات الخاضعة للضريبة', '-', '-', `${formatAmount(reportData?.taxableSales || 0)} ${currency}`, `${formatAmount(reportData?.outputVat || 0)} ${currency}`, '-'],
+          ['[ملخص] إجمالي المشتريات الخاضعة للضريبة', '-', '-', `${formatAmount(reportData?.taxablePurchases || 0)} ${currency}`, `${formatAmount(reportData?.inputVat || 0)} ${currency}`, '-'],
+          ['[ملخص] صافي الضريبة المستحقة للإقرار', '-', '-', '-', `${formatAmount(reportData?.netVatPayable ?? (Number(reportData?.outputVat || 0) - Number(reportData?.inputVat || 0)))} ${currency}`, '-'],
+        ];
+        const invoiceRows = Array.isArray(reportData?.taxableInvoices) && reportData.taxableInvoices.length > 0
+          ? reportData.taxableInvoices.map((inv: any) => [
+              inv.invoiceNumber || '-',
+              inv.customerName || 'عميل',
+              inv.date || '-',
+              `${formatAmount(inv.subtotal)} ${currency}`,
+              `${formatAmount(inv.tax)} ${currency}`,
+              `${formatAmount(inv.total)} ${currency}`,
+            ])
+          : [];
+        rows = [...summaryRows, ...invoiceRows];
       } else if (activeReport === 'receivables') {
         title = 'تقرير أعمار ديون العملاء (Customer Aging)';
         headers = ['اسم العميل', 'الهاتف', 'الرصيد القائم', '0 - 30 يوم', '31 - 60 يوم', '61 - 90 يوم', 'أكثر من 90 يوم'];
@@ -223,6 +323,77 @@ export const ReportsTab: React.FC = () => {
               formatAmount(s.b90_plus),
             ])
           : [['لا توجد التزامات قائمة', '-', '-', '-', '-', '-', '-']];
+      } else if (activeReport === 'cash_flow') {
+        title = 'تقرير التدفقات النقدية الفعلية (Cash Flow)';
+        headers = ['بند التدفق النقدي', 'المبلغ بالعملة'];
+        rows = [
+          ['التدفقات النقدية الداخلة (Inflows)', `${formatAmount(reportData?.inflows || 0)} ${currency}`],
+          ['التدفقات النقدية الخارجة (Outflows)', `${formatAmount(reportData?.outflows || 0)} ${currency}`],
+          ['صافي التدفق النقدي التشغيلي (Net Cash Flow)', `${formatAmount(reportData?.netCashFlow || 0)} ${currency}`],
+          ['الرصيد النقدي الختامي (Closing Cash)', `${formatAmount(reportData?.closingCash ?? reportData?.totalCashAndBank ?? 0)} ${currency}`],
+        ];
+      } else if (activeReport === 'inventory') {
+        title = 'تقرير تقييم وجرد المخزون (Inventory Valuation)';
+        headers = ['اسم الصنف', 'الباركود / SKU', 'التصنيف', 'الرصيد الحالي', 'تكلفة الوحدة', 'سعر البيع', 'القيمة التقديرية'];
+        rows = Array.isArray(reportData?.products) && reportData.products.length > 0
+          ? reportData.products.map((p: any) => [
+              p.name || 'منتج',
+              p.sku || '-',
+              p.category || 'عام',
+              `${p.stock || 0}`,
+              `${formatAmount(p.unitCost)} ${currency}`,
+              `${formatAmount(p.unitPrice)} ${currency}`,
+              `${formatAmount(p.valuation)} ${currency}`,
+            ])
+          : [
+              ['إجمالي الأصناف', `${reportData?.totalProductsCount || 0} صنف`, '-', '-', '-', '-', '-'],
+              ['إجمالي قيمة المخزون', `${formatAmount(reportData?.totalValuation || 0)} ${currency}`, '-', '-', '-', '-', '-'],
+              ['الأصناف بحد النفاذ', `${reportData?.lowStockCount || 0} صنف`, '-', '-', '-', '-', '-'],
+            ];
+      } else if (activeReport === 'fuel_station') {
+        title = 'تقرير جرد ومبيعات الوقود والغاز';
+        headers = ['البيان / الطرمبة', 'نوع الوقود', 'العداد السابق', 'العداد الحالي', 'المنصرف (لتر)', 'سعر اللتر', 'الإيراد المتوقع', 'المحصل الفعلي'];
+        rows = Array.isArray(reportData?.meters) && reportData.meters.length > 0
+          ? reportData.meters.map((m: any) => [
+              `${m.pumpNumber || 'طرمبة'} (${m.nozzleLabel || 'مسدس'})`,
+              m.fuelType || '-',
+              m.previousMeter || 0,
+              m.currentMeter || 0,
+              `${m.dispensedLiters || 0} لتر`,
+              `${m.pricePerLiter || 0} ${currency}`,
+              `${formatAmount(m.expectedRevenue)} ${currency}`,
+              `${formatAmount(m.actualCashReceived || m.expectedRevenue)} ${currency}`,
+            ])
+          : [
+              ['إجمالي اللترات المباعة', `${Number(reportData?.totalDispensedLiters || 0).toLocaleString()} لتر`, '-', '-', '-', '-', '-', '-'],
+              ['الإيراد الدفتري المطلوب', `${formatAmount(reportData?.totalExpectedRevenue || 0)} ${currency}`, '-', '-', '-', '-', '-', '-'],
+              ['المبالغ المستلمة فعلياً', `${formatAmount(reportData?.totalActualReceived || 0)} ${currency}`, '-', '-', '-', '-', '-', '-'],
+            ];
+      } else if (activeReport === 'warranty_and_expiry') {
+        title = 'تقرير حركة الأصناف والضمانات والصلاحية (FEFO & Warranty)';
+        headers = ['اسم الصنف', 'الكود / الباركود', 'نوع النشاط', 'الرصيد الحالي', 'تاريخ الصلاحية / فترة الضمان'];
+        const foodRows = Array.isArray(reportData?.foodItems)
+          ? reportData.foodItems.map((f: any) => [
+              f.name,
+              f.sku || '-',
+              'غذائي',
+              `${f.current_stock ?? f.qty ?? 0}`,
+              f.expiryDate || '-',
+            ])
+          : [];
+        const warrantyRows = Array.isArray(reportData?.warrantyItems)
+          ? reportData.warrantyItems.map((w: any) => [
+              w.name,
+              w.sku || '-',
+              w.activityType || 'ضمان',
+              `${w.current_stock ?? w.qty ?? 0}`,
+              `${w.warrantyMonths || 12} شهر`,
+            ])
+          : [];
+        rows = [...foodRows, ...warrantyRows];
+        if (rows.length === 0) {
+          rows = [['لا توجد بيانات مسجلة', '-', '-', '-', '-']];
+        }
       } else {
         title = `تقرير ${activeReport}`;
         headers = ['البيان', 'القيمة'];
@@ -328,6 +499,18 @@ export const ReportsTab: React.FC = () => {
           </button>
 
           <button
+            onClick={() => setActiveReport('tax')}
+            className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${
+              activeReport === 'tax'
+                ? 'bg-blue-600 text-white font-bold shadow'
+                : 'bg-slate-800/80 text-slate-300 hover:bg-slate-800'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>الضرائب والإقرار الضريبي (VAT)</span>
+          </button>
+
+          <button
             onClick={() => setActiveReport('receivables')}
             className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${
               activeReport === 'receivables'
@@ -404,7 +587,7 @@ export const ReportsTab: React.FC = () => {
       </div>
 
       {/* Date & Group Filters Bar */}
-      {(activeReport === 'sales' || activeReport === 'purchases' || activeReport === 'profit_loss' || activeReport === 'cash_flow') && (
+      {(activeReport === 'sales' || activeReport === 'purchases' || activeReport === 'profit_loss' || activeReport === 'cash_flow' || activeReport === 'tax') && (
         <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4 text-xs">
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2">
@@ -586,31 +769,205 @@ export const ReportsTab: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {[
-                        { title: 'إيجار المقرات والمعارض', desc: 'إيجار المحل / المعرض والمستودعات المركزية', freq: 'شهري / مقسط', amount: Math.round(Number(reportData.operatingExpenses) * 0.35) },
-                        { title: 'رواتب وأجور الموظفين والكاشير', desc: 'مستحقات فريق المبيعات والمحاسبة والمستودعات', freq: 'شهري', amount: Math.round(Number(reportData.operatingExpenses) * 0.30) },
-                        { title: 'فواتير الطاقة والمياه والإنترنت', desc: 'كهرباء، ديزل المولدات، شبكة اتصالات ونقاط بيع', freq: 'يومي / أسبوعي', amount: Math.round(Number(reportData.operatingExpenses) * 0.15) },
-                        { title: 'مصاريف نقل وشحن وتوصيل', desc: 'أجور سيارات النقل الداخلي وتوزيع البضائع', freq: 'يومي', amount: Math.round(Number(reportData.operatingExpenses) * 0.10) },
-                        { title: 'صيانة ومعدات ومستلزمات', desc: 'أوراق فواتير، صيانة رافعات ومعدات الطرمبات', freq: 'دوري', amount: Math.round(Number(reportData.operatingExpenses) * 0.06) },
-                        { title: 'نثريات وضيافة يومية', desc: 'مصاريف إعاشة وضيافة العملاء ونثريات نقدية', freq: 'يومي', amount: Math.round(Number(reportData.operatingExpenses) * 0.04) },
-                      ].map((exp, i) => {
-                        const pct = reportData.operatingExpenses > 0 ? Math.round((exp.amount / reportData.operatingExpenses) * 100) : 0;
-                        return (
-                          <tr key={i} className="hover:bg-slate-50">
-                            <td className="p-2.5 font-bold text-slate-800">{exp.title}</td>
-                            <td className="p-2.5 text-slate-500">{exp.desc}</td>
-                            <td className="p-2.5 text-slate-600 font-medium">{exp.freq}</td>
-                            <td className="p-2.5 text-left font-mono font-bold text-rose-600" dir="ltr">
-                              {formatAmount(exp.amount)} {currency}
-                            </td>
-                            <td className="p-2.5 text-center font-mono">
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
-                                {pct}%
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                      {(() => {
+                        const hasRealExpenses = Array.isArray(reportData.expensesList) && reportData.expensesList.length > 0;
+                        let breakdownRows: Array<{ title: string; desc: string; freq: string; amount: number }> = [];
+
+                        if (hasRealExpenses) {
+                          const categoryMap: Record<string, { title: string; desc: string; amount: number; count: number }> = {};
+                          reportData.expensesList.forEach((e: any) => {
+                            const cat = e.category || 'نثريات ومصاريف عامة';
+                            if (!categoryMap[cat]) {
+                              categoryMap[cat] = {
+                                title: cat,
+                                desc: e.description || e.title || `مصاريف ${cat}`,
+                                amount: 0,
+                                count: 0,
+                              };
+                            }
+                            categoryMap[cat].amount += Number(e.amount || 0);
+                            categoryMap[cat].count += 1;
+                          });
+                          breakdownRows = Object.values(categoryMap).map((c) => ({
+                            title: c.title,
+                            desc: `${c.desc} (${c.count} سند)`,
+                            freq: 'مسجل بالنظام',
+                            amount: c.amount,
+                          }));
+                        } else {
+                          // Fallback only if no itemized expenses exist
+                          breakdownRows = [
+                            { title: 'إيجار المقرات والمعارض', desc: 'إيجار المحل / المعرض والمستودعات المركزية', freq: 'شهري / مقسط', amount: Math.round(Number(reportData.operatingExpenses) * 0.35) },
+                            { title: 'رواتب وأجور الموظفين والكاشير', desc: 'مستحقات فريق المبيعات والمحاسبة والمستودعات', freq: 'شهري', amount: Math.round(Number(reportData.operatingExpenses) * 0.30) },
+                            { title: 'فواتير الطاقة والمياه والإنترنت', desc: 'كهرباء، ديزل المولدات، شبكة اتصالات ونقاط بيع', freq: 'يومي / أسبوعي', amount: Math.round(Number(reportData.operatingExpenses) * 0.15) },
+                            { title: 'مصاريف نقل وشحن وتوصيل', desc: 'أجور سيارات النقل الداخلي وتوزيع البضائع', freq: 'يومي', amount: Math.round(Number(reportData.operatingExpenses) * 0.10) },
+                            { title: 'صيانة ومعدات ومستلزمات', desc: 'أوراق فواتير، صيانة رافعات ومعدات الطرمبات', freq: 'دوري', amount: Math.round(Number(reportData.operatingExpenses) * 0.06) },
+                            { title: 'نثريات وضيافة يومية', desc: 'مصاريف إعاشة وضيافة العملاء ونثريات نقدية', freq: 'يومي', amount: Math.round(Number(reportData.operatingExpenses) * 0.04) },
+                          ];
+                        }
+
+                        const totalExp = Number(reportData.operatingExpenses) || 1;
+
+                        return breakdownRows.map((exp, i) => {
+                          const pct = totalExp > 0 ? Math.round((exp.amount / totalExp) * 100) : 0;
+                          return (
+                            <tr key={i} className="hover:bg-slate-50">
+                              <td className="p-2.5 font-bold text-slate-800">{exp.title}</td>
+                              <td className="p-2.5 text-slate-500">{exp.desc}</td>
+                              <td className="p-2.5 text-slate-600 font-medium">{exp.freq}</td>
+                              <td className="p-2.5 text-left font-mono font-bold text-rose-600" dir="ltr">
+                                {formatAmount(exp.amount)} {currency}
+                              </td>
+                              <td className="p-2.5 text-center font-mono">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
+                                  {pct}%
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tax & VAT Report View */}
+          {activeReport === 'tax' && reportData && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-blue-600" />
+                    <span>تقرير الإقرار الضريبي وضريبة القيمة المضافة (VAT Return & Tax Report)</span>
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    ملخص شامل لضريبة المخرجات والمدخلات وصافي المستحق سداده أو استرداده لهيئة الزكاة والضريبة
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`px-3 py-1 rounded-lg text-xs font-bold border ${
+                    Number(reportData.netVatPayable || 0) >= 0
+                      ? 'bg-amber-50 text-amber-800 border-amber-200'
+                      : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                  }`}>
+                    {Number(reportData.netVatPayable || 0) >= 0 ? 'ضريبة مستحقة السداد' : 'رصيد ضريبي مسترد'}
+                  </span>
+                </div>
+              </div>
+
+              {/* 4 Tax Analytical KPI Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="p-4 bg-blue-50/50 border border-blue-200 rounded-2xl space-y-1">
+                  <span className="text-xs text-blue-800 font-semibold">المبيعات الخاضعة للضريبة</span>
+                  <div className="text-xl font-black text-blue-700 font-mono" dir="ltr">
+                    {formatAmount(reportData.taxableSales || 0)} {currency}
+                  </div>
+                  <span className="text-[10px] text-blue-600">القيمة قبل احتساب الضريبة</span>
+                </div>
+
+                <div className="p-4 bg-emerald-50/50 border border-emerald-200 rounded-2xl space-y-1">
+                  <span className="text-xs text-emerald-800 font-semibold">ضريبة المخرجات المحصلة</span>
+                  <div className="text-xl font-black text-emerald-700 font-mono" dir="ltr">
+                    {formatAmount(reportData.outputVat || 0)} {currency}
+                  </div>
+                  <span className="text-[10px] text-emerald-600">ضريبة فواتير المبيعات (Output VAT)</span>
+                </div>
+
+                <div className="p-4 bg-purple-50/50 border border-purple-200 rounded-2xl space-y-1">
+                  <span className="text-xs text-purple-800 font-semibold">المشتريات الخاضعة للضريبة</span>
+                  <div className="text-xl font-black text-purple-700 font-mono" dir="ltr">
+                    {formatAmount(reportData.taxablePurchases || 0)} {currency}
+                  </div>
+                  <span className="text-[10px] text-purple-600">إجمالي التوريدات والمصروفات الخاضعة</span>
+                </div>
+
+                <div className="p-4 bg-amber-50/50 border border-amber-200 rounded-2xl space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-amber-800 font-semibold">صافي الضريبة المستحقة</span>
+                    <span className="text-[10px] font-mono text-slate-500">
+                      مدخلات: {formatAmount(reportData.inputVat || 0)}
+                    </span>
+                  </div>
+                  <div className={`text-xl font-black font-mono ${
+                    Number(reportData.netVatPayable || 0) >= 0 ? 'text-rose-700' : 'text-emerald-700'
+                  }`} dir="ltr">
+                    {formatAmount(reportData.netVatPayable || 0)} {currency}
+                  </div>
+                  <span className="text-[10px] text-amber-700">
+                    {Number(reportData.netVatPayable || 0) >= 0 ? 'مستحق للسداد' : 'رصيد دائن للمنشأة'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Taxable Invoices Table */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-blue-600" />
+                    <span>سجل الفواتير الضريبية (Taxable Invoices Register)</span>
+                  </h4>
+                  <span className="text-xs text-slate-500 font-mono">
+                    {Array.isArray(reportData.taxableInvoices) ? reportData.taxableInvoices.length : 0} فاتورة مسجلة
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                  <table className="w-full text-xs text-right border-collapse">
+                    <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                      <tr>
+                        <th className="p-3">رقم الفاتورة</th>
+                        <th className="p-3">نوع الحركة</th>
+                        <th className="p-3">الطرف (العميل / المورد)</th>
+                        <th className="p-3">التاريخ</th>
+                        <th className="p-3">المبلغ قبل الضريبة</th>
+                        <th className="p-3">مبلغ الضريبة</th>
+                        <th className="p-3">الإجمالي الصافي</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {Array.isArray(reportData.taxableInvoices) && reportData.taxableInvoices.length > 0 ? (
+                        reportData.taxableInvoices.map((inv: any, idx: number) => {
+                          const isSale = inv.type === 'SALE' || !inv.type;
+                          return (
+                            <tr key={idx} className="hover:bg-slate-50">
+                              <td className="p-3 font-mono font-bold text-blue-700">
+                                {inv.invoice_number || inv.invoiceNumber || inv.id || `-`}
+                              </td>
+                              <td className="p-3">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                  isSale ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'
+                                }`}>
+                                  {isSale ? 'مبيعات (مخرجات)' : 'مشتريات (مدخلات)'}
+                                </span>
+                              </td>
+                              <td className="p-3 font-bold text-slate-800">
+                                {inv.party_name || inv.customer_name || inv.supplier_name || 'طرف عام'}
+                              </td>
+                              <td className="p-3 font-mono text-slate-600">
+                                {inv.date ? new Date(inv.date).toLocaleDateString('ar-EG') : '-'}
+                              </td>
+                              <td className="p-3 font-mono font-medium text-slate-700">
+                                {formatAmount(inv.subtotal || inv.taxable_amount || 0)} {currency}
+                              </td>
+                              <td className="p-3 font-mono font-bold text-blue-600">
+                                {formatAmount(inv.tax || inv.tax_amount || 0)} {currency}
+                              </td>
+                              <td className="p-3 font-mono font-bold text-slate-900">
+                                {formatAmount(inv.total || inv.total_amount || 0)} {currency}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan={7} className="p-6 text-center text-slate-400">
+                            لا توجد فواتير خاضعة للضريبة مسجلة خلال الفترة المحددة
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -773,13 +1130,13 @@ export const ReportsTab: React.FC = () => {
                 <div className="p-4 bg-emerald-50/50 border border-emerald-200/80 rounded-2xl space-y-1">
                   <span className="text-xs text-emerald-800 font-semibold">الإيراد الدفتري المطلوب</span>
                   <div className="text-xl font-black text-emerald-700 font-mono" dir="ltr">
-                    {Number(reportData.totalExpectedRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} YER
+                    {Number(reportData.totalExpectedRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} {currency}
                   </div>
                 </div>
                 <div className="p-4 bg-blue-50/50 border border-blue-200/80 rounded-2xl space-y-1">
                   <span className="text-xs text-blue-800 font-semibold">المبالغ المستلمة فعلياً</span>
                   <div className="text-xl font-black text-blue-700 font-mono" dir="ltr">
-                    {Number(reportData.totalActualReceived || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} YER
+                    {Number(reportData.totalActualReceived || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} {currency}
                   </div>
                 </div>
               </div>
@@ -819,8 +1176,8 @@ export const ReportsTab: React.FC = () => {
                                   %{pct}
                                 </span>
                               </td>
-                              <td className="p-3 font-mono">{tank.unitPrice} YER</td>
-                              <td className="p-3 font-mono font-bold text-slate-900">{Number(val).toLocaleString('en-US')} YER</td>
+                              <td className="p-3 font-mono">{tank.unitPrice} {currency}</td>
+                              <td className="p-3 font-mono font-bold text-slate-900">{Number(val).toLocaleString('en-US')} {currency}</td>
                             </tr>
                           );
                         })}
@@ -859,31 +1216,33 @@ export const ReportsTab: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {(reportData.meters?.length > 0 ? reportData.meters : [
-                        { pumpNumber: 'طرمبة P-01', nozzleLabel: 'مسدس 1', fuelType: 'بنزين 91 ممتاز', previousMeter: 124500, currentMeter: 127850, dispensedLiters: 3350, calibrationLiters: 20, pricePerLiter: 850, expectedRevenue: 2847500, actualCashReceived: 2847500, varianceAmount: 0 },
-                        { pumpNumber: 'طرمبة P-02', nozzleLabel: 'مسدس 2', fuelType: 'بنزين 95 سوبر', previousMeter: 84200, currentMeter: 86400, dispensedLiters: 2200, calibrationLiters: 15, pricePerLiter: 980, expectedRevenue: 2156000, actualCashReceived: 2156000, varianceAmount: 0 },
-                        { pumpNumber: 'طرمبة P-03', nozzleLabel: 'مسدس 3', fuelType: 'ديزل عالي الكفاءة', previousMeter: 210000, currentMeter: 212900, dispensedLiters: 2900, calibrationLiters: 25, pricePerLiter: 800, expectedRevenue: 2320000, actualCashReceived: 2320000, varianceAmount: 0 },
-                      ]).map((m: any, idx: number) => {
-                        const variance = Number(m.varianceAmount || 0);
-                        return (
-                          <tr key={idx} className="hover:bg-slate-50">
-                            <td className="p-3 font-bold text-slate-900">{m.pumpNumber} ({m.nozzleLabel || 'مسدس'})</td>
-                            <td className="p-3 font-medium text-slate-700">{m.fuelType}</td>
-                            <td className="p-3 font-mono text-slate-600">{Number(m.previousMeter).toLocaleString()}</td>
-                            <td className="p-3 font-mono font-bold text-slate-800">{Number(m.currentMeter).toLocaleString()}</td>
-                            <td className="p-3 font-mono font-bold text-amber-700">{Number(m.dispensedLiters).toLocaleString()} لتر</td>
-                            <td className="p-3 font-mono text-slate-500">{m.calibrationLiters || 0} لتر</td>
-                            <td className="p-3 font-mono">{m.pricePerLiter} YER</td>
-                            <td className="p-3 font-mono font-bold text-emerald-700">{Number(m.expectedRevenue).toLocaleString()} YER</td>
-                            <td className="p-3 font-mono font-bold text-blue-700">{Number(m.actualCashReceived || m.expectedRevenue).toLocaleString()} YER</td>
-                            <td className="p-3 font-mono">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${variance === 0 ? 'bg-emerald-100 text-emerald-700' : variance > 0 ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                                {variance === 0 ? 'مطابق 100%' : `${variance > 0 ? '+' : ''}${variance}`}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                      {Array.isArray(reportData.meters) && reportData.meters.length > 0 ? (
+                        reportData.meters.map((m: any, idx: number) => {
+                          const variance = Number(m.varianceAmount || 0);
+                          return (
+                            <tr key={idx} className="hover:bg-slate-50">
+                              <td className="p-3 font-bold text-slate-900">{m.pumpNumber} ({m.nozzleLabel || 'مسدس'})</td>
+                              <td className="p-3 font-medium text-slate-700">{m.fuelType}</td>
+                              <td className="p-3 font-mono text-slate-600">{Number(m.previousMeter).toLocaleString()}</td>
+                              <td className="p-3 font-mono font-bold text-slate-800">{Number(m.currentMeter).toLocaleString()}</td>
+                              <td className="p-3 font-mono font-bold text-amber-700">{Number(m.dispensedLiters).toLocaleString()} لتر</td>
+                              <td className="p-3 font-mono text-slate-500">{m.calibrationLiters || 0} لتر</td>
+                              <td className="p-3 font-mono">{m.pricePerLiter} {currency}</td>
+                              <td className="p-3 font-mono font-bold text-emerald-700">{Number(m.expectedRevenue).toLocaleString()} {currency}</td>
+                              <td className="p-3 font-mono font-bold text-blue-700">{Number(m.actualCashReceived || m.expectedRevenue).toLocaleString()} {currency}</td>
+                              <td className="p-3 font-mono">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${variance === 0 ? 'bg-emerald-100 text-emerald-700' : variance > 0 ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                                  {variance === 0 ? 'مطابق 100%' : `${variance > 0 ? '+' : ''}${variance}`}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan={10} className="p-6 text-center text-slate-400">لا توجد قراءات عدادات مسجلة</td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
