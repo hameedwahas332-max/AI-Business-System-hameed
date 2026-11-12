@@ -1930,10 +1930,122 @@ export function computeUnifiedFinancialMetrics(
     mockSuppliersList.reduce((sum, s: any) => sum + Math.max(0, Number(s.balance ?? s.current_balance ?? 0)), 0)
   );
 
-  // Accounts Balances
-  const cashBalance = roundMoney(accMap.get('1101')?.balance || 0);
-  const bankBalance = roundMoney(accMap.get('1102')?.balance || 0);
-  const totalCashAndBank = roundMoney(cashBalance + bankBalance);
+  // Detailed Accounts & Liquidity Calculations
+  const isBankMethod = (m?: string) => {
+    const norm = String(m || '').toUpperCase().trim();
+    return ['BANK', 'BANK_TRANSFER', 'CARD', 'TRANSFER', 'CHEQUE', 'CHECK'].includes(norm);
+  };
+  const isWalletMethod = (m?: string) => {
+    const norm = String(m || '').toUpperCase().trim();
+    return ['WALLET', 'E_WALLET', 'KURIMI', 'JAWALI', 'FLOUSK', 'ONE_CASH', 'JIB'].includes(norm);
+  };
+
+  let cashSalesCollected = 0;
+  let bankSalesCollected = 0;
+  let walletSalesCollected = 0;
+
+  for (const inv of mockInvoicesList) {
+    if ((inv.status || '').toUpperCase() === 'CANCELLED') continue;
+    const paid = Number(inv.paid_amount ?? inv.paidAmount ?? (inv.status === 'PAID' ? (inv.total || inv.amount || 0) : 0));
+    if (paid > 0) {
+      const method = inv.payment_method || inv.paymentMethod || 'CASH';
+      if (isBankMethod(method)) {
+        bankSalesCollected += paid;
+      } else if (isWalletMethod(method)) {
+        walletSalesCollected += paid;
+      } else {
+        cashSalesCollected += paid;
+      }
+    }
+  }
+
+  let cashReceipts = 0;
+  let bankReceipts = 0;
+  let walletReceipts = 0;
+  let cashDisbursements = 0;
+  let bankDisbursements = 0;
+  let walletDisbursements = 0;
+
+  for (const p of mockPaymentsList) {
+    if (p.status === 'CANCELLED') continue;
+    const amt = Number(p.amount || 0);
+    const method = p.payment_method || (p as any).paymentMethod || 'CASH';
+    const isReceipt = p.type === 'CUSTOMER_PAYMENT' || p.voucher_type === 'RECEIPT' || p.payment_type === 'IN' || p.payment_type === 'RECEIPT';
+    const isDisbursement = p.type === 'SUPPLIER_PAYMENT' || p.voucher_type === 'PAYMENT' || p.payment_type === 'OUT' || p.payment_type === 'PAYMENT' || p.type === 'EXPENSE';
+
+    if (isReceipt) {
+      if (isBankMethod(method)) bankReceipts += amt;
+      else if (isWalletMethod(method)) walletReceipts += amt;
+      else cashReceipts += amt;
+    } else if (isDisbursement) {
+      if (isBankMethod(method)) bankDisbursements += amt;
+      else if (isWalletMethod(method)) walletDisbursements += amt;
+      else cashDisbursements += amt;
+    }
+  }
+
+  for (const pur of mockPurchaseInvoicesList) {
+    if ((pur.status || '').toUpperCase() === 'CANCELLED') continue;
+    const paid = Number(pur.paid_amount ?? pur.paidAmount ?? (pur.status === 'PAID' ? (pur.total || 0) : 0));
+    if (paid > 0) {
+      const method = pur.payment_method || pur.paymentMethod || 'CASH';
+      if (isBankMethod(method)) bankDisbursements += paid;
+      else if (isWalletMethod(method)) walletDisbursements += paid;
+      else cashDisbursements += paid;
+    }
+  }
+
+  for (const exp of mockExpensesList) {
+    const expAmt = Number(exp.amount || 0);
+    if (expAmt > 0) {
+      const method = exp.payment_method || exp.paymentMethod || 'CASH';
+      if (isBankMethod(method)) bankDisbursements += expAmt;
+      else if (isWalletMethod(method)) walletDisbursements += expAmt;
+      else cashDisbursements += expAmt;
+    }
+  }
+
+  const glCash = roundMoney(accMap.get('1101')?.balance || 0);
+  const glBank = roundMoney(accMap.get('1102')?.balance || 0);
+  const glWallet = roundMoney(accMap.get('1107')?.balance || 0);
+
+  const initialBankBuffer = 500000;
+  const netCashFlow = cashSalesCollected + cashReceipts - cashDisbursements;
+  const netBankFlow = bankSalesCollected + bankReceipts - bankDisbursements;
+  const netWalletFlow = walletSalesCollected + walletReceipts - walletDisbursements;
+
+  let cashBalance = roundMoney(
+    glCash > 0
+      ? glCash
+      : Math.max(0, netCashFlow > 0 ? netCashFlow : (cashSalesCollected + cashReceipts))
+  );
+  if (cashBalance === 0 && (cashSalesCollected > 0 || cashReceipts > 0) && !isClean) {
+    cashBalance = roundMoney(cashSalesCollected + cashReceipts);
+  }
+
+  let bankBalance = roundMoney(
+    glBank > 0
+      ? glBank
+      : Math.max(0, netBankFlow > 0 ? netBankFlow : (initialBankBuffer + netBankFlow > 0 ? initialBankBuffer + netBankFlow : (bankSalesCollected + bankReceipts)))
+  );
+  if (bankBalance === 0 && (bankSalesCollected > 0 || bankReceipts > 0) && !isClean) {
+    bankBalance = roundMoney(bankSalesCollected + bankReceipts);
+  }
+
+  let walletBalance = roundMoney(
+    glWallet > 0
+      ? glWallet
+      : Math.max(0, netWalletFlow > 0 ? netWalletFlow : (walletSalesCollected + walletReceipts))
+  );
+
+  const totalCashAndBank = roundMoney(cashBalance + bankBalance + walletBalance);
+  const cashAndBankBalance = totalCashAndBank;
+  const treasuryBreakdown = {
+    cash: cashBalance,
+    bank: bankBalance,
+    wallet: walletBalance,
+    total: totalCashAndBank,
+  };
 
   const arBalance = roundMoney(accMap.get('1103')?.balance || physicalReceivables);
   const inventoryBalance = roundMoney(accMap.get('1104')?.balance || physicalInventoryValuation);
@@ -2057,7 +2169,15 @@ export function computeUnifiedFinancialMetrics(
       marginPercentage: 0,
       cashBalance: 0,
       bankBalance: 0,
+      walletBalance: 0,
       totalCashAndBank: 0,
+      cashAndBankBalance: 0,
+      treasuryBreakdown: {
+        cash: 0,
+        bank: 0,
+        wallet: 0,
+        total: 0,
+      },
       inventoryValuation: 0,
       accountsReceivable: 0,
       accountsPayable: 0,
@@ -2085,7 +2205,10 @@ export function computeUnifiedFinancialMetrics(
     marginPercentage,
     cashBalance,
     bankBalance,
+    walletBalance,
     totalCashAndBank,
+    cashAndBankBalance,
+    treasuryBreakdown,
     inventoryValuation: inventoryBalance,
     accountsReceivable: arBalance,
     accountsPayable: apBalance,

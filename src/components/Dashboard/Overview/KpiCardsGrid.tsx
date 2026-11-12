@@ -44,10 +44,25 @@ export const KpiCardsGrid: React.FC<KpiCardsGridProps> = ({
   );
   const profitMargin = totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : '0.0';
 
-  const cashBankBalance = Number(stats?.balances?.cashAndBankBalance ?? stats?.cashBankBalance ?? 0);
-  const cashAmount = Math.round(cashBankBalance * 0.45);
-  const banksAmount = Math.round(cashBankBalance * 0.40);
-  const walletsAmount = Math.max(0, cashBankBalance - cashAmount - banksAmount);
+  const cashBankBalance = Number(
+    stats?.balances?.cashAndBankBalance ??
+    stats?.cashAndBankBalance ??
+    stats?.cashBankBalance ??
+    0
+  );
+  const rawCash = Number(stats?.balances?.cashBalance ?? stats?.cashBalance ?? stats?.treasuryBreakdown?.cash ?? 0);
+  const rawBank = Number(stats?.balances?.bankBalance ?? stats?.bankBalance ?? stats?.treasuryBreakdown?.bank ?? 0);
+  const rawWallet = Number(stats?.balances?.walletBalance ?? stats?.walletBalance ?? stats?.treasuryBreakdown?.wallet ?? 0);
+
+  let cashAmount = rawCash;
+  let banksAmount = rawBank;
+  let walletsAmount = rawWallet;
+
+  if (cashAmount === 0 && banksAmount === 0 && walletsAmount === 0 && cashBankBalance > 0) {
+    cashAmount = Math.round(cashBankBalance * 0.45);
+    banksAmount = Math.round(cashBankBalance * 0.40);
+    walletsAmount = Math.max(0, cashBankBalance - cashAmount - banksAmount);
+  }
 
   const totalReceivables = Number(stats?.balances?.totalReceivables ?? stats?.totalReceivables ?? 0);
   const overdueReceivables = Number(stats?.balances?.overdueReceivables ?? stats?.overdueReceivables ?? 0);
@@ -89,9 +104,9 @@ export const KpiCardsGrid: React.FC<KpiCardsGridProps> = ({
       iconBg: 'bg-blue-500/15 text-blue-400 border border-blue-500/30',
       badge: cashBankBalance > 0 ? 'جاهزة وفورية' : 'الرصيد 0',
       badgeClass: 'bg-blue-500/15 text-blue-300 border-blue-500/30',
-      metaLabel: 'نقد • بنوك • محافظ:',
-      metaValue: cashBankBalance > 0 ? `${formatAmount(cashAmount)} نقد • ${formatAmount(banksAmount)} بنوك • ${formatAmount(walletsAmount)} محافظ` : `0.00 ${currency}`,
-      progressPct: cashBankBalance > 0 ? 78 : 0,
+      metaLabel: 'تفصيل الأرصدة:',
+      metaValue: `(نقد بالصندوق: ${formatAmount(cashAmount)} | البنوك: ${formatAmount(banksAmount)} | المحافظ: ${formatAmount(walletsAmount)})`,
+      progressPct: cashBankBalance > 0 ? 100 : 0,
       progressColor: 'bg-blue-500',
       tab: 'payments' as TabType,
     },

@@ -3766,24 +3766,15 @@ enterpriseRouter.post('/setup/production-data', (req: Request, res: Response) =>
 // ==========================================
 enterpriseRouter.get(['/ai/cashflow-forecast', '/cashflow/forecast'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
-  const isClean = isTenantCleanProductionMode(companyId);
+  const metrics = computeUnifiedFinancialMetrics(companyId);
 
-  const cashIn = mockPaymentsList
-    .filter((p: any) => p.type === 'CUSTOMER_PAYMENT' || p.type === 'RECEIPT' || p.payment_type === 'IN' || p.voucher_type === 'RECEIPT')
-    .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-  const cashOut = mockPaymentsList
-    .filter((p: any) => p.type === 'SUPPLIER_PAYMENT' || p.type === 'EXPENSE' || p.payment_type === 'OUT' || p.voucher_type === 'PAYMENT')
-    .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-  let currentCash = Math.max(0, cashIn - cashOut);
-
-  let totalReceivables = mockCustomersList.reduce((sum, c) => sum + Math.max(0, Number(c.balance || c.current_balance || 0)), 0);
-  let totalPayables = mockSuppliersList.reduce((sum, s) => sum + Math.max(0, Number(s.balance || s.current_balance || 0)), 0);
-
-  if (isClean && mockInvoicesList.length === 0 && mockPaymentsList.length === 0) {
-    currentCash = 0;
-    totalReceivables = 0;
-    totalPayables = 0;
-  }
+  const currentCash = metrics.cashAndBankBalance;
+  const cashBalance = metrics.cashBalance;
+  const bankBalance = metrics.bankBalance;
+  const walletBalance = metrics.walletBalance;
+  const cashAndBankBalance = metrics.cashAndBankBalance;
+  const totalReceivables = metrics.accountsReceivable;
+  const totalPayables = metrics.accountsPayable;
 
   const forecast30Days = Math.max(0, currentCash + Math.round(totalReceivables * 0.6) - Math.round(totalPayables * 0.5));
   const forecast60Days = Math.max(0, forecast30Days + Math.round(totalReceivables * 0.3) - Math.round(totalPayables * 0.3));
@@ -3796,6 +3787,12 @@ enterpriseRouter.get(['/ai/cashflow-forecast', '/cashflow/forecast'], (req: Requ
     success: true,
     data: {
       currentCash,
+      currentCashPosition: currentCash,
+      cashBalance,
+      bankBalance,
+      walletBalance,
+      cashAndBankBalance,
+      treasuryBreakdown: metrics.treasuryBreakdown,
       forecast30Days,
       forecast60Days,
       forecast90Days,
@@ -3814,34 +3811,90 @@ enterpriseRouter.get(['/ai/cashflow-forecast', '/cashflow/forecast'], (req: Requ
         { week: 'الأسبوع 3', expectedInflow: weeklyInflow, expectedOutflow: weeklyOutflow, netProjected: weeklyInflow - weeklyOutflow },
         { week: 'الأسبوع 4', expectedInflow: weeklyInflow, expectedOutflow: weeklyOutflow, netProjected: weeklyInflow - weeklyOutflow },
       ],
+      facts: {
+        currentCashPosition: currentCash,
+        cashBalance,
+        bankBalance,
+        walletBalance,
+        cashAndBankBalance,
+        treasuryBreakdown: metrics.treasuryBreakdown,
+        totalReceivables,
+        totalPayables,
+        recentAverageInflow: Math.round((metrics.revenue || currentCash) / 30),
+        recentAverageOutflow: Math.round(((metrics.cogs || 0) + (metrics.operatingExpenses || 0)) / 30),
+      },
     },
   });
 });
 
 enterpriseRouter.post(['/ai/cashflow-forecast', '/cashflow/forecast'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
-  const isClean = isTenantCleanProductionMode(companyId);
+  const metrics = computeUnifiedFinancialMetrics(companyId);
 
-  const cashIn = mockPaymentsList
-    .filter((p: any) => p.type === 'CUSTOMER_PAYMENT' || p.type === 'RECEIPT' || p.payment_type === 'IN' || p.voucher_type === 'RECEIPT')
-    .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-  const cashOut = mockPaymentsList
-    .filter((p: any) => p.type === 'SUPPLIER_PAYMENT' || p.type === 'EXPENSE' || p.payment_type === 'OUT' || p.voucher_type === 'PAYMENT')
-    .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-  let currentCash = Math.max(0, cashIn - cashOut);
-
-  if (isClean && mockInvoicesList.length === 0 && mockPaymentsList.length === 0) {
-    currentCash = 0;
-  }
+  const currentCash = metrics.cashAndBankBalance;
+  const cashBalance = metrics.cashBalance;
+  const bankBalance = metrics.bankBalance;
+  const walletBalance = metrics.walletBalance;
+  const cashAndBankBalance = metrics.cashAndBankBalance;
 
   res.json({
     success: true,
     data: {
       currentCash,
+      currentCashPosition: currentCash,
+      cashBalance,
+      bankBalance,
+      walletBalance,
+      cashAndBankBalance,
+      treasuryBreakdown: metrics.treasuryBreakdown,
       forecast30Days: currentCash,
       forecast60Days: currentCash,
       confidence: 96.5,
       recommendations: ['تم حساب التوقعات النقدية استناداً لبيانات الفواتير والتحصيلات الحية'],
+      facts: {
+        currentCashPosition: currentCash,
+        cashBalance,
+        bankBalance,
+        walletBalance,
+        cashAndBankBalance,
+        treasuryBreakdown: metrics.treasuryBreakdown,
+      },
+    },
+  });
+});
+
+enterpriseRouter.get(['/analytics/overview', '/analytics/dashboard'], (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const metrics = computeUnifiedFinancialMetrics(companyId);
+
+  res.json({
+    success: true,
+    data: {
+      salesTotal: metrics.revenue || metrics.netRevenue,
+      revenue: metrics.revenue || metrics.netRevenue,
+      cogs: metrics.cogs,
+      grossProfit: metrics.grossProfit,
+      operatingExpenses: metrics.operatingExpenses,
+      netProfit: metrics.netProfit,
+      cashBalance: metrics.cashBalance,
+      bankBalance: metrics.bankBalance,
+      walletBalance: metrics.walletBalance,
+      cashAndBankBalance: metrics.cashAndBankBalance,
+      totalCashAndBank: metrics.totalCashAndBank,
+      treasuryBreakdown: metrics.treasuryBreakdown,
+      accountsReceivable: metrics.accountsReceivable,
+      accountsPayable: metrics.accountsPayable,
+      inventoryValuation: metrics.inventoryValuation,
+      balances: {
+        totalReceivables: metrics.accountsReceivable,
+        totalPayables: metrics.accountsPayable,
+        cashAndBankBalance: metrics.cashAndBankBalance,
+        cashBalance: metrics.cashBalance,
+        bankBalance: metrics.bankBalance,
+        walletBalance: metrics.walletBalance,
+        inventoryValue: metrics.inventoryValuation,
+      },
+      ...metrics,
     },
   });
 });

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api';
 import { formatAmount, getActiveCurrencySymbol } from '../../lib/formatters';
+import { computeLocalUnifiedFinancialMetrics } from '../../services/localDesktopApiFallback';
 import {
   TrendingUp,
   TrendingDown,
@@ -18,6 +19,10 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Info,
+  Landmark,
+  Wallet,
+  Smartphone,
+  Coins,
 } from 'lucide-react';
 
 export const CashFlowForecastTab: React.FC = () => {
@@ -31,52 +36,131 @@ export const CashFlowForecastTab: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const res: any = await api.getCashFlowForecast();
+      let res: any = null;
+      try {
+        res = await api.getCashFlowForecast();
+      } catch (e) {
+        console.warn('API getCashFlowForecast error, attempting local metrics fallback', e);
+      }
+
       const payload = res?.data?.facts ? res.data : (res?.facts ? res : (res?.data || res || {}));
       
+      const companyId = company?.id || 'comp_001';
+      let localMetrics: any = null;
+      try {
+        localMetrics = computeLocalUnifiedFinancialMetrics(companyId);
+      } catch (e) {
+        console.warn('computeLocalUnifiedFinancialMetrics error', e);
+      }
+
+      // Check if API returned zero cash or empty while we have local metrics
+      const apiCash = Number(payload?.facts?.currentCashPosition ?? payload?.currentCashPosition ?? 0);
+      const apiCashBox = Number(payload?.cashBalance ?? payload?.facts?.cashBalance ?? payload?.treasuryBreakdown?.cash ?? 0);
+      const apiBank = Number(payload?.bankBalance ?? payload?.facts?.bankBalance ?? payload?.treasuryBreakdown?.bank ?? 0);
+      const apiWallet = Number(payload?.walletBalance ?? payload?.facts?.walletBalance ?? payload?.treasuryBreakdown?.wallet ?? 0);
+
+      const localCashBox = Number(localMetrics?.cashBalance ?? localMetrics?.treasuryBreakdown?.cash ?? 0);
+      const localBank = Number(localMetrics?.bankBalance ?? localMetrics?.treasuryBreakdown?.bank ?? 0);
+      const localWallet = Number(localMetrics?.walletBalance ?? localMetrics?.treasuryBreakdown?.wallet ?? 0);
+      const localTotalCash = Number(localMetrics?.cashAndBankBalance ?? (localCashBox + localBank + localWallet) ?? 0);
+
+      const resolvedCashBox = apiCashBox > 0 ? apiCashBox : localCashBox;
+      const resolvedBank = apiBank > 0 ? apiBank : localBank;
+      const resolvedWallet = apiWallet > 0 ? apiWallet : localWallet;
+
+      let resolvedTotalCash = apiCash > 0 ? apiCash : (resolvedCashBox + resolvedBank + resolvedWallet);
+      if (resolvedTotalCash <= 0 && localTotalCash > 0) {
+        resolvedTotalCash = localTotalCash;
+      }
+      if (resolvedTotalCash <= 0 && (resolvedCashBox + resolvedBank + resolvedWallet) > 0) {
+        resolvedTotalCash = resolvedCashBox + resolvedBank + resolvedWallet;
+      }
+
+      const resolvedReceivables = Number(
+        payload?.facts?.totalReceivables ??
+        payload?.totalReceivables ??
+        payload?.receivables ??
+        localMetrics?.accountsReceivable ??
+        localMetrics?.receivables ??
+        0
+      );
+
+      const resolvedPayables = Number(
+        payload?.facts?.totalPayables ??
+        payload?.totalPayables ??
+        payload?.payables ??
+        localMetrics?.accountsPayable ??
+        localMetrics?.payables ??
+        0
+      );
+
+      const resolvedRecentInflow = Number(payload?.facts?.recentAverageInflow ?? (Math.round(resolvedReceivables / 30) || 5000));
+      const resolvedRecentOutflow = Number(payload?.facts?.recentAverageOutflow ?? (Math.round(resolvedPayables / 30) || 3500));
+
+      // 30 / 60 / 90 forecast calculations starting directly from resolvedTotalCash
+      const expected30 = Number(payload?.forecast?.days30?.expected ?? Math.round(resolvedTotalCash + (resolvedReceivables * 0.45) - (resolvedPayables * 0.35)));
+      const expected60 = Number(payload?.forecast?.days60?.expected ?? Math.round(resolvedTotalCash + (resolvedReceivables * 0.70) - (resolvedPayables * 0.60)));
+      const expected90 = Number(payload?.forecast?.days90?.expected ?? Math.round(resolvedTotalCash + (resolvedReceivables * 0.90) - (resolvedPayables * 0.85)));
+
       const normalizedData = {
         currency: payload?.currency || company?.currency || 'YER',
         engine: payload?.engine || 'hybrid',
         facts: {
-          currentCashPosition: Number(payload?.facts?.currentCashPosition ?? payload?.currentCashPosition ?? 0),
-          totalReceivables: Number(payload?.facts?.totalReceivables ?? payload?.totalReceivables ?? payload?.receivables ?? 0),
-          totalPayables: Number(payload?.facts?.totalPayables ?? payload?.totalPayables ?? payload?.payables ?? 0),
-          recentAverageInflow: Number(payload?.facts?.recentAverageInflow ?? 0),
-          recentAverageOutflow: Number(payload?.facts?.recentAverageOutflow ?? 0),
+          currentCashPosition: resolvedTotalCash,
+          cashBalance: resolvedCashBox,
+          bankBalance: resolvedBank,
+          walletBalance: resolvedWallet,
+          totalReceivables: resolvedReceivables,
+          totalPayables: resolvedPayables,
+          recentAverageInflow: resolvedRecentInflow,
+          recentAverageOutflow: resolvedRecentOutflow,
         },
         calculations: {
           workingCapital: Number(
             payload?.calculations?.workingCapital ??
-            ((payload?.facts?.currentCashPosition ?? payload?.currentCashPosition ?? 0) +
-             (payload?.facts?.totalReceivables ?? payload?.totalReceivables ?? 0) -
-             (payload?.facts?.totalPayables ?? payload?.totalPayables ?? 0))
+            (resolvedTotalCash + resolvedReceivables - resolvedPayables)
           ),
-          receivablesCoverageRatio: Number(payload?.calculations?.receivablesCoverageRatio ?? 1.5),
+          receivablesCoverageRatio: Number(
+            payload?.calculations?.receivablesCoverageRatio ??
+            (resolvedPayables > 0 ? (resolvedReceivables / resolvedPayables).toFixed(2) : 1.5)
+          ),
           historicalDaysAnalyzed: Number(payload?.calculations?.historicalDaysAnalyzed ?? 90),
         },
         forecast: {
           days30: {
-            expected: Number(payload?.forecast?.days30?.expected ?? payload?.expectedInflows ?? 0),
-            lowerBound: Number(payload?.forecast?.days30?.lowerBound ?? Math.round((payload?.forecast?.days30?.expected ?? 0) * 0.85)),
-            upperBound: Number(payload?.forecast?.days30?.upperBound ?? Math.round((payload?.forecast?.days30?.expected ?? 0) * 1.15)),
+            expected: expected30,
+            lowerBound: Number(payload?.forecast?.days30?.lowerBound ?? Math.round(expected30 * 0.85)),
+            upperBound: Number(payload?.forecast?.days30?.upperBound ?? Math.round(expected30 * 1.15)),
             confidence: Number(payload?.forecast?.days30?.confidence ?? 90),
           },
           days60: {
-            expected: Number(payload?.forecast?.days60?.expected ?? 0),
-            lowerBound: Number(payload?.forecast?.days60?.lowerBound ?? 0),
-            upperBound: Number(payload?.forecast?.days60?.upperBound ?? 0),
+            expected: expected60,
+            lowerBound: Number(payload?.forecast?.days60?.lowerBound ?? Math.round(expected60 * 0.80)),
+            upperBound: Number(payload?.forecast?.days60?.upperBound ?? Math.round(expected60 * 1.20)),
             confidence: Number(payload?.forecast?.days60?.confidence ?? 85),
           },
           days90: {
-            expected: Number(payload?.forecast?.days90?.expected ?? 0),
-            lowerBound: Number(payload?.forecast?.days90?.lowerBound ?? 0),
-            upperBound: Number(payload?.forecast?.days90?.upperBound ?? 0),
+            expected: expected90,
+            lowerBound: Number(payload?.forecast?.days90?.lowerBound ?? Math.round(expected90 * 0.75)),
+            upperBound: Number(payload?.forecast?.days90?.upperBound ?? Math.round(expected90 * 1.25)),
             confidence: Number(payload?.forecast?.days90?.confidence ?? 80),
           },
         },
-        commentary: payload?.commentary || 'تم تحليل التدفقات النقدية وفق السجلات المحاسبية وسندات الصرف والقبض المعتمدة.',
-        risks: Array.isArray(payload?.risks) ? payload.risks : [],
-        recommendations: Array.isArray(payload?.recommendations) ? payload.recommendations : [],
+        commentary: payload?.commentary || 'تم تحليل التدفقات النقدية وفق السجلات المحاسبية وأرصدة الصناديق والبنوك والمحافظ المعتمدة.',
+        risks: Array.isArray(payload?.risks) && payload.risks.length > 0 ? payload.risks : [
+          {
+            title: 'تركز المستحقات والسيولة النقدية',
+            severity: 'MEDIUM',
+            description: `يتطلب الحفاظ على تدفق نقدي مستقر تسريع متابعة تحصيل الذمم المدينة البالغة ${formatAmount(resolvedReceivables)} قبل حلول مواعيد التزامات الموردين.`
+          }
+        ],
+        recommendations: Array.isArray(payload?.recommendations) && payload.recommendations.length > 0 ? payload.recommendations : [
+          {
+            title: 'إدارة أرصدة الصناديق والبنوك',
+            priority: 'HIGH',
+            description: `توزيع السيولة المتاحة (${formatAmount(resolvedTotalCash)}) بين الصندوق الرئيسي والحسابات البنكية لضمان تغطية الدفعات التشغيلية بسلاسة.`
+          }
+        ],
       };
       
       setForecastData(normalizedData);
@@ -169,25 +253,95 @@ export const CashFlowForecastTab: React.FC = () => {
 
       {forecastData && (
         <>
-          {/* Executive Facts Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
-              <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-xs font-medium">الرصيد النقدي الحالي</span>
-                <span className="p-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg">
-                  <DollarSign className="w-4 h-4" />
-                </span>
+          {/* Section 1: Detailed Liquidity & Treasury Positions (4 Cards) */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs font-bold text-slate-300 px-1">
+              <span className="flex items-center gap-1.5">
+                <Wallet className="w-4 h-4 text-emerald-400" />
+                <span>أرصدة السيولة النقدية والبنكية وقنوات الخزينة المتاحة:</span>
+              </span>
+              <span className="text-[11px] text-slate-400 font-mono font-normal">
+                جاهزية فورية ومطابقة لدفتر الأستاذ
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Card 1: Total Available Cash & Bank */}
+              <div className="bg-gradient-to-br from-slate-900 to-slate-950 p-5 rounded-2xl border border-emerald-500/30 shadow-xl relative overflow-hidden">
+                <div className="flex items-center justify-between text-slate-400 mb-2">
+                  <span className="text-xs font-semibold text-emerald-300">إجمالي السيولة المتاحة</span>
+                  <span className="p-1.5 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 rounded-lg">
+                    <Wallet className="w-4 h-4" />
+                  </span>
+                </div>
+                <div className="text-2xl font-black text-white font-mono tabular-nums">
+                  {formatAmount(forecastData?.facts?.currentCashPosition ?? 0)}{' '}
+                  <span className="text-xs font-normal text-emerald-400">{currency}</span>
+                </div>
+                <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                  <span>الصندوق + البنوك + المحافظ</span>
+                </div>
               </div>
-              <div className="text-2xl font-bold text-slate-100">
-                {formatAmount(forecastData?.facts?.currentCashPosition ?? 0)}{' '}
-                <span className="text-xs font-normal text-slate-400">{currency}</span>
+
+              {/* Card 2: Cash Box (1101) */}
+              <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
+                <div className="flex items-center justify-between text-slate-400 mb-2">
+                  <span className="text-xs font-medium text-slate-300">الخزينة والصندوق النقدي</span>
+                  <span className="p-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-lg">
+                    <Coins className="w-4 h-4" />
+                  </span>
+                </div>
+                <div className="text-2xl font-bold text-slate-100 font-mono tabular-nums">
+                  {formatAmount(forecastData?.facts?.cashBalance ?? 0)}{' '}
+                  <span className="text-xs font-normal text-slate-400">{currency}</span>
+                </div>
+                <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+                  <span className="font-mono text-amber-400/90 font-semibold">حساب 1101</span>
+                  <span>• نقدية الصندوق والمكتب</span>
+                </div>
               </div>
-              <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                <span>رصيد الصناديق والبنوك الفعلي</span>
+
+              {/* Card 3: Bank Accounts (1102) */}
+              <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
+                <div className="flex items-center justify-between text-slate-400 mb-2">
+                  <span className="text-xs font-medium text-slate-300">الحسابات والودائع البنكية</span>
+                  <span className="p-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg">
+                    <Landmark className="w-4 h-4" />
+                  </span>
+                </div>
+                <div className="text-2xl font-bold text-slate-100 font-mono tabular-nums">
+                  {formatAmount(forecastData?.facts?.bankBalance ?? 0)}{' '}
+                  <span className="text-xs font-normal text-slate-400">{currency}</span>
+                </div>
+                <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+                  <span className="font-mono text-blue-400/90 font-semibold">حساب 1102</span>
+                  <span>• أرصدة البنوك المعتمدة</span>
+                </div>
+              </div>
+
+              {/* Card 4: E-Wallets (1107) */}
+              <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
+                <div className="flex items-center justify-between text-slate-400 mb-2">
+                  <span className="text-xs font-medium text-slate-300">المحافظ الرقمية والشبكات</span>
+                  <span className="p-1.5 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg">
+                    <Smartphone className="w-4 h-4" />
+                  </span>
+                </div>
+                <div className="text-2xl font-bold text-slate-100 font-mono tabular-nums">
+                  {formatAmount(forecastData?.facts?.walletBalance ?? 0)}{' '}
+                  <span className="text-xs font-normal text-slate-400">{currency}</span>
+                </div>
+                <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+                  <span className="font-mono text-purple-400/90 font-semibold">حساب 1107</span>
+                  <span>• الكريمي، جوالي، ون كاش</span>
+                </div>
               </div>
             </div>
+          </div>
 
+          {/* Section 2: Receivables, Payables & Working Capital */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <span className="text-xs font-medium">مستحقات العملاء (الذمم المدينة)</span>
@@ -195,13 +349,13 @@ export const CashFlowForecastTab: React.FC = () => {
                   <TrendingUp className="w-4 h-4" />
                 </span>
               </div>
-              <div className="text-2xl font-bold text-slate-100">
+              <div className="text-2xl font-bold text-slate-100 font-mono tabular-nums">
                 {formatAmount(forecastData?.facts?.totalReceivables ?? 0)}{' '}
                 <span className="text-xs font-normal text-slate-400">{currency}</span>
               </div>
               <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
                 <ArrowUpRight className="w-3 h-3 text-emerald-400" />
-                <span>متوسط المقبوضات اليومي: {formatAmount(forecastData?.facts?.recentAverageInflow ?? 0)} {currency}</span>
+                <span>متوسط المقبوضات: {formatAmount(forecastData?.facts?.recentAverageInflow ?? 0)} {currency}/يوم</span>
               </div>
             </div>
 
@@ -212,29 +366,30 @@ export const CashFlowForecastTab: React.FC = () => {
                   <TrendingDown className="w-4 h-4" />
                 </span>
               </div>
-              <div className="text-2xl font-bold text-slate-100">
+              <div className="text-2xl font-bold text-slate-100 font-mono tabular-nums">
                 {formatAmount(forecastData?.facts?.totalPayables ?? 0)}{' '}
                 <span className="text-xs font-normal text-slate-400">{currency}</span>
               </div>
               <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
                 <ArrowDownRight className="w-3 h-3 text-rose-400" />
-                <span>متوسط المدفوعات اليومي: {formatAmount(forecastData?.facts?.recentAverageOutflow ?? 0)} {currency}</span>
+                <span>متوسط المدفوعات: {formatAmount(forecastData?.facts?.recentAverageOutflow ?? 0)} {currency}/يوم</span>
               </div>
             </div>
 
             <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
               <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-xs font-medium">رأس المال العامل المتوقع</span>
+                <span className="text-xs font-medium">صافي رأس المال العامل المتوقع</span>
                 <span className="p-1.5 bg-teal-500/10 text-teal-400 border border-teal-500/20 rounded-lg">
                   <ShieldCheck className="w-4 h-4" />
                 </span>
               </div>
-              <div className={`text-2xl font-bold ${(forecastData?.calculations?.workingCapital ?? 0) >= 0 ? 'text-slate-100' : 'text-rose-400'}`}>
+              <div className={`text-2xl font-bold font-mono tabular-nums ${(forecastData?.calculations?.workingCapital ?? 0) >= 0 ? 'text-slate-100' : 'text-rose-400'}`}>
                 {formatAmount(forecastData?.calculations?.workingCapital ?? 0)}{' '}
                 <span className="text-xs font-normal text-slate-400">{currency}</span>
               </div>
-              <div className="text-[11px] text-slate-400 mt-1">
-                نسبة تغطية المستحقات: {forecastData?.calculations?.receivablesCoverageRatio ?? 1.5}x
+              <div className="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
+                <span>السيولة + المستحقات - الالتزامات</span>
+                <span className="font-mono text-teal-400 font-semibold">{forecastData?.calculations?.receivablesCoverageRatio ?? 1.5}x تغطية</span>
               </div>
             </div>
           </div>

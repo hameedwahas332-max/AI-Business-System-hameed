@@ -36,12 +36,30 @@ export const CashFlowTreasuryCenter: React.FC<CashFlowTreasuryCenterProps> = ({
     localStorage.getItem('erp_sample_data_cleaned') === 'true'
   );
 
-  const totalLiquidity = Number(stats?.balances?.cashAndBankBalance ?? stats?.cashBankBalance ?? 0);
+  const totalLiquidity = Number(stats?.balances?.cashAndBankBalance ?? stats?.cashBankBalance ?? (
+    Number(stats?.balances?.cashBalance ?? 0) + Number(stats?.balances?.bankBalance ?? 0) + Number(stats?.balances?.walletBalance ?? 0)
+  ) ?? 0);
 
-  // Split balances
-  const cashOnHand = Math.round(totalLiquidity * 0.42);
-  const bankAccounts = Math.round(totalLiquidity * 0.38);
-  const eWallets = Math.max(0, totalLiquidity - cashOnHand - bankAccounts);
+  // Split balances from real accounting data
+  const rawCash = Number(stats?.balances?.cashBalance ?? stats?.cashBalance ?? stats?.treasuryBreakdown?.cash ?? 0);
+  const rawBank = Number(stats?.balances?.bankBalance ?? stats?.bankBalance ?? stats?.treasuryBreakdown?.bank ?? 0);
+  const rawWallet = Number(stats?.balances?.walletBalance ?? stats?.walletBalance ?? stats?.treasuryBreakdown?.wallet ?? 0);
+
+  let cashOnHand = rawCash;
+  let bankAccounts = rawBank;
+  let eWallets = rawWallet;
+
+  // Fallback split only if all three are zero and totalLiquidity > 0
+  if (cashOnHand === 0 && bankAccounts === 0 && eWallets === 0 && totalLiquidity > 0) {
+    cashOnHand = Math.round(totalLiquidity * 0.45);
+    bankAccounts = Math.round(totalLiquidity * 0.40);
+    eWallets = Math.max(0, totalLiquidity - cashOnHand - bankAccounts);
+  }
+
+  const effectiveTotal = (cashOnHand + bankAccounts + eWallets) || totalLiquidity || 1;
+  const cashPct = Math.round((cashOnHand / effectiveTotal) * 100);
+  const bankPct = Math.round((bankAccounts / effectiveTotal) * 100);
+  const walletPct = Math.max(0, 100 - cashPct - bankPct);
 
   // Daily Receipts vs Disbursements vs Expenses
   const todayReceipts = Number(stats?.payments?.todayReceipts ?? 0);
@@ -53,10 +71,10 @@ export const CashFlowTreasuryCenter: React.FC<CashFlowTreasuryCenterProps> = ({
     {
       id: 'cash-register',
       name: 'الصندوق النقدي الرئيسي',
-      subtitle: 'خزينة الكاشير والمكتب المركزي',
+      subtitle: 'حساب 1101 • خزينة الكاشير والمكتب',
       balance: cashOnHand,
       type: 'CASH',
-      pct: totalLiquidity > 0 ? 42 : 0,
+      pct: cashPct,
       color: 'bg-emerald-500',
       textClass: 'text-emerald-400',
       icon: Coins,
@@ -65,10 +83,10 @@ export const CashFlowTreasuryCenter: React.FC<CashFlowTreasuryCenterProps> = ({
     {
       id: 'bank-accounts',
       name: 'الحسابات البنكية المعتمدة',
-      subtitle: 'حسابات جارية وودائع بنكية',
+      subtitle: 'حساب 1102 • حسابات جارية وودائع بنكية',
       balance: bankAccounts,
       type: 'BANK',
-      pct: totalLiquidity > 0 ? 38 : 0,
+      pct: bankPct,
       color: 'bg-blue-500',
       textClass: 'text-blue-400',
       icon: Landmark,
@@ -77,10 +95,10 @@ export const CashFlowTreasuryCenter: React.FC<CashFlowTreasuryCenterProps> = ({
     {
       id: 'e-wallets',
       name: 'المحافظ الإلكترونية (اليمن والخليج)',
-      subtitle: 'الكريمي • جوالي • ون كاش • فلوسك • جوبي',
+      subtitle: 'حساب 1107 • الكريمي • جوالي • ون كاش • فلوسك',
       balance: eWallets,
       type: 'WALLET',
-      pct: totalLiquidity > 0 ? 20 : 0,
+      pct: walletPct,
       color: 'bg-amber-400',
       textClass: 'text-amber-400',
       icon: Smartphone,
@@ -130,18 +148,25 @@ export const CashFlowTreasuryCenter: React.FC<CashFlowTreasuryCenterProps> = ({
       {/* Total Balance Card */}
       <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-900/90 border border-slate-700/80 space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-slate-400 font-semibold">إجمالي السيولة النقدية والرقمية المتاحة</span>
+          <span className="text-xs text-slate-400 font-semibold">إجمالي السيولة النقدية والبنكية المتاحة</span>
           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
             جاهزية فورية
           </span>
         </div>
         <div className="flex items-baseline gap-2">
           <span className="text-2xl sm:text-3xl font-black text-white font-mono tabular-nums">
-            {formatAmount(totalLiquidity)}
+            {formatAmount(totalLiquidity > 0 ? totalLiquidity : (cashOnHand + bankAccounts + eWallets))}
           </span>
           <span className="text-xs font-bold text-emerald-400 font-mono">
             {currency}
           </span>
+        </div>
+        <div className="pt-1.5 border-t border-slate-800/80 text-[11px] text-slate-400 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono">
+          <span>نقد بالصندوق: <strong className="text-emerald-400 font-bold">{formatAmount(cashOnHand)}</strong> ({cashPct}%)</span>
+          <span className="text-slate-600">•</span>
+          <span>البنوك: <strong className="text-blue-400 font-bold">{formatAmount(bankAccounts)}</strong> ({bankPct}%)</span>
+          <span className="text-slate-600">•</span>
+          <span>المحافظ: <strong className="text-amber-400 font-bold">{formatAmount(eWallets)}</strong> ({walletPct}%)</span>
         </div>
       </div>
 

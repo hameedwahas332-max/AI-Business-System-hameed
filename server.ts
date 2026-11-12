@@ -1886,28 +1886,36 @@ app.post(['/api/v1/payments/:id/cancel', '/api/payments/:id/cancel'], (req: Requ
   }
 });
 
-app.get('/api/v1/financial-health', (_req: Request, res: Response) => {
-  const totalSales = mockInvoicesList.reduce((s, i) => s + Number(i.total || i.amount || 0), 0);
-  const totalPurchases = mockPurchaseInvoicesList.reduce((s, p) => s + Number(p.total || 0), 0);
-  const totalReceivables = mockCustomersList.reduce((s, c) => s + Number(c.balance || 0), 0);
-  const totalPayables = mockSuppliersList.reduce((s, sup) => s + Number(sup.balance || 0), 0);
-  const inventoryValue = mockProducts.reduce(
-    (s, prod) => s + Number((prod.cost_price || prod.purchase_price || 0) * (prod.current_stock || 0)),
-    0
-  );
-  const netProfit = Math.max(0, totalSales - totalPurchases);
-  const cashAndBankBalance = mockPaymentsList.reduce((s, pmt) => s + (pmt.type === 'CUSTOMER_PAYMENT' ? pmt.amount : -pmt.amount), 0);
+app.get(['/api/v1/financial-health', '/api/financial-health'], (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const metrics = computeUnifiedFinancialMetrics(companyId);
 
   res.json({
     success: true,
     data: {
-      totalSales,
-      totalPurchases,
-      totalReceivables,
-      totalPayables,
-      cashAndBankBalance: Math.max(0, cashAndBankBalance),
-      inventoryValue,
-      netProfit,
+      totalSales: metrics.revenue || metrics.netRevenue,
+      totalPurchases: mockPurchaseInvoicesList.reduce((s, p) => s + Number(p.total || 0), 0),
+      totalReceivables: metrics.accountsReceivable,
+      totalPayables: metrics.accountsPayable,
+      cashBalance: metrics.cashBalance,
+      bankBalance: metrics.bankBalance,
+      walletBalance: metrics.walletBalance,
+      cashAndBankBalance: metrics.cashAndBankBalance,
+      totalCashAndBank: metrics.totalCashAndBank,
+      treasuryBreakdown: metrics.treasuryBreakdown,
+      inventoryValue: metrics.inventoryValuation,
+      netProfit: metrics.netProfit,
+      receivables: metrics.accountsReceivable,
+      payables: metrics.accountsPayable,
+      balances: {
+        totalReceivables: metrics.accountsReceivable,
+        totalPayables: metrics.accountsPayable,
+        cashAndBankBalance: metrics.cashAndBankBalance,
+        cashBalance: metrics.cashBalance,
+        bankBalance: metrics.bankBalance,
+        walletBalance: metrics.walletBalance,
+        inventoryValue: metrics.inventoryValuation,
+      },
     },
   });
 });
