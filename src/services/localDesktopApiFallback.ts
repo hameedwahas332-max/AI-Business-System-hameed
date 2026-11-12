@@ -1409,13 +1409,17 @@ export async function executeLocalSeedDemoData(): Promise<LocalApiResponse> {
       type: 'CUSTOMER_PAYMENT',
       payment_type: 'RECEIPT',
       customer_id: 'cst-01',
+      customer_name: 'شركة الأمل للتجارة والمقاولات',
       party_name: 'شركة الأمل للتجارة والمقاولات',
+      partyName: 'شركة الأمل للتجارة والمقاولات',
       amount: 120000,
       payment_method: 'CASH',
       payment_date: dateStr,
       currency: 'YER',
       notes: 'سداد نقدي عن فاتورة مبيعات رقم INV-2026-001',
       created_at: now.toISOString(),
+      is_synced: true,
+      syncStatus: 'SYNCED',
     },
     {
       id: 'pmt-3002',
@@ -1424,13 +1428,17 @@ export async function executeLocalSeedDemoData(): Promise<LocalApiResponse> {
       type: 'SUPPLIER_PAYMENT',
       payment_type: 'PAYMENT',
       supplier_id: 'sup-02',
+      supplier_name: 'مصنع الزيوت الوطنية المحدودة',
       party_name: 'مصنع الزيوت الوطنية المحدودة',
+      partyName: 'مصنع الزيوت الوطنية المحدودة',
       amount: 200000,
       payment_method: 'BANK_TRANSFER',
       payment_date: dateStr,
       currency: 'YER',
       notes: 'دفعة سداد بنكية من حساب البنك التجاري عن فاتورة مشتريات PUR-2026-001',
       created_at: now.toISOString(),
+      is_synced: true,
+      syncStatus: 'SYNCED',
     },
   ];
 
@@ -4061,6 +4069,7 @@ async function internalHandleLocalDesktopApiFallback(
       party_type: 'EMPLOYEE',
       party_id: employeeId,
       party_name: employeeName,
+      partyName: employeeName,
       amount: calculatedNet,
       currency: payCurrency,
       payment_method: isBank ? 'BANK' : 'CASH',
@@ -4069,6 +4078,8 @@ async function internalHandleLocalDesktopApiFallback(
       notes: `صرف راتب شهر ${safeMonth}`,
       status: 'COMPLETED',
       created_at: new Date().toISOString(),
+      is_synced: true,
+      syncStatus: 'SYNCED',
     });
     setLocalItem('erp_payments_v1', payments, companyId);
 
@@ -4140,7 +4151,7 @@ async function internalHandleLocalDesktopApiFallback(
 
     for (const p of payments) {
       const amt = Number(p.amount || 0);
-      const isReceipt = p.type === 'CUSTOMER_PAYMENT' || p.voucher_type === 'RECEIPT' || p.payment_type === 'IN';
+      const isReceipt = p.type === 'CUSTOMER_PAYMENT' || p.voucher_type === 'RECEIPT' || p.payment_type === 'IN' || p.payment_type === 'RECEIPT';
       const pDate = String(p.payment_date || p.date || '').split('T')[0];
 
       if (isReceipt) {
@@ -4887,6 +4898,40 @@ async function internalHandleLocalDesktopApiFallback(
         }
       }
 
+      // Populate party names, syncStatus, and is_synced when creating a payment in erp_payments_v1
+      if (matchedEntityKey === 'payments') {
+        const custs = getLocalItem<any[]>('erp_customers_v1', [], companyId);
+        const supps = getLocalItem<any[]>('erp_suppliers_v1', [], companyId);
+        const cId = bodyData.customer_id || bodyData.customerId || (bodyData.type === 'CUSTOMER_PAYMENT' ? bodyData.party_id : undefined);
+        const sId = bodyData.supplier_id || bodyData.supplierId || (bodyData.type === 'SUPPLIER_PAYMENT' ? bodyData.party_id : undefined);
+        const matchedCust = custs.find((c) => String(c.id) === String(cId));
+        const matchedSupp = supps.find((s) => String(s.id) === String(sId));
+
+        const resolvedPartyName =
+          bodyData.party_name ||
+          bodyData.partyName ||
+          bodyData.customer_name ||
+          bodyData.customerName ||
+          bodyData.supplier_name ||
+          bodyData.supplierName ||
+          matchedCust?.name ||
+          matchedSupp?.name ||
+          'طرف عام';
+
+        if (bodyData.type === 'CUSTOMER_PAYMENT' || bodyData.voucher_type === 'RECEIPT' || bodyData.payment_type === 'IN') {
+          bodyData.customer_name = bodyData.customer_name || matchedCust?.name || resolvedPartyName;
+          bodyData.party_name = bodyData.party_name || resolvedPartyName;
+        } else if (bodyData.type === 'SUPPLIER_PAYMENT' || bodyData.voucher_type === 'PAYMENT' || bodyData.payment_type === 'OUT') {
+          bodyData.supplier_name = bodyData.supplier_name || matchedSupp?.name || resolvedPartyName;
+          bodyData.party_name = bodyData.party_name || resolvedPartyName;
+        } else {
+          bodyData.party_name = bodyData.party_name || resolvedPartyName;
+        }
+        bodyData.partyName = bodyData.partyName || bodyData.party_name;
+        bodyData.is_synced = true;
+        bodyData.syncStatus = 'SYNCED';
+      }
+
       const id = bodyData.id || bodyData.invoice_number || bodyData.invoiceNumber || `${prefix}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
       const sanitized = sanitizeEntityRecord({
         ...bodyData,
@@ -4894,6 +4939,21 @@ async function internalHandleLocalDesktopApiFallback(
         created_at: bodyData.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });
+
+      if (matchedEntityKey === 'payments') {
+        sanitized.is_synced = true;
+        sanitized.syncStatus = 'SYNCED';
+        if (!sanitized.party_name) {
+          sanitized.party_name = sanitized.customer_name || sanitized.supplier_name || 'طرف عام';
+        }
+        sanitized.partyName = sanitized.partyName || sanitized.party_name;
+        if (!sanitized.customer_name && (sanitized.type === 'CUSTOMER_PAYMENT' || sanitized.voucher_type === 'RECEIPT' || sanitized.payment_type === 'IN')) {
+          sanitized.customer_name = sanitized.party_name;
+        }
+        if (!sanitized.supplier_name && (sanitized.type === 'SUPPLIER_PAYMENT' || sanitized.voucher_type === 'PAYMENT' || sanitized.payment_type === 'OUT')) {
+          sanitized.supplier_name = sanitized.party_name;
+        }
+      }
 
       const items = getLocalItem<any[]>(storeKey, []);
       const existingIdx = items.findIndex((i) => String(i.id) === String(id));
@@ -5271,6 +5331,7 @@ async function internalHandleLocalDesktopApiFallback(
           type: 'PAYMENT',
           party_type: 'EXPENSE',
           party_name: sanitized.recipient || sanitized.beneficiary || expCategory,
+          partyName: sanitized.recipient || sanitized.beneficiary || expCategory,
           amount: expAmount,
           currency: sanitized.currency || 'YER',
           payment_method: isBank ? 'BANK' : 'CASH',
@@ -5279,6 +5340,8 @@ async function internalHandleLocalDesktopApiFallback(
           notes: sanitized.notes || sanitized.description || `سند صرف مصروف: ${expCategory}`,
           status: 'COMPLETED',
           created_at: new Date().toISOString(),
+          is_synced: true,
+          syncStatus: 'SYNCED',
         });
         setLocalItem('erp_payments_v1', payments, companyId);
 
@@ -5353,6 +5416,7 @@ async function internalHandleLocalDesktopApiFallback(
             party_type: 'EMPLOYEE',
             party_id: empId,
             party_name: empName,
+            partyName: empName,
             amount: movAmount,
             currency: sanitized.currency || 'YER',
             payment_method: 'CASH',
@@ -5361,6 +5425,8 @@ async function internalHandleLocalDesktopApiFallback(
             notes: sanitized.notes || sanitized.description || `صرف سلفة للموظف: ${empName}`,
             status: 'COMPLETED',
             created_at: new Date().toISOString(),
+            is_synced: true,
+            syncStatus: 'SYNCED',
           });
           setLocalItem('erp_payments_v1', payments, companyId);
 

@@ -404,13 +404,25 @@ export const PaymentsTab: React.FC = () => {
     }
   };
 
+  const resolvePartyName = (p: any): string => {
+    return (
+      p?.customer_name ||
+      p?.supplier_name ||
+      p?.party_name ||
+      p?.partyName ||
+      customers.find((c) => String(c.id) === String(p?.customer_id || p?.party_id))?.name ||
+      suppliers.find((s) => String(s.id) === String(p?.supplier_id || p?.party_id))?.name ||
+      'طرف عام'
+    );
+  };
+
   const handlePrintVoucher = (p: any) => {
     printPaymentReceipt({
       companyName: company?.name || 'المؤسسة التجارية',
       type: p.type === 'SUPPLIER_PAYMENT' ? 'SUPPLIER_PAYMENT' : 'CUSTOMER_PAYMENT',
       receiptNumber: p.voucher_number || p.reference || `VOUCH-${p.id.slice(0, 8).toUpperCase()}`,
       date: p.payment_date ? new Date(p.payment_date).toLocaleDateString('ar-YE') : new Date().toLocaleDateString('ar-YE'),
-      partyName: p.customer_name || p.supplier_name || 'الطرف المعني',
+      partyName: resolvePartyName(p),
       phone: p.customer_phone || p.supplier_phone,
       accountNumber: p.customer_account_number || p.supplier_account_number,
       amount: Number(p.amount || 0),
@@ -477,7 +489,7 @@ export const PaymentsTab: React.FC = () => {
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         const vNum = (p.voucher_number || '').toLowerCase();
-        const name = (p.customer_name || p.supplier_name || p.party_name || '').toLowerCase();
+        const name = resolvePartyName(p).toLowerCase();
         const ref = (p.reference || '').toLowerCase();
         const op = (p.operation_number || '').toLowerCase();
         const notes = (p.notes || '').toLowerCase();
@@ -487,17 +499,32 @@ export const PaymentsTab: React.FC = () => {
       }
       return true;
     });
-  }, [payments, activeTab, statusFilter, methodFilter, currencyFilter, startDate, endDate, searchQuery]);
+  }, [payments, activeTab, statusFilter, methodFilter, currencyFilter, startDate, endDate, searchQuery, customers, suppliers]);
 
   const totalReceipts = useMemo(() => {
     return filteredPayments
-      .filter((p) => (p.type === 'CUSTOMER_PAYMENT' || p.voucher_type === 'RECEIPT' || p.payment_type === 'IN') && p.status !== 'CANCELLED')
+      .filter(
+        (p) =>
+          (p.type === 'CUSTOMER_PAYMENT' ||
+            p.voucher_type === 'RECEIPT' ||
+            p.payment_type === 'IN' ||
+            p.payment_type === 'RECEIPT') &&
+          p.status !== 'CANCELLED'
+      )
       .reduce((sum, p) => sum + Number(p.amount || 0), 0);
   }, [filteredPayments]);
 
   const totalDisbursements = useMemo(() => {
     return filteredPayments
-      .filter((p) => (p.type === 'SUPPLIER_PAYMENT' || p.voucher_type === 'PAYMENT' || p.payment_type === 'OUT') && p.status !== 'CANCELLED')
+      .filter(
+        (p) =>
+          (p.type === 'SUPPLIER_PAYMENT' ||
+            p.voucher_type === 'PAYMENT' ||
+            p.payment_type === 'OUT' ||
+            p.payment_type === 'PAYMENT' ||
+            p.type === 'EXPENSE') &&
+          p.status !== 'CANCELLED'
+      )
       .reduce((sum, p) => sum + Number(p.amount || 0), 0);
   }, [filteredPayments]);
 
@@ -527,7 +554,7 @@ export const PaymentsTab: React.FC = () => {
     rows: filteredPayments.map((p) => [
       p.voucher_number || p.reference || '-',
       p.type === 'CUSTOMER_PAYMENT' ? 'سند قبض' : 'سند صرف',
-      p.customer_name || p.supplier_name || '-',
+      resolvePartyName(p),
       p.amount || 0,
       p.currency || 'YER',
       p.payment_method === 'CASH'
@@ -623,15 +650,15 @@ export const PaymentsTab: React.FC = () => {
 
       {/* 2. Top Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="vouchers-stats-cards">
-        {/* Today's Receipts */}
+        {/* Total / Today's Receipts */}
         <div className="bg-slate-900 p-4.5 rounded-2xl border border-emerald-900/40 shadow-xl flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-xs font-bold text-slate-400">مقبوضات اليوم (سندات القبض)</span>
+            <span className="text-xs font-bold text-slate-400">إجمالي المقبوضات (سندات القبض)</span>
             <div className="text-xl font-extrabold text-emerald-400 font-mono">
-              {formatAmount(stats?.today?.receipts || 0)} <span className="text-xs font-sans text-slate-500">YER</span>
+              {formatAmount(totalReceipts || stats?.totalCollected || stats?.month?.receipts || 0)} <span className="text-xs font-sans text-slate-500">YER</span>
             </div>
             <div className="text-[11px] text-slate-400">
-              إجمالي الشهر: <span className="font-mono font-bold text-slate-300">{formatAmount(stats?.month?.receipts || 0)}</span>
+              مقبوضات اليوم: <span className="font-mono font-bold text-slate-300">{formatAmount(stats?.today?.receipts || 0)}</span>
             </div>
           </div>
           <div className="w-11 h-11 rounded-xl bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center justify-center">
@@ -639,15 +666,15 @@ export const PaymentsTab: React.FC = () => {
           </div>
         </div>
 
-        {/* Today's Disbursements */}
+        {/* Total / Today's Disbursements */}
         <div className="bg-slate-900 p-4.5 rounded-2xl border border-emerald-900/40 shadow-xl flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-xs font-bold text-slate-400">مدفوعات اليوم (سندات الصرف)</span>
+            <span className="text-xs font-bold text-slate-400">إجمالي المدفوعات (سندات الصرف)</span>
             <div className="text-xl font-extrabold text-rose-400 font-mono">
-              {formatAmount(stats?.today?.payments || 0)} <span className="text-xs font-sans text-slate-500">YER</span>
+              {formatAmount(totalDisbursements || stats?.totalDisbursed || stats?.month?.payments || 0)} <span className="text-xs font-sans text-slate-500">YER</span>
             </div>
             <div className="text-[11px] text-slate-400">
-              إجمالي الشهر: <span className="font-mono font-bold text-slate-300">{formatAmount(stats?.month?.payments || 0)}</span>
+              مدفوعات اليوم: <span className="font-mono font-bold text-slate-300">{formatAmount(stats?.today?.payments || 0)}</span>
             </div>
           </div>
           <div className="w-11 h-11 rounded-xl bg-rose-950 text-rose-400 border border-rose-800 flex items-center justify-center">
@@ -658,16 +685,16 @@ export const PaymentsTab: React.FC = () => {
         {/* Net Movement */}
         <div className="bg-slate-900 p-4.5 rounded-2xl border border-emerald-900/40 shadow-xl flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-xs font-bold text-slate-400">صافي حركة اليوم</span>
+            <span className="text-xs font-bold text-slate-400">صافي حركة الخزينة</span>
             <div
               className={`text-xl font-extrabold font-mono ${
-                (stats?.today?.net || 0) >= 0 ? 'text-teal-400' : 'text-amber-400'
+                ((totalReceipts - totalDisbursements) || stats?.netCashflow || stats?.month?.net || 0) >= 0 ? 'text-teal-400' : 'text-amber-400'
               }`}
             >
-              {formatAmount(stats?.today?.net || 0)} <span className="text-xs font-sans text-slate-500">YER</span>
+              {formatAmount((totalReceipts - totalDisbursements) || stats?.netCashflow || stats?.month?.net || 0)} <span className="text-xs font-sans text-slate-500">YER</span>
             </div>
             <div className="text-[11px] text-slate-400">
-              صافي الشهر: <span className="font-mono font-bold text-slate-300">{formatAmount(stats?.month?.net || 0)}</span>
+              صافي حركة اليوم: <span className="font-mono font-bold text-slate-300">{formatAmount(stats?.today?.net || 0)}</span>
             </div>
           </div>
           <div className="w-11 h-11 rounded-xl bg-teal-950 text-teal-400 border border-teal-800 flex items-center justify-center">
@@ -918,7 +945,7 @@ export const PaymentsTab: React.FC = () => {
                       {/* Party */}
                       <td className="py-3 px-4">
                         <div className="font-bold text-slate-100">
-                          {p.customer_name || p.supplier_name || 'غير محدد'}
+                          {resolvePartyName(p)}
                         </div>
                         <div className="text-[11px] text-slate-400 flex items-center gap-2">
                           {p.customer_phone || p.supplier_phone ? (
@@ -1581,7 +1608,7 @@ export const PaymentsTab: React.FC = () => {
                     <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
                       <span className="text-[11px] font-bold text-slate-400 block mb-1">الطرف المعني</span>
                       <span className="text-sm font-bold text-white block">
-                        {selectedPaymentDetails.customer_name || selectedPaymentDetails.supplier_name || '-'}
+                        {resolvePartyName(selectedPaymentDetails)}
                       </span>
                       <span className="text-xs text-slate-400 font-mono">
                         {selectedPaymentDetails.customer_phone || selectedPaymentDetails.supplier_phone || ''}
