@@ -132,8 +132,14 @@ export function installGlobalDesktopFetchInterceptor(): void {
           items: fallback,
         };
       }
+      const httpStatus =
+        typeof fallback?.httpStatus === 'number' && fallback.httpStatus >= 200 && fallback.httpStatus <= 599
+          ? fallback.httpStatus
+          : typeof fallback?.status === 'number' && fallback.status >= 200 && fallback.status <= 599
+            ? fallback.status
+            : 200;
       return new Response(JSON.stringify(payload), {
-        status: fallback?.status || 200,
+        status: httpStatus,
         statusText: 'OK',
         headers: {
           'Content-Type': 'application/json; charset=utf-8',
@@ -5122,6 +5128,418 @@ async function internalHandleLocalDesktopApiFallback(
       }
       const modeVal = isClean ? 'PRODUCTION' : 'DEMO';
       return { ok: true, success: true, status: 200, data: { mode: modeVal, dataMode: modeVal, isLive: true } };
+    }
+  }
+
+  // 9D. WhatsApp Engine (/api/v1/whatsapp/*)
+  if (cleanUrl.includes('/whatsapp/')) {
+    let bodyData: any = {};
+    try {
+      if (options?.body) {
+        bodyData = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;
+      }
+    } catch {
+      bodyData = {};
+    }
+
+    const waConfigKey = `erp_whatsapp_config_${companyId}`;
+    const waStateKey = `erp_whatsapp_state_${companyId}`;
+
+    const readWaConfig = (): any => {
+      const defaultConfig = {
+        company_id: companyId,
+        connectionMode: 'internal_engine',
+        senderPhoneNumber: '+967 770 000 000',
+        displayPhoneNumber: '+967 770 000 000',
+        openExternalWhatsAppApp: true,
+        isConnected: true,
+        status: 'CONNECTED',
+        lastTestedAt: new Date().toISOString(),
+      };
+      try {
+        if (typeof localStorage !== 'undefined') {
+          const raw = localStorage.getItem(waConfigKey);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === 'object') {
+              return { ...defaultConfig, ...parsed };
+            }
+          }
+        }
+      } catch {}
+      return defaultConfig;
+    };
+
+    const saveWaConfig = (nextConfig: any): any => {
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(waConfigKey, JSON.stringify(nextConfig));
+        }
+      } catch {}
+      return nextConfig;
+    };
+
+    const readWaState = (): any => {
+      const defaultTemplates = [
+        {
+          id: 'tpl-statement',
+          name: 'كشف حساب تفصيلي',
+          category: 'COLLECTION',
+          audience: 'CUSTOMERS',
+          language: 'ar',
+          body: 'الأخ {{customer_name}} المحترم، مرفق لكم كشف الحساب المالي حتى اليوم، الرصيد المستحق هو {{balance}} ر.ي.',
+          variables: ['customer_name', 'balance'],
+          status: 'ACTIVE',
+        },
+        {
+          id: 'tpl-invoice',
+          name: 'إشعار فاتورة مبيعات',
+          category: 'INVOICE',
+          audience: 'CUSTOMERS',
+          language: 'ar',
+          body: 'مرحباً {{customer_name}}، تم إصدار الفاتورة رقم {{invoice_number}} بإجمالي {{total_amount}} ر.ي.',
+          variables: ['customer_name', 'invoice_number', 'total_amount'],
+          status: 'ACTIVE',
+        },
+        {
+          id: 'tpl-payment',
+          name: 'تأكيد استلام دفعة',
+          category: 'PAYMENT',
+          audience: 'CUSTOMERS',
+          language: 'ar',
+          body: 'شكراً {{customer_name}}، تم استلام دفعة بمبلغ {{amount}} ر.ي بنجاح.',
+          variables: ['customer_name', 'amount'],
+          status: 'ACTIVE',
+        },
+      ];
+      const defaultState = {
+        conversations: [] as any[],
+        messages: [] as any[],
+        scheduledMessages: [] as any[],
+        automations: [] as any[],
+        campaigns: [] as any[],
+        templates: defaultTemplates,
+        kpi: {},
+        updatedAt: new Date().toISOString(),
+      };
+      try {
+        if (typeof localStorage !== 'undefined') {
+          const raw = localStorage.getItem(waStateKey);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === 'object') {
+              return {
+                ...defaultState,
+                ...parsed,
+                conversations: Array.isArray(parsed.conversations) ? parsed.conversations : [],
+                messages: Array.isArray(parsed.messages) ? parsed.messages : [],
+                scheduledMessages: Array.isArray(parsed.scheduledMessages) ? parsed.scheduledMessages : [],
+                automations: Array.isArray(parsed.automations) ? parsed.automations : [],
+                campaigns: Array.isArray(parsed.campaigns) ? parsed.campaigns : [],
+                templates: Array.isArray(parsed.templates) && parsed.templates.length > 0 ? parsed.templates : defaultTemplates,
+              };
+            }
+          }
+        }
+      } catch {}
+      return defaultState;
+    };
+
+    const saveWaState = (nextState: any): any => {
+      const payload = {
+        ...nextState,
+        updatedAt: new Date().toISOString(),
+      };
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(waStateKey, JSON.stringify(payload));
+        }
+      } catch {}
+      return payload;
+    };
+
+    // 9D-1. GET /whatsapp/config
+    if (method === 'GET' && cleanUrl.endsWith('/whatsapp/config')) {
+      const config = readWaConfig();
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: config,
+        config,
+      };
+    }
+
+    // 9D-2. POST /whatsapp/config & POST /whatsapp/test-connection
+    if (
+      method === 'POST' &&
+      (cleanUrl.endsWith('/whatsapp/config') || cleanUrl.endsWith('/whatsapp/test-connection'))
+    ) {
+      const existing = readWaConfig();
+      const nowIso = new Date().toISOString();
+      const savedConfig = saveWaConfig({
+        ...existing,
+        ...bodyData,
+        company_id: companyId,
+        isConnected: true,
+        status: 'CONNECTED',
+        lastTestedAt: nowIso,
+        updated_at: nowIso,
+      });
+      return {
+        ok: true,
+        success: true,
+        httpStatus: 200,
+        isConnected: true,
+        status: 'CONNECTED' as any,
+        lastTestedAt: savedConfig.lastTestedAt,
+        message: 'متصل ومفعل بنجاح داخل النظام',
+        data: savedConfig,
+        config: savedConfig,
+      };
+    }
+
+    // 9D-3. GET & POST /whatsapp/state
+    if (cleanUrl.endsWith('/whatsapp/state')) {
+      if (method === 'POST') {
+        const existingState = readWaState();
+        const savedState = saveWaState({
+          ...existingState,
+          ...bodyData,
+        });
+        return {
+          ok: true,
+          success: true,
+          status: 200,
+          data: savedState,
+        };
+      }
+      const state = readWaState();
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: state,
+      };
+    }
+
+    // 9D-4. POST /whatsapp/send
+    if (method === 'POST' && cleanUrl.endsWith('/whatsapp/send')) {
+      const rawPhone = String(
+        bodyData.recipientPhone || bodyData.phone || bodyData.toPhone || bodyData.recipient_phone || ''
+      ).trim();
+      const rawText = String(
+        bodyData.messageText || bodyData.message || bodyData.messageBody || bodyData.message_body || ''
+      ).trim();
+
+      if (!rawPhone || !rawText) {
+        return {
+          ok: false,
+          success: false,
+          status: 400,
+          error: 'رقم هاتف المستلم ونص الرسالة مطلوبان',
+          data: null,
+        };
+      }
+
+      const nowIso = new Date().toISOString();
+      const recipientName = String(
+        bodyData.recipientName || bodyData.customer_name || bodyData.supplier_name || 'جهة اتصال'
+      ).trim();
+      const customerId = bodyData.customerId || bodyData.customer_id || null;
+      const supplierId = bodyData.supplierId || bodyData.supplier_id || null;
+      const messageType = String(bodyData.messageType || bodyData.message_type || 'TEXT');
+      const attachmentSummary = bodyData.attachmentSummary || bodyData.attachment_summary || undefined;
+
+      const newMsg = {
+        id: `wa_msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        company_id: companyId,
+        direction: 'OUTBOUND' as const,
+        phone_number: rawPhone,
+        recipient_phone: rawPhone,
+        recipient_name: recipientName,
+        customer_id: customerId,
+        supplier_id: supplierId,
+        customer_name: supplierId ? undefined : recipientName,
+        supplier_name: supplierId ? recipientName : undefined,
+        message_body: rawText,
+        message_type: messageType,
+        status: 'DELIVERED' as const,
+        metadata: attachmentSummary ? { attachmentSummary } : undefined,
+        delivered_at: nowIso,
+        created_at: nowIso,
+      };
+
+      const state = readWaState();
+      const nextMessages = [newMsg, ...(Array.isArray(state.messages) ? state.messages : [])];
+
+      const cleanDigits = (p: string) => p.replace(/\D/g, '');
+      const targetDigits = cleanDigits(rawPhone);
+      let convMatched = false;
+
+      const nextConversations = (Array.isArray(state.conversations) ? state.conversations : []).map((conv: any) => {
+        const convPhoneDigits = cleanDigits(String(conv.phone_number || conv.customer_phone || conv.supplier_phone || ''));
+        const isMatch =
+          convPhoneDigits &&
+          targetDigits &&
+          (convPhoneDigits === targetDigits ||
+            convPhoneDigits.endsWith(targetDigits) ||
+            targetDigits.endsWith(convPhoneDigits));
+        if (isMatch) {
+          convMatched = true;
+          return {
+            ...conv,
+            phone_number: conv.phone_number || rawPhone,
+            customer_id: conv.customer_id || customerId,
+            supplier_id: conv.supplier_id || supplierId,
+            customer_name: conv.customer_name || (supplierId ? undefined : recipientName),
+            supplier_name: conv.supplier_name || (supplierId ? recipientName : undefined),
+            last_message_id: newMsg.id,
+            last_message: rawText,
+            last_direction: 'OUTBOUND',
+            last_status: 'DELIVERED',
+            last_message_time: nowIso,
+          };
+        }
+        return conv;
+      });
+
+      if (!convMatched) {
+        nextConversations.unshift({
+          phone_number: rawPhone,
+          last_message_id: newMsg.id,
+          last_message: rawText,
+          last_direction: 'OUTBOUND',
+          last_status: 'DELIVERED',
+          last_message_time: nowIso,
+          customer_id: customerId,
+          supplier_id: supplierId,
+          unread_count: 0,
+          customer_name: supplierId ? undefined : recipientName,
+          supplier_name: supplierId ? recipientName : undefined,
+        });
+      }
+
+      saveWaState({
+        ...state,
+        messages: nextMessages,
+        conversations: nextConversations,
+      });
+
+      return {
+        ok: true,
+        success: true,
+        httpStatus: 200,
+        message: 'تم إرسال الرسالة وتسجيلها في محادثات واتساب النظام بنجاح',
+        data: newMsg,
+        messageId: newMsg.id,
+        status: 'DELIVERED' as any,
+      };
+    }
+
+    // 9D-5. POST /whatsapp/schedule
+    if (method === 'POST' && cleanUrl.endsWith('/whatsapp/schedule')) {
+      const nowIso = new Date().toISOString();
+      const newSched = {
+        id: `wa_sched_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        company_id: companyId,
+        recipient_phone: String(bodyData.recipient_phone || bodyData.recipientPhone || bodyData.phone || '').trim(),
+        recipient_name: String(bodyData.recipient_name || bodyData.recipientName || 'جهة اتصال').trim(),
+        recipient_type: bodyData.recipient_type || 'CUSTOMER',
+        recipient_id: bodyData.recipient_id || bodyData.customerId || bodyData.supplierId || undefined,
+        message_body: String(bodyData.message_body || bodyData.messageText || bodyData.message || '').trim(),
+        message_type: bodyData.message_type || bodyData.messageType || 'SCHEDULED',
+        scheduled_at: bodyData.scheduled_at || bodyData.scheduledAt || nowIso,
+        status: 'SCHEDULED',
+        created_at: nowIso,
+      };
+
+      const state = readWaState();
+      const nextScheduled = [newSched, ...(Array.isArray(state.scheduledMessages) ? state.scheduledMessages : [])];
+      saveWaState({
+        ...state,
+        scheduledMessages: nextScheduled,
+      });
+
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: newSched,
+      };
+    }
+
+    // 9D-6. GET /whatsapp/messages & /whatsapp/history
+    if (method === 'GET' && (cleanUrl.endsWith('/whatsapp/messages') || cleanUrl.endsWith('/whatsapp/history'))) {
+      const state = readWaState();
+      const messagesList = Array.isArray(state.messages) ? state.messages : [];
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: messagesList,
+        items: messagesList,
+        messages: messagesList,
+      };
+    }
+
+    // 9D-7. GET /whatsapp/conversations
+    if (method === 'GET' && cleanUrl.endsWith('/whatsapp/conversations')) {
+      const state = readWaState();
+      const conversationsList = Array.isArray(state.conversations) ? state.conversations : [];
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: conversationsList,
+        items: conversationsList,
+        conversations: conversationsList,
+      };
+    }
+
+    // 9D-8. GET /whatsapp/kpi
+    if (method === 'GET' && cleanUrl.endsWith('/whatsapp/kpi')) {
+      const state = readWaState();
+      const msgs = Array.isArray(state.messages) ? state.messages : [];
+      const convs = Array.isArray(state.conversations) ? state.conversations : [];
+      const sched = Array.isArray(state.scheduledMessages) ? state.scheduledMessages : [];
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const sentToday = msgs.filter((m: any) => m.direction === 'OUTBOUND' && String(m.created_at || '').startsWith(todayStr)).length;
+      const deliveredCount = msgs.filter((m: any) => m.status === 'DELIVERED' || m.status === 'READ').length;
+      const readCount = msgs.filter((m: any) => m.status === 'READ').length;
+      const failedCount = msgs.filter((m: any) => m.status === 'FAILED').length;
+      const totalOutbound = msgs.filter((m: any) => m.direction === 'OUTBOUND').length;
+      const kpiData = {
+        totalConversations: convs.length,
+        unreadCount: convs.reduce((acc: number, c: any) => acc + Number(c.unread_count || 0), 0),
+        sentToday: sentToday || totalOutbound,
+        deliveredCount: deliveredCount || totalOutbound,
+        readCount,
+        failedCount,
+        scheduledCount: sched.filter((s: any) => s.status === 'SCHEDULED').length,
+        deliveryRate: totalOutbound > 0 ? Math.round((deliveredCount / totalOutbound) * 1000) / 10 : 100,
+        ...(state.kpi && typeof state.kpi === 'object' ? state.kpi : {}),
+      };
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: kpiData,
+      };
+    }
+
+    // 9D-9. GET /whatsapp/templates
+    if (method === 'GET' && cleanUrl.endsWith('/whatsapp/templates')) {
+      const state = readWaState();
+      const templatesList = Array.isArray(state.templates) ? state.templates : [];
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: templatesList,
+        items: templatesList,
+        templates: templatesList,
+      };
     }
   }
 

@@ -32,6 +32,7 @@ export const WhatsAppManagerTab: React.FC = () => {
 
   const [activeSubTab, setActiveSubTab] = useState('conversations');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Modals state
   const [isNewMessageModalOpen, setIsNewMessageModalOpen] = useState(false);
@@ -43,15 +44,20 @@ export const WhatsAppManagerTab: React.FC = () => {
   const [customers, setCustomers] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
+  const [purchaseInvoices, setPurchaseInvoices] = useState<any[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
 
   // WhatsApp Config
-  const [config, setConfig] = useState<WhatsAppConfig>({
+  const [config, setConfig] = useState<
+    WhatsAppConfig & { isAutoSyncEnabled?: boolean; openExternalAppAsFallback?: boolean }
+  >({
     connectionMode: 'gateway',
     senderPhoneNumber: '+967 770 000 000',
     gatewayUrl: 'https://api.ultramsg.com/instance0001/messages/chat',
     instanceId: 'instance0001',
     apiToken: 'erp_token_secure_bridge',
     isAutoSyncEnabled: true,
+    openExternalWhatsAppApp: false,
     openExternalAppAsFallback: false,
   });
 
@@ -208,7 +214,7 @@ export const WhatsAppManagerTab: React.FC = () => {
     [companyId, stateKey, recalculateKPIs]
   );
 
-  // Fetch ERP entities (Customers, Suppliers, Invoices)
+  // Fetch ERP entities (Customers, Suppliers, Invoices, Purchase Invoices, Payments)
   const fetchERPEntities = useCallback(async () => {
     try {
       // Customers
@@ -243,6 +249,35 @@ export const WhatsAppManagerTab: React.FC = () => {
         const json = await res.json();
         if (json?.data && Array.isArray(json.data)) setInvoices(json.data);
       }
+
+      // Purchase Invoices
+      try {
+        const purRes = await api.getPurchaseInvoices();
+        const purList =
+          purRes?.data || purRes?.purchaseInvoices || purRes?.invoices || (Array.isArray(purRes) ? purRes : []);
+        if (Array.isArray(purList)) setPurchaseInvoices(purList);
+      } catch {
+        try {
+          const res = await fetch('/api/v1/purchase-invoices');
+          const json = await res.json();
+          const list = json?.data || json?.purchaseInvoices || json?.invoices;
+          if (Array.isArray(list)) setPurchaseInvoices(list);
+        } catch {}
+      }
+
+      // Payments & Vouchers
+      try {
+        const payRes = await api.getPayments();
+        const payList = payRes?.data || payRes?.payments || (Array.isArray(payRes) ? payRes : []);
+        if (Array.isArray(payList)) setPayments(payList);
+      } catch {
+        try {
+          const res = await fetch('/api/v1/payments');
+          const json = await res.json();
+          const list = json?.data || json?.payments;
+          if (Array.isArray(list)) setPayments(list);
+        } catch {}
+      }
     } catch (err) {
       console.warn('Error loading ERP entities for WhatsApp:', err);
     }
@@ -275,7 +310,7 @@ export const WhatsAppManagerTab: React.FC = () => {
     }
   }, [companyId, configKey]);
 
-  // Fetch WhatsApp State
+  // Fetch WhatsApp State (stable dependencies — no infinite re-render loop)
   const fetchWhatsAppState = useCallback(async () => {
     setIsRefreshing(true);
     try {
@@ -283,8 +318,8 @@ export const WhatsAppManagerTab: React.FC = () => {
       let loadedConvs: WhatsAppConversation[] = [];
       let loadedMsgs: WhatsAppMessage[] = [];
       let loadedSched: WhatsAppScheduledMessage[] = [];
-      let loadedAutos: WhatsAppAutomation[] = automations;
-      let loadedCamps: WhatsAppCampaign[] = campaigns;
+      let loadedAutos: WhatsAppAutomation[] | null = null;
+      let loadedCamps: WhatsAppCampaign[] | null = null;
 
       const localStr = localStorage.getItem(stateKey);
       if (localStr) {
@@ -293,8 +328,8 @@ export const WhatsAppManagerTab: React.FC = () => {
           if (Array.isArray(p.conversations)) loadedConvs = p.conversations;
           if (Array.isArray(p.messages)) loadedMsgs = p.messages;
           if (Array.isArray(p.scheduledMessages)) loadedSched = p.scheduledMessages;
-          if (Array.isArray(p.automations)) loadedAutos = p.automations;
-          if (Array.isArray(p.campaigns)) loadedCamps = p.campaigns;
+          if (Array.isArray(p.automations) && p.automations.length > 0) loadedAutos = p.automations;
+          if (Array.isArray(p.campaigns) && p.campaigns.length > 0) loadedCamps = p.campaigns;
         } catch {}
       }
 
@@ -398,20 +433,19 @@ export const WhatsAppManagerTab: React.FC = () => {
       setConversations(loadedConvs);
       setMessages(loadedMsgs);
       setScheduledMessages(loadedSched);
-      setAutomations(loadedAutos);
-      setCampaigns(loadedCamps);
+      if (loadedAutos) setAutomations(loadedAutos);
+      if (loadedCamps) setCampaigns(loadedCamps);
 
-      if (!selectedPhone && loadedConvs.length > 0) {
-        setSelectedPhone(loadedConvs[0].phone_number || loadedConvs[0].customer_phone || null);
-      }
+      setSelectedPhone((prev) => prev || (loadedConvs[0]?.phone_number || loadedConvs[0]?.customer_phone || null));
 
       recalculateKPIs(loadedMsgs, loadedConvs, loadedSched);
     } finally {
       setIsRefreshing(false);
+      setIsInitialLoad(false);
     }
-  }, [companyId, stateKey, automations, campaigns, selectedPhone, recalculateKPIs]);
+  }, [companyId, stateKey, recalculateKPIs]);
 
-  // Initial load & wiped event listener
+  // Initial load & wiped event listener (runs once per companyId)
   useEffect(() => {
     fetchConfig();
     fetchERPEntities();
@@ -423,6 +457,8 @@ export const WhatsAppManagerTab: React.FC = () => {
       setMessages([]);
       setScheduledMessages([]);
       setCampaigns([]);
+      setPayments([]);
+      setPurchaseInvoices([]);
       setStats({
         totalConversations: 0,
         unreadCount: 0,
@@ -440,19 +476,22 @@ export const WhatsAppManagerTab: React.FC = () => {
     };
     window.addEventListener('erp-demo-data-wiped', handleWiped);
     return () => window.removeEventListener('erp-demo-data-wiped', handleWiped);
-  }, [fetchConfig, fetchERPEntities, fetchWhatsAppState]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId]);
 
-  // Active conversation's messages
+  // Active conversation's messages (chronologically ordered: oldest -> newest at bottom)
   const activeConversationMessages = useMemo(() => {
     if (!selectedPhone) return [];
     const clean = selectedPhone.replace(/\D/g, '');
-    return messages.filter((m) => {
-      const mClean = (m.phone_number || '').replace(/\D/g, '');
-      return mClean.endsWith(clean) || clean.endsWith(mClean);
-    });
+    return messages
+      .filter((m) => {
+        const mClean = (m.phone_number || '').replace(/\D/g, '');
+        return Boolean(mClean && clean && (mClean.endsWith(clean) || clean.endsWith(mClean)));
+      })
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
   }, [messages, selectedPhone]);
 
-  // Active conversation ERP context
+  // Active conversation ERP context (filtered strictly for the active customer / supplier)
   const activeERPContext = useMemo(() => {
     if (!selectedPhone) return null;
     const clean = selectedPhone.replace(/\D/g, '');
@@ -469,6 +508,69 @@ export const WhatsAppManagerTab: React.FC = () => {
       const p = (c.phone_number || c.customer_phone || '').replace(/\D/g, '');
       return p && (p.endsWith(clean) || clean.endsWith(p));
     });
+
+    const custId = cust?.id || activeConv?.customer_id;
+    const custName = String(cust?.name || activeConv?.customer_name || '').trim().toLowerCase();
+    const suppId = supp?.id || activeConv?.supplier_id;
+    const suppName = String(supp?.name || activeConv?.supplier_name || '').trim().toLowerCase();
+
+    const recentInvoices =
+      custId || custName
+        ? invoices
+            .filter((inv) => {
+              const invCustId = inv.customer_id || inv.customerId;
+              const invCustName = String(inv.customer_name || inv.customerName || inv.customer || '')
+                .trim()
+                .toLowerCase();
+              return (
+                (custId && String(invCustId) === String(custId)) ||
+                (custName && invCustName === custName)
+              );
+            })
+            .slice(0, 6)
+        : [];
+
+    const recentPurchaseInvoices =
+      suppId || suppName
+        ? purchaseInvoices
+            .filter((pinv) => {
+              const pSuppId = pinv.supplier_id || pinv.supplierId;
+              const pSuppName = String(pinv.supplier_name || pinv.supplierName || pinv.supplier || '')
+                .trim()
+                .toLowerCase();
+              return (
+                (suppId && String(pSuppId) === String(suppId)) ||
+                (suppName && pSuppName === suppName)
+              );
+            })
+            .slice(0, 6)
+        : [];
+
+    const targetEntityId = custId || suppId;
+    const targetEntityName = custName || suppName;
+    const recentPayments =
+      targetEntityId || targetEntityName
+        ? payments
+            .filter((pmt) => {
+              const pId =
+                pmt.customer_id ||
+                pmt.customerId ||
+                pmt.supplier_id ||
+                pmt.supplierId ||
+                pmt.party_id ||
+                pmt.partyId;
+              const pName = String(
+                pmt.customer_name || pmt.supplier_name || pmt.party_name || pmt.partyName || ''
+              )
+                .trim()
+                .toLowerCase();
+              return (
+                (targetEntityId && String(pId) === String(targetEntityId)) ||
+                (targetEntityName && pName === targetEntityName)
+              );
+            })
+            .slice(0, 6)
+        : [];
 
     return {
       customer: cust
@@ -505,15 +607,19 @@ export const WhatsAppManagerTab: React.FC = () => {
             current_balance: activeConv.supplier_balance || 0,
           }
         : null,
-      recentInvoices: invoices.slice(0, 4),
+      recentInvoices,
+      recentPurchaseInvoices,
+      recentPayments,
       authoritativeBalance:
         cust?.balance ||
+        cust?.current_balance ||
         activeConv?.customer_balance ||
         supp?.balance ||
+        supp?.current_balance ||
         activeConv?.supplier_balance ||
         0,
     };
-  }, [selectedPhone, customers, suppliers, conversations, invoices]);
+  }, [selectedPhone, customers, suppliers, conversations, invoices, purchaseInvoices, payments]);
 
   // Dispatch message handler (Real backend + state append)
   const handleSendMessage = async (
@@ -609,6 +715,22 @@ export const WhatsAppManagerTab: React.FC = () => {
 
     // 4. Persist
     await persistState(nextMsgs, nextConvs, scheduledMessages, automations, campaigns);
+
+    // 5. Direct WhatsApp app launch (wa.me) when enabled in config
+    if (config.openExternalWhatsAppApp || config.openExternalAppAsFallback) {
+      const cleanPhone = recipientPhone.replace(/\D/g, '');
+      if (cleanPhone) {
+        const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(messageText.trim())}`;
+        const link = document.createElement('a');
+        link.href = waUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    }
+
     return true;
   };
 
@@ -893,7 +1015,7 @@ export const WhatsAppManagerTab: React.FC = () => {
             selectedPhone={selectedPhone}
             onSelectConversation={(phone) => setSelectedPhone(phone)}
             messages={activeConversationMessages}
-            isLoadingMessages={isRefreshing}
+            isLoadingMessages={isInitialLoad && isRefreshing && activeConversationMessages.length === 0}
             onSendMessage={handleSendMessage}
             onSendStatement={async (entityId, type, phone) => {
               setIsSendStatementModalOpen(true);
@@ -929,7 +1051,7 @@ export const WhatsAppManagerTab: React.FC = () => {
         {activeSubTab === 'reminders' && (
           <WhatsAppRemindersTab
             invoices={invoices}
-            payments={[]}
+            payments={payments}
             customers={customers}
             onSendInvoiceReminder={async (invId, phone, customMsg) => {
               const inv = invoices.find((i) => i.id === invId);

@@ -96,12 +96,14 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
   const [isLinking, setIsLinking] = useState(false);
   const [selectedAttachment, setSelectedAttachment] = useState<any | null>(null);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll on new messages
+  // Internal container scroll only when message count or active conversation changes (never scrolls outer page)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
+  }, [messages.length, selectedPhone]);
 
   // Find active conversation
   const activeConversation = conversations.find(
@@ -519,8 +521,8 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
             </div>
 
             {/* Messages Scroll View */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {isLoadingMessages ? (
+            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+              {isLoadingMessages && messages.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-slate-400 space-y-2">
                   <RefreshCw className="w-6 h-6 animate-spin text-emerald-400" />
                 </div>
@@ -660,7 +662,6 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                   );
                 })
               )}
-              <div ref={messagesEndRef} />
             </div>
 
             {/* Validation Warning Alert */}
@@ -849,20 +850,38 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                     </button>
                   </div>
 
-                  {/* Send Button */}
-                  <button
-                    id="btn-whatsapp-send-action"
-                    onClick={handleSend}
-                    disabled={isSending || !messageInput.trim()}
-                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs transition-all shadow-md shadow-emerald-950/40 disabled:opacity-40 active:scale-95"
-                  >
-                    {isSending ? (
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Send className="w-3.5 h-3.5" />
-                    )}
-                    <span>إرسال</span>
-                  </button>
+                  {/* Send Actions */}
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={`https://wa.me/${(selectedPhone || '').replace(/\D/g, '')}${
+                        messageInput.trim() ? `?text=${encodeURIComponent(messageInput.trim())}` : ''
+                      }`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-emerald-900/60 text-emerald-300 hover:text-white border border-emerald-500/30 font-bold text-xs transition-all active:scale-95 ${
+                        !selectedPhone ? 'pointer-events-none opacity-40' : ''
+                      }`}
+                      title="إرسال عبر تطبيق واتساب الخارجي (wa.me)"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">إرسال عبر تطبيق واتساب الخارجي (wa.me)</span>
+                      <span className="sm:hidden">wa.me</span>
+                    </a>
+
+                    <button
+                      id="btn-whatsapp-send-action"
+                      onClick={handleSend}
+                      disabled={isSending || !messageInput.trim()}
+                      className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs transition-all shadow-md shadow-emerald-950/40 disabled:opacity-40 active:scale-95"
+                    >
+                      {isSending ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Send className="w-3.5 h-3.5" />
+                      )}
+                      <span>إرسال</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

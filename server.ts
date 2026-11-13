@@ -3039,30 +3039,36 @@ app.post('/api/v1/whatsapp/send', async (req: Request, res: Response) => {
         errorDetails = e?.message;
       }
     } else if (config.connectionMode === 'gateway' && config.gatewayUrl) {
-      // Gateway / QR Bridge POST
-      try {
-        const cleanRecipient = String(recipientPhone).replace(/[^0-9]/g, '');
-        const gwRes = await fetch(config.gatewayUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(config.apiToken ? { 'Authorization': `Bearer ${config.apiToken}`, 'x-api-key': config.apiToken } : {}),
-          },
-          body: JSON.stringify({
-            instanceId: config.instanceId,
-            to: cleanRecipient,
-            recipient: cleanRecipient,
-            phone: cleanRecipient,
-            message: messageText,
-            body: messageText,
-          }),
-        });
-        if (!gwRes.ok) {
-          const gwText = await gwRes.text();
-          console.warn('[GATEWAY_DISPATCH_WARN]', gwText);
+      // Gateway / QR Bridge POST (skip external network request for default demo placeholders)
+      const isDemoGateway =
+        String(config.gatewayUrl).includes('api.ultramsg.com/instance0001') ||
+        config.apiToken === 'erp_token_secure_bridge';
+
+      if (!isDemoGateway) {
+        try {
+          const cleanRecipient = String(recipientPhone).replace(/[^0-9]/g, '');
+          const gwRes = await fetch(config.gatewayUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(config.apiToken ? { 'Authorization': `Bearer ${config.apiToken}`, 'x-api-key': config.apiToken } : {}),
+            },
+            body: JSON.stringify({
+              instanceId: config.instanceId,
+              to: cleanRecipient,
+              recipient: cleanRecipient,
+              phone: cleanRecipient,
+              message: messageText,
+              body: messageText,
+            }),
+          });
+          if (!gwRes.ok) {
+            const gwText = await gwRes.text();
+            console.warn('[GATEWAY_DISPATCH_WARN]', gwText);
+          }
+        } catch (e: any) {
+          console.warn('[GATEWAY_FETCH_ERROR]', e?.message);
         }
-      } catch (e: any) {
-        console.warn('[GATEWAY_FETCH_ERROR]', e?.message);
       }
     }
 
