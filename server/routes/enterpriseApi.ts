@@ -3843,10 +3843,11 @@ enterpriseRouter.get(['/ai/cashflow-forecast', '/cashflow/forecast'], (req: Requ
   const hasTransactions = (
     tenantStore.invoices.length > 0 ||
     tenantStore.payments.length > 0 ||
-    (tenantStore.purchaseInvoices && tenantStore.purchaseInvoices.length > 0) ||
+    tenantStore.purchaseInvoices.length > 0 ||
+    tenantStore.expenses.length > 0 ||
     tenantStore.customers.some((c: any) => Number(c.balance || c.current_balance || 0) > 0) ||
     tenantStore.suppliers.some((s: any) => Number(s.balance || s.current_balance || 0) > 0) ||
-    (!isClean && metrics.totalCashAndBank > 0) ||
+    metrics.totalCashAndBank > 0 ||
     metrics.accountsReceivable > 0 ||
     metrics.accountsPayable > 0
   );
@@ -3869,6 +3870,8 @@ enterpriseRouter.get(['/ai/cashflow-forecast', '/cashflow/forecast'], (req: Requ
         totalPayables: 0,
         confidence: 0,
         currency: 'YER',
+        commentary: 'النظام في وضع التشغيل الفعلي النظيف — لا توجد حركات مالية أو ذمم مسجلة حالياً لبناء التوقعات النقدية.',
+        risks: [],
         recommendations: [],
         weeklyTrend: [],
         facts: {
@@ -3954,7 +3957,7 @@ enterpriseRouter.get(['/ai/cashflow-forecast', '/cashflow/forecast'], (req: Requ
       },
       calculations: {
         workingCapital: currentCash + totalReceivables + (metrics.inventoryValuation || 0) - totalPayables,
-        receivablesCoverageRatio: totalPayables > 0 ? Number(((currentCash + totalReceivables) / totalPayables).toFixed(2)) : 2.5,
+        receivablesCoverageRatio: totalPayables > 0 ? Number(((currentCash + totalReceivables) / totalPayables).toFixed(2)) : ((currentCash > 0 || totalReceivables > 0) ? 2.5 : 0),
         historicalDaysAnalyzed: 90,
       },
       forecast: {
@@ -3975,10 +3978,11 @@ enterpriseRouter.post(['/ai/cashflow-forecast', '/cashflow/forecast'], (req: Req
   const hasTransactions = (
     tenantStore.invoices.length > 0 ||
     tenantStore.payments.length > 0 ||
-    (tenantStore.purchaseInvoices && tenantStore.purchaseInvoices.length > 0) ||
+    tenantStore.purchaseInvoices.length > 0 ||
+    tenantStore.expenses.length > 0 ||
     tenantStore.customers.some((c: any) => Number(c.balance || c.current_balance || 0) > 0) ||
     tenantStore.suppliers.some((s: any) => Number(s.balance || s.current_balance || 0) > 0) ||
-    (!isClean && metrics.totalCashAndBank > 0) ||
+    metrics.totalCashAndBank > 0 ||
     metrics.accountsReceivable > 0 ||
     metrics.accountsPayable > 0
   );
@@ -4001,6 +4005,8 @@ enterpriseRouter.post(['/ai/cashflow-forecast', '/cashflow/forecast'], (req: Req
         totalPayables: 0,
         confidence: 0,
         currency: 'YER',
+        commentary: 'النظام في وضع التشغيل الفعلي النظيف — لا توجد حركات مالية أو ذمم مسجلة حالياً لبناء التوقعات النقدية.',
+        risks: [],
         recommendations: [],
         weeklyTrend: [],
         facts: {
@@ -4012,6 +4018,18 @@ enterpriseRouter.post(['/ai/cashflow-forecast', '/cashflow/forecast'], (req: Req
           treasuryBreakdown: { cash: 0, bank: 0, wallet: 0, total: 0 },
           totalReceivables: 0,
           totalPayables: 0,
+          recentAverageInflow: 0,
+          recentAverageOutflow: 0,
+        },
+        calculations: {
+          workingCapital: 0,
+          receivablesCoverageRatio: 0,
+          historicalDaysAnalyzed: 0,
+        },
+        forecast: {
+          days30: { expected: 0, lowerBound: 0, upperBound: 0, confidence: 0 },
+          days60: { expected: 0, lowerBound: 0, upperBound: 0, confidence: 0 },
+          days90: { expected: 0, lowerBound: 0, upperBound: 0, confidence: 0 },
         },
       },
     });

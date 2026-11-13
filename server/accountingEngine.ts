@@ -2030,6 +2030,18 @@ export function computeUnifiedFinancialMetrics(
   const glBank = roundMoney(accMap.get('1102')?.balance || 0);
   const glWallet = roundMoney(accMap.get('1107')?.balance || 0);
 
+  const tenantStore = getTenantCollections(cid);
+  const hasAnyCompanyTransactions =
+    tenantStore.invoices.length > 0 ||
+    tenantStore.payments.length > 0 ||
+    tenantStore.purchaseInvoices.length > 0 ||
+    tenantStore.expenses.length > 0 ||
+    mockInvoicesList.length > 0 ||
+    mockPaymentsList.length > 0 ||
+    mockPurchaseInvoicesList.length > 0 ||
+    mockExpensesList.length > 0 ||
+    journalEntries.length > 0;
+
   const hasAnyBankActivity = bankSalesCollected > 0 || bankReceipts > 0 || bankDisbursements > 0;
   const initialBankBuffer = (!isClean && hasAnyBankActivity) ? 500000 : 0;
   const netCashFlow = cashSalesCollected + cashReceipts - cashDisbursements;
@@ -2060,13 +2072,7 @@ export function computeUnifiedFinancialMetrics(
       : Math.max(0, netWalletFlow > 0 ? netWalletFlow : (walletSalesCollected + walletReceipts))
   );
 
-  const tenantStore = getTenantCollections(cid);
-  const hasRecordedTransactions =
-    (tenantStore.invoices && tenantStore.invoices.length > 0) ||
-    (tenantStore.payments && tenantStore.payments.length > 0) ||
-    (tenantStore.purchaseInvoices && tenantStore.purchaseInvoices.length > 0);
-
-  if (isClean && !hasRecordedTransactions) {
+  if (isClean && !hasAnyCompanyTransactions) {
     cashBalance = 0;
     bankBalance = 0;
     walletBalance = 0;

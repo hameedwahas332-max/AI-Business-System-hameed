@@ -861,6 +861,14 @@ export function computeLocalUnifiedFinancialMetrics(companyId: string) {
     (localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
       localStorage.getItem('erp_sample_data_cleaned') === 'true');
   const hasAnyBankActivity = bankSalesCollected > 0 || bankReceipts > 0 || bankDisbursements > 0;
+  const hasAnyLocalTransactions =
+    invs.length > 0 ||
+    posSales.length > 0 ||
+    payments.length > 0 ||
+    pur.length > 0 ||
+    expenses.length > 0 ||
+    journalEntries.length > 0;
+
   const initialBankBuffer = (!isClean && hasAnyBankActivity) ? 500000 : 0;
   const netCashFlow = cashSalesCollected + cashReceipts - cashDisbursements;
   const netBankFlow = bankSalesCollected + bankReceipts - bankDisbursements;
@@ -871,7 +879,7 @@ export function computeLocalUnifiedFinancialMetrics(companyId: string) {
       ? glCashBalance
       : Math.max(0, netCashFlow > 0 ? netCashFlow : (cashSalesCollected + cashReceipts))
   );
-  if (cashBalance === 0 && (cashSalesCollected > 0 || cashReceipts > 0) && !isClean) {
+  if (cashBalance === 0 && (cashSalesCollected > 0 || cashReceipts > 0)) {
     cashBalance = roundMoney(cashSalesCollected + cashReceipts);
   }
 
@@ -880,7 +888,7 @@ export function computeLocalUnifiedFinancialMetrics(companyId: string) {
       ? glBankBalance
       : Math.max(0, netBankFlow > 0 ? netBankFlow : (initialBankBuffer > 0 ? Math.max(0, initialBankBuffer + netBankFlow) : 0))
   );
-  if (bankBalance === 0 && (bankSalesCollected > 0 || bankReceipts > 0) && !isClean) {
+  if (bankBalance === 0 && (bankSalesCollected > 0 || bankReceipts > 0)) {
     bankBalance = roundMoney(bankSalesCollected + bankReceipts);
   }
 
@@ -890,14 +898,7 @@ export function computeLocalUnifiedFinancialMetrics(companyId: string) {
       : Math.max(0, netWalletFlow > 0 ? netWalletFlow : (walletSalesCollected + walletReceipts))
   );
 
-  const hasAnyFinancialActivity =
-    invoices.length > 0 ||
-    posSales.length > 0 ||
-    purchases.length > 0 ||
-    payments.length > 0 ||
-    expenses.length > 0;
-
-  if (isClean && !hasAnyFinancialActivity) {
+  if (isClean && !hasAnyLocalTransactions) {
     cashBalance = 0;
     bankBalance = 0;
     walletBalance = 0;
@@ -1785,19 +1786,15 @@ export async function executeLocalSeedDemoData(): Promise<LocalApiResponse> {
   setLocalItem('erp_inventory_movements_v1', inventoryMovements, companyId);
   setLocalItem('erp_journal_entries_v1', journalEntries, companyId);
 
-  const seededAccounts = LOCAL_STANDARD_CHART_OF_ACCOUNTS.map((acc) => {
-    let demoBalance = acc.balance;
-    if (acc.code === '1101') demoBalance = 314000;
-    if (acc.code === '1102') demoBalance = 400000;
-    return {
-      ...acc,
-      balance: demoBalance,
-      id: `acc_${companyId}_${acc.code}`,
-      company_id: companyId,
-      created_at: now.toISOString(),
-    };
-  });
+  const seededAccounts = LOCAL_STANDARD_CHART_OF_ACCOUNTS.map((acc) => ({
+    ...acc,
+    balance: acc.code === '1101' ? 314000 : acc.code === '1102' ? 400000 : acc.balance,
+    id: `acc_${companyId}_${acc.code}`,
+    company_id: companyId,
+    created_at: now.toISOString(),
+  }));
   setLocalItem('erp_accounts_v1', seededAccounts, companyId);
+  setLocalItem('erp_local_accounts_v1', seededAccounts, companyId);
 
   // Clear clean flags
   localStorage.removeItem('erp_clean_production_mode_v1');

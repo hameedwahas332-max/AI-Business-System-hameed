@@ -64,9 +64,9 @@ export const CashFlowForecastTab: React.FC = () => {
       const localWallet = Number(localMetrics?.walletBalance ?? localMetrics?.treasuryBreakdown?.wallet ?? 0);
       const localTotalCash = Number(localMetrics?.cashAndBankBalance ?? (localCashBox + localBank + localWallet) ?? 0);
 
-      const resolvedCashBox = apiCashBox > 0 ? apiCashBox : localCashBox;
-      const resolvedBank = apiBank > 0 ? apiBank : localBank;
-      const resolvedWallet = apiWallet > 0 ? apiWallet : localWallet;
+      let resolvedCashBox = apiCashBox > 0 ? apiCashBox : localCashBox;
+      let resolvedBank = apiBank > 0 ? apiBank : localBank;
+      let resolvedWallet = apiWallet > 0 ? apiWallet : localWallet;
 
       let resolvedTotalCash = apiCash > 0 ? apiCash : (resolvedCashBox + resolvedBank + resolvedWallet);
       if (resolvedTotalCash <= 0 && localTotalCash > 0) {
@@ -76,7 +76,7 @@ export const CashFlowForecastTab: React.FC = () => {
         resolvedTotalCash = resolvedCashBox + resolvedBank + resolvedWallet;
       }
 
-      const resolvedReceivables = Number(
+      let resolvedReceivables = Number(
         payload?.facts?.totalReceivables ??
         payload?.totalReceivables ??
         payload?.receivables ??
@@ -85,7 +85,7 @@ export const CashFlowForecastTab: React.FC = () => {
         0
       );
 
-      const resolvedPayables = Number(
+      let resolvedPayables = Number(
         payload?.facts?.totalPayables ??
         payload?.totalPayables ??
         payload?.payables ??
@@ -99,8 +99,25 @@ export const CashFlowForecastTab: React.FC = () => {
         (localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
          localStorage.getItem('erp_sample_data_cleaned') === 'true');
 
+      const hasNoLocalActivity =
+        Number(localMetrics?.salesTotal ?? 0) === 0 &&
+        Number(localMetrics?.purchasesTotal ?? 0) === 0 &&
+        Number(localMetrics?.receivables ?? 0) === 0 &&
+        Number(localMetrics?.payables ?? 0) === 0 &&
+        Number(localMetrics?.cashAndBankBalance ?? 0) === 0;
+
+      if (isCleanMode && hasNoLocalActivity) {
+        resolvedTotalCash = 0;
+        resolvedBank = 0;
+        resolvedCashBox = 0;
+        resolvedWallet = 0;
+        resolvedReceivables = 0;
+        resolvedPayables = 0;
+      }
+
       const isZeroState =
-        resolvedTotalCash === 0 && resolvedReceivables === 0 && resolvedPayables === 0;
+        (isCleanMode && hasNoLocalActivity) ||
+        (resolvedTotalCash === 0 && resolvedReceivables === 0 && resolvedPayables === 0);
 
       const resolvedRecentInflow = isZeroState
         ? 0
@@ -128,10 +145,12 @@ export const CashFlowForecastTab: React.FC = () => {
           recentAverageOutflow: resolvedRecentOutflow,
         },
         calculations: {
-          workingCapital: Number(
-            payload?.calculations?.workingCapital ??
-            (resolvedTotalCash + resolvedReceivables - resolvedPayables)
-          ),
+          workingCapital: isZeroState
+            ? 0
+            : Number(
+                payload?.calculations?.workingCapital ??
+                (resolvedTotalCash + resolvedReceivables - resolvedPayables)
+              ),
           receivablesCoverageRatio: isZeroState
             ? 0
             : Number(
