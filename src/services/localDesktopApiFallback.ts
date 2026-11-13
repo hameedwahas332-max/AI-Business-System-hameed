@@ -1893,6 +1893,14 @@ export async function executeLocalWipeDemoData(): Promise<LocalApiResponse> {
     'erp_fuel_tanks_state',
     'erp_fuel_meter_records_v1',
     'erp_fuel_daily_records',
+    'erp_opening_balances_v1',
+    'erp_sales_returns_v1',
+    'erp_purchase_returns_v1',
+    'erp_business_documents_v1',
+    'erp_reconciliations_v1',
+    'erp_import_jobs_v1',
+    'erp_cash_accounts_v1',
+    'erp_bank_accounts_v1',
   ];
 
   for (const k of keysToClear) {
@@ -2564,8 +2572,8 @@ async function internalHandleLocalDesktopApiFallback(
     };
   }
 
-  // 6. Import Preview & Commit
-  if (cleanUrl.includes('/import/preview')) {
+  // 6. Import Preview & Commit (Onboarding only; /business/import/* is handled by Business Operations Engine)
+  if (!cleanUrl.includes('/business/') && cleanUrl.includes('/import/preview')) {
     let bodyData: any = {};
     try {
       if (options?.body) bodyData = JSON.parse(options.body as string);
@@ -2588,7 +2596,7 @@ async function internalHandleLocalDesktopApiFallback(
       },
     };
   }
-  if (cleanUrl.includes('/import/commit')) {
+  if (!cleanUrl.includes('/business/') && cleanUrl.includes('/import/commit')) {
     let bodyData: any = {};
     try {
       if (options?.body) bodyData = JSON.parse(options.body as string);
@@ -3562,7 +3570,6 @@ async function internalHandleLocalDesktopApiFallback(
     cleanUrl.includes('/reports/overview') ||
     cleanUrl.includes('/analytics/overview') ||
     cleanUrl.includes('/treasury/stats') ||
-    cleanUrl.includes('/business/dashboard') ||
     cleanUrl.endsWith('/dashboard') ||
     cleanUrl.includes('/financial-health')
   ) {
@@ -3765,67 +3772,1357 @@ async function internalHandleLocalDesktopApiFallback(
       },
     };
   }
-  if (cleanUrl.includes('/business/periods')) {
-    return {
-      ok: true,
-      success: true,
-      status: 200,
-      data: {
-        success: true,
-        data: [
-          {
-            id: 'P-2026-11',
-            name: 'فترة نوفمبر 2026',
-            status: 'OPEN',
-            start_date: '2026-11-01',
-            end_date: '2026-11-30',
-          },
-        ],
-      },
+  // 9C. Complete Real Business Operations Engine (/api/v1/business/*)
+  if (cleanUrl.includes('/business/')) {
+    let bodyData: any = {};
+    try {
+      if (options?.body) {
+        bodyData = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;
+      }
+    } catch {}
+
+    const resolveLocalCurrency = (): string => {
+      try {
+        const compRaw = localStorage.getItem('erp_auth_company') || localStorage.getItem('erp_current_company');
+        if (compRaw) {
+          const parsed = JSON.parse(compRaw);
+          if (parsed?.currency || parsed?.defaultCurrency) return String(parsed.currency || parsed.defaultCurrency).toUpperCase();
+        }
+        const settingsRaw = localStorage.getItem('ai_biz_company_settings');
+        if (settingsRaw) {
+          const parsed = JSON.parse(settingsRaw);
+          if (parsed?.defaultCurrency || parsed?.baseCurrency || parsed?.currency) {
+            return String(parsed.defaultCurrency || parsed.baseCurrency || parsed.currency).toUpperCase();
+          }
+        }
+      } catch {}
+      return 'YER';
     };
-  }
-  if (cleanUrl.includes('/business/month-end-checklist')) {
-    return {
-      ok: true,
-      success: true,
-      status: 200,
-      data: {
+
+    const currency = resolveLocalCurrency();
+    const isClean =
+      typeof localStorage !== 'undefined' &&
+      (localStorage.getItem('erp_clean_production_mode_v1') === 'true' ||
+        localStorage.getItem('erp_sample_data_cleaned') === 'true');
+
+    const computeLocalAuditDiscrepancies = () => {
+      const accounts = getLocalAccounts(companyId);
+      const accMap = new Map<string, any>(accounts.map((a: any) => [String(a.code), a]));
+      const custs = getLocalItem<any[]>('erp_customers_v1', [], companyId);
+      const supps = getLocalItem<any[]>('erp_suppliers_v1', [], companyId);
+      const prods = getLocalItem<any[]>('erp_products_v1', [], companyId);
+      const journalEntries = getLocalItem<any[]>('erp_journal_entries_v1', [], companyId);
+
+      const discrepancies: any[] = [];
+
+      const custTotal = roundMoney(custs.reduce((s, c) => s + Number(c.current_balance ?? c.balance ?? 0), 0));
+      const glAr = roundMoney(Number(accMap.get('1103')?.balance || 0));
+      if (Math.abs(custTotal - glAr) > 0.01 && (journalEntries.length > 0 || custTotal > 0)) {
+        discrepancies.push({
+          id: 'rec-ar-1103',
+          entity_type: 'ذمم العملاء vs حساب العملاء (1103)',
+          expected_value: custTotal,
+          actual_value: glAr,
+          difference: roundMoney(custTotal - glAr),
+          severity: Math.abs(custTotal - glAr) > 1000 ? 'CRITICAL' : 'WARNING',
+          details: { message: `إجمالي أرصدة العملاء (${custTotal}) لا يطابق رصيد الأستاذ (${glAr})` },
+          status: 'OPEN',
+        });
+      }
+
+      const suppTotal = roundMoney(supps.reduce((s, sup) => s + Number(sup.current_balance ?? sup.balance ?? 0), 0));
+      const glAp = roundMoney(Number(accMap.get('2101')?.balance || 0));
+      if (Math.abs(suppTotal - glAp) > 0.01 && (journalEntries.length > 0 || suppTotal > 0)) {
+        discrepancies.push({
+          id: 'rec-ap-2101',
+          entity_type: 'ذمم الموردين vs حساب الموردين (2101)',
+          expected_value: suppTotal,
+          actual_value: glAp,
+          difference: roundMoney(suppTotal - glAp),
+          severity: Math.abs(suppTotal - glAp) > 1000 ? 'CRITICAL' : 'WARNING',
+          details: { message: `إجمالي أرصدة الموردين (${suppTotal}) لا يطابق رصيد الأستاذ (${glAp})` },
+          status: 'OPEN',
+        });
+      }
+
+      const invTotal = roundMoney(
+        prods.reduce(
+          (s, p) =>
+            s +
+            Math.max(0, Number(p.current_stock ?? p.stock ?? p.qty ?? 0)) *
+              Math.max(0, Number(p.cost_price ?? p.purchase_price ?? p.cost ?? 0)),
+          0
+        )
+      );
+      const glInv = roundMoney(Number(accMap.get('1104')?.balance || 0));
+      if (Math.abs(invTotal - glInv) > 0.01 && (journalEntries.length > 0 || invTotal > 0)) {
+        discrepancies.push({
+          id: 'rec-inv-1104',
+          entity_type: 'تقييم المخزون vs حساب المخزون (1104)',
+          expected_value: invTotal,
+          actual_value: glInv,
+          difference: roundMoney(invTotal - glInv),
+          severity: Math.abs(invTotal - glInv) > 1000 ? 'CRITICAL' : 'WARNING',
+          details: { message: `تقييم المخزون الفعلي (${invTotal}) لا يطابق رصيد الأستاذ (${glInv})` },
+          status: 'OPEN',
+        });
+      }
+
+      const totalDebit = roundMoney(journalEntries.reduce((s, j) => s + Number(j.total_debit || 0), 0));
+      const totalCredit = roundMoney(journalEntries.reduce((s, j) => s + Number(j.total_credit || 0), 0));
+      if (Math.abs(totalDebit - totalCredit) > 0.01) {
+        discrepancies.push({
+          id: 'rec-gl-balance',
+          entity_type: 'توازن دفتر الأستاذ العام (المدين vs الدائن)',
+          expected_value: totalDebit,
+          actual_value: totalCredit,
+          difference: roundMoney(totalDebit - totalCredit),
+          severity: 'CRITICAL',
+          details: { message: 'يوجد قيد غير متوازن في دفتر الأستاذ العام' },
+          status: 'OPEN',
+        });
+      }
+
+      return {
+        discrepancies,
+        totalChecks: 4 + custs.length + supps.length + prods.length + journalEntries.length,
+      };
+    };
+
+    // 9C-1. Daily Operating Dashboard
+    if (cleanUrl.endsWith('/business/dashboard')) {
+      const metrics = computeLocalUnifiedFinancialMetrics(companyId);
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      const invs = getLocalItem<any[]>('erp_invoices_v1', [], companyId);
+      const posSales = getLocalItem<any[]>('erp_pos_sales_log_v1', [], companyId);
+      const purchases = getLocalItem<any[]>('erp_purchase_invoices_v1', [], companyId);
+      const payments = getLocalItem<any[]>('erp_payments_v1', [], companyId);
+      const expenses = getLocalItem<any[]>('erp_employees_expenses_v1', [], companyId);
+      const products = getLocalItem<any[]>('erp_products_v1', [], companyId);
+      const customers = getLocalItem<any[]>('erp_customers_v1', [], companyId);
+      const suppliers = getLocalItem<any[]>('erp_suppliers_v1', [], companyId);
+
+      const isToday = (d?: string) => String(d || '').slice(0, 10) === todayStr;
+
+      const todaySales = roundMoney(
+        invs
+          .filter((i: any) => (i.status || '').toUpperCase() !== 'CANCELLED' && isToday(i.date || i.issue_date || i.created_at))
+          .reduce((s, i) => s + Number(i.total ?? i.grandTotal ?? i.amount ?? 0), 0) +
+          posSales
+            .filter((p: any) => (p.status || '').toUpperCase() !== 'CANCELLED' && isToday(p.date || p.created_at))
+            .reduce((s, p) => s + Number(p.total ?? p.total_amount ?? 0), 0)
+      );
+
+      const todayPurchases = roundMoney(
+        purchases
+          .filter((p: any) => (p.status || '').toUpperCase() !== 'CANCELLED' && isToday(p.invoiceDate || p.date || p.created_at))
+          .reduce((s, p) => s + Number(p.grandTotal ?? p.total ?? p.total_amount ?? 0), 0)
+      );
+
+      const todayCollections = roundMoney(
+        payments
+          .filter(
+            (p: any) =>
+              p.status !== 'CANCELLED' &&
+              (p.type === 'CUSTOMER_PAYMENT' || p.type === 'RECEIPT' || p.voucher_type === 'RECEIPT' || p.payment_type === 'IN') &&
+              isToday(p.payment_date || p.date || p.created_at)
+          )
+          .reduce((s, p) => s + Number(p.amount || 0), 0)
+      );
+
+      const todayPayments = roundMoney(
+        payments
+          .filter(
+            (p: any) =>
+              p.status !== 'CANCELLED' &&
+              (p.type === 'SUPPLIER_PAYMENT' || p.voucher_type === 'PAYMENT' || p.payment_type === 'OUT') &&
+              p.type !== 'EXPENSE' &&
+              p.type !== 'EXPENSE_PAYMENT' &&
+              isToday(p.payment_date || p.date || p.created_at)
+          )
+          .reduce((s, p) => s + Number(p.amount || 0), 0)
+      );
+
+      const todayExpenses = roundMoney(
+        expenses
+          .filter((e: any) => isToday(e.date || e.expense_date || e.expenseDate || e.created_at))
+          .reduce((s, e) => s + Number(e.totalAmount ?? e.total_amount ?? e.amount ?? 0), 0)
+      );
+
+      const lowStockCount = products.filter(
+        (p: any) => Number(p.current_stock ?? p.stock ?? p.qty ?? 0) <= Number(p.min_stock ?? p.reorder_point ?? 5)
+      ).length;
+
+      const { discrepancies } = computeLocalAuditDiscrepancies();
+
+      const payload = {
+        todaySales,
+        todayCollections,
+        todayPurchases,
+        todayPayments,
+        todayExpenses,
+        cashBalance: metrics.cashBalance,
+        bankBalance: metrics.bankBalance,
+        walletBalance: metrics.walletBalance,
+        cashAndBankBalance: metrics.cashAndBankBalance,
+        totalCashAndBank: metrics.cashAndBankBalance,
+        receivables: metrics.receivables,
+        payables: metrics.payables,
+        inventoryValuation: metrics.inventoryValuation,
+        netCashFlow: roundMoney(todayCollections - todayPayments - todayExpenses),
+        lowStockCount,
+        openReconciliationIssues: discrepancies.length,
+        monthlyRevenue: metrics.netSales,
+        monthlyExpenses: metrics.operatingExpenses,
+        currency,
+        counts: {
+          customers: customers.length,
+          suppliers: suppliers.length,
+          products: products.length,
+          invoices: invs.length + posSales.length,
+          vouchers: payments.length,
+        },
+      };
+
+      return { ok: true, success: true, status: 200, data: payload };
+    }
+
+    // 9C-2. Cash Accounts
+    if (cleanUrl.endsWith('/business/cash-accounts')) {
+      const metrics = computeLocalUnifiedFinancialMetrics(companyId);
+      const customCash = getLocalItem<any[]>('erp_cash_accounts_v1', [], companyId);
+
+      if (method === 'POST') {
+        const initBal = roundMoney(bodyData.openingBalance ?? bodyData.current_balance ?? bodyData.balance ?? 0);
+        const newAcc = {
+          id: `cash-${Date.now()}`,
+          code: bodyData.code || `1101-${customCash.length + 2}`,
+          name: bodyData.name || bodyData.account_name || 'صندوق نقدي إضافي',
+          account_name: bodyData.name || bodyData.account_name || 'صندوق نقدي إضافي',
+          custodian: bodyData.custodian || 'أمين الصندوق',
+          current_balance: initBal,
+          balance: initBal,
+          currency: bodyData.currency || currency,
+          company_id: companyId,
+          created_at: new Date().toISOString(),
+        };
+        customCash.push(newAcc);
+        setLocalItem('erp_cash_accounts_v1', customCash, companyId);
+        return { ok: true, success: true, status: 201, data: newAcc, message: 'تم إضافة الصندوق النقدي بنجاح' };
+      }
+
+      const mainCash = {
+        id: 'cash-1101',
+        code: '1101',
+        name: 'الصندوق النقدي الرئيسي',
+        account_name: 'الصندوق النقدي الرئيسي',
+        custodian: 'أمين الصندوق',
+        current_balance: roundMoney(metrics.cashBalance),
+        balance: roundMoney(metrics.cashBalance),
+        currency,
+      };
+      return {
+        ok: true,
         success: true,
+        status: 200,
+        data: [mainCash, ...customCash.map((c: any) => ({ ...c, current_balance: Number(c.current_balance ?? c.balance ?? 0), balance: Number(c.balance ?? c.current_balance ?? 0), currency: c.currency || currency }))],
+      };
+    }
+
+    // 9C-3. Bank Accounts (and Digital Wallets)
+    if (cleanUrl.endsWith('/business/bank-accounts')) {
+      const metrics = computeLocalUnifiedFinancialMetrics(companyId);
+      const customBanks = getLocalItem<any[]>('erp_bank_accounts_v1', [], companyId);
+
+      if (method === 'POST') {
+        const initBal = roundMoney(bodyData.openingBalance ?? bodyData.current_balance ?? bodyData.balance ?? 0);
+        const newBank = {
+          id: `bank-${Date.now()}`,
+          code: bodyData.code || `1102-${customBanks.length + 2}`,
+          account_name: bodyData.account_name || bodyData.name || 'حساب بنكي جديد',
+          name: bodyData.account_name || bodyData.name || 'حساب بنكي جديد',
+          bank_name: bodyData.bank_name || 'بنك تجاري',
+          iban: bodyData.iban || '',
+          current_balance: initBal,
+          balance: initBal,
+          currency: bodyData.currency || currency,
+          company_id: companyId,
+          created_at: new Date().toISOString(),
+        };
+        customBanks.push(newBank);
+        setLocalItem('erp_bank_accounts_v1', customBanks, companyId);
+        return { ok: true, success: true, status: 201, data: newBank, message: 'تم إضافة الحساب البنكي بنجاح' };
+      }
+
+      const list: any[] = [
+        {
+          id: 'bank-1102',
+          code: '1102',
+          account_name: 'الحساب البنكي التجاري والتحصيلات',
+          name: 'الحساب البنكي التجاري والتحصيلات',
+          bank_name: 'الحساب البنكي الرئيسي',
+          iban: '',
+          current_balance: roundMoney(metrics.bankBalance),
+          balance: roundMoney(metrics.bankBalance),
+          currency,
+        },
+      ];
+      if (metrics.walletBalance > 0) {
+        list.push({
+          id: 'wallet-1107',
+          code: '1107',
+          account_name: 'المحافظ الإلكترونية',
+          name: 'المحافظ الإلكترونية',
+          bank_name: 'محفظة إلكترونية',
+          iban: '',
+          current_balance: roundMoney(metrics.walletBalance),
+          balance: roundMoney(metrics.walletBalance),
+          currency,
+        });
+      }
+      for (const b of customBanks) {
+        list.push({
+          ...b,
+          account_name: b.account_name || b.name,
+          name: b.name || b.account_name,
+          current_balance: Number(b.current_balance ?? b.balance ?? 0),
+          balance: Number(b.balance ?? b.current_balance ?? 0),
+          currency: b.currency || currency,
+        });
+      }
+      return { ok: true, success: true, status: 200, data: list };
+    }
+
+    // 9C-4. Opening Balances
+    if (cleanUrl.endsWith('/business/opening-balances')) {
+      const openingList = getLocalItem<any[]>('erp_opening_balances_v1', [], companyId);
+
+      if (method === 'POST') {
+        const balanceType = String(bodyData.balanceType || bodyData.balance_type || 'CUSTOMER').toUpperCase();
+        const entityId = bodyData.entityId || bodyData.entity_id || '';
+        const amount = roundMoney(bodyData.amount || 0);
+        const entrySide = String(bodyData.entrySide || bodyData.entry_side || (balanceType === 'SUPPLIER' ? 'CREDIT' : 'DEBIT')).toUpperCase();
+        const accountingDate = bodyData.accountingDate || bodyData.accounting_date || new Date().toISOString().split('T')[0];
+        const referenceNo = bodyData.referenceNo || bodyData.reference_no || `OB-${Date.now().toString().slice(-6)}`;
+        const notes = bodyData.notes || `رصيد افتتاحي (${balanceType})`;
+
+        if (amount <= 0) {
+          return { ok: false, success: false, status: 400, error: 'المبلغ يجب أن يكون أكبر من الصفر', message: 'المبلغ يجب أن يكون أكبر من الصفر', data: null };
+        }
+
+        let targetAccCode = '1103';
+        let targetAccName = 'العملاء والمدينون التجاريون';
+        let entityName = '';
+
+        if (balanceType === 'CUSTOMER') {
+          targetAccCode = '1103';
+          targetAccName = 'العملاء والمدينون التجاريون';
+          const custs = getLocalItem<any[]>('erp_customers_v1', [], companyId);
+          const idx = custs.findIndex((c) => String(c.id) === String(entityId));
+          if (idx !== -1) {
+            const delta = entrySide === 'DEBIT' ? amount : -amount;
+            const nextBal = roundMoney(Number(custs[idx].current_balance ?? custs[idx].balance ?? 0) + delta);
+            custs[idx].balance = nextBal;
+            custs[idx].current_balance = nextBal;
+            custs[idx].opening_balance = roundMoney(Number(custs[idx].opening_balance || 0) + delta);
+            entityName = custs[idx].name;
+            setLocalItem('erp_customers_v1', custs, companyId);
+            if (typeof window !== 'undefined') window.dispatchEvent(new Event('erp-customers-updated'));
+          }
+        } else if (balanceType === 'SUPPLIER') {
+          targetAccCode = '2101';
+          targetAccName = 'الموردون والدائنون التجاريون';
+          const supps = getLocalItem<any[]>('erp_suppliers_v1', [], companyId);
+          const idx = supps.findIndex((s) => String(s.id) === String(entityId));
+          if (idx !== -1) {
+            const delta = entrySide === 'CREDIT' ? amount : -amount;
+            const nextBal = roundMoney(Number(supps[idx].current_balance ?? supps[idx].balance ?? 0) + delta);
+            supps[idx].balance = nextBal;
+            supps[idx].current_balance = nextBal;
+            supps[idx].opening_balance = roundMoney(Number(supps[idx].opening_balance || 0) + delta);
+            entityName = supps[idx].name;
+            setLocalItem('erp_suppliers_v1', supps, companyId);
+            if (typeof window !== 'undefined') window.dispatchEvent(new Event('erp-suppliers-updated'));
+          }
+        } else if (balanceType === 'CASH') {
+          targetAccCode = '1101';
+          targetAccName = 'الخزينة الرئيسية (النقدية)';
+          entityName = 'الصندوق النقدي الرئيسي';
+          const customCash = getLocalItem<any[]>('erp_cash_accounts_v1', [], companyId);
+          const cIdx = customCash.findIndex((c) => String(c.id) === String(entityId));
+          if (cIdx !== -1) {
+            const delta = entrySide === 'DEBIT' ? amount : -amount;
+            customCash[cIdx].current_balance = roundMoney(Number(customCash[cIdx].current_balance ?? customCash[cIdx].balance ?? 0) + delta);
+            customCash[cIdx].balance = customCash[cIdx].current_balance;
+            entityName = customCash[cIdx].name || entityName;
+            setLocalItem('erp_cash_accounts_v1', customCash, companyId);
+          }
+        } else if (balanceType === 'BANK') {
+          targetAccCode = String(entityId).includes('wallet') ? '1107' : '1102';
+          targetAccName = targetAccCode === '1107' ? 'المحافظ الإلكترونية' : 'البنك / الحسابات المصرفية';
+          entityName = targetAccCode === '1107' ? 'المحافظ الإلكترونية' : 'الحساب البنكي الرئيسي';
+          const customBanks = getLocalItem<any[]>('erp_bank_accounts_v1', [], companyId);
+          const bIdx = customBanks.findIndex((b) => String(b.id) === String(entityId));
+          if (bIdx !== -1) {
+            const delta = entrySide === 'DEBIT' ? amount : -amount;
+            customBanks[bIdx].current_balance = roundMoney(Number(customBanks[bIdx].current_balance ?? customBanks[bIdx].balance ?? 0) + delta);
+            customBanks[bIdx].balance = customBanks[bIdx].current_balance;
+            entityName = customBanks[bIdx].account_name || customBanks[bIdx].name || entityName;
+            setLocalItem('erp_bank_accounts_v1', customBanks, companyId);
+          }
+        } else if (balanceType === 'WALLET') {
+          targetAccCode = '1107';
+          targetAccName = 'المحافظ الإلكترونية والشبكات';
+          entityName = 'المحافظ الإلكترونية والشبكات';
+        } else if (balanceType === 'INVENTORY') {
+          targetAccCode = '1104';
+          targetAccName = 'مخزون البضائع';
+          const prods = getLocalItem<any[]>('erp_products_v1', [], companyId);
+          const pIdx = prods.findIndex((p) => String(p.id) === String(entityId));
+          if (pIdx !== -1) {
+            const p = prods[pIdx];
+            entityName = p.name;
+            const unitCost = Number(p.cost_price ?? p.purchase_price ?? p.cost ?? 0);
+            if (unitCost > 0) {
+              const addedQty = roundMoney(amount / unitCost);
+              const nextStock = roundMoney(Number(p.current_stock ?? p.stock ?? p.qty ?? 0) + addedQty);
+              p.current_stock = nextStock;
+              p.stock = nextStock;
+              p.qty = nextStock;
+            } else {
+              const currQty = Number(p.current_stock ?? p.stock ?? p.qty ?? 0);
+              if (currQty <= 0) {
+                p.current_stock = 1;
+                p.stock = 1;
+                p.qty = 1;
+                p.cost_price = amount;
+                p.purchase_price = amount;
+              } else {
+                p.cost_price = roundMoney((currQty * unitCost + amount) / currQty);
+                p.purchase_price = p.cost_price;
+              }
+            }
+            setLocalItem('erp_products_v1', prods, companyId);
+            const movements = getLocalItem<any[]>('erp_inventory_movements_v1', [], companyId);
+            movements.unshift({
+              id: `mov_ob_${Date.now()}`,
+              product_id: p.id,
+              product_name: p.name,
+              type: 'IN',
+              quantity: Number(p.current_stock ?? 1),
+              remaining_stock: Number(p.current_stock ?? 1),
+              reference_type: 'OPENING_BALANCE',
+              reference_id: referenceNo,
+              notes: `بضاعة أول المدة (${p.name}) بقيمة ${amount}`,
+              date: accountingDate,
+            });
+            setLocalItem('erp_inventory_movements_v1', movements, companyId);
+            if (typeof window !== 'undefined') window.dispatchEvent(new Event('erp-inventory-updated'));
+          }
+        }
+
+        const obLines =
+          entrySide === 'DEBIT'
+            ? [
+                { account_code: targetAccCode, account_name: targetAccName, debit: amount, credit: 0, description: notes || `رصيد افتتاحي ${entityName}` },
+                { account_code: '3101', account_name: 'رأس المال المدفوع', debit: 0, credit: amount, description: `مقابل رصيد افتتاحي ${balanceType} (${entityName})` },
+              ]
+            : [
+                { account_code: '3101', account_name: 'رأس المال المدفوع', debit: amount, credit: 0, description: `مقابل رصيد افتتاحي ${balanceType} (${entityName})` },
+                { account_code: targetAccCode, account_name: targetAccName, debit: 0, credit: amount, description: notes || `رصيد افتتاحي ${entityName}` },
+              ];
+
+        const journalRes = postLocalDoubleEntryJournal({
+          company_id: companyId,
+          reference_type: 'OPENING_BALANCE',
+          reference_id: referenceNo,
+          description: `قيد رصيد افتتاحي (${balanceType})${entityName ? ` - ${entityName}` : ''}`,
+          date: accountingDate,
+          lines: obLines,
+        });
+
+        const newRecord = {
+          id: `ob_${Date.now()}`,
+          company_id: companyId,
+          balance_type: balanceType,
+          entity_type: bodyData.entityType || balanceType,
+          entity_id: entityId || null,
+          entity_name: entityName || targetAccName,
+          amount,
+          entry_side: entrySide,
+          accounting_date: accountingDate,
+          reference_no: referenceNo,
+          notes,
+          journal_entry_id: journalRes.entry?.id || null,
+          status: 'POSTED',
+          currency,
+          created_at: new Date().toISOString(),
+        };
+
+        openingList.unshift(newRecord);
+        setLocalItem('erp_opening_balances_v1', openingList, companyId);
+
+        try {
+          localStorage.removeItem('erp_clean_production_mode_v1');
+          localStorage.removeItem('erp_sample_data_cleaned');
+        } catch {}
+
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('erp-data-updated'));
+          window.dispatchEvent(new Event('storage'));
+        }
+
+        return { ok: true, success: true, status: 201, data: newRecord, message: 'تم ترحيل الرصيد الافتتاحي بنجاح' };
+      }
+
+      return { ok: true, success: true, status: 200, data: openingList };
+    }
+
+    // 9C-5. Safe Enterprise CSV Import Engine (Preview & Commit)
+    if (cleanUrl.endsWith('/business/import/preview')) {
+      const entityType = String(bodyData.entityType || 'CUSTOMERS').toUpperCase();
+      const fileName = String(bodyData.fileName || 'import.csv');
+      const content = String(bodyData.content || '').trim();
+
+      const lines = content
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0);
+
+      if (lines.length < 2) {
+        return {
+          ok: false,
+          success: false,
+          status: 400,
+          error: 'يجب أن يحتوي ملف CSV على سطر العناوين (Header) وسطر بيانات واحد على الأقل',
+          message: 'يجب أن يحتوي ملف CSV على سطر العناوين وسطر بيانات واحد على الأقل',
+          data: null,
+        };
+      }
+
+      const splitCsvLine = (line: string) => {
+        const result: string[] = [];
+        let cur = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (ch === '"') {
+            inQuotes = !inQuotes;
+          } else if (ch === ',' && !inQuotes) {
+            result.push(cur.trim());
+            cur = '';
+          } else {
+            cur += ch;
+          }
+        }
+        result.push(cur.trim());
+        return result;
+      };
+
+      const headers = splitCsvLine(lines[0]).map((h) => h.toLowerCase().replace(/\s+/g, '_'));
+      const errors: Array<{ row: number; field: string; message: string }> = [];
+      const parsedRecords: any[] = [];
+      let financialTotal = 0;
+
+      for (let i = 1; i < lines.length; i++) {
+        const cols = splitCsvLine(lines[i]);
+        const rowObj: Record<string, string> = {};
+        headers.forEach((h, idx) => {
+          rowObj[h] = cols[idx] ?? '';
+        });
+
+        const rowNum = i + 1;
+        const name = (rowObj.name || rowObj.customer_name || rowObj.supplier_name || rowObj.product_name || rowObj['الاسم'] || '').trim();
+        if (!name) {
+          errors.push({ row: rowNum, field: 'name', message: 'الاسم مطلوب ولا يمكن أن يكون فارغاً' });
+          continue;
+        }
+
+        if (entityType === 'PRODUCTS') {
+          const purchasePrice = Number(rowObj.purchase_price ?? rowObj.cost_price ?? rowObj.cost ?? 0);
+          const sellingPrice = Number(rowObj.selling_price ?? rowObj.sale_price ?? rowObj.price ?? 0);
+          const currentStock = Number(rowObj.current_stock ?? rowObj.stock ?? rowObj.quantity ?? rowObj.qty ?? 0);
+
+          if (Number.isNaN(purchasePrice) || purchasePrice < 0) {
+            errors.push({ row: rowNum, field: 'purchase_price', message: 'سعر الشراء يجب أن يكون رقماً موجباً' });
+            continue;
+          }
+          if (Number.isNaN(sellingPrice) || sellingPrice < 0) {
+            errors.push({ row: rowNum, field: 'selling_price', message: 'سعر البيع يجب أن يكون رقماً موجباً' });
+            continue;
+          }
+          if (Number.isNaN(currentStock) || currentStock < 0) {
+            errors.push({ row: rowNum, field: 'current_stock', message: 'الكمية يجب أن تكون رقماً غير سالب' });
+            continue;
+          }
+
+          financialTotal = roundMoney(financialTotal + purchasePrice * currentStock);
+          parsedRecords.push({
+            name,
+            sku: rowObj.sku || `SKU-${Date.now().toString().slice(-4)}-${i}`,
+            barcode: rowObj.barcode || '',
+            category: rowObj.category || 'عام',
+            unit: rowObj.unit || 'حبة',
+            cost_price: purchasePrice,
+            purchase_price: purchasePrice,
+            sale_price: sellingPrice,
+            price: sellingPrice,
+            current_stock: currentStock,
+            stock: currentStock,
+            qty: currentStock,
+          });
+        } else {
+          const opBal = Number(rowObj.opening_balance ?? rowObj.balance ?? rowObj.amount ?? 0);
+          if (Number.isNaN(opBal) || opBal < 0) {
+            errors.push({ row: rowNum, field: 'opening_balance', message: 'الرصيد الافتتاحي يجب أن يكون رقماً صحيحاً غير سالب' });
+            continue;
+          }
+          financialTotal = roundMoney(financialTotal + opBal);
+          parsedRecords.push({
+            name,
+            phone: rowObj.phone || '',
+            email: rowObj.email || '',
+            address: rowObj.address || '',
+            opening_balance: opBal,
+            balance: opBal,
+            current_balance: opBal,
+          });
+        }
+      }
+
+      const jobId = `imp_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      const jobs = getLocalItem<any[]>('erp_import_jobs_v1', [], companyId);
+      const previewPayload = {
+        jobId,
+        entityType,
+        fileName,
+        totalRows: lines.length - 1,
+        validRows: parsedRecords.length,
+        invalidRows: errors.length,
+        financialTotal: roundMoney(financialTotal),
+        errors,
+        preview: parsedRecords.slice(0, 50),
+        records: parsedRecords,
+        createdAt: new Date().toISOString(),
+      };
+      jobs.unshift(previewPayload);
+      setLocalItem('erp_import_jobs_v1', jobs.slice(0, 20), companyId);
+
+      return { ok: true, success: true, status: 200, data: previewPayload };
+    }
+
+    if (cleanUrl.endsWith('/business/import/commit')) {
+      const jobId = bodyData.jobId;
+      const jobs = getLocalItem<any[]>('erp_import_jobs_v1', [], companyId);
+      const job = jobs.find((j) => j.jobId === jobId);
+
+      if (!job || !Array.isArray(job.records)) {
+        return { ok: false, success: false, status: 404, error: 'تعذر العثور على جلسة الاستيراد', message: 'تعذر العثور على جلسة الاستيراد', data: null };
+      }
+
+      const eType = String(job.entityType || 'CUSTOMERS').toUpperCase();
+      let importedCount = 0;
+
+      if (eType === 'PRODUCTS') {
+        const products = getLocalItem<any[]>('erp_products_v1', [], companyId);
+        let totalInvValue = 0;
+        for (const rec of job.records) {
+          const existingIdx = products.findIndex(
+            (p) => (rec.sku && p.sku === rec.sku) || String(p.name || '').trim() === String(rec.name || '').trim()
+          );
+          if (existingIdx !== -1) {
+            products[existingIdx] = {
+              ...products[existingIdx],
+              ...rec,
+              current_stock: roundMoney(Number(products[existingIdx].current_stock ?? 0) + Number(rec.current_stock || 0)),
+              stock: roundMoney(Number(products[existingIdx].stock ?? 0) + Number(rec.current_stock || 0)),
+              updated_at: new Date().toISOString(),
+            };
+          } else {
+            products.unshift({
+              id: `prd_imp_${Date.now()}_${importedCount}`,
+              ...rec,
+              company_id: companyId,
+              created_at: new Date().toISOString(),
+            });
+          }
+          totalInvValue = roundMoney(totalInvValue + Number(rec.cost_price || 0) * Number(rec.current_stock || 0));
+          importedCount++;
+        }
+        setLocalItem('erp_products_v1', products, companyId);
+        if (totalInvValue > 0) {
+          postLocalDoubleEntryJournal({
+            company_id: companyId,
+            reference_type: 'IMPORT_OPENING_STOCK',
+            reference_id: jobId,
+            description: `استيراد بضاعة أول المدة (${importedCount} صنف)`,
+            date: new Date().toISOString().split('T')[0],
+            lines: [
+              { account_code: '1104', account_name: 'مخزون البضائع', debit: totalInvValue, credit: 0, description: 'إثبات مخزون مستورد' },
+              { account_code: '3101', account_name: 'رأس المال المدفوع', debit: 0, credit: totalInvValue, description: 'مقابل أرصدة المخزون الافتتاحية' },
+            ],
+          });
+        }
+        if (typeof window !== 'undefined') window.dispatchEvent(new Event('erp-inventory-updated'));
+      } else if (eType === 'SUPPLIERS' || eType === 'SUPPLIER_BALANCES') {
+        const suppliers = getLocalItem<any[]>('erp_suppliers_v1', [], companyId);
+        let totalSuppBal = 0;
+        for (const rec of job.records) {
+          const existingIdx = suppliers.findIndex((s) => String(s.name || '').trim() === String(rec.name || '').trim());
+          const opBal = roundMoney(rec.opening_balance || 0);
+          if (existingIdx !== -1) {
+            const nextBal = roundMoney(Number(suppliers[existingIdx].current_balance ?? suppliers[existingIdx].balance ?? 0) + opBal);
+            suppliers[existingIdx].balance = nextBal;
+            suppliers[existingIdx].current_balance = nextBal;
+          } else {
+            suppliers.unshift({
+              id: `sup_imp_${Date.now()}_${importedCount}`,
+              ...rec,
+              balance: opBal,
+              current_balance: opBal,
+              currency,
+              status: 'ACTIVE',
+              company_id: companyId,
+              created_at: new Date().toISOString(),
+            });
+          }
+          totalSuppBal = roundMoney(totalSuppBal + opBal);
+          importedCount++;
+        }
+        setLocalItem('erp_suppliers_v1', suppliers, companyId);
+        if (totalSuppBal > 0) {
+          postLocalDoubleEntryJournal({
+            company_id: companyId,
+            reference_type: 'IMPORT_SUPPLIER_BALANCES',
+            reference_id: jobId,
+            description: `استيراد أرصدة الموردين الافتتاحية (${importedCount} مورد)`,
+            date: new Date().toISOString().split('T')[0],
+            lines: [
+              { account_code: '3101', account_name: 'رأس المال المدفوع', debit: totalSuppBal, credit: 0, description: 'مقابل أرصدة الموردين الافتتاحية' },
+              { account_code: '2101', account_name: 'الموردون والدائنون التجاريون', debit: 0, credit: totalSuppBal, description: 'إثبات أرصدة موردين مستوردة' },
+            ],
+          });
+        }
+        if (typeof window !== 'undefined') window.dispatchEvent(new Event('erp-suppliers-updated'));
+      } else {
+        const customers = getLocalItem<any[]>('erp_customers_v1', [], companyId);
+        let totalCustBal = 0;
+        for (const rec of job.records) {
+          const existingIdx = customers.findIndex((c) => String(c.name || '').trim() === String(rec.name || '').trim());
+          const opBal = roundMoney(rec.opening_balance || 0);
+          if (existingIdx !== -1) {
+            const nextBal = roundMoney(Number(customers[existingIdx].current_balance ?? customers[existingIdx].balance ?? 0) + opBal);
+            customers[existingIdx].balance = nextBal;
+            customers[existingIdx].current_balance = nextBal;
+          } else {
+            customers.unshift({
+              id: `cus_imp_${Date.now()}_${importedCount}`,
+              ...rec,
+              balance: opBal,
+              current_balance: opBal,
+              currency,
+              status: 'ACTIVE',
+              company_id: companyId,
+              created_at: new Date().toISOString(),
+            });
+          }
+          totalCustBal = roundMoney(totalCustBal + opBal);
+          importedCount++;
+        }
+        setLocalItem('erp_customers_v1', customers, companyId);
+        if (totalCustBal > 0) {
+          postLocalDoubleEntryJournal({
+            company_id: companyId,
+            reference_type: 'IMPORT_CUSTOMER_BALANCES',
+            reference_id: jobId,
+            description: `استيراد أرصدة العملاء الافتتاحية (${importedCount} عميل)`,
+            date: new Date().toISOString().split('T')[0],
+            lines: [
+              { account_code: '1103', account_name: 'العملاء والمدينون التجاريون', debit: totalCustBal, credit: 0, description: 'إثبات ذمم عملاء مستوردة' },
+              { account_code: '3101', account_name: 'رأس المال المدفوع', debit: 0, credit: totalCustBal, description: 'مقابل أرصدة العملاء الافتتاحية' },
+            ],
+          });
+        }
+        if (typeof window !== 'undefined') window.dispatchEvent(new Event('erp-customers-updated'));
+      }
+
+      try {
+        localStorage.removeItem('erp_clean_production_mode_v1');
+        localStorage.removeItem('erp_sample_data_cleaned');
+      } catch {}
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('erp-data-updated'));
+        window.dispatchEvent(new Event('storage'));
+      }
+
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: { jobId, importedCount, isBalanced: true },
+        message: `تم استيراد وترحيل ${importedCount} سجل بنجاح`,
+      };
+    }
+
+    // 9C-6. Reconciliations & Bank Statement Audit
+    if (cleanUrl.endsWith('/business/reconciliations/run') && method === 'POST') {
+      const { discrepancies, totalChecks } = computeLocalAuditDiscrepancies();
+      setLocalItem('erp_reconciliations_v1', discrepancies, companyId);
+      return {
+        ok: true,
+        success: true,
+        status: 200,
         data: {
-          period_id: 'P-2026-11',
-          completion_percentage: 100,
-          checklist_items: [
-            { id: 1, title: 'مطابقة الصناديق النقدية والخزائن', completed: true },
-            { id: 2, title: 'مطابقة كشوف الحسابات البنكية', completed: true },
-            { id: 3, title: 'جرد المخزون الفعلي وتسوية الفروقات', completed: true },
-            { id: 4, title: 'مطابقة أرصدة العملاء والذمم المدينة', completed: true },
-            { id: 5, title: 'مطابقة أرصدة الموردين والذمم الدائنة', completed: true },
-            { id: 6, title: 'ترحيل قيود الرواتب والأجور', completed: true },
-            { id: 7, title: 'إثبات مخصص إهلاك الأصول الثابتة', completed: true },
-            { id: 8, title: 'تسوية المصروفات والإيرادات المستحقة والمدفوعة مقدماً', completed: true },
-            { id: 9, title: 'مراجعة ميزان المراجعة بالعملات المحلية والأجنبية', completed: true },
-            { id: 10, title: 'فحص موازين القيد المزدوج: المدين = الدائن', completed: true },
-            { id: 11, title: 'أخذ نسخة احتياطية مشفرة قبل الإقفال', completed: true },
-            { id: 12, title: 'اعتماد وإغلاق الفترة المحاسبية رسمياً', completed: true },
+          totalChecks,
+          discrepanciesCount: discrepancies.length,
+          isBalanced: discrepancies.length === 0,
+          discrepancies,
+          checkedAt: new Date().toISOString(),
+        },
+      };
+    }
+
+    if (cleanUrl.endsWith('/business/reconciliations/bank')) {
+      const metrics = computeLocalUnifiedFinancialMetrics(companyId);
+      const accountType = String(bodyData.accountType || 'BANK').toUpperCase();
+      let rawBookBalance = accountType === 'CASH' ? roundMoney(metrics.cashBalance) : roundMoney(metrics.bankBalance);
+
+      if (bodyData.accountId) {
+        if (String(bodyData.accountId).includes('wallet')) rawBookBalance = roundMoney(metrics.walletBalance);
+        else {
+          const customBanks = getLocalItem<any[]>('erp_bank_accounts_v1', [], companyId);
+          const customMatch = customBanks.find((b) => String(b.id) === String(bodyData.accountId));
+          if (customMatch) rawBookBalance = roundMoney(Number(customMatch.current_balance ?? customMatch.balance ?? 0));
+        }
+      }
+
+      const statementClosingBalance = roundMoney(bodyData.statementClosingBalance || 0);
+      const unpresentedChecks = roundMoney(bodyData.unpresentedChecks || 0);
+      const depositsInTransit = roundMoney(bodyData.depositsInTransit || 0);
+      const bankCharges = roundMoney(bodyData.bankCharges || 0);
+      const interestEarned = roundMoney(bodyData.interestEarned || 0);
+
+      const dateStr = bodyData.statementEndDate || new Date().toISOString().split('T')[0];
+
+      if (bankCharges > 0) {
+        postLocalDoubleEntryJournal({
+          company_id: companyId,
+          reference_type: 'BANK_RECON_CHARGES',
+          reference_id: `BR-CHG-${Date.now().toString().slice(-6)}`,
+          description: 'تسوية رسوم ومصاريف بنكية من كشف الحساب',
+          date: dateStr,
+          lines: [
+            { account_code: '5201', account_name: 'مصروفات عمومية وإدارية', debit: bankCharges, credit: 0, description: 'رسوم وعمولات بنكية' },
+            { account_code: '1102', account_name: 'البنك / الحسابات المصرفية', debit: 0, credit: bankCharges, description: 'خصم رسوم بنكية' },
           ],
-        },
-      },
-    };
-  }
-  if (cleanUrl.includes('/business/reconciliations')) {
-    return {
-      ok: true,
-      success: true,
-      status: 200,
-      data: {
+        });
+      }
+
+      if (interestEarned > 0) {
+        postLocalDoubleEntryJournal({
+          company_id: companyId,
+          reference_type: 'BANK_RECON_INTEREST',
+          reference_id: `BR-INT-${Date.now().toString().slice(-6)}`,
+          description: 'إثبات فوائد / أرباح بنكية دائنة من كشف الحساب',
+          date: dateStr,
+          lines: [
+            { account_code: '1102', account_name: 'البنك / الحسابات المصرفية', debit: interestEarned, credit: 0, description: 'إضافة فوائد بنكية' },
+            { account_code: '4101', account_name: 'إيرادات المبيعات', debit: 0, credit: interestEarned, description: 'فوائد وعوائد بنكية' },
+          ],
+        });
+      }
+
+      const adjustedBookBalance = roundMoney(rawBookBalance - bankCharges + interestEarned);
+      const adjustedStatementBalance = roundMoney(statementClosingBalance - unpresentedChecks + depositsInTransit);
+      const difference = roundMoney(adjustedBookBalance - adjustedStatementBalance);
+      const status = Math.abs(difference) <= 0.01 ? 'MATCHED' : 'UNMATCHED';
+
+      return {
+        ok: true,
         success: true,
+        status: 200,
         data: {
-          totalChecks: 24,
-          discrepanciesCount: 0,
-          isBalanced: true,
+          bookBalance: adjustedBookBalance,
+          rawBookBalance,
+          statementClosingBalance,
+          adjustedStatementBalance,
+          difference,
+          status,
+          reconciledAt: new Date().toISOString(),
         },
-      },
-    };
+      };
+    }
+
+    if (cleanUrl.endsWith('/business/reconciliations')) {
+      const { discrepancies } = computeLocalAuditDiscrepancies();
+      return { ok: true, success: true, status: 200, data: discrepancies };
+    }
+
+    // 9C-7. Operational Expenses
+    if (cleanUrl.endsWith('/business/expenses')) {
+      const expenses = getLocalItem<any[]>('erp_employees_expenses_v1', [], companyId);
+
+      if (method === 'POST') {
+        const baseAmt = roundMoney(bodyData.amount || 0);
+        const taxAmt = roundMoney(bodyData.taxAmount || 0);
+        const totalAmt = roundMoney(baseAmt + taxAmt);
+        if (baseAmt <= 0) {
+          return { ok: false, success: false, status: 400, error: 'مبلغ المصروف يجب أن يكون أكبر من الصفر', message: 'مبلغ المصروف يجب أن يكون أكبر من الصفر', data: null };
+        }
+
+        const payMethod = String(bodyData.paymentMethod || 'CASH').toUpperCase();
+        const isBankOrCard = payMethod === 'BANK' || payMethod === 'CARD';
+        const isWallet = payMethod === 'WALLET' || String(bodyData.paymentAccountId || '').includes('wallet');
+        const creditCode = isWallet ? '1107' : isBankOrCard ? '1102' : '1101';
+        const creditName = isWallet ? 'المحافظ الإلكترونية' : isBankOrCard ? 'البنك / الحسابات المصرفية' : 'الخزينة الرئيسية (النقدية)';
+
+        const category = String(bodyData.category || 'مصاريف أخرى');
+        const expCode = category.includes('رواتب') ? '5202' : category.includes('إيجار') ? '5203' : '5201';
+        const expAccName = category.includes('رواتب') ? 'مصروفات الرواتب والأجور' : category.includes('إيجار') ? 'إيجارات ومنافع' : 'مصروفات عمومية وإدارية';
+
+        const expNumber = `EXP-${Date.now().toString().slice(-6)}`;
+        const expDate = bodyData.expenseDate || bodyData.date || new Date().toISOString().split('T')[0];
+
+        const journalLines: any[] = [
+          { account_code: expCode, account_name: expAccName, debit: baseAmt, credit: 0, description: `${category}: ${bodyData.description || ''}` },
+        ];
+        if (taxAmt > 0) {
+          journalLines.push({ account_code: '1105', account_name: 'ضريبة القيمة المضافة المدخلة (مستردة)', debit: taxAmt, credit: 0, description: `ضريبة مدخلات مصروف ${expNumber}` });
+        }
+        journalLines.push({ account_code: creditCode, account_name: creditName, debit: 0, credit: totalAmt, description: `صرف مصروف ${expNumber}` });
+
+        postLocalDoubleEntryJournal({
+          company_id: companyId,
+          reference_type: 'EXPENSE_VOUCHER',
+          reference_id: expNumber,
+          description: `مصروف تشغيلي (${category}): ${bodyData.description || expNumber}`,
+          date: expDate,
+          lines: journalLines,
+        });
+
+        const newExpense = {
+          id: `exp_${Date.now()}`,
+          company_id: companyId,
+          expenseNumber: expNumber,
+          voucher_number: expNumber,
+          category,
+          description: bodyData.description || category,
+          amount: totalAmt,
+          baseAmount: baseAmt,
+          taxAmount: taxAmt,
+          paymentMethod: payMethod,
+          payment_method: payMethod,
+          paymentAccountId: bodyData.paymentAccountId || creditCode,
+          treasury: creditName,
+          date: expDate,
+          expenseDate: expDate,
+          reference: bodyData.reference || expNumber,
+          notes: bodyData.notes || '',
+          currency,
+          status: 'PAID',
+          created_at: new Date().toISOString(),
+        };
+        expenses.unshift(newExpense);
+        setLocalItem('erp_employees_expenses_v1', expenses, companyId);
+
+        const payments = getLocalItem<any[]>('erp_payments_v1', [], companyId);
+        payments.unshift({
+          id: `pmt_${Date.now()}`,
+          company_id: companyId,
+          payment_number: expNumber,
+          voucher_number: expNumber,
+          type: 'EXPENSE_PAYMENT',
+          voucher_type: 'PAYMENT',
+          payment_type: 'OUT',
+          party_type: 'OTHER',
+          party_name: category,
+          amount: totalAmt,
+          payment_method: isWallet ? 'WALLET' : isBankOrCard ? 'BANK' : 'CASH',
+          payment_date: expDate,
+          date: expDate,
+          currency,
+          description: `سند صرف مصروف: ${newExpense.description}`,
+          status: 'CONFIRMED',
+          created_at: new Date().toISOString(),
+        });
+        setLocalItem('erp_payments_v1', payments, companyId);
+
+        try {
+          localStorage.removeItem('erp_clean_production_mode_v1');
+          localStorage.removeItem('erp_sample_data_cleaned');
+        } catch {}
+
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('erp-expenses-updated'));
+          window.dispatchEvent(new Event('erp-payments-updated'));
+          window.dispatchEvent(new Event('erp-data-updated'));
+          window.dispatchEvent(new Event('storage'));
+        }
+
+        return { ok: true, success: true, status: 201, data: newExpense, message: 'تم تسجيل المصروف وترحيل القيد المحاسبي بنجاح' };
+      }
+
+      return { ok: true, success: true, status: 200, data: expenses };
+    }
+
+    // 9C-8. Returns (Sales & Purchase)
+    if (cleanUrl.endsWith('/business/returns')) {
+      const salesReturns = getLocalItem<any[]>('erp_sales_returns_v1', [], companyId);
+      const purchaseReturns = getLocalItem<any[]>('erp_purchase_returns_v1', [], companyId);
+
+      if (method === 'POST') {
+        const retType = String(bodyData.type || 'SALES').toUpperCase();
+        const items: any[] = Array.isArray(bodyData.items) ? bodyData.items : [];
+        const products = getLocalItem<any[]>('erp_products_v1', [], companyId);
+        const movements = getLocalItem<any[]>('erp_inventory_movements_v1', [], companyId);
+
+        let computedTotal = 0;
+        let totalCostVal = 0;
+        const retNumber = `${retType === 'PURCHASE' ? 'PRET' : 'SRET'}-${Date.now().toString().slice(-6)}`;
+        const dateStr = new Date().toISOString().split('T')[0];
+
+        for (const it of items) {
+          const qty = Math.max(0, Number(it.quantity || it.qty || 0));
+          const pIdx = products.findIndex((p) => String(p.id) === String(it.productId || it.product_id || it.id));
+          const prod = pIdx !== -1 ? products[pIdx] : null;
+          const unitCost = Number(prod?.cost_price ?? prod?.purchase_price ?? it.priceOrCost ?? 0);
+          const unitPrice = Number(it.priceOrCost || prod?.sale_price || prod?.price || unitCost || 0);
+
+          computedTotal = roundMoney(computedTotal + qty * unitPrice);
+          totalCostVal = roundMoney(totalCostVal + qty * unitCost);
+
+          if (prod && qty > 0) {
+            const oldStock = Number(prod.current_stock ?? prod.stock ?? prod.qty ?? 0);
+            const newStock = retType === 'PURCHASE' ? Math.max(0, oldStock - qty) : oldStock + qty;
+            prod.current_stock = newStock;
+            prod.stock = newStock;
+            prod.qty = newStock;
+
+            movements.unshift({
+              id: `mov_bret_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+              product_id: prod.id,
+              product_name: prod.name,
+              type: retType === 'PURCHASE' ? 'OUT' : 'IN',
+              quantity: qty,
+              remaining_stock: newStock,
+              reference_type: retType === 'PURCHASE' ? 'PURCHASE_RETURN' : 'SALES_RETURN',
+              reference_id: retNumber,
+              notes: bodyData.reason || (retType === 'PURCHASE' ? 'مردودات مشتريات' : 'مردودات مبيعات'),
+              date: dateStr,
+            });
+          }
+        }
+
+        setLocalItem('erp_products_v1', products, companyId);
+        setLocalItem('erp_inventory_movements_v1', movements, companyId);
+
+        const totalAmount = roundMoney(bodyData.totalAmount ?? bodyData.total ?? computedTotal);
+        const refundMethod = String(bodyData.refundMethod || 'CREDIT_NOTE').toUpperCase();
+        const isCashRefund = refundMethod === 'CASH' || refundMethod === 'BANK';
+        const cashOrBankCode = refundMethod === 'BANK' ? '1102' : '1101';
+        const cashOrBankName = refundMethod === 'BANK' ? 'البنك / الحسابات المصرفية' : 'الخزينة الرئيسية (النقدية)';
+
+        if (retType === 'PURCHASE') {
+          if (!isCashRefund && bodyData.supplierId) {
+            const supps = getLocalItem<any[]>('erp_suppliers_v1', [], companyId);
+            const sIdx = supps.findIndex((s) => String(s.id) === String(bodyData.supplierId));
+            if (sIdx !== -1) {
+              const nextBal = roundMoney(Math.max(0, Number(supps[sIdx].current_balance ?? supps[sIdx].balance ?? 0) - totalAmount));
+              supps[sIdx].balance = nextBal;
+              supps[sIdx].current_balance = nextBal;
+              setLocalItem('erp_suppliers_v1', supps, companyId);
+              if (typeof window !== 'undefined') window.dispatchEvent(new Event('erp-suppliers-updated'));
+            }
+          }
+          if (totalAmount > 0) {
+            postLocalDoubleEntryJournal({
+              company_id: companyId,
+              reference_type: 'PURCHASE_RETURN',
+              reference_id: retNumber,
+              description: `مردودات مشتريات #${retNumber}`,
+              date: dateStr,
+              lines: [
+                {
+                  account_code: isCashRefund ? cashOrBankCode : '2101',
+                  account_name: isCashRefund ? cashOrBankName : 'الموردون والدائنون التجاريون',
+                  debit: totalAmount,
+                  credit: 0,
+                  description: `تخفيض مستحقات المورد / استرداد نقدي #${retNumber}`,
+                },
+                {
+                  account_code: '1104',
+                  account_name: 'مخزون البضائع',
+                  debit: 0,
+                  credit: totalAmount,
+                  description: `خصم مخزون مرتجع مشتريات #${retNumber}`,
+                },
+              ],
+            });
+          }
+          const rec = { id: `pret_${Date.now()}`, type: 'PURCHASE', returnNumber: retNumber, supplierId: bodyData.supplierId, items, total: totalAmount, refundMethod, reason: bodyData.reason, date: dateStr, currency };
+          purchaseReturns.unshift(rec);
+          setLocalItem('erp_purchase_returns_v1', purchaseReturns, companyId);
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('erp-purchases-updated'));
+            window.dispatchEvent(new Event('erp-inventory-updated'));
+            window.dispatchEvent(new Event('erp-data-updated'));
+          }
+          return { ok: true, success: true, status: 201, data: rec, message: 'تم تسجيل مردودات المشتريات بنجاح' };
+        } else {
+          if (!isCashRefund && bodyData.customerId) {
+            const custs = getLocalItem<any[]>('erp_customers_v1', [], companyId);
+            const cIdx = custs.findIndex((c) => String(c.id) === String(bodyData.customerId));
+            if (cIdx !== -1) {
+              const nextBal = roundMoney(Math.max(0, Number(custs[cIdx].current_balance ?? custs[cIdx].balance ?? 0) - totalAmount));
+              custs[cIdx].balance = nextBal;
+              custs[cIdx].current_balance = nextBal;
+              setLocalItem('erp_customers_v1', custs, companyId);
+              if (typeof window !== 'undefined') window.dispatchEvent(new Event('erp-customers-updated'));
+            }
+          }
+          if (totalAmount > 0) {
+            postLocalDoubleEntryJournal({
+              company_id: companyId,
+              reference_type: 'SALES_RETURN',
+              reference_id: retNumber,
+              description: `مردودات مبيعات #${retNumber}`,
+              date: dateStr,
+              lines: [
+                { account_code: '4102', account_name: 'مردودات ومسموحات المبيعات', debit: totalAmount, credit: 0, description: `مردودات مبيعات #${retNumber}` },
+                {
+                  account_code: isCashRefund ? cashOrBankCode : '1103',
+                  account_name: isCashRefund ? cashOrBankName : 'العملاء والمدينون التجاريون',
+                  debit: 0,
+                  credit: totalAmount,
+                  description: `تسوية مردودات مبيعات #${retNumber}`,
+                },
+              ],
+            });
+          }
+          if (totalCostVal > 0) {
+            postLocalDoubleEntryJournal({
+              company_id: companyId,
+              reference_type: 'INVENTORY_RETURN_COGS',
+              reference_id: retNumber,
+              description: `عكس تكلفة مرتجع مبيعات #${retNumber}`,
+              date: dateStr,
+              lines: [
+                { account_code: '1104', account_name: 'مخزون البضائع', debit: totalCostVal, credit: 0, description: `إعادة بضاعة للمخزون #${retNumber}` },
+                { account_code: '5101', account_name: 'تكلفة البضاعة المباعة (COGS)', debit: 0, credit: totalCostVal, description: `عكس تكلفة بضاعة مباعة #${retNumber}` },
+              ],
+            });
+          }
+          const rec = { id: `sret_${Date.now()}`, type: 'SALES', returnNumber: retNumber, customerId: bodyData.customerId, items, total: totalAmount, refundMethod, reason: bodyData.reason, date: dateStr, currency };
+          salesReturns.unshift(rec);
+          setLocalItem('erp_sales_returns_v1', salesReturns, companyId);
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('erp-invoices-updated'));
+            window.dispatchEvent(new Event('erp-inventory-updated'));
+            window.dispatchEvent(new Event('erp-data-updated'));
+          }
+          return { ok: true, success: true, status: 201, data: rec, message: 'تم تسجيل مردودات المبيعات بنجاح' };
+        }
+      }
+
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: { salesReturns, purchaseReturns, items: [...salesReturns, ...purchaseReturns] },
+      };
+    }
+
+    // 9C-9. Accounting Periods & Month-End 12-Step Checklist
+    if (cleanUrl.endsWith('/business/periods')) {
+      const now = new Date();
+      const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const defaultPeriods = [
+        {
+          id: `P-${ym}`,
+          name: `فترة ${now.toLocaleDateString('ar-YE', { month: 'long', year: 'numeric' })}`,
+          status: 'OPEN',
+          start_date: `${ym}-01`,
+          end_date: `${ym}-${String(lastDay).padStart(2, '0')}`,
+          is_closed: false,
+        },
+      ];
+      let periods = getLocalItem<any[]>('erp_periods_v1', [], companyId);
+      if (!Array.isArray(periods) || periods.length === 0) {
+        periods = defaultPeriods;
+        setLocalItem('erp_periods_v1', periods, companyId);
+      }
+
+      if (method === 'POST') {
+        if (bodyData.periodId && (bodyData.action === 'CLOSE' || bodyData.action === 'OPEN' || bodyData.status)) {
+          const targetIdx = periods.findIndex((p) => p.id === bodyData.periodId);
+          if (targetIdx !== -1) {
+            const nextStatus = bodyData.status || (bodyData.action === 'CLOSE' ? 'CLOSED' : 'OPEN');
+            periods[targetIdx].status = nextStatus;
+            periods[targetIdx].is_closed = nextStatus === 'CLOSED';
+            setLocalItem('erp_periods_v1', periods, companyId);
+            return { ok: true, success: true, status: 200, data: periods[targetIdx], message: 'تم تحديث حالة الفترة المحاسبية' };
+          }
+        }
+        const newPeriod = {
+          id: bodyData.id || `P-${Date.now()}`,
+          name: bodyData.name || `فترة ${ym}`,
+          status: 'OPEN',
+          start_date: bodyData.start_date || bodyData.startDate || `${ym}-01`,
+          end_date: bodyData.end_date || bodyData.endDate || `${ym}-${String(lastDay).padStart(2, '0')}`,
+          is_closed: false,
+        };
+        periods.unshift(newPeriod);
+        setLocalItem('erp_periods_v1', periods, companyId);
+        return { ok: true, success: true, status: 201, data: newPeriod, message: 'تم إنشاء الفترة المحاسبية بنجاح' };
+      }
+
+      return { ok: true, success: true, status: 200, data: periods };
+    }
+
+    if (cleanUrl.includes('/business/month-end-checklist/')) {
+      const parts = cleanUrl.split('/');
+      const idx = parts.indexOf('month-end-checklist');
+      const periodId = parts[idx + 1] || 'P-CURRENT';
+
+      const defaultChecklistItems = [
+        { id: 1, title: 'مطابقة الصناديق النقدية والخزائن', completed: false },
+        { id: 2, title: 'مطابقة كشوف الحسابات البنكية', completed: false },
+        { id: 3, title: 'جرد المخزون الفعلي وتسوية الفروقات', completed: false },
+        { id: 4, title: 'مطابقة أرصدة العملاء والذمم المدينة', completed: false },
+        { id: 5, title: 'مطابقة أرصدة الموردين والذمم الدائنة', completed: false },
+        { id: 6, title: 'ترحيل قيود الرواتب والأجور', completed: false },
+        { id: 7, title: 'إثبات مخصص إهلاك الأصول الثابتة', completed: false },
+        { id: 8, title: 'تسوية المصروفات والإيرادات المستحقة والمدفوعة مقدماً', completed: false },
+        { id: 9, title: 'مراجعة ميزان المراجعة بالعملات المحلية والأجنبية', completed: false },
+        { id: 10, title: 'فحص موازين القيد المزدوج: المدين = الدائن', completed: true },
+        { id: 11, title: 'أخذ نسخة احتياطية مشفرة قبل الإقفال', completed: false },
+        { id: 12, title: 'اعتماد وإغلاق الفترة المحاسبية رسمياً', completed: false },
+      ];
+
+      const checklistsMap = getLocalItem<Record<string, any>>('erp_month_end_checklists_v1', {}, companyId) || {};
+      if (!checklistsMap[periodId]) {
+        const done = defaultChecklistItems.filter((it) => it.completed).length;
+        checklistsMap[periodId] = {
+          period_id: periodId,
+          completion_percentage: Math.round((done / defaultChecklistItems.length) * 100),
+          checklist_items: defaultChecklistItems,
+        };
+        setLocalItem('erp_month_end_checklists_v1', checklistsMap, companyId);
+      }
+
+      if (method === 'POST' && cleanUrl.endsWith('/item')) {
+        const items: any[] = checklistsMap[periodId].checklist_items || defaultChecklistItems;
+        const updated = items.map((it) =>
+          String(it.id) === String(bodyData.itemId) ? { ...it, completed: Boolean(bodyData.completed) } : it
+        );
+        const doneCount = updated.filter((it) => it.completed).length;
+        checklistsMap[periodId] = {
+          period_id: periodId,
+          checklist_items: updated,
+          completion_percentage: Math.round((doneCount / updated.length) * 100),
+        };
+        setLocalItem('erp_month_end_checklists_v1', checklistsMap, companyId);
+        return { ok: true, success: true, status: 200, data: checklistsMap[periodId] };
+      }
+
+      return { ok: true, success: true, status: 200, data: checklistsMap[periodId] };
+    }
+
+    // 9C-10. Business Documents Vault
+    if (cleanUrl.includes('/business/documents')) {
+      const docs = getLocalItem<any[]>('erp_business_documents_v1', [], companyId);
+      if (method === 'POST') {
+        const newDoc = {
+          id: `doc_${Date.now()}`,
+          company_id: companyId,
+          title: bodyData.title || bodyData.fileName || 'مستند رسمي',
+          category: bodyData.category || 'GENERAL',
+          entity_type: bodyData.entityType || bodyData.entity_type || 'GENERAL',
+          entity_id: bodyData.entityId || bodyData.entity_id || null,
+          reference_no: bodyData.referenceNo || bodyData.reference_no || bodyData.entityId || '',
+          file_name: bodyData.fileName || bodyData.file_name || 'document.pdf',
+          file_size: Number(bodyData.fileSize || bodyData.file_size || 0),
+          mime_type: bodyData.mimeType || bodyData.mime_type || 'application/pdf',
+          data_url: bodyData.dataUrl || bodyData.data_url || '',
+          notes: bodyData.notes || '',
+          uploaded_at: new Date().toISOString(),
+        };
+        docs.unshift(newDoc);
+        setLocalItem('erp_business_documents_v1', docs, companyId);
+        return { ok: true, success: true, status: 201, data: newDoc, message: 'تم حفظ المستند بنجاح' };
+      }
+      if (method === 'DELETE') {
+        const docId = cleanUrl.split('/').pop();
+        const filtered = docs.filter((d) => String(d.id) !== String(docId));
+        setLocalItem('erp_business_documents_v1', filtered, companyId);
+        return { ok: true, success: true, status: 200, data: { deleted: true, id: docId } };
+      }
+      return { ok: true, success: true, status: 200, data: docs };
+    }
+
+    // 9C-11. Global Multi-Entity Search
+    if (cleanUrl.endsWith('/business/search')) {
+      const qStr = url.includes('?') ? url.split('?')[1] : '';
+      const params = new URLSearchParams(qStr);
+      const q = (params.get('q') || '').trim().toLowerCase();
+
+      const match = (obj: any, fields: string[]) =>
+        !q || fields.some((f) => String(obj?.[f] || '').toLowerCase().includes(q));
+
+      const customers = getLocalItem<any[]>('erp_customers_v1', [], companyId)
+        .filter((c) => match(c, ['name', 'phone', 'email', 'code', 'address']))
+        .map((c) => ({ ...c, current_balance: Number(c.current_balance ?? c.balance ?? 0), currency: c.currency || currency }));
+      const suppliers = getLocalItem<any[]>('erp_suppliers_v1', [], companyId)
+        .filter((s) => match(s, ['name', 'phone', 'email', 'category', 'address']))
+        .map((s) => ({ ...s, current_balance: Number(s.current_balance ?? s.balance ?? 0), currency: s.currency || currency }));
+      const products = getLocalItem<any[]>('erp_products_v1', [], companyId)
+        .filter((p) => match(p, ['name', 'sku', 'barcode', 'category']))
+        .map((p) => ({
+          ...p,
+          current_stock: Number(p.current_stock ?? p.stock ?? p.qty ?? 0),
+          selling_price: Number(p.selling_price ?? p.sale_price ?? p.price ?? 0),
+          currency: p.currency || currency,
+        }));
+      const invoices = getLocalItem<any[]>('erp_invoices_v1', [], companyId).filter((i) =>
+        match(i, ['invoice_number', 'invoiceNumber', 'customer_name', 'customerName', 'notes'])
+      );
+      const purchaseInvoices = getLocalItem<any[]>('erp_purchase_invoices_v1', [], companyId).filter((p) =>
+        match(p, ['invoice_number', 'invoiceNumber', 'supplier_name', 'supplierName', 'notes'])
+      );
+      const payments = getLocalItem<any[]>('erp_payments_v1', [], companyId).filter((p) =>
+        match(p, ['voucher_number', 'payment_number', 'customer_name', 'supplier_name', 'party_name', 'description'])
+      );
+
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: {
+          query: q,
+          currency,
+          customers,
+          suppliers,
+          products,
+          invoices,
+          purchaseInvoices,
+          payments,
+          totalHits: customers.length + suppliers.length + products.length + invoices.length + purchaseInvoices.length + payments.length,
+        },
+      };
+    }
+
+    // 9C-12. Data Mode
+    if (cleanUrl.endsWith('/business/data-mode')) {
+      if (method === 'POST') {
+        const nextMode = String(bodyData.mode || bodyData.dataMode || 'PRODUCTION').toUpperCase();
+        return { ok: true, success: true, status: 200, data: { mode: nextMode, dataMode: nextMode, isLive: true } };
+      }
+      const modeVal = isClean ? 'PRODUCTION' : 'DEMO';
+      return { ok: true, success: true, status: 200, data: { mode: modeVal, dataMode: modeVal, isLive: true } };
+    }
   }
 
   // 10. Health & System Probes

@@ -291,7 +291,7 @@ export function App() {
       case 'financial_intelligence':
         return <FinancialReportingHub />;
       case 'real_business':
-        return <RealBusinessOperationsTab />;
+        return <RealBusinessOperationsTab onNavigate={handleNavigate} />;
       case 'customer_success':
         return <CustomerSuccessTab />;
       case 'reports':

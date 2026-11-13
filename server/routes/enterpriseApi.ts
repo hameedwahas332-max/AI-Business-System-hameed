@@ -3369,182 +3369,1217 @@ enterpriseRouter.post(['/ocr/documents/:id/confirm', '/ocr/documents/:id/commit'
 });
 
 // ==========================================
-// 17. Real Business Operations
+// 17. Real Business Operations (Live Accounting & Store Integration)
 // ==========================================
+const inMemoryBusinessImportJobs = new Map<string, any>();
+
+function resolveTenantBusinessCurrency(companyId: string, store?: any): string {
+  if (mockCurrentCompany?.id === companyId && mockCurrentCompany?.currency) {
+    return String(mockCurrentCompany.currency).toUpperCase();
+  }
+  const firstCustCur = store?.customers?.[0]?.currency;
+  const firstInvCur = store?.invoices?.[0]?.currency;
+  return String(firstCustCur || firstInvCur || 'YER').toUpperCase();
+}
+
+function computeServerBusinessReconciliations(companyId: string) {
+  const store = getTenantCollections(companyId);
+  const accounts = getTenantAccounts(companyId);
+  const journalEntries = getTenantJournalEntries(companyId);
+  const accMap = new Map(accounts.map((a) => [a.code, a]));
+
+  const discrepancies: any[] = [];
+
+  const custTotal = roundMoney(
+    store.customers.reduce((s, c: any) => s + Number(c.current_balance ?? c.balance ?? 0), 0)
+  );
+  const glAr = roundMoney(accMap.get('1103')?.balance || 0);
+  if (Math.abs(custTotal - glAr) > 0.01 && (journalEntries.length > 0 || custTotal > 0)) {
+    discrepancies.push({
+      id: 'rec-ar-1103',
+      entity_type: 'ذمم العملاء vs حساب العملاء (1103)',
+      expected_value: custTotal,
+      actual_value: glAr,
+      difference: roundMoney(custTotal - glAr),
+      severity: Math.abs(custTotal - glAr) > 1000 ? 'CRITICAL' : 'WARNING',
+      details: { message: `إجمالي أرصدة العملاء (${custTotal}) لا يطابق رصيد الأستاذ (${glAr})` },
+      status: 'OPEN',
+    });
+  }
+
+  const suppTotal = roundMoney(
+    store.suppliers.reduce((s, sup: any) => s + Number(sup.current_balance ?? sup.balance ?? 0), 0)
+  );
+  const glAp = roundMoney(accMap.get('2101')?.balance || 0);
+  if (Math.abs(suppTotal - glAp) > 0.01 && (journalEntries.length > 0 || suppTotal > 0)) {
+    discrepancies.push({
+      id: 'rec-ap-2101',
+      entity_type: 'ذمم الموردين vs حساب الموردين (2101)',
+      expected_value: suppTotal,
+      actual_value: glAp,
+      difference: roundMoney(suppTotal - glAp),
+      severity: Math.abs(suppTotal - glAp) > 1000 ? 'CRITICAL' : 'WARNING',
+      details: { message: `إجمالي أرصدة الموردين (${suppTotal}) لا يطابق رصيد الأستاذ (${glAp})` },
+      status: 'OPEN',
+    });
+  }
+
+  const invTotal = roundMoney(
+    store.products.reduce(
+      (s, p: any) =>
+        s +
+        Math.max(0, Number(p.current_stock ?? p.stock ?? p.qty ?? 0)) *
+          Math.max(0, Number(p.cost_price ?? p.purchase_price ?? 0)),
+      0
+    )
+  );
+  const glInv = roundMoney(accMap.get('1104')?.balance || 0);
+  if (Math.abs(invTotal - glInv) > 0.01 && (journalEntries.length > 0 || invTotal > 0)) {
+    discrepancies.push({
+      id: 'rec-inv-1104',
+      entity_type: 'تقييم المخزون vs حساب المخزون (1104)',
+      expected_value: invTotal,
+      actual_value: glInv,
+      difference: roundMoney(invTotal - glInv),
+      severity: Math.abs(invTotal - glInv) > 1000 ? 'CRITICAL' : 'WARNING',
+      details: { message: `تقييم المخزون الفعلي (${invTotal}) لا يطابق رصيد الأستاذ (${glInv})` },
+      status: 'OPEN',
+    });
+  }
+
+  const totalDebit = roundMoney(journalEntries.reduce((s, j) => s + Number(j.total_debit || 0), 0));
+  const totalCredit = roundMoney(journalEntries.reduce((s, j) => s + Number(j.total_credit || 0), 0));
+  if (Math.abs(totalDebit - totalCredit) > 0.01) {
+    discrepancies.push({
+      id: 'rec-gl-balance',
+      entity_type: 'توازن دفتر الأستاذ العام (المدين vs الدائن)',
+      expected_value: totalDebit,
+      actual_value: totalCredit,
+      difference: roundMoney(totalDebit - totalCredit),
+      severity: 'CRITICAL',
+      details: { message: 'يوجد قيد غير متوازن في دفتر الأستاذ العام' },
+      status: 'OPEN',
+    });
+  }
+
+  return {
+    discrepancies,
+    totalChecks: 4 + store.customers.length + store.suppliers.length + store.products.length + journalEntries.length,
+  };
+}
+
 enterpriseRouter.get('/business/dashboard', (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
-  const isClean = isTenantCleanProductionMode(companyId);
+  const store = getTenantCollections(companyId);
+  const metrics = computeUnifiedFinancialMetrics(companyId);
+  const currency = resolveTenantBusinessCurrency(companyId, store);
+  const todayStr = new Date().toISOString().split('T')[0];
+  const isToday = (d?: string) => String(d || '').slice(0, 10) === todayStr;
 
-  const cashIn = mockPaymentsList
-    .filter((p: any) => p.type === 'CUSTOMER_PAYMENT' || p.type === 'RECEIPT' || p.payment_type === 'IN' || p.voucher_type === 'RECEIPT')
-    .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-  const cashOut = mockPaymentsList
-    .filter((p: any) => p.type === 'SUPPLIER_PAYMENT' || p.type === 'EXPENSE' || p.payment_type === 'OUT' || p.voucher_type === 'PAYMENT')
-    .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-  
-  let totalCashAndBank = Math.max(0, cashIn - cashOut);
-  let monthlyRevenue = mockInvoicesList.reduce((sum, inv) => sum + Number(inv.total || inv.amount || 0), 0);
-  let monthlyExpenses = mockExpensesList.reduce((sum, exp: any) => sum + Number(exp.amount || 0), 0) || cashOut;
+  const todaySales = roundMoney(
+    store.invoices
+      .filter((i: any) => (i.status || '').toUpperCase() !== 'CANCELLED' && isToday(i.date || i.issue_date || i.created_at))
+      .reduce((sum, inv: any) => sum + Number(inv.total ?? inv.grandTotal ?? inv.amount ?? 0), 0)
+  );
 
-  if (isClean && mockInvoicesList.length === 0 && mockPaymentsList.length === 0) {
-    totalCashAndBank = 0;
-    monthlyRevenue = 0;
-    monthlyExpenses = 0;
-  }
+  const todayPurchases = roundMoney(
+    store.purchaseInvoices
+      .filter((p: any) => (p.status || '').toUpperCase() !== 'CANCELLED' && isToday(p.date || p.invoiceDate || p.created_at))
+      .reduce((sum, pur: any) => sum + Number(pur.grandTotal ?? pur.total ?? pur.amount ?? 0), 0)
+  );
+
+  const todayCollections = roundMoney(
+    store.payments
+      .filter(
+        (p: any) =>
+          p.status !== 'CANCELLED' &&
+          (p.type === 'CUSTOMER_PAYMENT' || p.type === 'RECEIPT' || p.payment_type === 'IN' || p.voucher_type === 'RECEIPT') &&
+          isToday(p.payment_date || p.date || p.created_at)
+      )
+      .reduce((sum, p: any) => sum + Number(p.amount || 0), 0)
+  );
+
+  const todayPayments = roundMoney(
+    store.payments
+      .filter(
+        (p: any) =>
+          p.status !== 'CANCELLED' &&
+          (p.type === 'SUPPLIER_PAYMENT' || p.payment_type === 'OUT' || p.voucher_type === 'PAYMENT') &&
+          p.type !== 'EXPENSE' &&
+          p.type !== 'EXPENSE_PAYMENT' &&
+          isToday(p.payment_date || p.date || p.created_at)
+      )
+      .reduce((sum, p: any) => sum + Number(p.amount || 0), 0)
+  );
+
+  const todayExpenses = roundMoney(
+    store.expenses
+      .filter((e: any) => isToday(e.date || e.expense_date || e.created_at))
+      .reduce((sum, e: any) => sum + Number(e.amount || 0), 0)
+  );
+
+  const lowStockCount = store.products.filter(
+    (p: any) => Number(p.current_stock ?? p.qty ?? p.stock ?? 0) <= Number(p.min_stock ?? p.reorder_point ?? 5)
+  ).length;
+
+  const { discrepancies } = computeServerBusinessReconciliations(companyId);
 
   res.json({
     success: true,
     data: {
-      totalCashAndBank,
-      monthlyRevenue,
-      monthlyExpenses,
-      openReconciliationsCount: 0,
+      todaySales,
+      todayCollections,
+      todayPurchases,
+      todayPayments,
+      todayExpenses,
+      cashBalance: roundMoney(metrics.cashBalance || 0),
+      bankBalance: roundMoney(metrics.bankBalance || 0),
+      walletBalance: roundMoney(metrics.walletBalance || 0),
+      cashAndBankBalance: roundMoney(metrics.cashAndBankBalance || 0),
+      totalCashAndBank: roundMoney(metrics.cashAndBankBalance || 0),
+      receivables: roundMoney(metrics.accountsReceivable || 0),
+      payables: roundMoney(metrics.accountsPayable || 0),
+      inventoryValuation: roundMoney(metrics.inventoryValuation || 0),
+      netCashFlow: roundMoney(todayCollections - todayPayments - todayExpenses),
+      lowStockCount,
+      openReconciliationIssues: discrepancies.length,
+      openReconciliationsCount: discrepancies.length,
+      monthlyRevenue: roundMoney(metrics.netRevenue || 0),
+      monthlyExpenses: roundMoney(metrics.operatingExpenses || 0),
       periodStatus: 'OPEN',
       activePeriodName: 'الفترة التشغيلية الجارية',
+      currency,
+      counts: {
+        customers: store.customers.length,
+        suppliers: store.suppliers.length,
+        products: store.products.length,
+        invoices: store.invoices.length,
+        vouchers: store.payments.length,
+      },
     },
   });
 });
 
-enterpriseRouter.get('/business/bank-accounts', (req: Request, res: Response) => {
+enterpriseRouter.get('/business/bank-accounts', async (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
-  const isClean = isTenantCleanProductionMode(companyId);
+  const store = getTenantCollections(companyId);
   const metrics = computeUnifiedFinancialMetrics(companyId);
+  const currency = resolveTenantBusinessCurrency(companyId, store);
   const bankBalance = roundMoney(metrics.bankBalance || 0);
+  const walletBalance = roundMoney(metrics.walletBalance || 0);
 
-  if (isClean && bankBalance === 0 && mockPaymentsList.length === 0) {
-    return res.json({ success: true, data: [] });
+  const customState = await getModuleState(companyId, 'business_bank_accounts', []);
+  const customBanks: any[] = Array.isArray(customState.data) ? customState.data : [];
+
+  const accountsList: any[] = [
+    {
+      id: 'bank-1102',
+      code: '1102',
+      account_name: 'الحساب البنكي التجاري والتحصيلات',
+      name: 'الحساب البنكي التجاري والتحصيلات',
+      bank_name: 'الحساب البنكي الرئيسي',
+      iban: '',
+      current_balance: bankBalance,
+      balance: bankBalance,
+      currency,
+    },
+  ];
+  if (walletBalance > 0) {
+    accountsList.push({
+      id: 'wallet-1107',
+      code: '1107',
+      account_name: 'المحافظ الإلكترونية',
+      name: 'المحافظ الإلكترونية',
+      bank_name: 'محفظة إلكترونية',
+      iban: '',
+      current_balance: walletBalance,
+      balance: walletBalance,
+      currency,
+    });
+  }
+  for (const b of customBanks) {
+    accountsList.push({
+      ...b,
+      account_name: b.account_name || b.name,
+      name: b.name || b.account_name,
+      current_balance: Number(b.current_balance ?? b.balance ?? 0),
+      balance: Number(b.balance ?? b.current_balance ?? 0),
+      currency: b.currency || currency,
+    });
   }
 
-  res.json({
-    success: true,
-    data: [
-      { id: 'bank-1', name: 'الحساب البنكي التجاري والتحصيلات', bank_name: 'بنك اليمن الدولي', iban: 'YE0380000000608010167519', balance: bankBalance, currency: 'YER' },
-    ],
-  });
+  res.json({ success: true, data: accountsList });
 });
 
-enterpriseRouter.post('/business/bank-accounts', (req: Request, res: Response) => {
-  res.status(201).json({ success: true, data: { id: `bank-${Date.now()}`, ...req.body }, message: 'تم إضافة الحساب البنكي' });
-});
-
-enterpriseRouter.get('/business/cash-accounts', (req: Request, res: Response) => {
+enterpriseRouter.post('/business/bank-accounts', async (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
-  const isClean = isTenantCleanProductionMode(companyId);
+  const store = getTenantCollections(companyId);
+  const currency = resolveTenantBusinessCurrency(companyId, store);
+  const state = await getModuleState(companyId, 'business_bank_accounts', []);
+  const list: any[] = Array.isArray(state.data) ? [...state.data] : [];
+  const initBal = roundMoney(req.body.openingBalance ?? req.body.current_balance ?? req.body.balance ?? 0);
+  const created = {
+    id: `bank-${Date.now()}`,
+    code: req.body.code || `1102-${list.length + 2}`,
+    account_name: req.body.account_name || req.body.name || 'حساب بنكي جديد',
+    name: req.body.account_name || req.body.name || 'حساب بنكي جديد',
+    bank_name: req.body.bank_name || 'بنك تجاري',
+    iban: req.body.iban || '',
+    current_balance: initBal,
+    balance: initBal,
+    currency: req.body.currency || currency,
+    created_at: new Date().toISOString(),
+  };
+  list.push(created);
+  await saveModuleState(companyId, 'business_bank_accounts', list);
+  res.status(201).json({ success: true, data: created, message: 'تم إضافة الحساب البنكي بنجاح' });
+});
+
+enterpriseRouter.get('/business/cash-accounts', async (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const metrics = computeUnifiedFinancialMetrics(companyId);
+  const currency = resolveTenantBusinessCurrency(companyId, store);
   const cashOnHand = roundMoney(metrics.cashBalance || 0);
 
-  if (isClean && cashOnHand === 0 && mockPaymentsList.length === 0) {
-    return res.json({ success: true, data: [] });
+  const customState = await getModuleState(companyId, 'business_cash_accounts', []);
+  const customCash: any[] = Array.isArray(customState.data) ? customState.data : [];
+
+  const list = [
+    {
+      id: 'cash-1101',
+      code: '1101',
+      name: 'صندوق النقدية والخزينة المركزية',
+      account_name: 'صندوق النقدية والخزينة المركزية',
+      custodian: 'أمين الصندوق',
+      current_balance: cashOnHand,
+      balance: cashOnHand,
+      currency,
+    },
+    ...customCash.map((c: any) => ({
+      ...c,
+      account_name: c.account_name || c.name,
+      current_balance: Number(c.current_balance ?? c.balance ?? 0),
+      balance: Number(c.balance ?? c.current_balance ?? 0),
+      currency: c.currency || currency,
+    })),
+  ];
+
+  res.json({ success: true, data: list });
+});
+
+enterpriseRouter.post('/business/cash-accounts', async (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const currency = resolveTenantBusinessCurrency(companyId, store);
+  const state = await getModuleState(companyId, 'business_cash_accounts', []);
+  const list: any[] = Array.isArray(state.data) ? [...state.data] : [];
+  const initBal = roundMoney(req.body.openingBalance ?? req.body.current_balance ?? req.body.balance ?? 0);
+  const created = {
+    id: `cash-${Date.now()}`,
+    code: req.body.code || `1101-${list.length + 2}`,
+    name: req.body.name || req.body.account_name || 'صندوق نقدي إضافي',
+    account_name: req.body.name || req.body.account_name || 'صندوق نقدي إضافي',
+    custodian: req.body.custodian || 'أمين الصندوق',
+    current_balance: initBal,
+    balance: initBal,
+    currency: req.body.currency || currency,
+    created_at: new Date().toISOString(),
+  };
+  list.push(created);
+  await saveModuleState(companyId, 'business_cash_accounts', list);
+  res.status(201).json({ success: true, data: created, message: 'تم إضافة الصندوق النقدي بنجاح' });
+});
+
+enterpriseRouter.get('/business/periods', async (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const now = new Date();
+  const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const defaultPeriods = [
+    {
+      id: `P-${ym}`,
+      name: `فترة ${now.toLocaleDateString('ar-YE', { month: 'long', year: 'numeric' })}`,
+      start_date: `${ym}-01`,
+      end_date: `${ym}-${String(lastDay).padStart(2, '0')}`,
+      status: 'OPEN',
+      is_closed: false,
+    },
+  ];
+  const state = await getModuleState(companyId, 'business_periods', defaultPeriods);
+  const periods = Array.isArray(state.data) && state.data.length > 0 ? state.data : defaultPeriods;
+  res.json({ success: true, data: periods });
+});
+
+enterpriseRouter.post('/business/periods', async (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const state = await getModuleState(companyId, 'business_periods', []);
+  const periods: any[] = Array.isArray(state.data) ? [...state.data] : [];
+
+  if (req.body.periodId && (req.body.action === 'CLOSE' || req.body.action === 'OPEN' || req.body.status)) {
+    const idx = periods.findIndex((p) => p.id === req.body.periodId);
+    if (idx !== -1) {
+      const nextStatus = req.body.status || (req.body.action === 'CLOSE' ? 'CLOSED' : 'OPEN');
+      periods[idx].status = nextStatus;
+      periods[idx].is_closed = nextStatus === 'CLOSED';
+      await saveModuleState(companyId, 'business_periods', periods);
+      return res.json({ success: true, data: periods[idx], message: 'تم تحديث حالة الفترة المحاسبية' });
+    }
   }
 
-  res.json({
-    success: true,
-    data: [
-      { id: 'cash-1', name: 'صندوق النقدية والخزينة المركزية', custodian: 'أمين الصندوق', balance: cashOnHand, currency: 'YER' },
-    ],
+  const now = new Date();
+  const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const newPeriod = {
+    id: req.body.id || `P-${Date.now()}`,
+    name: req.body.name || `فترة ${ym}`,
+    start_date: req.body.start_date || req.body.startDate || `${ym}-01`,
+    end_date: req.body.end_date || req.body.endDate || `${ym}-30`,
+    status: 'OPEN',
+    is_closed: false,
+  };
+  periods.unshift(newPeriod);
+  await saveModuleState(companyId, 'business_periods', periods);
+  res.status(201).json({ success: true, data: newPeriod, message: 'تم إنشاء الفترة المحاسبية بنجاح' });
+});
+
+enterpriseRouter.get('/business/opening-balances', async (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const state = await getModuleState(companyId, 'business_opening_balances', []);
+  const list = Array.isArray(state.data) ? state.data : [];
+  res.json({ success: true, data: list });
+});
+
+enterpriseRouter.post('/business/opening-balances', async (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const currency = resolveTenantBusinessCurrency(companyId, store);
+
+  const balanceType = String(req.body.balanceType || req.body.balance_type || 'CUSTOMER').toUpperCase();
+  const entityId = req.body.entityId || req.body.entity_id || '';
+  const amount = roundMoney(req.body.amount || 0);
+  const entrySide = String(req.body.entrySide || req.body.entry_side || (balanceType === 'SUPPLIER' ? 'CREDIT' : 'DEBIT')).toUpperCase();
+  const accountingDate = req.body.accountingDate || req.body.accounting_date || new Date().toISOString().split('T')[0];
+  const referenceNo = req.body.referenceNo || req.body.reference_no || `OB-${Date.now().toString().slice(-6)}`;
+  const notes = req.body.notes || `رصيد افتتاحي (${balanceType})`;
+
+  if (amount <= 0) {
+    return res.status(400).json({ success: false, message: 'المبلغ يجب أن يكون أكبر من الصفر' });
+  }
+
+  let targetAccCode = '1103';
+  let targetAccName = 'العملاء والمدينون التجاريون';
+  let entityName = '';
+
+  if (balanceType === 'CUSTOMER') {
+    targetAccCode = '1103';
+    targetAccName = 'العملاء والمدينون التجاريون';
+    const cust: any = store.customers.find((c: any) => String(c.id) === String(entityId));
+    if (cust) {
+      const delta = entrySide === 'DEBIT' ? amount : -amount;
+      cust.balance = roundMoney(Number(cust.current_balance ?? cust.balance ?? 0) + delta);
+      cust.current_balance = cust.balance;
+      cust.opening_balance = roundMoney(Number(cust.opening_balance || 0) + delta);
+      entityName = cust.name;
+    }
+  } else if (balanceType === 'SUPPLIER') {
+    targetAccCode = '2101';
+    targetAccName = 'الموردون والدائنون التجاريون';
+    const supp: any = store.suppliers.find((s: any) => String(s.id) === String(entityId));
+    if (supp) {
+      const delta = entrySide === 'CREDIT' ? amount : -amount;
+      supp.balance = roundMoney(Number(supp.current_balance ?? supp.balance ?? 0) + delta);
+      supp.current_balance = supp.balance;
+      supp.opening_balance = roundMoney(Number(supp.opening_balance || 0) + delta);
+      entityName = supp.name;
+    }
+  } else if (balanceType === 'CASH') {
+    targetAccCode = '1101';
+    targetAccName = 'الصندوق / النقدية';
+    entityName = 'الصندوق النقدي الرئيسي';
+  } else if (balanceType === 'BANK') {
+    targetAccCode = String(entityId).includes('wallet') ? '1107' : '1102';
+    targetAccName = targetAccCode === '1107' ? 'المحافظ الإلكترونية' : 'البنك / الحسابات البنكية';
+    entityName = targetAccCode === '1107' ? 'المحافظ الإلكترونية' : 'الحساب البنكي الرئيسي';
+  } else if (balanceType === 'WALLET') {
+    targetAccCode = '1107';
+    targetAccName = 'المحافظ الإلكترونية والشبكات';
+    entityName = 'المحافظ الإلكترونية والشبكات';
+  } else if (balanceType === 'INVENTORY') {
+    targetAccCode = '1104';
+    targetAccName = 'مخزون البضائع';
+    const prod: any = store.products.find((p: any) => String(p.id) === String(entityId));
+    if (prod) {
+      entityName = prod.name;
+      const unitCost = Number(prod.cost_price ?? prod.purchase_price ?? 0);
+      if (unitCost > 0) {
+        const addedQty = roundMoney(amount / unitCost);
+        const nextStock = roundMoney(Number(prod.current_stock ?? prod.qty ?? 0) + addedQty);
+        prod.current_stock = nextStock;
+        prod.qty = nextStock;
+        prod.stock = nextStock;
+      } else {
+        const currQty = Number(prod.current_stock ?? prod.qty ?? 0);
+        if (currQty <= 0) {
+          prod.current_stock = 1;
+          prod.qty = 1;
+          prod.stock = 1;
+          prod.cost_price = amount;
+          prod.purchase_price = amount;
+        } else {
+          prod.cost_price = roundMoney((currQty * unitCost + amount) / currQty);
+          prod.purchase_price = prod.cost_price;
+        }
+      }
+      store.movements.unshift({
+        id: `mov-ob-${Date.now()}`,
+        company_id: companyId,
+        product_id: prod.id,
+        product_name: prod.name,
+        type: 'IN',
+        quantity: Number(prod.current_stock ?? 1),
+        remaining_stock: Number(prod.current_stock ?? 1),
+        reference_type: 'OPENING_BALANCE',
+        reference_id: referenceNo,
+        notes: `بضاعة أول المدة (${prod.name}) بقيمة ${amount}`,
+        date: accountingDate,
+      } as any);
+    }
+  }
+
+  const lines =
+    entrySide === 'DEBIT'
+      ? [
+          { account_code: targetAccCode, account_name: targetAccName, debit: amount, credit: 0, description: notes },
+          { account_code: '3101', account_name: 'رأس المال المدفوع', debit: 0, credit: amount, description: `مقابل رصيد افتتاحي ${balanceType}` },
+        ]
+      : [
+          { account_code: '3101', account_name: 'رأس المال المدفوع', debit: amount, credit: 0, description: `مقابل رصيد افتتاحي ${balanceType}` },
+          { account_code: targetAccCode, account_name: targetAccName, debit: 0, credit: amount, description: notes },
+        ];
+
+  const journal = postDoubleEntryJournal({
+    companyId,
+    reference_type: 'OPENING_BALANCE',
+    reference_id: referenceNo,
+    description: `قيد رصيد افتتاحي (${balanceType})${entityName ? ` - ${entityName}` : ''}`,
+    date: accountingDate,
+    lines,
   });
+
+  const state = await getModuleState(companyId, 'business_opening_balances', []);
+  const list: any[] = Array.isArray(state.data) ? [...state.data] : [];
+  const newRecord = {
+    id: `ob-${Date.now()}`,
+    company_id: companyId,
+    balance_type: balanceType,
+    entity_type: req.body.entityType || balanceType,
+    entity_id: entityId || null,
+    entity_name: entityName || targetAccName,
+    amount,
+    entry_side: entrySide,
+    accounting_date: accountingDate,
+    reference_no: referenceNo,
+    notes,
+    journal_entry_id: journal.id,
+    status: 'POSTED',
+    currency,
+    created_at: new Date().toISOString(),
+  };
+  list.unshift(newRecord);
+  await saveModuleState(companyId, 'business_opening_balances', list);
+  setTenantCleanProductionMode(companyId, false);
+  persistAllToDisk();
+
+  res.status(201).json({ success: true, data: newRecord, message: 'تم اعتماد وترحيل الرصيد الافتتاحي بنجاح' });
 });
 
-enterpriseRouter.post('/business/cash-accounts', (req: Request, res: Response) => {
-  res.status(201).json({ success: true, data: { id: `cash-${Date.now()}`, ...req.body }, message: 'تم إضافة الصندوق النقدي' });
-});
-
-enterpriseRouter.get('/business/periods', (_req: Request, res: Response) => {
-  res.json({
-    success: true,
-    data: [
-      { id: 'per-2026-10', name: 'أكتوبر 2026', startDate: '2026-10-01', endDate: '2026-10-31', status: 'ACTIVE', is_closed: false },
-      { id: 'per-2026-09', name: 'سبتمبر 2026', startDate: '2026-09-01', endDate: '2026-09-30', status: 'CLOSED', is_closed: true },
-    ],
-  });
-});
-
-enterpriseRouter.post('/business/periods', (req: Request, res: Response) => {
-  res.status(201).json({ success: true, data: req.body, message: 'تم إنشاء الفترة المحاسبية' });
-});
-
-enterpriseRouter.get('/business/opening-balances', (_req: Request, res: Response) => {
-  res.json({
-    success: true,
-    data: { totalAssets: 302600, totalLiabilities: 78900, totalEquity: 223700, isBalanced: true },
-  });
-});
-
-enterpriseRouter.post('/business/opening-balances', (req: Request, res: Response) => {
-  res.status(201).json({ success: true, message: 'تم اعتماد الأرصدة الافتتاحية' });
-});
-
-enterpriseRouter.get('/business/expenses', (_req: Request, res: Response) => {
-  res.json({
-    success: true,
-    data: [
-      { id: 'exp-1', category: 'رواتب وأجور', amount: 28000, date: '2026-10-01', notes: 'رواتب موظفي أكتوبر' },
-      { id: 'exp-2', category: 'إيجار مقرات', amount: 8500, date: '2026-10-01', notes: 'إيجار المعرض والمستودع' },
-    ],
-  });
+enterpriseRouter.get('/business/expenses', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  res.json({ success: true, data: store.expenses });
 });
 
 enterpriseRouter.post('/business/expenses', (req: Request, res: Response) => {
-  res.status(201).json({ success: true, data: { id: `exp-${Date.now()}`, ...req.body }, message: 'تم تسجيل المصروف' });
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const currency = resolveTenantBusinessCurrency(companyId, store);
+
+  const baseAmt = roundMoney(req.body.amount || 0);
+  const taxAmt = roundMoney(req.body.taxAmount || 0);
+  const totalAmt = roundMoney(baseAmt + taxAmt);
+  if (baseAmt <= 0) {
+    return res.status(400).json({ success: false, message: 'مبلغ المصروف يجب أن يكون أكبر من الصفر' });
+  }
+
+  try {
+    const result = postExpenseAtomic({
+      companyId,
+      category: req.body.category || 'مصاريف تشغيلية',
+      description: req.body.description || req.body.category || 'مصروف تشغيلي',
+      amount: totalAmt,
+      paymentMethod: req.body.paymentMethod || 'CASH',
+      date: req.body.expenseDate || req.body.date || new Date().toISOString().split('T')[0],
+      referenceNumber: req.body.reference || '',
+      notes: req.body.notes || '',
+      currency,
+    });
+    setTenantCleanProductionMode(companyId, false);
+    res.status(201).json({
+      success: true,
+      data: {
+        ...result.expense,
+        expenseNumber: result.voucherNumber,
+        baseAmount: baseAmt,
+        taxAmount: taxAmt,
+      },
+      message: 'تم تسجيل المصروف وترحيل القيد المحاسبي بنجاح',
+    });
+  } catch (err: any) {
+    res.status(err?.status || 400).json({ success: false, message: err?.message || 'فشل تسجيل المصروف' });
+  }
 });
 
-enterpriseRouter.get('/business/month-end-checklist/:periodId', (_req: Request, res: Response) => {
+enterpriseRouter.get('/business/returns', async (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const salesState = await getModuleState(companyId, 'business_sales_returns', []);
+  const purchaseState = await getModuleState(companyId, 'business_purchase_returns', []);
+  const salesReturns = Array.isArray(salesState.data) ? salesState.data : [];
+  const purchaseReturns = Array.isArray(purchaseState.data) ? purchaseState.data : [];
   res.json({
     success: true,
-    data: [
-      { id: 'chk-1', task: 'جرد الصندوق ومطابقة النقدية الفعلية مع الدفاتر', completed: true },
-      { id: 'chk-2', task: 'مطابقة كشوفات الحسابات البنكية واستخراج التسويات', completed: true },
-      { id: 'chk-3', task: 'مراجعة قيود إهلاك الأصول الثابتة الشهرية', completed: true },
-      { id: 'chk-4', task: 'مطابقة مبيعات نقاط البيع وإقرارات ضريبة القيمة المضافة', completed: true },
-    ],
+    data: { salesReturns, purchaseReturns, items: [...salesReturns, ...purchaseReturns] },
   });
 });
 
-enterpriseRouter.post('/business/month-end-checklist/:periodId/item', (req: Request, res: Response) => {
-  res.json({ success: true, message: 'تم تحديث بند الإقفال' });
+enterpriseRouter.post('/business/returns', async (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const currency = resolveTenantBusinessCurrency(companyId, store);
+  const retType = String(req.body.type || 'SALES').toUpperCase();
+  const items: any[] = Array.isArray(req.body.items) ? req.body.items : [];
+  const refundMethod = String(req.body.refundMethod || 'CREDIT_NOTE').toUpperCase();
+  const dateStr = new Date().toISOString().split('T')[0];
+
+  let computedTotal = 0;
+  for (const it of items) {
+    const qty = Math.max(0, Number(it.quantity || it.qty || 0));
+    const prod: any = store.products.find((p: any) => String(p.id) === String(it.productId || it.product_id || it.id));
+    const unitPrice = Number(it.priceOrCost || prod?.sale_price || prod?.cost_price || 0);
+    computedTotal = roundMoney(computedTotal + qty * unitPrice);
+  }
+  const totalAmount = roundMoney(req.body.totalAmount ?? req.body.total ?? computedTotal);
+
+  if (retType === 'PURCHASE') {
+    const retNum = `PRET-${Date.now().toString().slice(-6)}`;
+    for (const it of items) {
+      const qty = Math.max(0, Number(it.quantity || it.qty || 0));
+      const prod: any = store.products.find((p: any) => String(p.id) === String(it.productId || it.product_id || it.id));
+      if (prod && qty > 0) {
+        const nextStock = Math.max(0, Number(prod.current_stock ?? prod.qty ?? 0) - qty);
+        prod.current_stock = nextStock;
+        prod.qty = nextStock;
+        prod.stock = nextStock;
+        store.movements.unshift({
+          id: `mov-pret-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          company_id: companyId,
+          product_id: prod.id,
+          product_name: prod.name,
+          type: 'OUT',
+          quantity: qty,
+          remaining_stock: nextStock,
+          reference_type: 'PURCHASE_RETURN',
+          reference_id: retNum,
+          notes: req.body.reason || 'مردودات مشتريات',
+          date: dateStr,
+        } as any);
+      }
+    }
+
+    const isCashRefund = refundMethod === 'CASH' || refundMethod === 'BANK';
+    if (!isCashRefund && req.body.supplierId) {
+      const supp: any = store.suppliers.find((s: any) => String(s.id) === String(req.body.supplierId));
+      if (supp) {
+        supp.balance = roundMoney(Math.max(0, Number(supp.current_balance ?? supp.balance ?? 0) - totalAmount));
+        supp.current_balance = supp.balance;
+      }
+    }
+
+    if (totalAmount > 0) {
+      postDoubleEntryJournal({
+        companyId,
+        reference_type: 'PURCHASE_RETURN',
+        reference_id: retNum,
+        description: `مردودات مشتريات #${retNum}`,
+        date: dateStr,
+        lines: [
+          {
+            account_code: isCashRefund ? (refundMethod === 'BANK' ? '1102' : '1101') : '2101',
+            account_name: isCashRefund ? (refundMethod === 'BANK' ? 'البنك' : 'الصندوق') : 'الموردون والدائنون',
+            debit: totalAmount,
+            credit: 0,
+            description: `تسوية مردودات مشتريات #${retNum}`,
+          },
+          {
+            account_code: '1104',
+            account_name: 'مخزون البضائع',
+            debit: 0,
+            credit: totalAmount,
+            description: `خصم مخزون مردودات مشتريات #${retNum}`,
+          },
+        ],
+      });
+    }
+
+    const purchaseState = await getModuleState(companyId, 'business_purchase_returns', []);
+    const list: any[] = Array.isArray(purchaseState.data) ? [...purchaseState.data] : [];
+    const rec = { id: `pret-${Date.now()}`, type: 'PURCHASE', returnNumber: retNum, supplierId: req.body.supplierId, items, total: totalAmount, refundMethod, reason: req.body.reason, date: dateStr, currency };
+    list.unshift(rec);
+    await saveModuleState(companyId, 'business_purchase_returns', list);
+    persistAllToDisk();
+    return res.status(201).json({ success: true, data: rec, message: 'تم تسجيل مردودات المشتريات بنجاح' });
+  }
+
+  try {
+    const result = postSalesReturnAtomic({
+      companyId,
+      customerId: req.body.customerId,
+      refundMethod,
+      refundAmount: totalAmount,
+      items,
+      returnData: {
+        reason: req.body.reason || 'مردودات مبيعات',
+        total: totalAmount,
+        refundMethod,
+        date: dateStr,
+      },
+    });
+    const salesState = await getModuleState(companyId, 'business_sales_returns', []);
+    const list: any[] = Array.isArray(salesState.data) ? [...salesState.data] : [];
+    const rec = { id: `sret-${Date.now()}`, type: 'SALES', returnNumber: result.returnNumber, customerId: req.body.customerId, items, total: totalAmount, refundMethod, reason: req.body.reason, date: dateStr, currency };
+    list.unshift(rec);
+    await saveModuleState(companyId, 'business_sales_returns', list);
+    res.status(201).json({ success: true, data: rec, message: 'تم تسجيل مردودات المبيعات بنجاح' });
+  } catch (err: any) {
+    res.status(err?.status || 400).json({ success: false, message: err?.message || 'فشل تسجيل المرتجع' });
+  }
 });
 
-enterpriseRouter.get('/business/reconciliations', (_req: Request, res: Response) => {
-  res.json({ success: true, data: [] });
+enterpriseRouter.get('/business/month-end-checklist/:periodId', async (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const periodId = req.params.periodId || 'P-CURRENT';
+  const defaultItems = [
+    { id: 1, title: 'مطابقة الصناديق النقدية والخزائن', completed: false },
+    { id: 2, title: 'مطابقة كشوف الحسابات البنكية', completed: false },
+    { id: 3, title: 'جرد المخزون الفعلي وتسوية الفروقات', completed: false },
+    { id: 4, title: 'مطابقة أرصدة العملاء والذمم المدينة', completed: false },
+    { id: 5, title: 'مطابقة أرصدة الموردين والذمم الدائنة', completed: false },
+    { id: 6, title: 'ترحيل قيود الرواتب والأجور', completed: false },
+    { id: 7, title: 'إثبات مخصص إهلاك الأصول الثابتة', completed: false },
+    { id: 8, title: 'تسوية المصروفات والإيرادات المستحقة والمدفوعة مقدماً', completed: false },
+    { id: 9, title: 'مراجعة ميزان المراجعة بالعملات المحلية والأجنبية', completed: false },
+    { id: 10, title: 'فحص موازين القيد المزدوج: المدين = الدائن', completed: true },
+    { id: 11, title: 'أخذ نسخة احتياطية مشفرة قبل الإقفال', completed: false },
+    { id: 12, title: 'اعتماد وإغلاق الفترة المحاسبية رسمياً', completed: false },
+  ];
+  const state = await getModuleState(companyId, 'business_checklists', {});
+  const map = state.data && typeof state.data === 'object' ? state.data : {};
+  const current = map[periodId] || {
+    period_id: periodId,
+    completion_percentage: Math.round((defaultItems.filter((i) => i.completed).length / defaultItems.length) * 100),
+    checklist_items: defaultItems,
+  };
+  res.json({ success: true, data: current });
 });
 
-enterpriseRouter.post('/business/reconciliations/run', (_req: Request, res: Response) => {
-  res.json({ success: true, message: 'تم تشغيل المطابقة الآلية بنجاح وتطابق 100% من الحركات' });
+enterpriseRouter.post('/business/month-end-checklist/:periodId/item', async (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const periodId = req.params.periodId || 'P-CURRENT';
+  const defaultItems = [
+    { id: 1, title: 'مطابقة الصناديق النقدية والخزائن', completed: false },
+    { id: 2, title: 'مطابقة كشوف الحسابات البنكية', completed: false },
+    { id: 3, title: 'جرد المخزون الفعلي وتسوية الفروقات', completed: false },
+    { id: 4, title: 'مطابقة أرصدة العملاء والذمم المدينة', completed: false },
+    { id: 5, title: 'مطابقة أرصدة الموردين والذمم الدائنة', completed: false },
+    { id: 6, title: 'ترحيل قيود الرواتب والأجور', completed: false },
+    { id: 7, title: 'إثبات مخصص إهلاك الأصول الثابتة', completed: false },
+    { id: 8, title: 'تسوية المصروفات والإيرادات المستحقة والمدفوعة مقدماً', completed: false },
+    { id: 9, title: 'مراجعة ميزان المراجعة بالعملات المحلية والأجنبية', completed: false },
+    { id: 10, title: 'فحص موازين القيد المزدوج: المدين = الدائن', completed: true },
+    { id: 11, title: 'أخذ نسخة احتياطية مشفرة قبل الإقفال', completed: false },
+    { id: 12, title: 'اعتماد وإغلاق الفترة المحاسبية رسمياً', completed: false },
+  ];
+  const state = await getModuleState(companyId, 'business_checklists', {});
+  const map: Record<string, any> = state.data && typeof state.data === 'object' ? { ...state.data } : {};
+  const currentItems: any[] = map[periodId]?.checklist_items || defaultItems;
+  const updatedItems = currentItems.map((it) =>
+    String(it.id) === String(req.body.itemId) ? { ...it, completed: Boolean(req.body.completed) } : it
+  );
+  const doneCount = updatedItems.filter((it) => it.completed).length;
+  map[periodId] = {
+    period_id: periodId,
+    checklist_items: updatedItems,
+    completion_percentage: Math.round((doneCount / updatedItems.length) * 100),
+  };
+  await saveModuleState(companyId, 'business_checklists', map);
+  res.json({ success: true, data: map[periodId], message: 'تم تحديث بند الإقفال' });
 });
 
-enterpriseRouter.get('/business/reconciliations/bank', (_req: Request, res: Response) => {
-  res.json({ success: true, data: { matchedCount: 142, unmatchedCount: 0, variance: 0 } });
+enterpriseRouter.get('/business/reconciliations', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const { discrepancies } = computeServerBusinessReconciliations(companyId);
+  res.json({ success: true, data: discrepancies });
+});
+
+enterpriseRouter.post('/business/reconciliations/run', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const { discrepancies, totalChecks } = computeServerBusinessReconciliations(companyId);
+  res.json({
+    success: true,
+    data: {
+      totalChecks,
+      discrepanciesCount: discrepancies.length,
+      isBalanced: discrepancies.length === 0,
+      discrepancies,
+      checkedAt: new Date().toISOString(),
+    },
+    message:
+      discrepancies.length === 0
+        ? 'تم تشغيل المطابقة الآلية بنجاح وتطابق 100% من الحركات'
+        : `تم فحص ${totalChecks} حركة واكتشاف ${discrepancies.length} فارق`,
+  });
+});
+
+enterpriseRouter.post('/business/reconciliations/bank', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const metrics = computeUnifiedFinancialMetrics(companyId);
+  const accountType = String(req.body.accountType || 'BANK').toUpperCase();
+  const rawBookBalance =
+    accountType === 'CASH'
+      ? roundMoney(metrics.cashBalance || 0)
+      : String(req.body.accountId || '').includes('wallet')
+      ? roundMoney(metrics.walletBalance || 0)
+      : roundMoney(metrics.bankBalance || 0);
+
+  const statementClosingBalance = roundMoney(req.body.statementClosingBalance || 0);
+  const unpresentedChecks = roundMoney(req.body.unpresentedChecks || 0);
+  const depositsInTransit = roundMoney(req.body.depositsInTransit || 0);
+  const bankCharges = roundMoney(req.body.bankCharges || 0);
+  const interestEarned = roundMoney(req.body.interestEarned || 0);
+  const dateStr = req.body.statementEndDate || new Date().toISOString().split('T')[0];
+
+  if (bankCharges > 0) {
+    postDoubleEntryJournal({
+      companyId,
+      reference_type: 'BANK_RECON_CHARGES',
+      reference_id: `BR-CHG-${Date.now().toString().slice(-6)}`,
+      description: 'تسوية رسوم ومصاريف بنكية من كشف الحساب',
+      date: dateStr,
+      lines: [
+        { account_code: '5202', account_name: 'المصروفات العمومية والإدارية', debit: bankCharges, credit: 0, description: 'رسوم بنكية' },
+        { account_code: '1102', account_name: 'البنك', debit: 0, credit: bankCharges, description: 'خصم رسوم بنكية' },
+      ],
+    });
+  }
+
+  if (interestEarned > 0) {
+    postDoubleEntryJournal({
+      companyId,
+      reference_type: 'BANK_RECON_INTEREST',
+      reference_id: `BR-INT-${Date.now().toString().slice(-6)}`,
+      description: 'إثبات فوائد / أرباح بنكية دائنة',
+      date: dateStr,
+      lines: [
+        { account_code: '1102', account_name: 'البنك', debit: interestEarned, credit: 0, description: 'إضافة عوائد بنكية' },
+        { account_code: '4101', account_name: 'إيرادات المبيعات والنشاط', debit: 0, credit: interestEarned, description: 'عوائد بنكية' },
+      ],
+    });
+  }
+
+  const adjustedBookBalance = roundMoney(rawBookBalance - bankCharges + interestEarned);
+  const adjustedStatementBalance = roundMoney(statementClosingBalance - unpresentedChecks + depositsInTransit);
+  const difference = roundMoney(adjustedBookBalance - adjustedStatementBalance);
+  const status = Math.abs(difference) <= 0.01 ? 'MATCHED' : 'UNMATCHED';
+
+  res.json({
+    success: true,
+    data: {
+      bookBalance: adjustedBookBalance,
+      rawBookBalance,
+      statementClosingBalance,
+      adjustedStatementBalance,
+      difference,
+      status,
+      reconciledAt: new Date().toISOString(),
+    },
+  });
+});
+
+enterpriseRouter.get('/business/reconciliations/bank', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const metrics = computeUnifiedFinancialMetrics(companyId);
+  res.json({
+    success: true,
+    data: {
+      bookBalance: roundMoney(metrics.bankBalance || 0),
+      matchedCount: 0,
+      unmatchedCount: 0,
+      variance: 0,
+    },
+  });
+});
+
+enterpriseRouter.get('/business/documents', async (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const state = await getModuleState(companyId, 'business_documents', []);
+  res.json({ success: true, data: Array.isArray(state.data) ? state.data : [] });
+});
+
+enterpriseRouter.post('/business/documents', async (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const state = await getModuleState(companyId, 'business_documents', []);
+  const list: any[] = Array.isArray(state.data) ? [...state.data] : [];
+  const doc = {
+    id: `doc-${Date.now()}`,
+    company_id: companyId,
+    title: req.body.title || req.body.fileName || 'مستند رسمي',
+    category: req.body.category || 'GENERAL',
+    entity_type: req.body.entityType || req.body.entity_type || 'GENERAL',
+    entity_id: req.body.entityId || req.body.entity_id || null,
+    reference_no: req.body.referenceNo || req.body.reference_no || req.body.entityId || '',
+    file_name: req.body.fileName || req.body.file_name || 'document.pdf',
+    file_size: Number(req.body.fileSize || req.body.file_size || 0),
+    mime_type: req.body.mimeType || req.body.mime_type || 'application/pdf',
+    data_url: req.body.dataUrl || req.body.data_url || '',
+    notes: req.body.notes || '',
+    uploaded_at: new Date().toISOString(),
+  };
+  list.unshift(doc);
+  await saveModuleState(companyId, 'business_documents', list);
+  res.status(201).json({ success: true, data: doc, message: 'تم حفظ المستند بنجاح' });
+});
+
+enterpriseRouter.delete('/business/documents/:id', async (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const state = await getModuleState(companyId, 'business_documents', []);
+  const list: any[] = Array.isArray(state.data) ? state.data : [];
+  const filtered = list.filter((d) => String(d.id) !== String(req.params.id));
+  await saveModuleState(companyId, 'business_documents', filtered);
+  res.json({ success: true, data: { deleted: true, id: req.params.id } });
 });
 
 enterpriseRouter.get('/business/search', (req: Request, res: Response) => {
-  const q = String(req.query.q || '');
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const currency = resolveTenantBusinessCurrency(companyId, store);
+  const q = String(req.query.q || '').trim().toLowerCase();
+
+  const match = (obj: any, fields: string[]) =>
+    !q || fields.some((f) => String(obj?.[f] || '').toLowerCase().includes(q));
+
+  const customers = store.customers.filter((c: any) => match(c, ['name', 'phone', 'email', 'address']));
+  const suppliers = store.suppliers.filter((s: any) => match(s, ['name', 'phone', 'email', 'category', 'address']));
+  const products = store.products
+    .filter((p: any) => match(p, ['name', 'sku', 'barcode', 'category']))
+    .map((p: any) => ({
+      ...p,
+      current_stock: Number(p.current_stock ?? p.qty ?? p.stock ?? 0),
+      selling_price: Number(p.sale_price ?? p.price ?? 0),
+    }));
+  const invoices = store.invoices.filter((i: any) =>
+    match(i, ['invoice_number', 'customer_name', 'notes'])
+  );
+  const purchaseInvoices = store.purchaseInvoices.filter((p: any) =>
+    match(p, ['invoice_number', 'supplier_name', 'notes'])
+  );
+  const payments = store.payments.filter((p: any) =>
+    match(p, ['voucher_number', 'payment_number', 'customer_name', 'supplier_name', 'description'])
+  );
+
   res.json({
     success: true,
     data: {
       query: q,
-      customers: mockCustomersList,
-      suppliers: mockSuppliersList,
+      currency,
+      customers,
+      suppliers,
+      products,
+      invoices,
+      purchaseInvoices,
+      payments,
+      totalHits: customers.length + suppliers.length + products.length + invoices.length + purchaseInvoices.length + payments.length,
     },
   });
 });
 
-enterpriseRouter.get('/business/data-mode', (_req: Request, res: Response) => {
-  res.json({ success: true, data: { mode: 'PRODUCTION', isLive: true } });
+enterpriseRouter.get('/business/data-mode', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const isClean = isTenantCleanProductionMode(companyId);
+  const mode = isClean ? 'PRODUCTION' : 'DEMO';
+  res.json({ success: true, data: { mode, dataMode: mode, isLive: true } });
 });
 
 enterpriseRouter.post('/business/data-mode', (req: Request, res: Response) => {
-  res.json({ success: true, data: req.body, message: 'تم تحديث نمط البيانات' });
+  const companyId = resolveCompanyId(req);
+  const mode = String(req.body.mode || req.body.dataMode || 'PRODUCTION').toUpperCase();
+  setTenantCleanProductionMode(companyId, mode === 'PRODUCTION');
+  res.json({ success: true, data: { mode, dataMode: mode, isLive: true }, message: 'تم تحديث نمط البيانات' });
 });
 
-enterpriseRouter.post('/business/import/preview', (_req: Request, res: Response) => {
+enterpriseRouter.post('/business/import/preview', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const entityType = String(req.body.entityType || 'CUSTOMERS').toUpperCase();
+  const fileName = String(req.body.fileName || 'import.csv');
+  const content = String(req.body.content || '').trim();
+
+  const lines = content
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  if (lines.length < 2) {
+    return res.status(400).json({
+      success: false,
+      message: 'يجب أن يحتوي ملف CSV على سطر العناوين (Header) وسطر بيانات واحد على الأقل',
+    });
+  }
+
+  const splitCsvLine = (line: string) => {
+    const result: string[] = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') inQuotes = !inQuotes;
+      else if (ch === ',' && !inQuotes) {
+        result.push(cur.trim());
+        cur = '';
+      } else cur += ch;
+    }
+    result.push(cur.trim());
+    return result;
+  };
+
+  const headers = splitCsvLine(lines[0]).map((h) => h.toLowerCase().replace(/\s+/g, '_'));
+  const errors: Array<{ row: number; field: string; message: string }> = [];
+  const parsedRecords: any[] = [];
+  let financialTotal = 0;
+
+  for (let i = 1; i < lines.length; i++) {
+    const cols = splitCsvLine(lines[i]);
+    const rowObj: Record<string, string> = {};
+    headers.forEach((h, idx) => {
+      rowObj[h] = cols[idx] ?? '';
+    });
+    const rowNum = i + 1;
+    const name = (rowObj.name || rowObj.customer_name || rowObj.supplier_name || rowObj.product_name || rowObj['الاسم'] || '').trim();
+    if (!name) {
+      errors.push({ row: rowNum, field: 'name', message: 'الاسم مطلوب ولا يمكن أن يكون فارغاً' });
+      continue;
+    }
+
+    if (entityType === 'PRODUCTS') {
+      const purchasePrice = Number(rowObj.purchase_price ?? rowObj.cost_price ?? rowObj.cost ?? 0);
+      const sellingPrice = Number(rowObj.selling_price ?? rowObj.sale_price ?? rowObj.price ?? 0);
+      const currentStock = Number(rowObj.current_stock ?? rowObj.stock ?? rowObj.quantity ?? rowObj.qty ?? 0);
+      if (Number.isNaN(purchasePrice) || purchasePrice < 0) {
+        errors.push({ row: rowNum, field: 'purchase_price', message: 'سعر الشراء يجب أن يكون رقماً موجباً' });
+        continue;
+      }
+      if (Number.isNaN(sellingPrice) || sellingPrice < 0) {
+        errors.push({ row: rowNum, field: 'selling_price', message: 'سعر البيع يجب أن يكون رقماً موجباً' });
+        continue;
+      }
+      if (Number.isNaN(currentStock) || currentStock < 0) {
+        errors.push({ row: rowNum, field: 'current_stock', message: 'الكمية يجب أن تكون رقماً غير سالب' });
+        continue;
+      }
+      financialTotal = roundMoney(financialTotal + purchasePrice * currentStock);
+      parsedRecords.push({
+        name,
+        sku: rowObj.sku || `SKU-${Date.now().toString().slice(-4)}-${i}`,
+        barcode: rowObj.barcode || '',
+        category: rowObj.category || 'عام',
+        unit: rowObj.unit || 'حبة',
+        cost_price: purchasePrice,
+        purchase_price: purchasePrice,
+        sale_price: sellingPrice,
+        price: sellingPrice,
+        current_stock: currentStock,
+        qty: currentStock,
+        stock: currentStock,
+      });
+    } else {
+      const opBal = Number(rowObj.opening_balance ?? rowObj.balance ?? rowObj.amount ?? 0);
+      if (Number.isNaN(opBal) || opBal < 0) {
+        errors.push({ row: rowNum, field: 'opening_balance', message: 'الرصيد الافتتاحي يجب أن يكون رقماً غير سالب' });
+        continue;
+      }
+      financialTotal = roundMoney(financialTotal + opBal);
+      parsedRecords.push({
+        name,
+        phone: rowObj.phone || '',
+        email: rowObj.email || '',
+        address: rowObj.address || '',
+        opening_balance: opBal,
+        balance: opBal,
+        current_balance: opBal,
+      });
+    }
+  }
+
+  const jobId = `imp-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  const previewPayload = {
+    jobId,
+    companyId,
+    entityType,
+    fileName,
+    totalRows: lines.length - 1,
+    validRows: parsedRecords.length,
+    invalidRows: errors.length,
+    financialTotal: roundMoney(financialTotal),
+    errors,
+    preview: parsedRecords.slice(0, 50),
+    records: parsedRecords,
+  };
+  inMemoryBusinessImportJobs.set(jobId, previewPayload);
+
+  res.json({ success: true, data: previewPayload });
+});
+
+enterpriseRouter.post('/business/import/commit', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const currency = resolveTenantBusinessCurrency(companyId, store);
+  const jobId = req.body.jobId;
+  const job = inMemoryBusinessImportJobs.get(jobId);
+
+  if (!job || job.companyId !== companyId) {
+    return res.status(404).json({ success: false, message: 'تعذر العثور على جلسة الاستيراد المطلوبة' });
+  }
+
+  const eType = String(job.entityType || 'CUSTOMERS').toUpperCase();
+  let importedCount = 0;
+
+  if (eType === 'PRODUCTS') {
+    let totalInvValue = 0;
+    for (const rec of job.records) {
+      const existing: any = store.products.find(
+        (p: any) => (rec.sku && p.sku === rec.sku) || String(p.name || '').trim() === String(rec.name || '').trim()
+      );
+      if (existing) {
+        const nextStock = roundMoney(Number(existing.current_stock ?? existing.qty ?? 0) + Number(rec.current_stock || 0));
+        existing.current_stock = nextStock;
+        existing.qty = nextStock;
+        existing.stock = nextStock;
+      } else {
+        store.products.unshift({
+          id: `prd-imp-${Date.now()}-${importedCount}`,
+          company_id: companyId,
+          ...rec,
+          created_at: new Date().toISOString(),
+        } as any);
+      }
+      totalInvValue = roundMoney(totalInvValue + Number(rec.cost_price || 0) * Number(rec.current_stock || 0));
+      importedCount++;
+    }
+    if (totalInvValue > 0) {
+      postDoubleEntryJournal({
+        companyId,
+        reference_type: 'IMPORT_OPENING_STOCK',
+        reference_id: jobId,
+        description: `استيراد بضاعة أول المدة (${importedCount} صنف)`,
+        date: new Date().toISOString().split('T')[0],
+        lines: [
+          { account_code: '1104', account_name: 'مخزون البضائع', debit: totalInvValue, credit: 0, description: 'إثبات مخزون مستورد' },
+          { account_code: '3101', account_name: 'رأس المال المدفوع', debit: 0, credit: totalInvValue, description: 'مقابل أرصدة المخزون الافتتاحية' },
+        ],
+      });
+    }
+  } else if (eType === 'SUPPLIERS' || eType === 'SUPPLIER_BALANCES') {
+    let totalSuppBal = 0;
+    for (const rec of job.records) {
+      const existing: any = store.suppliers.find((s: any) => String(s.name || '').trim() === String(rec.name || '').trim());
+      const opBal = roundMoney(rec.opening_balance || 0);
+      if (existing) {
+        const nextBal = roundMoney(Number(existing.current_balance ?? existing.balance ?? 0) + opBal);
+        existing.balance = nextBal;
+        existing.current_balance = nextBal;
+      } else {
+        store.suppliers.unshift({
+          id: `sup-imp-${Date.now()}-${importedCount}`,
+          company_id: companyId,
+          ...rec,
+          balance: opBal,
+          current_balance: opBal,
+          currency,
+          status: 'ACTIVE',
+          created_at: new Date().toISOString(),
+        } as any);
+      }
+      totalSuppBal = roundMoney(totalSuppBal + opBal);
+      importedCount++;
+    }
+    if (totalSuppBal > 0) {
+      postDoubleEntryJournal({
+        companyId,
+        reference_type: 'IMPORT_SUPPLIER_BALANCES',
+        reference_id: jobId,
+        description: `استيراد أرصدة الموردين (${importedCount} مورد)`,
+        date: new Date().toISOString().split('T')[0],
+        lines: [
+          { account_code: '3101', account_name: 'رأس المال المدفوع', debit: totalSuppBal, credit: 0, description: 'مقابل أرصدة الموردين' },
+          { account_code: '2101', account_name: 'الموردون والدائنون', debit: 0, credit: totalSuppBal, description: 'إثبات أرصدة موردين مستوردة' },
+        ],
+      });
+    }
+  } else {
+    let totalCustBal = 0;
+    for (const rec of job.records) {
+      const existing: any = store.customers.find((c: any) => String(c.name || '').trim() === String(rec.name || '').trim());
+      const opBal = roundMoney(rec.opening_balance || 0);
+      if (existing) {
+        const nextBal = roundMoney(Number(existing.current_balance ?? existing.balance ?? 0) + opBal);
+        existing.balance = nextBal;
+        existing.current_balance = nextBal;
+      } else {
+        store.customers.unshift({
+          id: `cus-imp-${Date.now()}-${importedCount}`,
+          company_id: companyId,
+          ...rec,
+          balance: opBal,
+          current_balance: opBal,
+          currency,
+          status: 'ACTIVE',
+          created_at: new Date().toISOString(),
+        } as any);
+      }
+      totalCustBal = roundMoney(totalCustBal + opBal);
+      importedCount++;
+    }
+    if (totalCustBal > 0) {
+      postDoubleEntryJournal({
+        companyId,
+        reference_type: 'IMPORT_CUSTOMER_BALANCES',
+        reference_id: jobId,
+        description: `استيراد أرصدة العملاء (${importedCount} عميل)`,
+        date: new Date().toISOString().split('T')[0],
+        lines: [
+          { account_code: '1103', account_name: 'العملاء والمدينون', debit: totalCustBal, credit: 0, description: 'إثبات ذمم عملاء مستوردة' },
+          { account_code: '3101', account_name: 'رأس المال المدفوع', debit: 0, credit: totalCustBal, description: 'مقابل أرصدة العملاء' },
+        ],
+      });
+    }
+  }
+
+  inMemoryBusinessImportJobs.delete(jobId);
+  setTenantCleanProductionMode(companyId, false);
+  persistAllToDisk();
+
   res.json({
     success: true,
-    data: { validRows: 50, invalidRows: 0, preview: [] },
+    data: { jobId, importedCount, isBalanced: true },
+    message: 'تم استيراد البيانات وترحيلها بنجاح',
   });
-});
-
-enterpriseRouter.post('/business/import/commit', (_req: Request, res: Response) => {
-  res.json({ success: true, message: 'تم استيراد البيانات وترحيلها بنجاح' });
 });
 
 // ==========================================

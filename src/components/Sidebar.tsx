@@ -186,6 +186,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
       title: 'الرئيسية',
       items: [
         { id: 'overview', label: 'لوحة التحكم', icon: LayoutDashboard },
+        { id: 'real_business', label: 'مركز عمليات الأعمال والبيانات التشغيلية', icon: TrendingUp, badge: 'تشغيل' },
         { id: 'notifications', label: 'التنبيهات', icon: Bell },
       ],
     },
@@ -230,7 +231,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
     {
       title: 'إدارة الأعمال والموظفين',
       items: [
-        { id: 'real_business', label: 'العمليات التشغيلية', icon: TrendingUp },
         { id: 'customer_success', label: 'خدمة ورضا العملاء', icon: Users },
         { id: 'users', label: 'فريق العمل والموظفين', icon: UserCheck },
         { id: 'roles', label: 'الصلاحيات والأدوار', icon: Shield },
