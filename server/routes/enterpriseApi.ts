@@ -3796,10 +3796,36 @@ enterpriseRouter.post('/business/opening-balances', async (req: Request, res: Re
     targetAccCode = '1101';
     targetAccName = 'الصندوق / النقدية';
     entityName = 'الصندوق النقدي الرئيسي';
+    const customCashState = await getModuleState(companyId, 'business_cash_accounts', []);
+    const customCash: any[] = Array.isArray(customCashState.data) ? [...customCashState.data] : [];
+    const cIdx = customCash.findIndex((c: any) => String(c.id) === String(entityId));
+    if (cIdx !== -1) {
+      const delta = entrySide === 'DEBIT' ? amount : -amount;
+      const nextBal = roundMoney(Number(customCash[cIdx].current_balance ?? customCash[cIdx].balance ?? 0) + delta);
+      customCash[cIdx].current_balance = nextBal;
+      customCash[cIdx].balance = nextBal;
+      entityName = customCash[cIdx].name || customCash[cIdx].account_name || entityName;
+      targetAccCode = customCash[cIdx].code || '1101';
+      targetAccName = entityName;
+      await saveModuleState(companyId, 'business_cash_accounts', customCash);
+    }
   } else if (balanceType === 'BANK') {
     targetAccCode = String(entityId).includes('wallet') ? '1107' : '1102';
     targetAccName = targetAccCode === '1107' ? 'المحافظ الإلكترونية' : 'البنك / الحسابات البنكية';
     entityName = targetAccCode === '1107' ? 'المحافظ الإلكترونية' : 'الحساب البنكي الرئيسي';
+    const customBankState = await getModuleState(companyId, 'business_bank_accounts', []);
+    const customBanks: any[] = Array.isArray(customBankState.data) ? [...customBankState.data] : [];
+    const bIdx = customBanks.findIndex((b: any) => String(b.id) === String(entityId));
+    if (bIdx !== -1) {
+      const delta = entrySide === 'DEBIT' ? amount : -amount;
+      const nextBal = roundMoney(Number(customBanks[bIdx].current_balance ?? customBanks[bIdx].balance ?? 0) + delta);
+      customBanks[bIdx].current_balance = nextBal;
+      customBanks[bIdx].balance = nextBal;
+      entityName = customBanks[bIdx].account_name || customBanks[bIdx].name || entityName;
+      targetAccCode = customBanks[bIdx].code || '1102';
+      targetAccName = entityName;
+      await saveModuleState(companyId, 'business_bank_accounts', customBanks);
+    }
   } else if (balanceType === 'WALLET') {
     targetAccCode = '1107';
     targetAccName = 'المحافظ الإلكترونية والشبكات';

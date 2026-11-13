@@ -504,7 +504,7 @@ function setLocalItem(key: string, value: any, companyId?: string): void {
  * Get or initialize local Chart of Accounts for company
  */
 export function getLocalAccounts(companyId: string): any[] {
-  let accounts = getLocalItem<any[]>('erp_accounts_v1', []);
+  let accounts = getLocalItem<any[]>('erp_accounts_v1', [], companyId);
   if (!Array.isArray(accounts) || accounts.length === 0) {
     accounts = LOCAL_STANDARD_CHART_OF_ACCOUNTS.map((acc) => ({
       ...acc,
@@ -513,6 +513,25 @@ export function getLocalAccounts(companyId: string): any[] {
       created_at: new Date().toISOString(),
     }));
     setLocalItem('erp_accounts_v1', accounts, companyId);
+    setLocalItem('erp_local_accounts_v1', accounts, companyId);
+    return accounts;
+  }
+
+  let updated = false;
+  for (const std of LOCAL_STANDARD_CHART_OF_ACCOUNTS) {
+    if (!accounts.some((a) => a.code === std.code)) {
+      accounts.push({
+        ...std,
+        id: `acc_${companyId}_${std.code}`,
+        company_id: companyId,
+        created_at: new Date().toISOString(),
+      });
+      updated = true;
+    }
+  }
+  if (updated) {
+    setLocalItem('erp_accounts_v1', accounts, companyId);
+    setLocalItem('erp_local_accounts_v1', accounts, companyId);
   }
   return accounts;
 }
@@ -547,20 +566,40 @@ export function postLocalDoubleEntryJournal(options: {
     };
   }
 
-  const entries = getLocalItem<any[]>('erp_journal_entries_v1', []);
+  const entries = getLocalItem<any[]>('erp_journal_entries_v1', [], companyId);
   const accounts = getLocalAccounts(companyId);
 
   const entryId = `je_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
   const entryNumber = `JE-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${(entries.length + 1).toString().padStart(4, '0')}`;
 
   const entryLines = options.lines.map((line, idx) => {
-    const acc = accounts.find((a) => (line.account_code && a.code === line.account_code) || (line.account_id && a.id === line.account_id));
+    const code = String(line.account_code || '').trim();
+    let acc = accounts.find((a) => (code && a.code === code) || (line.account_id && a.id === line.account_id));
+    if (!acc && code) {
+      const std = LOCAL_STANDARD_CHART_OF_ACCOUNTS.find((s) => s.code === code);
+      const inferredType =
+        std?.type ||
+        (code.startsWith('1') ? 'ASSET' : code.startsWith('2') ? 'LIABILITY' : code.startsWith('3') ? 'EQUITY' : code.startsWith('4') ? 'REVENUE' : 'EXPENSE');
+      const inferredNormal = std?.normal_balance || (inferredType === 'ASSET' || inferredType === 'EXPENSE' ? 'DEBIT' : 'CREDIT');
+      acc = {
+        id: line.account_id || `acc_${companyId}_${code}`,
+        code,
+        name: line.account_name || std?.name || `حساب ${code}`,
+        type: inferredType,
+        category: std?.category || (code.startsWith('1101') || code.startsWith('1102') || code.startsWith('1107') ? 'CURRENT_ASSET' : 'GENERAL'),
+        normal_balance: inferredNormal,
+        balance: 0,
+        company_id: companyId,
+        created_at: new Date().toISOString(),
+      };
+      accounts.push(acc);
+    }
     return {
       id: `line_${entryId}_${idx + 1}`,
       journal_id: entryId,
       company_id: companyId,
-      account_id: line.account_id || acc?.id || `acc_${line.account_code}`,
-      account_code: line.account_code || acc?.code || '',
+      account_id: line.account_id || acc?.id || `acc_${code}`,
+      account_code: code || acc?.code || '',
       account_name: line.account_name || acc?.name || '',
       debit: roundMoney(line.debit || 0),
       credit: roundMoney(line.credit || 0),
@@ -587,6 +626,7 @@ export function postLocalDoubleEntryJournal(options: {
   }
 
   setLocalItem('erp_accounts_v1', accounts, companyId);
+  setLocalItem('erp_local_accounts_v1', accounts, companyId);
 
   const newEntry = {
     id: entryId,
@@ -854,13 +894,21 @@ export function computeLocalUnifiedFinancialMetrics(companyId: string) {
     }
   }
 
-  const glCashAcc = accounts.find((a) => a.code === '1101');
-  const glBankAcc = accounts.find((a) => a.code === '1102');
-  const glWalletAcc = accounts.find((a) => a.code === '1107' || a.name?.includes('محفظ'));
-
-  const glCashBalance = Number(glCashAcc?.balance || 0);
-  const glBankBalance = Number(glBankAcc?.balance || 0);
-  const glWalletBalance = Number(glWalletAcc?.balance || 0);
+  const glCashBalance = roundMoney(
+    accounts
+      .filter((a) => a.code === '1101' || String(a.code || '').startsWith('1101-'))
+      .reduce((s, a) => s + Number(a.balance || 0), 0)
+  );
+  const glBankBalance = roundMoney(
+    accounts
+      .filter((a) => a.code === '1102' || String(a.code || '').startsWith('1102-'))
+      .reduce((s, a) => s + Number(a.balance || 0), 0)
+  );
+  const glWalletBalance = roundMoney(
+    accounts
+      .filter((a) => a.code === '1107' || String(a.code || '').startsWith('1107-') || a.name?.includes('محفظ'))
+      .reduce((s, a) => s + Number(a.balance || 0), 0)
+  );
 
   const isClean =
     typeof localStorage !== 'undefined' &&
@@ -4161,7 +4209,9 @@ async function internalHandleLocalDesktopApiFallback(
             const delta = entrySide === 'DEBIT' ? amount : -amount;
             customCash[cIdx].current_balance = roundMoney(Number(customCash[cIdx].current_balance ?? customCash[cIdx].balance ?? 0) + delta);
             customCash[cIdx].balance = customCash[cIdx].current_balance;
-            entityName = customCash[cIdx].name || entityName;
+            entityName = customCash[cIdx].name || customCash[cIdx].account_name || entityName;
+            targetAccCode = customCash[cIdx].code || '1101';
+            targetAccName = entityName;
             setLocalItem('erp_cash_accounts_v1', customCash, companyId);
           }
         } else if (balanceType === 'BANK') {
@@ -4175,6 +4225,8 @@ async function internalHandleLocalDesktopApiFallback(
             customBanks[bIdx].current_balance = roundMoney(Number(customBanks[bIdx].current_balance ?? customBanks[bIdx].balance ?? 0) + delta);
             customBanks[bIdx].balance = customBanks[bIdx].current_balance;
             entityName = customBanks[bIdx].account_name || customBanks[bIdx].name || entityName;
+            targetAccCode = customBanks[bIdx].code || '1102';
+            targetAccName = entityName;
             setLocalItem('erp_bank_accounts_v1', customBanks, companyId);
           }
         } else if (balanceType === 'WALLET') {
@@ -4275,6 +4327,8 @@ async function internalHandleLocalDesktopApiFallback(
         } catch {}
 
         if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('erp-ledger-updated'));
+          window.dispatchEvent(new Event('erp-accounts-updated'));
           window.dispatchEvent(new Event('erp-data-updated'));
           window.dispatchEvent(new Event('storage'));
         }
@@ -7367,6 +7421,19 @@ async function internalHandleLocalDesktopApiFallback(
       data: pmt,
       payment: pmt,
       message: 'تم إلغاء السند وإلغاء أثره المالي والمحاسبي بنجاح',
+    };
+  }
+
+  // 13.7. Chart of Accounts in Offline Mode (GET /accounts)
+  if (method === 'GET' && cleanUrl.endsWith('/accounts')) {
+    const accounts = getLocalAccounts(companyId);
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: accounts,
+      accounts,
+      total: accounts.length,
     };
   }
 

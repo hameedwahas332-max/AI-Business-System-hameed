@@ -1,5 +1,30 @@
 import { handleLocalDesktopApiFallback, isTauriOrDesktopEnvironment } from '../services/localDesktopApiFallback';
 
+function enrichSafeFetchPayload(source: any): any {
+  const rawPayload = source?.data !== undefined ? source.data : source;
+  if (rawPayload && typeof rawPayload === 'object' && !Array.isArray(rawPayload)) {
+    if (rawPayload.success === undefined) {
+      rawPayload.success = source?.success ?? true;
+    }
+    if (source?.data !== undefined && rawPayload.data === undefined) {
+      rawPayload.data = source.data;
+    }
+    if (source?.message !== undefined && rawPayload.message === undefined) {
+      rawPayload.message = source.message;
+    }
+  } else if (Array.isArray(rawPayload)) {
+    try {
+      if ((rawPayload as any).success === undefined) {
+        Object.defineProperty(rawPayload, 'success', { value: source?.success ?? true, configurable: true });
+      }
+      if ((rawPayload as any).data === undefined) {
+        Object.defineProperty(rawPayload, 'data', { value: rawPayload, configurable: true });
+      }
+    } catch {}
+  }
+  return rawPayload;
+}
+
 export async function safeFetchJson<T = any>(
   url: string,
   options?: RequestInit
@@ -33,7 +58,7 @@ export async function safeFetchJson<T = any>(
       return {
         success: fallback.success,
         ok: fallback.ok,
-        data: fallback.data,
+        data: enrichSafeFetchPayload(fallback),
         status: fallback.status || 200,
         error: fallback.error,
       };
@@ -54,7 +79,7 @@ export async function safeFetchJson<T = any>(
         return {
           success: fallback.success,
           ok: fallback.ok,
-          data: fallback.data,
+          data: enrichSafeFetchPayload(fallback),
           status: fallback.status || 200,
         };
       }
@@ -70,7 +95,7 @@ export async function safeFetchJson<T = any>(
       return {
         success: true,
         ok: true,
-        data: fallback.data as any,
+        data: enrichSafeFetchPayload(fallback) as any,
         status: 200,
       };
     }
@@ -83,7 +108,7 @@ export async function safeFetchJson<T = any>(
           return {
             success: fallback.success,
             ok: fallback.ok,
-            data: fallback.data,
+            data: enrichSafeFetchPayload(fallback),
             status: fallback.status || 200,
           };
         }
@@ -100,7 +125,7 @@ export async function safeFetchJson<T = any>(
     return {
       success: true,
       ok: true,
-      data: json?.data ?? json,
+      data: enrichSafeFetchPayload(json),
       status: res.status,
     };
   } catch (err: any) {
@@ -110,7 +135,7 @@ export async function safeFetchJson<T = any>(
       return {
         success: fallback.success,
         ok: fallback.ok,
-        data: fallback.data,
+        data: enrichSafeFetchPayload(fallback),
         status: fallback.status || 200,
         error: fallback.error,
       };

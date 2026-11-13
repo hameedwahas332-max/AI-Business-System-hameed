@@ -2026,9 +2026,21 @@ export function computeUnifiedFinancialMetrics(
     }
   }
 
-  const glCash = roundMoney(accMap.get('1101')?.balance || 0);
-  const glBank = roundMoney(accMap.get('1102')?.balance || 0);
-  const glWallet = roundMoney(accMap.get('1107')?.balance || 0);
+  const glCash = roundMoney(
+    accounts
+      .filter((a) => a.code === '1101' || String(a.code || '').startsWith('1101-'))
+      .reduce((s, a) => s + Number(a.balance || 0), 0)
+  );
+  const glBank = roundMoney(
+    accounts
+      .filter((a) => a.code === '1102' || String(a.code || '').startsWith('1102-'))
+      .reduce((s, a) => s + Number(a.balance || 0), 0)
+  );
+  const glWallet = roundMoney(
+    accounts
+      .filter((a) => a.code === '1107' || String(a.code || '').startsWith('1107-'))
+      .reduce((s, a) => s + Number(a.balance || 0), 0)
+  );
 
   const tenantStore = getTenantCollections(cid);
   const hasAnyCompanyTransactions =

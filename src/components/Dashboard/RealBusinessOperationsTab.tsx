@@ -660,8 +660,12 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
   const fetchOpeningBalances = async () => {
     try {
       const res = await safeFetchJson('/api/v1/business/opening-balances', { headers });
-      if (res.ok && res.data?.success) {
-        const list = Array.isArray(res.data.data) ? res.data.data : [];
+      if (res.ok && (res.data?.success || res.success)) {
+        const list = Array.isArray(res.data?.data)
+          ? res.data.data
+          : Array.isArray(res.data)
+            ? res.data
+            : [];
         setOpeningBalances(list);
       }
     } catch (e) {
@@ -904,7 +908,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
         })
       });
 
-      if (res.ok && res.data?.success) {
+      if (res.ok && (res.data?.success || res.success)) {
         showFeedback('success', 'تم ترحيل القيد الافتتاحي وتحديث رصيد الحساب ودفتر الأستاذ العام بنجاح');
         setNewOpBal({
           balanceType: 'CUSTOMER',
@@ -921,6 +925,8 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
           window.dispatchEvent(new Event('erp-customers-updated'));
           window.dispatchEvent(new Event('erp-suppliers-updated'));
           window.dispatchEvent(new Event('erp-payments-updated'));
+          window.dispatchEvent(new Event('erp-ledger-updated'));
+          window.dispatchEvent(new Event('erp-accounts-updated'));
           window.dispatchEvent(new Event('erp-data-updated'));
           window.dispatchEvent(new Event('storage'));
         } catch {}

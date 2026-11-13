@@ -33,7 +33,52 @@ export const LedgerTab: React.FC = () => {
         search: searchQuery,
         account_type: accountTypeFilter,
       });
-      const backendEntries = res?.data || [];
+      const rawBackendEntries = Array.isArray(res?.data)
+        ? res.data
+        : Array.isArray((res?.data as any)?.data)
+          ? (res.data as any).data
+          : [];
+
+      const mapAccountTypeFromCode = (code?: string, name?: string) => {
+        const c = String(code || '').trim();
+        if (c.startsWith('1101') || c.startsWith('1102') || c.startsWith('1107')) return 'CASH_BANK';
+        if (c.startsWith('1103')) return 'ACCOUNTS_RECEIVABLE';
+        if (c.startsWith('2101')) return 'ACCOUNTS_PAYABLE';
+        if (c.startsWith('1104')) return 'INVENTORY_ADJUSTMENT';
+        if (c.startsWith('41')) return 'SALES_REVENUE';
+        if (c.startsWith('51') || c.startsWith('52')) return 'PURCHASE_EXPENSE';
+        return name || 'OPENING_BALANCE';
+      };
+
+      const backendEntries: any[] = [];
+      for (const entry of rawBackendEntries) {
+        if (Array.isArray(entry.lines) && entry.lines.length > 0 && entry.transaction_date === undefined && entry.account_type === undefined) {
+          entry.lines.forEach((line: any, idx: number) => {
+            backendEntries.push({
+              id: line.id || `${entry.id || entry.entry_number}_l_${idx}`,
+              transaction_date: entry.transaction_date || entry.date || entry.created_at,
+              date: entry.date || entry.transaction_date || entry.created_at,
+              account_type: mapAccountTypeFromCode(line.account_code, line.account_name),
+              account_name: line.account_name || line.account_code,
+              reference_type: entry.reference_type || entry.reference_id || entry.entry_number || '-',
+              entry_number: entry.entry_number || entry.id,
+              debit: Number(line.debit || 0),
+              credit: Number(line.credit || 0),
+              description: line.description || entry.description || '-',
+              created_by_name: entry.created_by_name || 'النظام',
+            });
+          });
+        } else {
+          backendEntries.push({
+            ...entry,
+            transaction_date: entry.transaction_date || entry.date || entry.created_at,
+            debit: Number(entry.debit ?? entry.total_debit ?? 0),
+            credit: Number(entry.credit ?? entry.total_credit ?? 0),
+            reference_type: entry.reference_type || entry.entry_number || '-',
+            account_type: entry.account_type || entry.account_name || 'GENERAL_LEDGER',
+          });
+        }
+      }
 
       const isClean =
         typeof window !== 'undefined' &&
@@ -121,8 +166,17 @@ export const LedgerTab: React.FC = () => {
       setSummary({ totalDebit: 0, totalCredit: 0 });
       fetchData();
     };
+    const handleRefresh = () => {
+      fetchData();
+    };
     window.addEventListener('erp-demo-data-wiped', handleWiped);
-    return () => window.removeEventListener('erp-demo-data-wiped', handleWiped);
+    window.addEventListener('erp-ledger-updated', handleRefresh);
+    window.addEventListener('erp-data-updated', handleRefresh);
+    return () => {
+      window.removeEventListener('erp-demo-data-wiped', handleWiped);
+      window.removeEventListener('erp-ledger-updated', handleRefresh);
+      window.removeEventListener('erp-data-updated', handleRefresh);
+    };
   }, [searchQuery, accountTypeFilter]);
 
   const getLedgerExportConfig = (): TableExportConfig => ({
@@ -184,6 +238,8 @@ export const LedgerTab: React.FC = () => {
         return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-800">مبيعات طرمبات الوقود</span>;
       case 'FUEL_TANK_REFILL':
         return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">تفريغ محروقات الخزانات</span>;
+      case 'OPENING_BALANCE':
+        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-950 text-blue-300 border border-blue-800">رصيد افتتاحي / رأس المال</span>;
       default:
         return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">{acc}</span>;
     }
@@ -318,10 +374,12 @@ export const LedgerTab: React.FC = () => {
                 ledgerEntries.map((l) => (
                   <tr key={l.id} className="hover:bg-slate-800/40 transition-colors">
                     <td className="p-3.5 font-mono text-slate-400">
-                      {l.transaction_date ? new Date(l.transaction_date).toLocaleDateString('ar-YE') : '-'}
+                      {(l.transaction_date || l.date || l.created_at)
+                        ? new Date(l.transaction_date || l.date || l.created_at).toLocaleDateString('ar-YE')
+                        : '-'}
                     </td>
-                    <td className="p-3.5">{getAccountBadge(l.account_type)}</td>
-                    <td className="p-3.5 font-mono text-slate-300 font-semibold">{l.reference_type}</td>
+                    <td className="p-3.5">{getAccountBadge(l.account_type || l.account_name || 'GENERAL_LEDGER')}</td>
+                    <td className="p-3.5 font-mono text-slate-300 font-semibold">{l.reference_type || l.entry_number || '-'}</td>
                     <td className="p-3.5 font-mono font-bold text-emerald-400">
                       {Number(l.debit) > 0 ? `${formatAmount(l.debit)} ${currency}` : '-'}
                     </td>
