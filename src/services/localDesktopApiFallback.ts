@@ -2120,7 +2120,8 @@ async function internalHandleLocalDesktopApiFallback(
   options?: RequestInit
 ): Promise<LocalApiResponse<any>> {
   const method = (options?.method || 'GET').toUpperCase();
-  const cleanUrl = url.split('?')[0].toLowerCase();
+  const rawUrlNoQuery = url.split('?')[0];
+  const cleanUrl = rawUrlNoQuery.toLowerCase();
   const companyId = getActiveCompanyId();
 
   // 1. Seed Demo Data
@@ -5918,9 +5919,16 @@ async function internalHandleLocalDesktopApiFallback(
 
     const invNum = bodyData.invoice_number || bodyData.invoiceNumber || bodyData.id || `POS-${Date.now().toString().slice(-6)}`;
     const invoiceId = bodyData.id || invNum;
-    const grandTotal = Number(bodyData.total || bodyData.grandTotal || bodyData.totalAmount || 0);
-    const paidAmount = Number(bodyData.paidAmount ?? bodyData.paid_amount ?? grandTotal);
-    const remainingAmount = Number(bodyData.remainingAmount ?? bodyData.remaining_amount ?? Math.max(0, grandTotal - paidAmount));
+    const grandTotal = roundMoney(bodyData.total || bodyData.grandTotal || bodyData.totalAmount || 0);
+    const paymentMethod = String(bodyData.payment_method || bodyData.paymentMethod || 'CASH').toUpperCase();
+    const rawPaidInput = bodyData.paidAmount ?? bodyData.paid_amount;
+    const paidAmount =
+      rawPaidInput !== undefined && rawPaidInput !== null && rawPaidInput !== ''
+        ? roundMoney(Math.max(0, Math.min(Number(rawPaidInput), grandTotal)))
+        : paymentMethod === 'CREDIT'
+        ? 0
+        : roundMoney(grandTotal);
+    const remainingAmount = roundMoney(Math.max(0, Number((grandTotal - paidAmount).toFixed(2))));
     const customerName = String(bodyData.customerName || bodyData.customer_name || bodyData.customer || 'عميل نقدي').trim();
     const customerId = bodyData.customerId || bodyData.customer_id;
 
@@ -6020,8 +6028,12 @@ async function internalHandleLocalDesktopApiFallback(
       customerName: customerName,
       total: grandTotal,
       paid_amount: paidAmount,
+      paidAmount: paidAmount,
       remaining_amount: remainingAmount,
-      status: remainingAmount <= 0.01 ? 'PAID' : paidAmount > 0 ? 'PARTIAL' : 'UNPAID',
+      remainingAmount: remainingAmount,
+      payment_method: paymentMethod,
+      paymentMethod: paymentMethod,
+      status: remainingAmount <= 0.01 ? 'PAID' : paidAmount > 0 ? 'PARTIAL' : 'ISSUED',
       created_at: bodyData.created_at || new Date().toISOString(),
       invoice_date: bodyData.invoice_date || new Date().toISOString().split('T')[0],
     };
@@ -6030,33 +6042,46 @@ async function internalHandleLocalDesktopApiFallback(
     setLocalItem('erp_invoices_v1', invoices, companyId);
     await saveRecord('erp_invoices_v1', posInvoice);
 
-    // If credit balance remaining and customer exists, update customer balance ONCE
-    if (remainingAmount > 0 && customerId) {
+    // If credit/partial balance remaining and customer exists, update customer balance ONCE
+    if (remainingAmount > 0 && (customerId || (customerName && customerName !== 'عميل نقدي'))) {
       const customers = getLocalItem<any[]>('erp_customers_v1', []);
-      const cIdx = customers.findIndex((c) => String(c.id) === String(customerId) || String(c.name || '').trim() === customerName);
+      const cIdx = customers.findIndex(
+        (c) =>
+          (customerId && customerId !== 'cust-cash' && customerId !== 'cust-direct' && String(c.id).toLowerCase() === String(customerId).toLowerCase()) ||
+          (customerName && customerName !== 'عميل نقدي' && String(c.name || '').trim().toLowerCase() === customerName.toLowerCase())
+      );
       if (cIdx !== -1) {
         const prev = Number(customers[cIdx].current_balance ?? customers[cIdx].balance ?? 0);
-        customers[cIdx].current_balance = prev + remainingAmount;
-        customers[cIdx].balance = customers[cIdx].current_balance;
+        const nextBal = roundMoney(prev + remainingAmount);
+        customers[cIdx].current_balance = nextBal;
+        customers[cIdx].balance = nextBal;
+        customers[cIdx].total_debt = roundMoney(Number(customers[cIdx].total_debt ?? prev) + remainingAmount);
         setLocalItem('erp_customers_v1', customers, companyId);
         await saveRecord('erp_customers_v1', customers[cIdx]);
       }
     }
 
-    // Revenue Double-Entry Journal (1101/1102 Dr, 1103 Dr, 4101 Cr, 2102 Cr)
+    // Revenue Double-Entry Journal (1101 Cash / 1102 Bank / 1107 Wallet Dr, 1103 Dr, 4101 Cr, 2102 Cr)
     const taxAmount = roundMoney(bodyData.tax || bodyData.tax_amount || bodyData.taxAmount || 0);
     const netSalesVal = roundMoney(Math.max(0, grandTotal - taxAmount));
-    const paymentMethod = String(bodyData.payment_method || bodyData.paymentMethod || (remainingAmount <= 0 ? 'CASH' : 'CREDIT')).toUpperCase();
-    const isBank = ['BANK', 'CARD', 'TRANSFER', 'WALLET'].includes(paymentMethod);
+    const isWallet = ['WALLET', 'MOBILE', 'E_WALLET', 'KURIMI', 'JAWALI', 'FLOUSK', 'ONE_CASH', 'JIB'].includes(paymentMethod);
+    const isBank = !isWallet && ['BANK', 'CARD', 'TRANSFER', 'CHECK'].includes(paymentMethod);
+    const receiptAccCode = isWallet ? '1107' : isBank ? '1102' : '1101';
+    const receiptAccName = isWallet
+      ? 'المحافظ الإلكترونية والشبكات'
+      : isBank
+      ? 'البنك / الحسابات المصرفية'
+      : 'الخزينة الرئيسية (النقدية)';
+    const receiptMethodLabel = isWallet ? 'بالمحفظة الإلكترونية' : isBank ? 'بنكية' : 'نقدية';
 
     const revenueLines: Array<{ account_code: string; account_name: string; debit: number; credit: number; description?: string }> = [];
     if (paidAmount > 0) {
       revenueLines.push({
-        account_code: isBank ? '1102' : '1101',
-        account_name: isBank ? 'البنك / الحسابات المصرفية' : 'الخزينة الرئيسية (النقدية)',
+        account_code: receiptAccCode,
+        account_name: receiptAccName,
         debit: paidAmount,
         credit: 0,
-        description: `تحصيل مبيعات ${isBank ? 'بنكية' : 'نقدية'} فاتورة #${invNum}`,
+        description: `تحصيل مبيعات ${receiptMethodLabel} فاتورة #${invNum}`,
       });
     }
     if (remainingAmount > 0) {
@@ -7437,6 +7462,231 @@ async function internalHandleLocalDesktopApiFallback(
     };
   }
 
+  // 13.8. Invoice Payments Sub-route (/invoices/:id/payments)
+  const invPaymentsMatch = rawUrlNoQuery.match(/\/invoices\/([^/]+)\/payments$/i);
+  if (invPaymentsMatch) {
+    let targetInvId = invPaymentsMatch[1];
+    try {
+      targetInvId = decodeURIComponent(targetInvId);
+    } catch {}
+    const targetInvLower = String(targetInvId).toLowerCase();
+
+    const invoices = getLocalItem<any[]>('erp_invoices_v1', []);
+    const posLogs = getLocalItem<any[]>('erp_pos_sales_log_v1', [], companyId);
+    let invIdx = invoices.findIndex(
+      (i) =>
+        String(i.id || '').toLowerCase() === targetInvLower ||
+        String(i.invoice_number || '').toLowerCase() === targetInvLower ||
+        String(i.invoiceNumber || '').toLowerCase() === targetInvLower
+    );
+    const inv =
+      invIdx !== -1
+        ? invoices[invIdx]
+        : posLogs.find(
+            (i) =>
+              String(i.id || '').toLowerCase() === targetInvLower ||
+              String(i.invoice_number || '').toLowerCase() === targetInvLower ||
+              String(i.invoiceNumber || '').toLowerCase() === targetInvLower
+          );
+
+    if (method === 'GET') {
+      const payments = getLocalItem<any[]>('erp_payments_v1', [], companyId);
+      const invIdLower = String(inv?.id || targetInvId).toLowerCase();
+      const invNumLower = String(inv?.invoice_number || inv?.invoiceNumber || targetInvId).toLowerCase();
+      const matchedPayments = payments.filter((p) => {
+        const refs = [
+          p.invoice_id,
+          p.invoiceId,
+          p.reference_id,
+          p.referenceId,
+          p.reference_no,
+          p.referenceNo,
+          p.reference,
+        ]
+          .filter(Boolean)
+          .map((v) => String(v).trim().toLowerCase());
+        const vouchLower = String(p.voucher_number || p.voucherNumber || '').toLowerCase();
+        const allocMatch =
+          Array.isArray(p.allocations) &&
+          p.allocations.some((a: any) => {
+            const aid = String(a.invoice_id || a.invoiceId || '').toLowerCase();
+            return aid === invIdLower || aid === invNumLower || aid === targetInvLower;
+          });
+        return (
+          refs.includes(targetInvLower) ||
+          refs.includes(invIdLower) ||
+          refs.includes(invNumLower) ||
+          (invNumLower && vouchLower === `rec-${invNumLower}`) ||
+          allocMatch
+        );
+      });
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: matchedPayments,
+        items: matchedPayments,
+      };
+    }
+
+    if (method === 'POST') {
+      let bodyData: any = {};
+      try {
+        if (options?.body) {
+          bodyData = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;
+        }
+      } catch {}
+
+      const payAmt = roundMoney(Number(bodyData.amount || 0));
+      if (payAmt <= 0) {
+        return {
+          ok: false,
+          success: false,
+          status: 400,
+          error: 'مبلغ الدفعة يجب أن يكون أكبر من الصفر',
+          message: 'مبلغ الدفعة يجب أن يكون أكبر من الصفر',
+          data: null,
+        };
+      }
+
+      const rawMethod = String(bodyData.payment_method || bodyData.paymentMethod || 'CASH').toUpperCase();
+      const isWallet = ['WALLET', 'MOBILE', 'E_WALLET', 'KURIMI', 'JAWALI', 'FLOUSK', 'ONE_CASH', 'JIB'].includes(rawMethod);
+      const isBank = !isWallet && ['BANK', 'CARD', 'TRANSFER', 'CHECK'].includes(rawMethod);
+      const cashOrBankCode = isWallet ? '1107' : isBank ? '1102' : '1101';
+      const cashOrBankName = isWallet
+        ? 'المحافظ الإلكترونية والشبكات'
+        : isBank
+        ? 'البنك / الحسابات المصرفية'
+        : 'الخزينة الرئيسية (النقدية)';
+
+      const invNum = inv?.invoice_number || inv?.invoiceNumber || targetInvId;
+      const pDate = bodyData.payment_date || bodyData.date || new Date().toISOString().split('T')[0];
+      const vNum = bodyData.voucher_number || bodyData.reference || `REC-${Date.now().toString().slice(-6)}`;
+      const custName = inv?.customer_name || inv?.customerName || bodyData.customer_name || 'عميل';
+      const custId = inv?.customer_id || inv?.customerId || bodyData.customer_id;
+
+      // 1. Update invoice paid/remaining amounts
+      if (invIdx !== -1) {
+        const invRec = invoices[invIdx];
+        const total = roundMoney(invRec.total || invRec.total_amount || invRec.grandTotal || 0);
+        const curPaid = roundMoney(invRec.paid_amount ?? invRec.paidAmount ?? 0);
+        const newPaid = roundMoney(Math.min(total > 0 ? total : curPaid + payAmt, curPaid + payAmt));
+        const newRemaining = roundMoney(Math.max(0, total - newPaid));
+        invRec.paid_amount = newPaid;
+        invRec.paidAmount = newPaid;
+        invRec.paid = newPaid;
+        invRec.remaining_amount = newRemaining;
+        invRec.remainingAmount = newRemaining;
+        invRec.remaining = newRemaining;
+        invRec.balance_due = newRemaining;
+        invRec.balanceDue = newRemaining;
+        invRec.status = newRemaining <= 0.01 ? 'PAID' : 'PARTIAL';
+        invoices[invIdx] = invRec;
+        setLocalItem('erp_invoices_v1', invoices, companyId);
+        await saveRecord('erp_invoices_v1', invRec);
+      }
+
+      // 2. Decrease customer balance
+      if (custId || (custName && custName !== 'عميل نقدي')) {
+        const customers = getLocalItem<any[]>('erp_customers_v1', [], companyId);
+        const cIdx = customers.findIndex(
+          (c) =>
+            (custId && String(c.id).toLowerCase() === String(custId).toLowerCase()) ||
+            (custName && String(c.name || '').trim().toLowerCase() === String(custName).trim().toLowerCase())
+        );
+        if (cIdx !== -1) {
+          const curBal = Number(customers[cIdx].current_balance ?? customers[cIdx].balance ?? 0);
+          const nextBal = roundMoney(Math.max(0, curBal - payAmt));
+          customers[cIdx].current_balance = nextBal;
+          customers[cIdx].balance = nextBal;
+          setLocalItem('erp_customers_v1', customers, companyId);
+          await saveRecord('erp_customers_v1', customers[cIdx]);
+        }
+      }
+
+      // 3. Create payment record in erp_payments_v1
+      const payments = getLocalItem<any[]>('erp_payments_v1', [], companyId);
+      const paymentRecord = {
+        id: `pmt_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        company_id: companyId,
+        voucher_number: vNum,
+        voucherNumber: vNum,
+        voucher_type: 'RECEIPT',
+        payment_type: 'IN',
+        type: 'CUSTOMER_PAYMENT',
+        invoice_id: inv?.id || targetInvId,
+        invoice_number: invNum,
+        reference: bodyData.reference || invNum,
+        reference_id: inv?.id || invNum,
+        reference_no: invNum,
+        reference_type: 'SALES_INVOICE',
+        customer_id: custId,
+        customer_name: custName,
+        party_id: custId,
+        party_name: custName,
+        partyName: custName,
+        amount: payAmt,
+        currency: bodyData.currency || inv?.currency || 'YER',
+        payment_method: isWallet ? 'WALLET' : isBank ? 'BANK' : 'CASH',
+        payment_date: pDate,
+        date: pDate,
+        notes: bodyData.notes || `سداد دفعة للفاتورة #${invNum}`,
+        allocations: [{ invoice_id: inv?.id || targetInvId, allocated_amount: payAmt }],
+        status: 'CONFIRMED',
+        created_at: new Date().toISOString(),
+        is_synced: true,
+        syncStatus: 'SYNCED',
+      };
+      payments.unshift(paymentRecord);
+      setLocalItem('erp_payments_v1', payments, companyId);
+      await saveRecord('erp_payments_v1', paymentRecord);
+
+      // 4. Post double-entry journal (Dr 1101/1102/1107, Cr 1103)
+      postLocalDoubleEntryJournal({
+        company_id: companyId,
+        reference_type: 'SALES_INVOICE_PAYMENT',
+        reference_id: invNum,
+        description: `تحصيل دفعة فاتورة مبيعات #${invNum} (${custName})`,
+        date: pDate,
+        lines: [
+          {
+            account_code: cashOrBankCode,
+            account_name: cashOrBankName,
+            debit: payAmt,
+            credit: 0,
+            description: `تحصيل دفعة للفاتورة #${invNum} (${rawMethod})`,
+          },
+          {
+            account_code: '1103',
+            account_name: 'العملاء والمدينون التجاريون',
+            debit: 0,
+            credit: payAmt,
+            description: `تسوية ذمة العميل عن فاتورة #${invNum}`,
+          },
+        ],
+      });
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('erp-invoices-updated'));
+        window.dispatchEvent(new Event('erp-payments-updated'));
+        window.dispatchEvent(new Event('erp-customers-updated'));
+        window.dispatchEvent(new Event('erp-ledger-updated'));
+        window.dispatchEvent(new Event('erp-data-updated'));
+        window.dispatchEvent(new Event('storage'));
+      }
+
+      return {
+        ok: true,
+        success: true,
+        status: 201,
+        data: paymentRecord,
+        payment: paymentRecord,
+        invoice: invIdx !== -1 ? invoices[invIdx] : inv,
+        message: 'تم تسجيل الدفعة وتحديث رصيد الفاتورة والعميل بنجاح',
+      };
+    }
+  }
+
   // 14. Comprehensive Entity CRUD Router
   const ENTITY_CONFIG: Record<
     string,
@@ -7480,15 +7730,25 @@ async function internalHandleLocalDesktopApiFallback(
   if (matchedEntityKey && matchedCfg) {
     const { storeKey, prefix, event } = matchedCfg;
 
-    // Extract potential ID parameter from URL: e.g. /api/v1/customers/cst-01 or /customers/cst-01
+    // Extract potential ID parameter from URL (preserving original casing in rawIdParam)
     const parts = cleanUrl.split('/').filter(Boolean);
+    const rawParts = rawUrlNoQuery.split('/').filter(Boolean);
     const keyIdx = parts.findIndex((p) => p === matchedEntityKey || matchedCfg!.aliases.includes(p));
     const idParam = keyIdx !== -1 && parts[keyIdx + 1] ? parts[keyIdx + 1] : null;
+    let rawIdParam: string | null = idParam;
+    if (keyIdx !== -1 && rawParts[keyIdx + 1]) {
+      try {
+        rawIdParam = decodeURIComponent(rawParts[keyIdx + 1]);
+      } catch {
+        rawIdParam = rawParts[keyIdx + 1];
+      }
+    }
 
     // Special sub-path: Customer or Supplier Statement
     if (cleanUrl.includes('/statement')) {
       const items = getLocalItem<any[]>(storeKey, []);
-      const party = items.find((i) => String(i.id) === String(idParam)) || items[0] || null;
+      const targetStmtId = String(rawIdParam || idParam || '').toLowerCase();
+      const party = items.find((i) => String(i.id || '').toLowerCase() === targetStmtId) || items[0] || null;
       if (!party) {
         return {
           ok: true,
@@ -7806,9 +8066,132 @@ async function internalHandleLocalDesktopApiFallback(
       }
       const items = getLocalItem<any[]>(storeKey, []);
       if (idParam && idParam !== 'current' && idParam !== 'categories' && idParam !== 'aging' && idParam !== 'stats') {
-        const found = items.find(
-          (i) => String(i.id) === String(idParam) || String(i.code) === String(idParam) || String(i.barcode) === String(idParam)
+        const targetIdLower = String(rawIdParam || idParam).toLowerCase();
+        let found = items.find(
+          (i) =>
+            String(i.id || '').toLowerCase() === targetIdLower ||
+            String(i.invoice_number || '').toLowerCase() === targetIdLower ||
+            String(i.invoiceNumber || '').toLowerCase() === targetIdLower ||
+            String(i.code || '').toLowerCase() === targetIdLower ||
+            String(i.barcode || '').toLowerCase() === targetIdLower
         );
+
+        if (!found && matchedEntityKey === 'invoices') {
+          const posLogs = getLocalItem<any[]>('erp_pos_sales_log_v1', [], companyId);
+          found = posLogs.find(
+            (i) =>
+              String(i.id || '').toLowerCase() === targetIdLower ||
+              String(i.invoice_number || '').toLowerCase() === targetIdLower ||
+              String(i.invoiceNumber || '').toLowerCase() === targetIdLower
+          );
+        }
+
+        if (found && matchedEntityKey === 'invoices') {
+          const invIdLower = String(found.id || '').toLowerCase();
+          const invNumLower = String(found.invoice_number || found.invoiceNumber || '').toLowerCase();
+          const matchesInv = (val: any) => {
+            const s = String(val || '').trim().toLowerCase();
+            return Boolean(s && (s === invIdLower || s === invNumLower || s === targetIdLower));
+          };
+
+          const relatedPayments = getLocalItem<any[]>('erp_payments_v1', [], companyId).filter(
+            (p) =>
+              matchesInv(p.invoice_id) ||
+              matchesInv(p.invoiceId) ||
+              matchesInv(p.reference_id) ||
+              matchesInv(p.referenceId) ||
+              matchesInv(p.reference_no) ||
+              matchesInv(p.referenceNo) ||
+              matchesInv(p.reference) ||
+              (invNumLower && String(p.voucher_number || p.voucherNumber || '').toLowerCase() === `rec-${invNumLower}`) ||
+              (Array.isArray(p.allocations) && p.allocations.some((a: any) => matchesInv(a.invoice_id || a.invoiceId)))
+          );
+
+          const relatedReturns = getLocalItem<any[]>('erp_sales_returns_v1', [], companyId).filter(
+            (r) =>
+              matchesInv(r.invoice_id) ||
+              matchesInv(r.invoiceId) ||
+              matchesInv(r.original_invoice_number) ||
+              matchesInv(r.originalInvoiceNumber) ||
+              matchesInv(r.invoice_number) ||
+              matchesInv(r.invoiceNumber)
+          );
+
+          const rawJournals = getLocalItem<any[]>('erp_journal_entries_v1', [], companyId).filter(
+            (je) =>
+              matchesInv(je.reference_id) ||
+              matchesInv(je.referenceId) ||
+              matchesInv(je.invoice_id) ||
+              matchesInv(je.invoiceId) ||
+              (invNumLower && String(je.description || '').toLowerCase().includes(invNumLower))
+          );
+
+          const relatedLedgerEntries: any[] = [];
+          rawJournals.forEach((je: any) => {
+            if (Array.isArray(je.lines) && je.lines.length > 0) {
+              je.lines.forEach((line: any, lIdx: number) => {
+                const debit = Number(line.debit || 0);
+                const credit = Number(line.credit || 0);
+                relatedLedgerEntries.push({
+                  id: line.id || `${je.id || 'je'}_line_${lIdx}`,
+                  reference_number: je.entry_number || je.reference_id || je.id,
+                  reference_id: je.reference_id || je.id,
+                  account_code: line.account_code || '',
+                  account_name: line.account_name || line.account_code || 'حساب عام',
+                  entry_type: debit > 0 ? 'DEBIT' : 'CREDIT',
+                  amount: debit > 0 ? debit : credit,
+                  debit,
+                  credit,
+                  description: line.description || je.description || '-',
+                  created_at: line.created_at || je.date || je.created_at,
+                  currency: found.currency || 'YER',
+                });
+              });
+            } else {
+              const debit = Number(je.debit ?? je.total_debit ?? 0);
+              const credit = Number(je.credit ?? je.total_credit ?? 0);
+              relatedLedgerEntries.push({
+                id: je.id || `je_${relatedLedgerEntries.length}`,
+                reference_number: je.entry_number || je.reference_id || je.id,
+                reference_id: je.reference_id || je.id,
+                account_code: je.account_code || '',
+                account_name: je.account_name || 'حساب عام',
+                entry_type: debit >= credit ? 'DEBIT' : 'CREDIT',
+                amount: debit >= credit ? debit : credit,
+                debit,
+                credit,
+                description: je.description || '-',
+                created_at: je.date || je.created_at,
+                currency: found.currency || 'YER',
+              });
+            }
+          });
+
+          const relatedMovements = getLocalItem<any[]>('erp_inventory_movements_v1', [], companyId).filter(
+            (im) =>
+              matchesInv(im.reference_id) ||
+              matchesInv(im.referenceId) ||
+              matchesInv(im.reference_number) ||
+              matchesInv(im.referenceNumber) ||
+              matchesInv(im.invoice_id) ||
+              matchesInv(im.invoiceId)
+          );
+
+          found = {
+            ...found,
+            payments: Array.isArray(found.payments) && found.payments.length > 0 ? found.payments : relatedPayments,
+            returns: Array.isArray(found.returns) && found.returns.length > 0 ? found.returns : relatedReturns,
+            ledger_entries:
+              Array.isArray(found.ledger_entries) && found.ledger_entries.length > 0
+                ? found.ledger_entries
+                : relatedLedgerEntries,
+            inventory_movements:
+              Array.isArray(found.inventory_movements) && found.inventory_movements.length > 0
+                ? found.inventory_movements
+                : relatedMovements,
+          };
+        }
+
         return {
           ok: true,
           success: true,
@@ -7996,6 +8379,33 @@ async function internalHandleLocalDesktopApiFallback(
         }
       }
 
+      if (matchedEntityKey === 'invoices') {
+        const totalAmount = roundMoney(sanitized.total || sanitized.grandTotal || sanitized.totalAmount || 0);
+        const invPayMethod = String(sanitized.payment_method || sanitized.paymentMethod || 'CASH').toUpperCase();
+        const rawPaidVal = bodyData.paid_amount ?? bodyData.paidAmount ?? sanitized.paid_amount ?? sanitized.paidAmount;
+        let calcPaid = 0;
+        if (rawPaidVal !== undefined && rawPaidVal !== null && rawPaidVal !== '') {
+          calcPaid = roundMoney(Math.max(0, Math.min(Number(rawPaidVal), totalAmount)));
+        } else if (['CASH', 'BANK', 'CARD', 'TRANSFER', 'WALLET', 'MOBILE'].includes(invPayMethod)) {
+          calcPaid = totalAmount;
+        }
+        const calcRemaining = roundMoney(Math.max(0, Number((totalAmount - calcPaid).toFixed(2))));
+        sanitized.total = totalAmount;
+        sanitized.paid_amount = calcPaid;
+        sanitized.paidAmount = calcPaid;
+        sanitized.paid = calcPaid;
+        sanitized.remaining_amount = calcRemaining;
+        sanitized.remainingAmount = calcRemaining;
+        sanitized.remaining = calcRemaining;
+        sanitized.balance_due = calcRemaining;
+        sanitized.balanceDue = calcRemaining;
+        sanitized.payment_method = invPayMethod;
+        sanitized.paymentMethod = invPayMethod;
+        if (String(sanitized.status || '').toUpperCase() !== 'DRAFT') {
+          sanitized.status = calcRemaining <= 0 ? 'PAID' : calcPaid > 0 ? 'PARTIAL' : 'ISSUED';
+        }
+      }
+
       const items = getLocalItem<any[]>(storeKey, []);
       const existingIdx = items.findIndex((i) => String(i.id) === String(id));
       if (existingIdx !== -1) {
@@ -8008,18 +8418,24 @@ async function internalHandleLocalDesktopApiFallback(
       setLocalItem(storeKey, items, companyId);
       await saveRecord(storeKey, sanitized);
 
-      // If sales invoice created: deduct stock, update customer balance if credit, and post journals
+      // If sales invoice created: deduct stock, update customer balance if remaining > 0, and post journals
       if (matchedEntityKey === 'invoices') {
         const remaining = roundMoney(sanitized.remaining_amount ?? sanitized.remainingAmount ?? 0);
         const custId = sanitized.customer_id || sanitized.customerId;
         const custName = sanitized.customer_name || sanitized.customerName || sanitized.customer;
-        if (remaining > 0 && (custId || custName)) {
+        if (remaining > 0 && (custId || (custName && String(custName).trim() !== 'عميل نقدي'))) {
           const customers = getLocalItem<any[]>('erp_customers_v1', []);
-          const cIdx = customers.findIndex((c) => String(c.id) === String(custId) || String(c.name || '').trim() === String(custName).trim());
+          const cIdx = customers.findIndex(
+            (c) =>
+              (custId && custId !== 'cust-cash' && custId !== 'cust-direct' && String(c.id).toLowerCase() === String(custId).toLowerCase()) ||
+              (custName && String(custName).trim() !== 'عميل نقدي' && String(c.name || '').trim().toLowerCase() === String(custName).trim().toLowerCase())
+          );
           if (cIdx !== -1) {
             const currentBal = Number(customers[cIdx].current_balance ?? customers[cIdx].balance ?? 0);
-            customers[cIdx].current_balance = roundMoney(currentBal + remaining);
-            customers[cIdx].balance = customers[cIdx].current_balance;
+            const nextBal = roundMoney(currentBal + remaining);
+            customers[cIdx].current_balance = nextBal;
+            customers[cIdx].balance = nextBal;
+            customers[cIdx].total_debt = roundMoney(Number(customers[cIdx].total_debt ?? currentBal) + remaining);
             setLocalItem('erp_customers_v1', customers, companyId);
             await saveRecord('erp_customers_v1', customers[cIdx]);
           }
@@ -8065,24 +8481,32 @@ async function internalHandleLocalDesktopApiFallback(
         setLocalItem('erp_products_v1', products, companyId);
         setLocalItem('erp_inventory_movements_v1', movements, companyId);
 
-        // Revenue Double-Entry Journal (1101/1102 Dr, 1103 Dr, 4101 Cr, 2102 Cr)
+        // Revenue Double-Entry Journal (1101 Cash / 1102 Bank / 1107 Wallet Dr, 1103 Dr, 4101 Cr, 2102 Cr)
         const grandTotal = roundMoney(sanitized.total || sanitized.grandTotal || sanitized.totalAmount || 0);
         const taxAmount = roundMoney(sanitized.tax || sanitized.tax_amount || sanitized.taxAmount || 0);
         const netSalesVal = roundMoney(Math.max(0, grandTotal - taxAmount));
-        const paidAmount = roundMoney(sanitized.paid_amount ?? sanitized.paidAmount ?? (sanitized.payment_method === 'CASH' ? grandTotal : 0));
+        const paidAmount = roundMoney(sanitized.paid_amount ?? sanitized.paidAmount ?? 0);
         const remainingAmount = roundMoney(sanitized.remaining_amount ?? sanitized.remainingAmount ?? Math.max(0, grandTotal - paidAmount));
         const paymentMethod = String(sanitized.payment_method || sanitized.paymentMethod || (remainingAmount <= 0 ? 'CASH' : 'CREDIT')).toUpperCase();
-        const isBank = ['BANK', 'CARD', 'TRANSFER', 'WALLET'].includes(paymentMethod);
+        const isWallet = ['WALLET', 'MOBILE', 'E_WALLET', 'KURIMI', 'JAWALI', 'FLOUSK', 'ONE_CASH', 'JIB'].includes(paymentMethod);
+        const isBank = !isWallet && ['BANK', 'CARD', 'TRANSFER', 'CHECK'].includes(paymentMethod);
+        const receiptAccCode = isWallet ? '1107' : isBank ? '1102' : '1101';
+        const receiptAccName = isWallet
+          ? 'المحافظ الإلكترونية والشبكات'
+          : isBank
+          ? 'البنك / الحسابات المصرفية'
+          : 'الخزينة الرئيسية (النقدية)';
+        const receiptMethodLabel = isWallet ? 'بالمحفظة الإلكترونية' : isBank ? 'بنكية' : 'نقدية';
         const cName = String(custName || 'عميل').trim();
 
         const revenueLines: Array<{ account_code: string; account_name: string; debit: number; credit: number; description?: string }> = [];
         if (paidAmount > 0) {
           revenueLines.push({
-            account_code: isBank ? '1102' : '1101',
-            account_name: isBank ? 'البنك / الحسابات المصرفية' : 'الخزينة الرئيسية (النقدية)',
+            account_code: receiptAccCode,
+            account_name: receiptAccName,
             debit: paidAmount,
             credit: 0,
-            description: `تحصيل مبيعات ${isBank ? 'بنكية' : 'نقدية'} فاتورة #${invNumber}`,
+            description: `تحصيل مبيعات ${receiptMethodLabel} فاتورة #${invNumber}`,
           });
         }
         if (remainingAmount > 0) {
@@ -8502,9 +8926,14 @@ async function internalHandleLocalDesktopApiFallback(
       if (matchedEntityKey === 'payments') {
         const roundAmt = roundMoney(Number(sanitized.amount || 0));
         const rawMethod = String(sanitized.payment_method || sanitized.paymentMethod || 'CASH').toUpperCase();
-        const isBank = ['BANK', 'WALLET', 'CHECK', 'CARD', 'TRANSFER'].includes(rawMethod);
-        const cashOrBankCode = isBank ? '1102' : '1101';
-        const cashOrBankName = isBank ? 'البنك / الحسابات المصرفية والمحافظ' : 'الصندوق / النقدية';
+        const isWallet = ['WALLET', 'MOBILE', 'E_WALLET', 'KURIMI', 'JAWALI', 'FLOUSK', 'ONE_CASH', 'JIB'].includes(rawMethod);
+        const isBank = !isWallet && ['BANK', 'CHECK', 'CARD', 'TRANSFER'].includes(rawMethod);
+        const cashOrBankCode = isWallet ? '1107' : isBank ? '1102' : '1101';
+        const cashOrBankName = isWallet
+          ? 'المحافظ الإلكترونية والشبكات'
+          : isBank
+          ? 'البنك / الحسابات المصرفية'
+          : 'الصندوق / النقدية';
         const isReceipt = sanitized.type === 'CUSTOMER_PAYMENT' || sanitized.voucher_type === 'RECEIPT' || sanitized.payment_type === 'IN';
         const vNum = sanitized.voucher_number || sanitized.voucherNumber || sanitized.id;
         const pDate = sanitized.payment_date || sanitized.date || new Date().toISOString().split('T')[0];
@@ -8664,9 +9093,17 @@ async function internalHandleLocalDesktopApiFallback(
         if (options?.body) bodyData = JSON.parse(options.body as string);
       } catch {}
 
-      const targetId = idParam || bodyData.id;
+      const targetId = rawIdParam || idParam || bodyData.id;
+      const targetIdLower = String(targetId || '').toLowerCase();
       const items = getLocalItem<any[]>(storeKey, []);
-      const idx = items.findIndex((i) => String(i.id) === String(targetId));
+      const idx = items.findIndex(
+        (i) =>
+          String(i.id || '').toLowerCase() === targetIdLower ||
+          String(i.invoice_number || '').toLowerCase() === targetIdLower ||
+          String(i.invoiceNumber || '').toLowerCase() === targetIdLower ||
+          String(i.code || '').toLowerCase() === targetIdLower ||
+          String(i.barcode || '').toLowerCase() === targetIdLower
+      );
 
       let updatedRecord: any;
       if (idx !== -1) {
@@ -8716,18 +9153,29 @@ async function internalHandleLocalDesktopApiFallback(
 
     // DELETE Request: Remove Record
     if (method === 'DELETE') {
+      const targetId = rawIdParam || idParam;
+      const targetIdLower = String(targetId || '').toLowerCase();
       const items = getLocalItem<any[]>(storeKey, []);
-      const filtered = items.filter((i) => String(i.id) !== String(idParam));
+      const foundToDelete = items.find(
+        (i) =>
+          String(i.id || '').toLowerCase() === targetIdLower ||
+          String(i.invoice_number || '').toLowerCase() === targetIdLower ||
+          String(i.invoiceNumber || '').toLowerCase() === targetIdLower ||
+          String(i.code || '').toLowerCase() === targetIdLower ||
+          String(i.barcode || '').toLowerCase() === targetIdLower
+      );
+      const actualId = foundToDelete?.id || targetId;
+      const filtered = items.filter((i) => String(i.id) !== String(actualId));
       setLocalItem(storeKey, filtered, companyId);
 
-      if (idParam) {
-        await deleteRecord(storeKey, idParam).catch(() => {});
+      if (actualId) {
+        await deleteRecord(storeKey, String(actualId)).catch(() => {});
       }
 
       if (typeof window !== 'undefined') {
         window.dispatchEvent(
           new CustomEvent('erp-data-updated', {
-            detail: { collection: matchedEntityKey, storeKey, action: 'DELETE', id: idParam },
+            detail: { collection: matchedEntityKey, storeKey, action: 'DELETE', id: actualId },
           })
         );
         if (event) window.dispatchEvent(new Event(event));
@@ -8738,7 +9186,7 @@ async function internalHandleLocalDesktopApiFallback(
         ok: true,
         success: true,
         status: 200,
-        data: { success: true, id: idParam },
+        data: { success: true, id: actualId },
         message: 'تم الحذف بنجاح',
       };
     }

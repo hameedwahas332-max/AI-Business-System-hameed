@@ -725,12 +725,32 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
   const hasBelowCost = belowCostItems.length > 0;
 
   const handleSave = async (statusToSave: 'PENDING' | 'DRAFT', shouldPrint: boolean = false) => {
-    const effectiveCustomerName = (customerName || selectedCustomer?.name || '').trim() || (paymentMethod === 'CREDIT' ? '' : 'عميل نقدي');
-
-    if (paymentMethod === 'CREDIT' && !effectiveCustomerName) {
-      setError('يرجى تحديد أو كتابة اسم العميل لإصدار فاتورة بيع آجل (ذمم)');
-      return;
+    const rawPaidInput = Number(paidAmount ?? 0);
+    let effectivePaid = 0;
+    let effectiveRemaining = 0;
+    if (paymentMethod === 'CREDIT') {
+      effectivePaid = Math.max(0, Math.min(rawPaidInput, grandTotal));
+      effectiveRemaining = Math.max(0, Number((grandTotal - effectivePaid).toFixed(2)));
+    } else {
+      // CASH, BANK, WALLET: allow full or partial payment; if user entered partial amount < grandTotal, remaining goes to customer account
+      effectivePaid = Math.max(0, Math.min(rawPaidInput, grandTotal));
+      effectiveRemaining = Math.max(0, Number((grandTotal - effectivePaid).toFixed(2)));
     }
+
+    const rawCustomerName = (customerName || selectedCustomer?.name || '').trim();
+    const isRegisteredCustomer = Boolean(
+      (selectedCustomerId && selectedCustomerId !== 'cust-cash' && selectedCustomerId !== 'cust-direct') ||
+      (rawCustomerName && rawCustomerName !== 'عميل نقدي')
+    );
+
+    if (paymentMethod === 'CREDIT' || effectiveRemaining > 0) {
+      if (!isRegisteredCustomer) {
+        setError('يرجى اختيار عميل مسجل لترحيل المبلغ المتبقي على حسابه، أو تسديد كامل مبلغ الفاتورة');
+        return;
+      }
+    }
+
+    const effectiveCustomerName = rawCustomerName || (paymentMethod === 'CREDIT' || effectiveRemaining > 0 ? '' : 'عميل نقدي');
 
     if (!selectedCustomerId && !effectiveCustomerName) {
       setError('يرجى اختيار أو كتابة اسم العميل أولاً لإصدار الفاتورة');
@@ -756,21 +776,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
       setLoading(true);
       setError(null);
 
-      // Compute strict paid and remaining amounts according to payment method
-      let effectivePaid = 0;
-      let effectiveRemaining = 0;
-      if (paymentMethod === 'CASH' || paymentMethod === 'BANK' || paymentMethod === 'WALLET') {
-        effectivePaid = grandTotal;
-        effectiveRemaining = 0;
-      } else if (paymentMethod === 'CREDIT') {
-        effectivePaid = Math.max(0, Math.min(Number(paidAmount || 0), grandTotal));
-        effectiveRemaining = Math.max(0, Number((grandTotal - effectivePaid).toFixed(2)));
-      } else {
-        effectivePaid = Math.max(0, Math.min(Number(paidAmount || 0), grandTotal));
-        effectiveRemaining = Math.max(0, Number((grandTotal - effectivePaid).toFixed(2)));
-      }
-
-      const computedStatus = effectiveRemaining <= 0.01 && grandTotal > 0 ? 'paid' : effectivePaid > 0 ? 'partial' : 'unpaid';
+      const computedStatus = effectiveRemaining <= 0 ? 'PAID' : (effectivePaid > 0 ? 'PARTIAL' : 'ISSUED');
       const effectiveSalesperson = (salespersonName || loggedInSalesperson || 'حميد وهاس').trim();
 
       const canonicalInvNum = invoiceNumber.trim() ? toEnglishDigits(invoiceNumber.trim()) : `INV-${Date.now().toString().slice(-6)}`;
@@ -818,7 +824,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
         due_date: dueDate || undefined,
         currency,
         exchange_rate: exchangeRate,
-        status: statusToSave === 'DRAFT' ? 'draft' : computedStatus,
+        status: statusToSave === 'DRAFT' ? 'DRAFT' : computedStatus,
         notes: combinedNotes,
         salesperson: effectiveSalesperson,
         salesperson_name: effectiveSalesperson,
@@ -925,7 +931,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
           remaining: effectiveRemaining,
           balanceDue: effectiveRemaining,
           remaining_amount: effectiveRemaining,
-          status: statusToSave === 'DRAFT' ? 'draft' : computedStatus,
+          status: statusToSave === 'DRAFT' ? 'DRAFT' : computedStatus,
           payment_method: paymentMethod,
           items: validItems.map((it) => {
             const prod: any = productList.find((p) => p.id === (it.product_id || (it as any).productId)) || {};
@@ -990,19 +996,21 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
           console.error('Failed to sync to erp_invoices_v1:', e);
         }
 
-        // If credit sale with remaining balance, sync customer balance in erp_customers_v1 ONCE (no duplicate addCustomerTransaction call)
+        // If sale has remaining balance (any payment method: WALLET, BANK, CASH, CREDIT), sync customer balance in erp_customers_v1 ONCE
         if (effectiveRemaining > 0 && effectiveCustomerName) {
           try {
             const custStored = localStorage.getItem('erp_customers_v1');
             const custList: any[] = custStored ? JSON.parse(custStored) : [];
             let matched = false;
             const updatedCustList = custList.map((c) => {
-              if (c.id === selectedCustomerId || c.name?.trim() === effectiveCustomerName) {
+              if (String(c.id) === String(selectedCustomerId) || (c.name || '').trim() === effectiveCustomerName.trim()) {
                 matched = true;
+                const currentCustBal = Number(c.current_balance ?? c.balance ?? 0);
+                const updatedCustBal = Number((currentCustBal + effectiveRemaining).toFixed(2));
                 return {
                   ...c,
-                  current_balance: newBal,
-                  balance: newBal,
+                  current_balance: updatedCustBal,
+                  balance: updatedCustBal,
                   total_sales: Number(c.total_sales || 0) + grandTotal,
                 };
               }
@@ -1012,8 +1020,8 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
               updatedCustList.push({
                 id: selectedCustomerId || `cust-${Date.now()}`,
                 name: effectiveCustomerName,
-                current_balance: newBal,
-                balance: newBal,
+                current_balance: effectiveRemaining,
+                balance: effectiveRemaining,
                 total_sales: grandTotal,
                 status: 'active',
                 currency: currency || 'YER',
@@ -1021,6 +1029,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
             }
             localStorage.setItem('erp_customers_v1', JSON.stringify(updatedCustList));
             window.dispatchEvent(new CustomEvent('erp-customers-updated'));
+            window.dispatchEvent(new Event('erp_data_updated'));
           } catch (e) {
             console.error('Failed to sync customer balance:', e);
           }

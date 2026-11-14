@@ -1496,20 +1496,151 @@ enterpriseRouter.get('/invoices/stats', (req: Request, res: Response) => {
   });
 });
 
-enterpriseRouter.get('/invoices/:id', (req: Request, res: Response) => {
+enterpriseRouter.get('/invoices/:id', async (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
-  const idOrNum = req.params.id;
-  const inv = mockInvoicesList.find(
+  const idOrNum = String(req.params.id || '').trim();
+  const targetLower = idOrNum.toLowerCase();
+
+  let inv: any = mockInvoicesList.find(
     (i) =>
-      (i.id === idOrNum || i.invoice_number === idOrNum || (i as any).invoiceNumber === idOrNum) &&
+      (String(i.id || '').toLowerCase() === targetLower ||
+        String(i.invoice_number || '').toLowerCase() === targetLower ||
+        String((i as any).invoiceNumber || '').toLowerCase() === targetLower) &&
       (!i.company_id || i.company_id === companyId)
   );
+
+  if (!inv) {
+    const store = getTenantCollections(companyId);
+    if (Array.isArray(store?.invoices)) {
+      inv = store.invoices.find(
+        (i: any) =>
+          String(i.id || '').toLowerCase() === targetLower ||
+          String(i.invoice_number || '').toLowerCase() === targetLower ||
+          String(i.invoiceNumber || '').toLowerCase() === targetLower
+      );
+    }
+  }
+
+  if (!inv && enterpriseDbPool) {
+    try {
+      const dbRes = await enterpriseDbPool.query(
+        'SELECT * FROM invoices WHERE company_id = $1 AND (id::text = $2 OR LOWER(invoice_number) = LOWER($2)) LIMIT 1',
+        [companyId, idOrNum]
+      );
+      if (dbRes.rows && dbRes.rows.length > 0) {
+        inv = dbRes.rows[0];
+      }
+    } catch {
+      // Table may not exist in JSONB-only mode; ignore safely
+    }
+  }
 
   if (!inv) {
     return res.status(404).json({ success: false, error: 'Invoice not found', message: 'الفاتورة غير موجودة' });
   }
 
-  res.json({ success: true, data: inv });
+  const invIdLower = String(inv.id || '').toLowerCase();
+  const invNumLower = String(inv.invoice_number || inv.invoiceNumber || '').toLowerCase();
+  const matchesInv = (val: any) => {
+    const s = String(val || '').trim().toLowerCase();
+    return Boolean(s && (s === invIdLower || s === invNumLower || s === targetLower));
+  };
+
+  const relatedPayments = mockPaymentsList.filter(
+    (p: any) =>
+      (!p.company_id || p.company_id === companyId) &&
+      (matchesInv(p.invoice_id) ||
+        matchesInv(p.invoiceId) ||
+        matchesInv(p.reference_id) ||
+        matchesInv(p.referenceId) ||
+        matchesInv(p.reference_no) ||
+        matchesInv(p.referenceNo) ||
+        matchesInv(p.reference) ||
+        (invNumLower && String(p.voucher_number || p.voucherNumber || '').toLowerCase() === `rec-${invNumLower}`) ||
+        (Array.isArray(p.allocations) && p.allocations.some((a: any) => matchesInv(a.invoice_id || a.invoiceId))))
+  );
+
+  const returnsState = await getModuleState(companyId, 'sales_returns', []);
+  const storedReturns = Array.isArray(returnsState?.data) ? returnsState.data : [];
+  const relatedReturns = storedReturns.filter(
+    (r: any) =>
+      matchesInv(r.invoice_id) ||
+      matchesInv(r.invoiceId) ||
+      matchesInv(r.original_invoice_number) ||
+      matchesInv(r.originalInvoiceNumber) ||
+      matchesInv(r.invoice_number) ||
+      matchesInv(r.invoiceNumber)
+  );
+
+  const tenantJournals = getTenantJournalEntries(companyId);
+  const matchedJournals = tenantJournals.filter(
+    (je: any) =>
+      matchesInv(je.reference_id) ||
+      matchesInv(je.referenceId) ||
+      matchesInv(je.invoice_id) ||
+      matchesInv(je.invoiceId) ||
+      (invNumLower && String(je.description || '').toLowerCase().includes(invNumLower))
+  );
+
+  const relatedLedgerEntries: any[] = [];
+  matchedJournals.forEach((je: any) => {
+    if (Array.isArray(je.lines) && je.lines.length > 0) {
+      je.lines.forEach((line: any, idx: number) => {
+        const d = Number(line.debit || 0);
+        const c = Number(line.credit || 0);
+        relatedLedgerEntries.push({
+          id: line.id || `${je.id || 'je'}_line_${idx}`,
+          reference_number: je.entry_number || je.reference_id || je.id,
+          reference_id: je.reference_id || je.id,
+          account_code: line.account_code || '',
+          account_name: line.account_name || line.account_code || 'حساب عام',
+          entry_type: d > 0 ? 'DEBIT' : 'CREDIT',
+          amount: d > 0 ? d : c,
+          debit: d,
+          credit: c,
+          description: line.description || je.description || '-',
+          created_at: line.created_at || je.date || je.created_at,
+          currency: inv.currency || 'YER',
+        });
+      });
+    }
+  });
+
+  const relatedMovements = mockInventoryMovements.filter(
+    (im: any) =>
+      (!im.company_id || im.company_id === companyId) &&
+      (matchesInv(im.reference_id) ||
+        matchesInv((im as any).referenceId) ||
+        matchesInv((im as any).invoice_id))
+  );
+
+  const cust = mockCustomersList.find(
+    (c) =>
+      (!c.company_id || c.company_id === companyId) &&
+      ((inv.customer_id && String(c.id).toLowerCase() === String(inv.customer_id).toLowerCase()) ||
+        (inv.customer_name && String(c.name || '').trim().toLowerCase() === String(inv.customer_name).trim().toLowerCase()))
+  );
+
+  const enrichedInvoice = {
+    ...inv,
+    items: Array.isArray(inv.items) ? inv.items : [],
+    payments: Array.isArray(inv.payments) && inv.payments.length > 0 ? inv.payments : relatedPayments,
+    returns: Array.isArray(inv.returns) && inv.returns.length > 0 ? inv.returns : relatedReturns,
+    ledger_entries:
+      Array.isArray(inv.ledger_entries) && inv.ledger_entries.length > 0
+        ? inv.ledger_entries
+        : relatedLedgerEntries,
+    inventory_movements:
+      Array.isArray(inv.inventory_movements) && inv.inventory_movements.length > 0
+        ? inv.inventory_movements
+        : relatedMovements,
+    customer_balance:
+      inv.customer_balance !== undefined && inv.customer_balance !== null
+        ? inv.customer_balance
+        : Number(cust?.current_balance ?? cust?.balance ?? 0),
+  };
+
+  res.json({ success: true, data: enrichedInvoice });
 });
 
 enterpriseRouter.put('/invoices/:id', (req: Request, res: Response) => {
@@ -1553,12 +1684,93 @@ enterpriseRouter.post('/invoices/:id/return', (req: Request, res: Response) => {
 });
 
 enterpriseRouter.get('/invoices/:id/payments', (req: Request, res: Response) => {
-  res.json({
-    success: true,
-    data: [
-      { id: 'PMT-001', voucher_number: 'VOUCH-1001', amount: 1667.5, payment_method: 'CASH', payment_date: '2026-10-18', status: 'CONFIRMED' },
-    ],
+  const companyId = resolveCompanyId(req);
+  const idOrNum = String(req.params.id || '').trim().toLowerCase();
+  const inv = mockInvoicesList.find(
+    (i) =>
+      (String(i.id || '').toLowerCase() === idOrNum ||
+        String(i.invoice_number || '').toLowerCase() === idOrNum ||
+        String((i as any).invoiceNumber || '').toLowerCase() === idOrNum) &&
+      (!i.company_id || i.company_id === companyId)
+  );
+  const invIdLower = String(inv?.id || idOrNum).toLowerCase();
+  const invNumLower = String(inv?.invoice_number || (inv as any)?.invoiceNumber || idOrNum).toLowerCase();
+  const payments = mockPaymentsList.filter((p: any) => {
+    if (p.company_id && p.company_id !== companyId) return false;
+    const refs = [p.invoice_id, p.invoiceId, p.reference_id, p.referenceId, p.reference_no, p.referenceNo, p.reference]
+      .filter(Boolean)
+      .map((v) => String(v).trim().toLowerCase());
+    return (
+      refs.includes(idOrNum) ||
+      refs.includes(invIdLower) ||
+      refs.includes(invNumLower) ||
+      String(p.voucher_number || p.voucherNumber || '').toLowerCase() === `rec-${invNumLower}`
+    );
   });
+  res.json({ success: true, data: payments });
+});
+
+enterpriseRouter.post('/invoices/:id/payments', (req: Request, res: Response) => {
+  try {
+    const companyId = resolveCompanyId(req);
+    const idOrNum = String(req.params.id || '').trim();
+    const targetLower = idOrNum.toLowerCase();
+    const body = req.body || {};
+    const payAmt = roundMoney(Number(body.amount || 0));
+    if (payAmt <= 0) {
+      return res.status(400).json({ success: false, message: 'مبلغ الدفعة يجب أن يكون أكبر من الصفر' });
+    }
+
+    const inv = mockInvoicesList.find(
+      (i) =>
+        (String(i.id || '').toLowerCase() === targetLower ||
+          String(i.invoice_number || '').toLowerCase() === targetLower ||
+          String((i as any).invoiceNumber || '').toLowerCase() === targetLower) &&
+        (!i.company_id || i.company_id === companyId)
+    );
+
+    const invNum = inv?.invoice_number || (inv as any)?.invoiceNumber || idOrNum;
+    const voucherRes = postVoucherAtomic({
+      companyId,
+      type: 'RECEIPT',
+      partyType: 'CUSTOMER',
+      partyId: inv?.customer_id || body.customer_id,
+      partyName: inv?.customer_name || body.customer_name || 'عميل',
+      amount: payAmt,
+      paymentMethod: body.payment_method || body.paymentMethod || 'CASH',
+      date: body.payment_date || body.date,
+      referenceNo: invNum,
+      notes: body.notes || `تحصيل دفعة فاتورة مبيعات #${invNum}`,
+      description: `تحصيل دفعة فاتورة مبيعات #${invNum}`,
+      allocations: inv ? [{ invoice_id: inv.id, allocated_amount: payAmt }] : undefined,
+    });
+
+    if (inv) {
+      const total = roundMoney(inv.total || (inv as any).total_amount || 0);
+      const curPaid = roundMoney(inv.paid_amount ?? (inv as any).paidAmount ?? 0);
+      const newPaid = roundMoney(Math.min(total > 0 ? total : curPaid + payAmt, curPaid + payAmt));
+      const newRemaining = roundMoney(Math.max(0, total - newPaid));
+      inv.paid_amount = newPaid;
+      (inv as any).paidAmount = newPaid;
+      inv.remaining_amount = newRemaining;
+      (inv as any).remainingAmount = newRemaining;
+      inv.status = newRemaining <= 0.01 ? 'PAID' : 'PARTIAL';
+      persistAllToDisk();
+    }
+
+    res.status(201).json({
+      success: true,
+      data: voucherRes.payment,
+      invoice: inv || null,
+      message: 'تم تسجيل الدفعة وتحديث الفاتورة وحساب العميل بنجاح',
+    });
+  } catch (err: any) {
+    res.status(err.status || 400).json({
+      success: false,
+      message: err.message || 'فشل تسجيل الدفعة',
+      error: err.message,
+    });
+  }
 });
 
 enterpriseRouter.post('/invoices/:id/send-email', (req: Request, res: Response) => {

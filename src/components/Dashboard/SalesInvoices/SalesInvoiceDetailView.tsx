@@ -30,12 +30,14 @@ import {
 
 interface SalesInvoiceDetailViewProps {
   invoiceId: string;
+  initialInvoice?: any;
   onBack: () => void;
   onRefreshList?: () => void;
 }
 
 export const SalesInvoiceDetailView: React.FC<SalesInvoiceDetailViewProps> = ({
   invoiceId,
+  initialInvoice,
   onBack,
   onRefreshList,
 }) => {
@@ -49,28 +51,304 @@ export const SalesInvoiceDetailView: React.FC<SalesInvoiceDetailViewProps> = ({
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [emailSuccess, setEmailSuccess] = useState<string | null>(null);
 
+  const safeReadLocalArray = (key: string): any[] => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const enrichInvoiceDetails = (baseInv: any) => {
+    const invIdNorm = String(baseInv?.id || '').trim().toLowerCase();
+    const invNumNorm = String(baseInv?.invoice_number || baseInv?.invoiceNumber || '').trim().toLowerCase();
+    const matchesRef = (val: any) => {
+      const norm = String(val || '').trim().toLowerCase();
+      if (!norm) return false;
+      return (invIdNorm && norm === invIdNorm) || (invNumNorm && norm === invNumNorm);
+    };
+
+    // 1. Items normalization
+    const rawItems = Array.isArray(baseInv.items) && baseInv.items.length > 0
+      ? baseInv.items
+      : Array.isArray(baseInv.lines)
+        ? baseInv.lines
+        : [];
+    const normalizedItems = rawItems.map((it: any) => {
+      const qty = Number(it.quantity ?? it.qty ?? 1);
+      const unitPrice = Number(it.unit_price ?? it.unitPrice ?? it.price ?? 0);
+      const discount = Number(it.discount || 0);
+      const tax = Number(it.tax || 0);
+      const itemTotal = Number(it.total ?? Math.max(0, qty * unitPrice - discount + tax));
+      const unitLabel = it.unit_name || it.unit || it.product_unit || 'حبة';
+      const prodName = it.product_name || it.name || it.item_name || it.description || 'صنف مبيعات';
+      return {
+        ...it,
+        product_name: prodName,
+        name: it.name || prodName,
+        quantity: qty,
+        unit_price: unitPrice,
+        total: itemTotal,
+        unit_name: unitLabel,
+        unit: it.unit || unitLabel,
+      };
+    });
+
+    // 2. Payments from erp_payments_v1 & erp_treasury_vouchers_v1
+    let enrichedPayments = Array.isArray(baseInv.payments) ? [...baseInv.payments] : [];
+    if (enrichedPayments.length === 0) {
+      const storedPayments = [
+        ...safeReadLocalArray('erp_payments_v1'),
+        ...safeReadLocalArray('erp_treasury_vouchers_v1'),
+      ];
+      const matchedPayments = storedPayments.filter((p: any) =>
+        matchesRef(p.referenceId) ||
+        matchesRef(p.reference_id) ||
+        matchesRef(p.referenceNo) ||
+        matchesRef(p.reference_no) ||
+        matchesRef(p.invoiceId) ||
+        matchesRef(p.invoice_id) ||
+        matchesRef(p.invoiceNumber) ||
+        matchesRef(p.invoice_number)
+      );
+
+      if (matchedPayments.length > 0) {
+        const seen = new Set<string>();
+        enrichedPayments = matchedPayments
+          .filter((p: any) => {
+            const k = String(p.id || p.voucher_number || p.referenceNo || Math.random());
+            if (seen.has(k)) return false;
+            seen.add(k);
+            return true;
+          })
+          .map((p: any) => ({
+            id: p.id || `pmt-${Date.now()}`,
+            payment_date: p.payment_date || p.paymentDate || p.date || p.created_at,
+            created_at: p.created_at || p.date || baseInv.created_at,
+            amount: Number(p.amount || 0),
+            payment_method: p.payment_method || p.paymentMethod || baseInv.payment_method || 'CASH',
+            reference: p.voucher_number || p.voucherNumber || p.reference || p.referenceNo || baseInv.invoice_number || '-',
+            notes: p.notes || p.description || '-',
+            currency: p.currency || baseInv.currency || 'YER',
+          }));
+      } else {
+        const paidAmt = Number(baseInv.paid_amount ?? baseInv.paidAmount ?? baseInv.amountPaid ?? baseInv.paid ?? 0);
+        if (paidAmt > 0) {
+          enrichedPayments = [
+            {
+              id: `init-pmt-${baseInv.id || baseInv.invoice_number || '1'}`,
+              payment_date: baseInv.invoice_date || baseInv.created_at,
+              created_at: baseInv.created_at || baseInv.invoice_date || new Date().toISOString(),
+              amount: paidAmt,
+              payment_method: baseInv.payment_method || baseInv.paymentMethod || 'CASH',
+              reference: baseInv.invoice_number || baseInv.invoiceNumber || baseInv.id || '-',
+              notes: `دفعة أولية مسددة عند إنشاء الفاتورة (${baseInv.payment_method || 'CASH'})`,
+              currency: baseInv.currency || 'YER',
+            },
+          ];
+        }
+      }
+    }
+
+    // 3. Returns from erp_sales_returns_v1
+    let enrichedReturns = Array.isArray(baseInv.returns) ? [...baseInv.returns] : [];
+    if (enrichedReturns.length === 0) {
+      const storedReturns = safeReadLocalArray('erp_sales_returns_v1');
+      enrichedReturns = storedReturns
+        .filter((r: any) =>
+          matchesRef(r.invoice_id) ||
+          matchesRef(r.invoiceId) ||
+          matchesRef(r.invoice_number) ||
+          matchesRef(r.invoiceNumber) ||
+          matchesRef(r.reference_id) ||
+          matchesRef(r.referenceId)
+        )
+        .map((r: any) => ({
+          ...r,
+          return_number: r.return_number || r.returnNumber || r.id,
+          return_date: r.return_date || r.returnDate || r.date || r.created_at,
+          total_amount: Number(r.total_amount ?? r.totalAmount ?? r.amount ?? 0),
+          refund_method: r.refund_method || r.refundMethod || 'CREDIT_NOTE',
+          reason: r.reason || r.notes || '-',
+        }));
+    }
+
+    // 4. Ledger entries from erp_journal_entries_v1
+    let enrichedLedger = Array.isArray(baseInv.ledger_entries) ? [...baseInv.ledger_entries] : [];
+    if (enrichedLedger.length === 0) {
+      const storedJournals = safeReadLocalArray('erp_journal_entries_v1');
+      const matchedJournals = storedJournals.filter((je: any) => {
+        const descNorm = String(je.description || '').toLowerCase();
+        return (
+          matchesRef(je.reference_id) ||
+          matchesRef(je.referenceId) ||
+          matchesRef(je.invoice_id) ||
+          matchesRef(je.invoiceId) ||
+          matchesRef(je.id) ||
+          (invNumNorm && descNorm.includes(invNumNorm))
+        );
+      });
+
+      const mappedLines: any[] = [];
+      matchedJournals.forEach((je: any) => {
+        if (Array.isArray(je.lines) && je.lines.length > 0) {
+          je.lines.forEach((line: any, idx: number) => {
+            const d = Number(line.debit || 0);
+            const c = Number(line.credit || 0);
+            mappedLines.push({
+              id: line.id || `${je.id || 'je'}_line_${idx}`,
+              reference_number: je.entry_number || je.reference_id || je.id,
+              reference_id: je.reference_id || je.id,
+              account_code: line.account_code || '',
+              account_name: line.account_name || line.account_code || 'حساب عام',
+              entry_type: d > 0 ? 'DEBIT' : 'CREDIT',
+              amount: d > 0 ? d : c,
+              debit: d,
+              credit: c,
+              description: line.description || je.description || '-',
+              created_at: line.created_at || je.date || je.created_at,
+              currency: baseInv.currency || 'YER',
+            });
+          });
+        } else {
+          const d = Number(je.debit ?? je.total_debit ?? 0);
+          const c = Number(je.credit ?? je.total_credit ?? 0);
+          mappedLines.push({
+            id: je.id || `je_${mappedLines.length}`,
+            reference_number: je.entry_number || je.reference_id || je.id,
+            reference_id: je.reference_id || je.id,
+            account_code: je.account_code || '',
+            account_name: je.account_name || je.account_type || 'حساب عام',
+            entry_type: d >= c ? 'DEBIT' : 'CREDIT',
+            amount: d >= c ? d : c,
+            debit: d,
+            credit: c,
+            description: je.description || '-',
+            created_at: je.date || je.created_at,
+            currency: baseInv.currency || 'YER',
+          });
+        }
+      });
+      enrichedLedger = mappedLines;
+    }
+
+    // 5. Inventory movements from erp_inventory_movements_v1
+    let enrichedMovements = Array.isArray(baseInv.inventory_movements) ? [...baseInv.inventory_movements] : [];
+    if (enrichedMovements.length === 0) {
+      const storedMovs = safeReadLocalArray('erp_inventory_movements_v1');
+      enrichedMovements = storedMovs
+        .filter((im: any) =>
+          matchesRef(im.reference_id) ||
+          matchesRef(im.referenceId) ||
+          matchesRef(im.reference_number) ||
+          matchesRef(im.referenceNumber) ||
+          matchesRef(im.invoice_id) ||
+          matchesRef(im.invoiceId)
+        )
+        .map((im: any) => ({
+          ...im,
+          product_name: im.product_name || im.productName || im.name || 'منتج مخزني',
+          quantity: Number(im.quantity ?? im.qty ?? 0),
+          created_at: im.created_at || im.date || baseInv.created_at,
+        }));
+    }
+
+    // 6. Customer current balance from erp_customers_v1
+    let resolvedCustomerBalance = baseInv.customer_balance;
+    if (resolvedCustomerBalance === undefined || resolvedCustomerBalance === null || Number(resolvedCustomerBalance) === 0) {
+      const storedCustomers = safeReadLocalArray('erp_customers_v1');
+      const custIdStr = String(baseInv.customer_id || baseInv.customerId || '').trim();
+      const custNameStr = String(baseInv.customer_name || baseInv.customerName || baseInv.clientName || baseInv.customer || '').trim();
+      const matchedCust = storedCustomers.find(
+        (c: any) =>
+          (custIdStr && custIdStr !== 'cust-cash' && custIdStr !== 'cust-direct' && String(c.id) === custIdStr) ||
+          (custNameStr && custNameStr !== 'عميل نقدي' && String(c.name || '').trim() === custNameStr)
+      );
+      if (matchedCust) {
+        resolvedCustomerBalance = Number(matchedCust.current_balance ?? matchedCust.balance ?? 0);
+      } else {
+        resolvedCustomerBalance = Number(baseInv.newTotalBalance ?? baseInv.customer_balance ?? 0);
+      }
+    }
+
+    return {
+      ...baseInv,
+      items: normalizedItems,
+      payments: enrichedPayments,
+      returns: enrichedReturns,
+      ledger_entries: enrichedLedger,
+      inventory_movements: enrichedMovements,
+      customer_balance: resolvedCustomerBalance,
+    };
+  };
+
   const fetchDetails = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.getInvoiceById(invoiceId);
-      if (res.success && res.data) {
-        setInvoice(res.data);
+
+      let found: any = null;
+      try {
+        const res = await api.getInvoiceById(invoiceId);
+        if (res?.success && res?.data) {
+          found = res.data;
+        }
+      } catch {
+        // Fallback to localStorage / initialInvoice below
+      }
+
+      if (!found) {
+        const targetKeys = new Set(
+          [
+            invoiceId,
+            initialInvoice?.id,
+            initialInvoice?.invoice_number,
+            initialInvoice?.invoiceNumber,
+          ]
+            .filter(Boolean)
+            .map((v) => String(v).trim().toLowerCase())
+        );
+
+        const localCandidates = [
+          ...safeReadLocalArray('erp_invoices_v1'),
+          ...safeReadLocalArray('erp_pos_sales_log_v1'),
+        ];
+
+        found =
+          localCandidates.find((inv: any) => {
+            const idMatch = inv?.id && targetKeys.has(String(inv.id).trim().toLowerCase());
+            const numMatch = inv?.invoice_number && targetKeys.has(String(inv.invoice_number).trim().toLowerCase());
+            const altNumMatch = inv?.invoiceNumber && targetKeys.has(String(inv.invoiceNumber).trim().toLowerCase());
+            return Boolean(idMatch || numMatch || altNumMatch);
+          }) ||
+          initialInvoice ||
+          null;
+      }
+
+      if (found) {
+        setInvoice(enrichInvoiceDetails(found));
       } else {
-        setError(res.error?.message || 'تعذر تحميل بيانات الفاتورة');
+        setError('تعذر تحميل بيانات الفاتورة');
       }
     } catch (err: any) {
-      setError(err.message || 'حدث خطأ أثناء تحميل الفاتورة');
+      if (initialInvoice) {
+        setInvoice(enrichInvoiceDetails(initialInvoice));
+      } else {
+        setError(err.message || 'حدث خطأ أثناء تحميل الفاتورة');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (invoiceId) {
+    if (invoiceId || initialInvoice) {
       fetchDetails();
     }
-  }, [invoiceId]);
+  }, [invoiceId, initialInvoice]);
 
   const copyInvoiceNumber = () => {
     if (invoice?.invoice_number) {
@@ -711,7 +989,13 @@ export const SalesInvoiceDetailView: React.FC<SalesInvoiceDetailViewProps> = ({
                       </td>
                       <td className="py-3 px-4 text-slate-300 text-xs">
                         <span className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-[11px]">
-                          {p.payment_method === 'CASH' ? 'نقداً' : p.payment_method === 'BANK' ? 'تحويل بنكي' : p.payment_method}
+                          {p.payment_method === 'CASH'
+                            ? 'نقداً'
+                            : p.payment_method === 'BANK'
+                              ? 'تحويل بنكي'
+                              : p.payment_method === 'WALLET'
+                                ? 'محفظة إلكترونية'
+                                : p.payment_method}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-slate-300 text-xs font-mono">{p.reference || '-'}</td>

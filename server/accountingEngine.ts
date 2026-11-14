@@ -94,6 +94,7 @@ export const STANDARD_CHART_OF_ACCOUNTS: Array<Omit<AccountRecord, 'id' | 'compa
   { code: '1103', name: 'Accounts Receivable', name_ar: 'العملاء / المدينون', type: 'ASSET', nature: 'DEBIT', is_active: true },
   { code: '1104', name: 'Merchandise Inventory', name_ar: 'المخزون السلعي', type: 'ASSET', nature: 'DEBIT', is_active: true },
   { code: '1105', name: 'Input VAT Receivable', name_ar: 'ضريبة القيمة المضافة - مدخلات', type: 'ASSET', nature: 'DEBIT', is_active: true },
+  { code: '1107', name: 'E-Wallets', name_ar: 'المحافظ الإلكترونية', type: 'ASSET', nature: 'DEBIT', is_active: true },
   { code: '2101', name: 'Accounts Payable', name_ar: 'الموردون / الدائنون', type: 'LIABILITY', nature: 'CREDIT', is_active: true },
   { code: '2102', name: 'Output VAT Payable', name_ar: 'ضريبة القيمة المضافة - مخرجات', type: 'LIABILITY', nature: 'CREDIT', is_active: true },
   { code: '2103', name: 'Salaries & Wages Payable', name_ar: 'مستحقات الرواتب والأجور', type: 'LIABILITY', nature: 'CREDIT', is_active: true },
@@ -518,23 +519,25 @@ export function postSalesTransactionAtomic(params: SalesPostParams) {
   const netSalesVal = roundMoney(Math.max(0, totalVal - taxVal));
 
   let paidVal = 0;
-  if (params.paidAmount !== undefined) {
-    paidVal = roundMoney(params.paidAmount);
+  if (params.paidAmount !== undefined && params.paidAmount !== null) {
+    paidVal = roundMoney(Math.max(0, Math.min(Number(params.paidAmount), totalVal)));
   } else if (invoice.paid_amount !== undefined || invoice.paidAmount !== undefined) {
-    paidVal = roundMoney(invoice.paid_amount ?? invoice.paidAmount);
-  } else if (paymentMethod === 'CASH' || paymentMethod === 'BANK' || paymentMethod === 'WALLET' || paymentMethod === 'CARD') {
+    paidVal = roundMoney(Math.max(0, Math.min(Number(invoice.paid_amount ?? invoice.paidAmount), totalVal)));
+  } else if (['CASH', 'BANK', 'WALLET', 'MOBILE', 'CARD', 'TRANSFER'].includes(paymentMethod)) {
     paidVal = totalVal;
   } else {
     paidVal = 0;
   }
-  const remainingVal = roundMoney(Math.max(0, totalVal - paidVal));
+  const remainingVal = roundMoney(Math.max(0, Number((totalVal - paidVal).toFixed(2))));
 
-  // 4. Update Customer Balance for Credit Sales
+  // 4. Update Customer Balance for Credit / Partial Sales
   let customerName = String(
     params.customerName || invoice.customer_name || invoice.customerName || invoice.customer || ''
   ).trim();
   let cust = mockCustomersList.find(
-    (c) => (params.customerId && c.id === params.customerId) || (customerName && c.name.toLowerCase() === customerName.toLowerCase())
+    (c) =>
+      (params.customerId && params.customerId !== 'cust-cash' && params.customerId !== 'cust-direct' && c.id === params.customerId) ||
+      (customerName && c.name.toLowerCase() === customerName.toLowerCase())
   );
   if (cust && !customerName) customerName = cust.name;
   if (!customerName) customerName = (paidVal >= totalVal) ? 'عميل نقدي' : 'عميل آجل';
@@ -557,20 +560,31 @@ export function postSalesTransactionAtomic(params: SalesPostParams) {
       };
       mockCustomersList.unshift(cust);
     } else if (cust) {
-      cust.current_balance = roundMoney((cust.current_balance || 0) + remainingVal);
+      const prevBal = Number(cust.current_balance ?? cust.balance ?? 0);
+      cust.current_balance = roundMoney(prevBal + remainingVal);
       cust.balance = cust.current_balance;
+      (cust as any).total_debt = roundMoney(Number((cust as any).total_debt ?? prevBal) + remainingVal);
       cust.updated_at = invoiceCreatedAt;
     }
   }
 
   // 5. Compound Double-Entry Journal for Revenue
-  // Debits: Cash 1101, Bank 1102, Accounts Receivable 1103
+  // Debits: Cash 1101, Bank 1102, E-Wallet 1107, Accounts Receivable 1103
   // Credits: Sales Revenue 4101, Output VAT Payable 2102
   const revenueLines: JournalLine[] = [];
-  const isBank = ['BANK', 'CARD', 'TRANSFER', 'WALLET'].includes(paymentMethod);
+  const isWallet = ['WALLET', 'MOBILE', 'E_WALLET', 'KURIMI', 'JAWALI', 'FLOUSK', 'ONE_CASH', 'JIB'].includes(paymentMethod);
+  const isBank = !isWallet && ['BANK', 'CARD', 'TRANSFER', 'CHECK'].includes(paymentMethod);
 
   if (paidVal > 0) {
-    if (isBank) {
+    if (isWallet) {
+      revenueLines.push({
+        account_code: '1107',
+        account_name: 'المحافظ الإلكترونية',
+        debit: paidVal,
+        credit: 0,
+        description: `تحصيل مبيعات بالمحفظة الإلكترونية فاتورة #${invoiceNumber}`,
+      });
+    } else if (isBank) {
       revenueLines.push({
         account_code: '1102',
         account_name: 'البنك / الحسابات البنكية',
@@ -678,7 +692,7 @@ export function postSalesTransactionAtomic(params: SalesPostParams) {
       customer_name: customerName,
       party_name: customerName,
       amount: paidVal,
-      payment_method: isBank ? 'BANK' : 'CASH',
+      payment_method: isWallet ? 'WALLET' : isBank ? 'BANK' : 'CASH',
       reference_type: 'SALES_INVOICE',
       referenceType: 'SALES_INVOICE',
       reference_id: invoiceNumber,
@@ -693,7 +707,7 @@ export function postSalesTransactionAtomic(params: SalesPostParams) {
   }
 
   // 8. Construct complete invoice record and store in mockInvoicesList
-  const invoiceStatus = remainingVal <= 0.01 && totalVal > 0 ? 'paid' : (paidVal > 0 ? 'partial' : 'unpaid');
+  const invoiceStatus = remainingVal <= 0.01 && totalVal > 0 ? 'PAID' : (paidVal > 0 ? 'PARTIAL' : 'ISSUED');
   const newInv = {
     ...invoice,
     id: invoice.id || `INV-${Date.now()}`,
@@ -732,7 +746,7 @@ export function postSalesTransactionAtomic(params: SalesPostParams) {
     payment_method: paymentMethod,
     paymentMethod: paymentMethod,
     status: invoiceStatus,
-    payment_status: invoiceStatus === 'paid' ? 'PAID' : (invoiceStatus === 'partial' ? 'PARTIAL' : 'PENDING'),
+    payment_status: invoiceStatus === 'PAID' ? 'PAID' : (invoiceStatus === 'PARTIAL' ? 'PARTIAL' : 'PENDING'),
     items: items,
     created_at: invoiceCreatedAt,
   };
@@ -1429,14 +1443,19 @@ export function postVoucherAtomic(params: VoucherParams) {
     }
   }
 
-  // 2. Preserve exact payment_method ('CASH', 'BANK', 'WALLET', 'CHECK', etc.)
+  // 2. Preserve exact payment_method ('CASH', 'BANK', 'WALLET', 'MOBILE', 'CHECK', etc.)
   const rawMethod = String(params.paymentMethod || 'CASH').toUpperCase();
-  const paymentMethod = ['BANK', 'WALLET', 'CHECK', 'CARD', 'TRANSFER'].includes(rawMethod)
+  const paymentMethod = ['BANK', 'WALLET', 'MOBILE', 'CHECK', 'CARD', 'TRANSFER'].includes(rawMethod)
     ? rawMethod
     : 'CASH';
-  const isBank = ['BANK', 'WALLET', 'CHECK', 'CARD', 'TRANSFER'].includes(paymentMethod);
-  const cashOrBankCode = isBank ? '1102' : '1101';
-  const cashOrBankName = isBank ? 'البنك / الحسابات المصرفية والمحافظ' : 'الصندوق / النقدية';
+  const isWallet = ['WALLET', 'MOBILE', 'E_WALLET', 'KURIMI', 'JAWALI', 'FLOUSK', 'ONE_CASH', 'JIB'].includes(paymentMethod);
+  const isBank = !isWallet && ['BANK', 'CHECK', 'CARD', 'TRANSFER'].includes(paymentMethod);
+  const cashOrBankCode = isWallet ? '1107' : isBank ? '1102' : '1101';
+  const cashOrBankName = isWallet
+    ? 'المحافظ الإلكترونية'
+    : isBank
+    ? 'البنك / الحسابات البنكية'
+    : 'الصندوق / النقدية';
 
   const refType = String(params.referenceType || params.reference_type || '').toUpperCase();
   const refNo = String(params.referenceNo || params.reference_no || params.referenceId || params.reference_id || '').trim();

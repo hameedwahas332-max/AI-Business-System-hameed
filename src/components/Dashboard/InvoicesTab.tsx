@@ -28,6 +28,7 @@ export const InvoicesTab: React.FC = () => {
   // Invoices View state: 'list' | 'create' | 'detail'
   const [invoiceSubView, setInvoiceSubView] = useState<'list' | 'create' | 'detail'>('list');
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
+  const [selectedInvoiceData, setSelectedInvoiceData] = useState<any | null>(null);
 
   // Data state
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -125,15 +126,37 @@ export const InvoicesTab: React.FC = () => {
           hadRepairedInvoices = true;
         }
 
+        const rawRemaining = inv.remaining_amount ?? inv.remainingAmount ?? inv.remainingBalance ?? inv.remaining ?? inv.balanceDue;
+        const explicitRemaining = rawRemaining !== undefined && rawRemaining !== null ? Number(rawRemaining) : null;
+        const upperStatus = String(inv.status || '').toUpperCase();
+        const isPartialOrUnpaidStatus = ['PARTIAL', 'PARTIALLY_PAID', 'ISSUED', 'UNPAID', 'PENDING'].includes(upperStatus);
+
         const rawPaid = inv.paid_amount ?? inv.paidAmount ?? inv.amountPaid ?? inv.paid;
-        let paid = rawPaid !== undefined && rawPaid !== null ? Number(rawPaid) : (inv.status === 'PAID' || inv.status === 'paid' ? total : 0);
-        if (paid === 0 && (inv.payment_method === 'CASH' || inv.paymentMethod === 'CASH' || inv.status === 'PAID' || inv.status === 'paid')) {
+        let paid =
+          rawPaid !== undefined && rawPaid !== null
+            ? Number(rawPaid)
+            : upperStatus === 'PAID'
+              ? total
+              : explicitRemaining !== null
+                ? Math.max(0, total - explicitRemaining)
+                : 0;
+
+        if (
+          rawPaid === undefined &&
+          paid === 0 &&
+          !isPartialOrUnpaidStatus &&
+          (explicitRemaining === null || explicitRemaining <= 0) &&
+          (inv.payment_method === 'CASH' || inv.paymentMethod === 'CASH' || upperStatus === 'PAID')
+        ) {
           paid = total;
           hadRepairedInvoices = true;
         }
 
-        const remaining = Math.max(0, total - paid);
-        const status = remaining <= 0.01 && total > 0 ? 'paid' : paid > 0 ? 'partial' : 'unpaid';
+        const remaining =
+          explicitRemaining !== null && (isPartialOrUnpaidStatus || explicitRemaining > 0)
+            ? Math.max(0, Number(Math.min(total, explicitRemaining).toFixed(2)))
+            : Math.max(0, Number((total - paid).toFixed(2)));
+        const status = upperStatus === 'DRAFT' ? 'draft' : remaining <= 0.01 && total > 0 ? 'paid' : paid > 0 ? 'partial' : 'unpaid';
 
         return {
           ...inv,
@@ -266,7 +289,8 @@ export const InvoicesTab: React.FC = () => {
   };
 
   const handleViewDetails = (invoice: any) => {
-    setSelectedInvoiceId(invoice.id);
+    setSelectedInvoiceData(invoice);
+    setSelectedInvoiceId(invoice.id || invoice.invoice_number);
     setInvoiceSubView('detail');
   };
 
@@ -498,9 +522,11 @@ export const InvoicesTab: React.FC = () => {
           {invoiceSubView === 'detail' && selectedInvoiceId && (
             <SalesInvoiceDetailView
               invoiceId={selectedInvoiceId}
+              initialInvoice={selectedInvoiceData}
               onBack={() => {
                 setInvoiceSubView('list');
                 setSelectedInvoiceId(null);
+                setSelectedInvoiceData(null);
               }}
               onRefreshList={fetchData}
             />
