@@ -801,10 +801,15 @@ export function postSalesReturnAtomic(params: SalesReturnParams) {
   const returnDate = rawDate ? rawDate.split('T')[0] : new Date().toISOString().split('T')[0];
   const returnNumber = returnData.return_number || returnData.returnNumber || `RET-${Date.now().toString().slice(-6)}`;
   const origInvNum = params.originalInvoiceNumber || returnData.original_invoice_number || returnData.invoiceNumber || 'INV-ORIG';
+  const origInvNumLower = String(origInvNum || '').trim().toLowerCase();
 
   // BUG-07: Validate returned item quantities against original invoice sold quantity
   const origInv = mockInvoicesList.find(
-    (i) => (i.invoice_number === origInvNum || i.id === origInvNum) && (i.company_id === cid || !i.company_id)
+    (i) =>
+      (String(i.invoice_number || '').toLowerCase() === origInvNumLower ||
+        String(i.id || '').toLowerCase() === origInvNumLower ||
+        String((i as any).invoiceNumber || '').toLowerCase() === origInvNumLower) &&
+      (i.company_id === cid || !i.company_id || cid === 'comp_001')
   );
 
   if (origInv && Array.isArray(origInv.items) && origInv.items.length > 0) {
@@ -923,31 +928,57 @@ export function postSalesReturnAtomic(params: SalesReturnParams) {
   }
 
   // 2. Financial Calculations
+  const itemsRefundSum = items.reduce(
+    (acc, it) => acc + Math.max(0, Number(it.quantity || 1)) * Number(it.unit_price || it.unitPrice || it.price || 0),
+    0
+  );
   const totalRefund = roundMoney(
     params.refundAmount ??
     returnData.total ??
+    returnData.totalRefund ??
+    returnData.refund_amount ??
     returnData.amount ??
     returnData.refundAmount ??
+    itemsRefundSum ??
     0
   );
   const taxRefund = roundMoney(returnData.tax || returnData.taxAmount || 0);
   const netReturnVal = roundMoney(Math.max(0, totalRefund - taxRefund));
 
-  // 3. Customer Balance Reversal if Credit Note
+  // 3. Customer Balance Reversal if Credit Note or if removing invoice with remaining debt
+  const targetCustId = params.customerId || returnData.customer_id || returnData.customerId || origInv?.customer_id || (origInv as any)?.customerId;
+  const targetCustName = params.customerName || returnData.customer_name || returnData.customerName || origInv?.customer_name || (origInv as any)?.customerName;
   let cust = mockCustomersList.find(
-    (c) => (params.customerId && c.id === params.customerId) || (params.customerName && c.name === params.customerName)
+    (c) =>
+      (targetCustId && c.id === targetCustId) ||
+      (targetCustName && String(c.name || '').trim().toLowerCase() === String(targetCustName).trim().toLowerCase())
   );
 
-  if (refundMethod === 'CREDIT' || refundMethod === 'CREDIT_NOTE' || refundMethod === 'ON_ACCOUNT') {
-    if (cust && totalRefund > 0) {
+  const isCreditReturn =
+    refundMethod === 'CREDIT' ||
+    refundMethod === 'CREDIT_NOTE' ||
+    refundMethod === 'ON_ACCOUNT' ||
+    refundMethod === 'CUSTOMER_CREDIT';
+
+  if (cust && totalRefund > 0) {
+    if (isCreditReturn) {
       cust.current_balance = roundMoney(Math.max(0, (cust.current_balance || 0) - totalRefund));
       cust.balance = cust.current_balance;
+      (cust as any).total_debt = cust.current_balance;
+    } else if (returnData.remove_invoice !== false && origInv) {
+      const remDebt = Number(origInv.remaining_amount ?? (origInv as any).remainingAmount ?? 0);
+      if (remDebt > 0) {
+        const reduceAmt = Math.min(totalRefund, remDebt);
+        cust.current_balance = roundMoney(Math.max(0, (cust.current_balance || 0) - reduceAmt));
+        cust.balance = cust.current_balance;
+        (cust as any).total_debt = cust.current_balance;
+      }
     }
   }
 
   // 4. Return Journal Entry
   // Debits: 4102 Sales Returns & Allowances (net), 2102 Output VAT Payable (tax reversal)
-  // Credits: 1101 Cash / 1102 Bank / 1103 Accounts Receivable
+  // Credits: 1101 Cash / 1102 Bank / 1107 E-Wallet / 1103 Accounts Receivable
   const returnLines: JournalLine[] = [
     {
       account_code: '4102',
@@ -968,7 +999,16 @@ export function postSalesReturnAtomic(params: SalesReturnParams) {
     });
   }
 
-  if (refundMethod === 'BANK' || refundMethod === 'CARD') {
+  const isWalletRefund = ['WALLET', 'MOBILE', 'E_WALLET', 'KURIMI', 'JAWALI', 'FLOUSK', 'ONE_CASH', 'JIB'].includes(refundMethod);
+  if (isWalletRefund) {
+    returnLines.push({
+      account_code: '1107',
+      account_name: 'المحافظ الإلكترونية والشبكات',
+      debit: 0,
+      credit: totalRefund,
+      description: `رد قيمة مردودات مبيعات عبر المحفظة الإلكترونية #${returnNumber}`,
+    });
+  } else if (refundMethod === 'BANK' || refundMethod === 'BANK_REFUND' || refundMethod === 'CARD') {
     returnLines.push({
       account_code: '1102',
       account_name: 'البنك / الحسابات البنكية',
@@ -976,7 +1016,7 @@ export function postSalesReturnAtomic(params: SalesReturnParams) {
       credit: totalRefund,
       description: `رد قيمة مردودات مبيعات عبر البنك #${returnNumber}`,
     });
-  } else if (refundMethod === 'CREDIT' || refundMethod === 'CREDIT_NOTE' || refundMethod === 'ON_ACCOUNT') {
+  } else if (isCreditReturn) {
     returnLines.push({
       account_code: '1103',
       account_name: 'العملاء / المدينون',
@@ -1037,33 +1077,42 @@ export function postSalesReturnAtomic(params: SalesReturnParams) {
     });
   }
 
-  // BUG-07: Record return invoice into mockInvoicesList to enforce cumulative return limits
-  mockInvoicesList.unshift({
-    id: `inv-ret-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-    company_id: cid,
-    invoice_number: returnNumber,
-    original_invoice_number: origInvNum,
-    reference_type: 'SALES_RETURN',
-    status: 'RETURNED',
-    date: returnDate,
-    customer_id: cust?.id || params.customerId,
-    customer_name: cust?.name || params.customerName || 'عميل نقدي',
-    items: items.map((it) => ({
-      product_id: it.product_id || it.productId || it.id,
-      name: it.name || it.product_name || 'صنف مرتجع',
-      quantity: Number(it.quantity || 1),
-      unit_price: Number(it.unit_price || it.unitPrice || it.price || 0),
-      total: Number(it.total || 0),
-      unitFactor: Number(it.unitFactor || it.conversionFactor || 1),
-    })),
-    subtotal: netReturnVal,
-    tax: taxRefund,
-    total: totalRefund,
-    amount: totalRefund,
-    paid_amount: totalRefund,
-    payment_method: refundMethod,
-    created_at: new Date().toISOString(),
-  });
+  // If remove_invoice is requested (default true from Return Modal) or full return, remove original invoice from active sales register
+  const shouldRemoveOrig = returnData.remove_invoice !== false;
+  if (origInv && shouldRemoveOrig) {
+    const origIdx = mockInvoicesList.findIndex((i) => i.id === origInv.id);
+    if (origIdx !== -1) {
+      mockInvoicesList.splice(origIdx, 1);
+    }
+  } else if (!shouldRemoveOrig) {
+    // BUG-07: Record return invoice into mockInvoicesList to enforce cumulative return limits when keeping original invoice
+    mockInvoicesList.unshift({
+      id: `inv-ret-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      company_id: cid,
+      invoice_number: returnNumber,
+      original_invoice_number: origInvNum,
+      reference_type: 'SALES_RETURN',
+      status: 'RETURNED',
+      date: returnDate,
+      customer_id: cust?.id || params.customerId,
+      customer_name: cust?.name || params.customerName || 'عميل نقدي',
+      items: items.map((it) => ({
+        product_id: it.product_id || it.productId || it.id,
+        name: it.name || it.product_name || 'صنف مرتجع',
+        quantity: Number(it.quantity || 1),
+        unit_price: Number(it.unit_price || it.unitPrice || it.price || 0),
+        total: Number(it.total || 0),
+        unitFactor: Number(it.unitFactor || it.conversionFactor || 1),
+      })),
+      subtotal: netReturnVal,
+      tax: taxRefund,
+      total: totalRefund,
+      amount: totalRefund,
+      paid_amount: totalRefund,
+      payment_method: refundMethod,
+      created_at: new Date().toISOString(),
+    });
+  }
 
   persistAllToDisk();
 
@@ -2366,10 +2415,13 @@ export function reverseSalesInvoiceAtomic(
 ) {
   const cid = companyId || getCurrentTenantId() || 'comp_001';
   const targetId = String(invoiceIdOrNumber || '').trim();
+  const targetIdLower = targetId.toLowerCase();
 
   const idx = mockInvoicesList.findIndex(
     (inv) =>
-      (inv.id === targetId || inv.invoice_number === targetId || (inv as any).invoiceNumber === targetId) &&
+      (String(inv.id || '').toLowerCase() === targetIdLower ||
+        String(inv.invoice_number || '').toLowerCase() === targetIdLower ||
+        String((inv as any).invoiceNumber || '').toLowerCase() === targetIdLower) &&
       (inv.company_id === cid || !inv.company_id || cid === 'comp_001')
   );
 
@@ -2381,7 +2433,19 @@ export function reverseSalesInvoiceAtomic(
 
   const invoice = mockInvoicesList[idx];
 
-  if (invoice.status === 'CANCELLED') {
+  if (invoice.status === 'CANCELLED' || invoice.status === 'RETURNED') {
+    if (isPermanentDelete) {
+      mockInvoicesList.splice(idx, 1);
+      persistAllToDisk();
+      return {
+        success: true,
+        invoice_number: invoice.invoice_number || invoice.id,
+        status: 'DELETED',
+        reversed_stock_items: 0,
+        reversed_customer_debt: 0,
+        reversed_cogs: 0,
+      };
+    }
     const err: any = new Error('فاتورة المبيعات ملغاة مسبقاً');
     err.status = 400;
     throw err;
@@ -2467,9 +2531,15 @@ export function reverseSalesInvoiceAtomic(
   const creditVal = roundMoney(Math.max(0, totalVal - paidVal));
   const subtotalVal = roundMoney(totalVal - taxVal + discountVal);
 
-  const isBank = invoice.payment_method === 'BANK' || invoice.payment_method === 'CARD' || invoice.payment_method === 'TRANSFER';
-  const cashOrBankCode = isBank ? '1102' : '1101';
-  const cashOrBankName = isBank ? 'البنك / الحسابات البنكية' : 'الصندوق / النقدية';
+  const rawMethod = String(invoice.payment_method || (invoice as any).paymentMethod || 'CASH').toUpperCase();
+  const isWallet = ['WALLET', 'MOBILE', 'E_WALLET', 'KURIMI', 'JAWALI', 'FLOUSK', 'ONE_CASH', 'JIB'].includes(rawMethod);
+  const isBank = !isWallet && (rawMethod === 'BANK' || rawMethod === 'CARD' || rawMethod === 'TRANSFER');
+  const cashOrBankCode = isWallet ? '1107' : isBank ? '1102' : '1101';
+  const cashOrBankName = isWallet
+    ? 'المحافظ الإلكترونية والشبكات'
+    : isBank
+    ? 'البنك / الحسابات البنكية'
+    : 'الصندوق / النقدية';
 
   const revSalesLines: JournalLine[] = [];
   if (subtotalVal > 0) {

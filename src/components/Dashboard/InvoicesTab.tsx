@@ -91,11 +91,16 @@ export const InvoicesTab: React.FC = () => {
           const localInvs: any[] = JSON.parse(stored);
           if (Array.isArray(localInvs) && localInvs.length > 0) {
             const serverIds = new Set(
-              loadedInvoices.map((i: any) => String(i.id || i.invoice_number || i.invoiceNumber))
+              loadedInvoices.flatMap((i: any) => [
+                String(i.id || '').toLowerCase(),
+                String(i.invoice_number || i.invoiceNumber || '').toLowerCase(),
+              ]).filter(Boolean)
             );
             // Only include offline local invoices that do not exist on the server; server invoices take strict precedence
             const newLocal = localInvs.filter(
-              (i: any) => !serverIds.has(String(i.id)) && !serverIds.has(String(i.invoice_number || i.invoiceNumber))
+              (i: any) =>
+                !serverIds.has(String(i.id || '').toLowerCase()) &&
+                !serverIds.has(String(i.invoice_number || i.invoiceNumber || '').toLowerCase())
             );
             loadedInvoices = [
               ...loadedInvoices,
@@ -106,6 +111,17 @@ export const InvoicesTab: React.FC = () => {
       } catch (e) {
         console.error('Failed to merge local invoices:', e);
       }
+
+      // Filter out hidden/deleted/cancelled invoices and internal return credit records from active sales register
+      loadedInvoices = loadedInvoices.filter((inv: any) => {
+        if (!inv) return false;
+        const st = String(inv.status || '').toUpperCase();
+        const refType = String(inv.reference_type || inv.type || '').toUpperCase();
+        if (inv.is_deleted || inv.hidden_from_register) return false;
+        if (refType === 'SALES_RETURN') return false;
+        if ((st === 'CANCELLED' || st === 'RETURNED') && statusFilter.toUpperCase() !== st) return false;
+        return true;
+      });
 
       // Smart Auto-Repair for invoices with 0 total or missing fields but existing items
       let hadRepairedInvoices = false;
@@ -314,19 +330,167 @@ export const InvoicesTab: React.FC = () => {
   };
 
   const handleDeleteInvoice = async (invoiceId: string) => {
-    if (!window.confirm('هل أنت متأكد من حذف هذه الفاتورة؟ سيتم إلغاؤها وإعادة قيد المخزون والحسابات.')) {
-      return;
-    }
+    const targetKey = String(invoiceId || '').trim().toLowerCase();
+    if (!targetKey) return;
+
     try {
       setError(null);
-      const res = await api.deleteInvoice(invoiceId);
-      if (res.success) {
-        setSuccess('تم حذف الفاتورة بنجاح');
-        fetchData();
-        setTimeout(() => setSuccess(null), 4000);
-      } else {
-        setError(res.error?.message || 'فشل حذف الفاتورة');
+      setSuccess(null);
+
+      // 1. Locate the invoice in memory or localStorage before deleting so we can reverse local stock & customer debt
+      let targetInv = invoices.find(
+        (inv) =>
+          String(inv.id || '').toLowerCase() === targetKey ||
+          String(inv.invoice_number || inv.invoiceNumber || '').toLowerCase() === targetKey
+      );
+
+      if (!targetInv) {
+        try {
+          const rawLocal = JSON.parse(localStorage.getItem('erp_invoices_v1') || '[]');
+          if (Array.isArray(rawLocal)) {
+            targetInv = rawLocal.find(
+              (inv: any) =>
+                String(inv.id || '').toLowerCase() === targetKey ||
+                String(inv.invoice_number || inv.invoiceNumber || '').toLowerCase() === targetKey
+            );
+          }
+        } catch {}
       }
+
+      const actualId = targetInv?.id || invoiceId;
+      const actualInvNo = targetInv?.invoice_number || targetInv?.invoiceNumber || invoiceId;
+      const wasAlreadyReversed =
+        String(targetInv?.status || '').toUpperCase() === 'CANCELLED' ||
+        String(targetInv?.status || '').toUpperCase() === 'RETURNED';
+
+      // 2. Call Server / Desktop Fallback API to reverse & permanently delete
+      try {
+        await api.deleteInvoice(String(actualId));
+      } catch (apiErr) {
+        console.warn('Server deleteInvoice warning (continuing local cleanup):', apiErr);
+      }
+
+      // 3. Reverse local inventory stock, customer remaining debt, and linked payment vouchers if not already reversed
+      if (targetInv && !wasAlreadyReversed) {
+        try {
+          const invItems = Array.isArray(targetInv.items) ? targetInv.items : [];
+          if (invItems.length > 0) {
+            const rawProds = JSON.parse(localStorage.getItem('erp_products_v1') || '[]');
+            if (Array.isArray(rawProds) && rawProds.length > 0) {
+              const updatedProds = rawProds.map((p: any) => {
+                const matchedItem = invItems.find(
+                  (it: any) =>
+                    (it.product_id && String(it.product_id) === String(p.id)) ||
+                    (it.productId && String(it.productId) === String(p.id)) ||
+                    (it.id && String(it.id) === String(p.id)) ||
+                    (it.item_code && p.sku && String(it.item_code) === String(p.sku)) ||
+                    (it.sku && p.sku && String(it.sku) === String(p.sku))
+                );
+                if (!matchedItem) return p;
+                const qty = Math.max(0, Number(matchedItem.quantity ?? matchedItem.qty ?? 1));
+                const factor = Number(matchedItem.unitFactor || matchedItem.conversionFactor || 1);
+                const baseQty = qty * factor;
+                const curStock = Number(p.current_stock ?? p.stock_quantity ?? p.stock ?? p.qty ?? 0);
+                const restored = curStock + baseQty;
+                return {
+                  ...p,
+                  current_stock: restored,
+                  stock_quantity: restored,
+                  stock: restored,
+                  qty: restored,
+                  quantity: restored,
+                };
+              });
+              localStorage.setItem('erp_products_v1', JSON.stringify(updatedProds));
+            }
+          }
+
+          // Reverse customer remaining debt on this invoice
+          const remDebt = Math.max(
+            0,
+            Number(
+              targetInv.remaining_amount ??
+                targetInv.remainingAmount ??
+                targetInv.remainingBalance ??
+                (Number(targetInv.total || 0) - Number(targetInv.paid_amount ?? targetInv.paidAmount ?? 0))
+            )
+          );
+          const custId = targetInv.customer_id || targetInv.customerId;
+          const custName = String(targetInv.customer_name || targetInv.customerName || '').trim().toLowerCase();
+          if (remDebt > 0 && (custId || custName)) {
+            const rawCusts = JSON.parse(localStorage.getItem('erp_customers_v1') || '[]');
+            if (Array.isArray(rawCusts) && rawCusts.length > 0) {
+              const updatedCusts = rawCusts.map((c: any) => {
+                const isMatch =
+                  (custId && String(c.id) === String(custId)) ||
+                  (custName && String(c.name || '').trim().toLowerCase() === custName);
+                if (!isMatch) return c;
+                const curBal = Number(c.current_balance ?? c.balance ?? c.total_debt ?? 0);
+                const nextBal = Math.max(0, Number((curBal - remDebt).toFixed(2)));
+                return {
+                  ...c,
+                  current_balance: nextBal,
+                  balance: nextBal,
+                  total_debt: nextBal,
+                };
+              });
+              localStorage.setItem('erp_customers_v1', JSON.stringify(updatedCusts));
+            }
+          }
+
+          // Remove linked automatic payment vouchers from erp_payments_v1 & erp_treasury_vouchers_v1
+          for (const vKey of ['erp_payments_v1', 'erp_treasury_vouchers_v1']) {
+            const rawVouchers = JSON.parse(localStorage.getItem(vKey) || '[]');
+            if (Array.isArray(rawVouchers) && rawVouchers.length > 0) {
+              const filteredVouchers = rawVouchers.filter((v: any) => {
+                const ref = String(v.reference_id || v.reference_no || v.invoice_id || v.invoice_number || '').toLowerCase();
+                return ref !== String(actualId).toLowerCase() && ref !== String(actualInvNo).toLowerCase();
+              });
+              localStorage.setItem(vKey, JSON.stringify(filteredVouchers));
+            }
+          }
+        } catch (revErr) {
+          console.error('Failed to reverse local storage records on delete:', revErr);
+        }
+      }
+
+      // 4. Permanently remove invoice from erp_invoices_v1 and erp_pos_sales_log_v1 so fetchData never re-adds it
+      for (const sKey of ['erp_invoices_v1', 'erp_pos_sales_log_v1']) {
+        try {
+          const rawList = JSON.parse(localStorage.getItem(sKey) || '[]');
+          if (Array.isArray(rawList)) {
+            const cleaned = rawList.filter(
+              (inv: any) =>
+                String(inv.id || '').toLowerCase() !== targetKey &&
+                String(inv.id || '').toLowerCase() !== String(actualId).toLowerCase() &&
+                String(inv.invoice_number || inv.invoiceNumber || '').toLowerCase() !== targetKey &&
+                String(inv.invoice_number || inv.invoiceNumber || '').toLowerCase() !== String(actualInvNo).toLowerCase()
+            );
+            localStorage.setItem(sKey, JSON.stringify(cleaned));
+          }
+        } catch {}
+      }
+
+      // Immediately update UI state
+      setInvoices((prev) =>
+        prev.filter(
+          (inv) =>
+            String(inv.id || '').toLowerCase() !== targetKey &&
+            String(inv.id || '').toLowerCase() !== String(actualId).toLowerCase() &&
+            String(inv.invoice_number || inv.invoiceNumber || '').toLowerCase() !== targetKey &&
+            String(inv.invoice_number || inv.invoiceNumber || '').toLowerCase() !== String(actualInvNo).toLowerCase()
+        )
+      );
+      setSelectedIds((prev) => prev.filter((id) => String(id).toLowerCase() !== targetKey));
+
+      window.dispatchEvent(new Event('erp-invoices-updated'));
+      window.dispatchEvent(new Event('erp-inventory-updated'));
+      window.dispatchEvent(new Event('erp-customers-updated'));
+      window.dispatchEvent(new Event('erp-data-updated'));
+
+      setSuccess('تم حذف الفاتورة من السجل وإعادة البضاعة للمخزن وعكس الحسابات بنجاح');
+      fetchData();
+      setTimeout(() => setSuccess(null), 4000);
     } catch (err: any) {
       setError(err.message || 'حدث خطأ أثناء حذف الفاتورة');
     }
@@ -529,6 +693,7 @@ export const InvoicesTab: React.FC = () => {
                 setSelectedInvoiceData(null);
               }}
               onRefreshList={fetchData}
+              onDeleteInvoice={handleDeleteInvoice}
             />
           )}
 

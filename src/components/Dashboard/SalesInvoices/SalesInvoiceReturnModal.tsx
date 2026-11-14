@@ -53,6 +53,7 @@ export const SalesInvoiceReturnModal: React.FC<SalesInvoiceReturnModalProps> = (
   const [refundMethod, setRefundMethod] = useState<'CREDIT_NOTE' | 'CASH_REFUND' | 'BANK_REFUND'>('CREDIT_NOTE');
   const [reason, setReason] = useState('');
   const [returnDate, setReturnDate] = useState(new Date().toISOString().split('T')[0]);
+  const [removeInvoiceAfterReturn, setRemoveInvoiceAfterReturn] = useState(true);
   const [loading, setLoading] = useState(false);
   const [fetchingItems, setFetchingItems] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,18 +78,18 @@ export const SalesInvoiceReturnModal: React.FC<SalesInvoiceReturnModalProps> = (
       const wMonths = Number(it.warranty_months || it.warrantyMonths || 0);
       const wStatus = calculateWarrantyStatus(invoice.invoice_date || invoice.created_at, wMonths);
       return {
-        product_id: it.product_id,
-        product_name: it.product_name || it.item_name || it.description || 'صنف مبيعات',
+        product_id: it.product_id || it.productId || it.id,
+        product_name: it.product_name || it.item_name || it.name || it.description || 'صنف مبيعات',
         item_code: it.item_code || it.sku,
         part_number: it.part_number,
         serial_number: it.battery_serial_number || it.serial_number,
         tire_size: it.tire_size,
         tire_production_dot: it.tire_production_dot,
         unit: it.unit || 'حبة',
-        max_qty: parseFloat(it.quantity || '1'),
-        quantity: parseFloat(it.quantity || '1'),
-        unit_price: parseFloat(it.unit_price || '0'),
-        selected: false,
+        max_qty: parseFloat(it.quantity || it.qty || '1'),
+        quantity: parseFloat(it.quantity || it.qty || '1'),
+        unit_price: parseFloat(it.unit_price || it.unitPrice || it.price || '0'),
+        selected: true,
         warranty_status: wStatus,
       };
     });
@@ -161,9 +162,21 @@ export const SalesInvoiceReturnModal: React.FC<SalesInvoiceReturnModalProps> = (
     try {
       setLoading(true);
       setError(null);
-      const res = await api.createInvoiceReturn(invoice.id, {
+      const isFullReturn = returnItems.every((it) => it.selected && it.quantity >= it.max_qty);
+      const res = await api.createInvoiceReturn(invoice.id || invoice.invoice_number, {
+        original_invoice_number: invoice.invoice_number || invoice.id,
+        originalInvoiceNumber: invoice.invoice_number || invoice.id,
+        customer_id: invoice.customer_id || invoice.customerId,
+        customerId: invoice.customer_id || invoice.customerId,
+        customer_name: invoice.customer_name || invoice.customerName,
         items: toReturn,
+        total: selectedTotal,
+        totalRefund: selectedTotal,
+        refund_amount: selectedTotal,
         refund_method: refundMethod,
+        refundMethod: refundMethod,
+        remove_invoice: removeInvoiceAfterReturn,
+        is_full_return: isFullReturn,
         reason: reason || `مرتجع عن الفاتورة #${invoice.invoice_number}`,
         return_date: returnDate,
       });
@@ -190,6 +203,84 @@ export const SalesInvoiceReturnModal: React.FC<SalesInvoiceReturnModalProps> = (
         } catch (syncErr) {
           console.error('Failed to sync return to inventory:', syncErr);
         }
+
+        // Update customer balance in localStorage if CREDIT_NOTE or if invoice had remaining unpaid balance
+        try {
+          const custId = invoice.customer_id || invoice.customerId;
+          const custName = String(invoice.customer_name || invoice.customerName || '').trim().toLowerCase();
+          if ((refundMethod === 'CREDIT_NOTE' || removeInvoiceAfterReturn) && (custId || custName)) {
+            const rawCusts = JSON.parse(localStorage.getItem('erp_customers_v1') || '[]');
+            if (Array.isArray(rawCusts) && rawCusts.length > 0) {
+              const debtReduction =
+                refundMethod === 'CREDIT_NOTE'
+                  ? selectedTotal
+                  : Math.min(selectedTotal, Number(invoice.remaining_amount ?? invoice.remainingAmount ?? 0));
+              if (debtReduction > 0) {
+                const updatedCusts = rawCusts.map((c: any) => {
+                  const isMatch =
+                    (custId && String(c.id) === String(custId)) ||
+                    (custName && String(c.name || '').trim().toLowerCase() === custName);
+                  if (!isMatch) return c;
+                  const curBal = Number(c.current_balance ?? c.balance ?? c.total_debt ?? 0);
+                  const nextBal = Math.max(0, Number((curBal - debtReduction).toFixed(2)));
+                  return {
+                    ...c,
+                    current_balance: nextBal,
+                    balance: nextBal,
+                    total_debt: nextBal,
+                  };
+                });
+                localStorage.setItem('erp_customers_v1', JSON.stringify(updatedCusts));
+              }
+            }
+          }
+        } catch (custErr) {
+          console.error('Failed to update customer balance on return:', custErr);
+        }
+
+        // Remove or update the invoice in erp_invoices_v1 and erp_pos_sales_log_v1
+        try {
+          const invIdLower = String(invoice.id || '').toLowerCase();
+          const invNoLower = String(invoice.invoice_number || invoice.invoiceNumber || '').toLowerCase();
+          for (const sKey of ['erp_invoices_v1', 'erp_pos_sales_log_v1']) {
+            const rawList = JSON.parse(localStorage.getItem(sKey) || '[]');
+            if (Array.isArray(rawList)) {
+              if (removeInvoiceAfterReturn || isFullReturn) {
+                const filtered = rawList.filter(
+                  (inv: any) =>
+                    String(inv.id || '').toLowerCase() !== invIdLower &&
+                    String(inv.invoice_number || inv.invoiceNumber || '').toLowerCase() !== invNoLower
+                );
+                localStorage.setItem(sKey, JSON.stringify(filtered));
+              } else {
+                const updated = rawList.map((inv: any) => {
+                  const matches =
+                    String(inv.id || '').toLowerCase() === invIdLower ||
+                    String(inv.invoice_number || inv.invoiceNumber || '').toLowerCase() === invNoLower;
+                  if (!matches) return inv;
+                  const newTotal = Math.max(0, Number(inv.total || 0) - selectedTotal);
+                  const newRem = Math.max(0, Number(inv.remaining_amount ?? inv.remainingAmount ?? 0) - selectedTotal);
+                  return {
+                    ...inv,
+                    total: newTotal,
+                    totalAmount: newTotal,
+                    grandTotal: newTotal,
+                    remaining_amount: newRem,
+                    remainingAmount: newRem,
+                  };
+                });
+                localStorage.setItem(sKey, JSON.stringify(updated));
+              }
+            }
+          }
+        } catch (cleanErr) {
+          console.error('Failed to update local invoices after return:', cleanErr);
+        }
+
+        window.dispatchEvent(new Event('erp-invoices-updated'));
+        window.dispatchEvent(new Event('erp-inventory-updated'));
+        window.dispatchEvent(new Event('erp-customers-updated'));
+        window.dispatchEvent(new Event('erp-data-updated'));
 
         onSuccess();
         onClose();
@@ -398,6 +489,24 @@ export const SalesInvoiceReturnModal: React.FC<SalesInvoiceReturnModalProps> = (
               className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-blue-500 resize-none"
             />
           </div>
+
+          {/* Option to remove/hide invoice from active sales register after return */}
+          <label className="flex items-center gap-3 p-3 bg-rose-500/5 border border-rose-500/20 rounded-xl cursor-pointer hover:bg-rose-500/10 transition-colors">
+            <input
+              type="checkbox"
+              checked={removeInvoiceAfterReturn}
+              onChange={(e) => setRemoveInvoiceAfterReturn(e.target.checked)}
+              className="w-4 h-4 rounded text-rose-600 bg-slate-800 border-slate-700 focus:ring-rose-500 cursor-pointer"
+            />
+            <div className="text-xs">
+              <span className="font-bold text-slate-200 block">
+                حذف / إخفاء الفاتورة من سجل فواتير المبيعات بعد اعتماد المرتجع
+              </span>
+              <span className="text-slate-400">
+                سيتم إعادة البضاعة للمخزن وتسوية حساب العميل وإزالة الفاتورة من قائمة المبيعات النشطة
+              </span>
+            </div>
+          </label>
 
           {/* Return Total Summary */}
           <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-xl flex items-center justify-between">

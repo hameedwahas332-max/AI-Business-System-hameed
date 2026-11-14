@@ -20,6 +20,8 @@ import {
   FileSpreadsheet,
   Zap,
   Info,
+  Trash2,
+  RotateCcw,
 } from 'lucide-react';
 import { toEnglishDigits, parseEnglishNumber, formatNumber, formatAmount } from '../../lib/formatters';
 import { ExportActions } from '../Common/ExportActions';
@@ -201,7 +203,7 @@ export const FuelStationTab: React.FC = () => {
           localStorage.getItem('erp_sample_data_cleaned') === 'true');
       const saved = localStorage.getItem('erp_fuel_meter_records_v1');
       if (saved) return JSON.parse(saved);
-      if (isClean) return [];
+      if (isClean || localStorage.getItem('erp_fuel_station_reset_v1') === 'true') return [];
       return INITIAL_METER_RECORDS;
     } catch {
       return [];
@@ -269,7 +271,11 @@ export const FuelStationTab: React.FC = () => {
 
   useEffect(() => {
     try {
-      localStorage.setItem('erp_fuel_meter_records_v1', JSON.stringify(records));
+      if (records.length === 0 && localStorage.getItem('erp_fuel_station_reset_v1') === 'true') {
+        localStorage.removeItem('erp_fuel_meter_records_v1');
+      } else {
+        localStorage.setItem('erp_fuel_meter_records_v1', JSON.stringify(records));
+      }
       fetch('/api/v1/fuel-station/state', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -353,6 +359,9 @@ export const FuelStationTab: React.FC = () => {
       })
     );
 
+    try {
+      localStorage.removeItem('erp_fuel_station_reset_v1');
+    } catch {}
     setRecords((prev) => [newRecord, ...prev]);
     setIsNewEntryOpen(false);
     setEntryCurrMeter('');
@@ -377,6 +386,173 @@ export const FuelStationTab: React.FC = () => {
     }).catch((err) => console.warn('Ledger sync failed:', err));
 
     setSuccessMessage('تم اعتماد وترحيل قراءة العداد وخصم الكمية من الخزان وقيدها محاسبياً بنجاح!');
+    setTimeout(() => setSuccessMessage(null), 4000);
+  };
+
+  // Delete a single pump meter record, restore dispensed liters to tank, and cancel linked journal entry
+  const handleDeleteMeterRecord = (record: PumpMeterRecord) => {
+    if (
+      !window.confirm(
+        `هل أنت متأكد من حذف سجل جرد (${record.nozzleLabel}) للعامل (${record.operatorName})؟ سيتم إرجاع الكمية (${record.dispensedLiters} لتر) إلى الخزان وإلغاء قيدها المحاسبي.`
+      )
+    ) {
+      return;
+    }
+
+    const updatedTanks = tanks.map((t) => {
+      if (t.id === record.tankId) {
+        return {
+          ...t,
+          currentStockLiters: Math.min(t.capacityLiters, t.currentStockLiters + record.dispensedLiters),
+          actualDipReadingLiters: Math.min(t.capacityLiters, t.actualDipReadingLiters + record.dispensedLiters),
+          lastUpdated: new Date().toISOString(),
+        };
+      }
+      return t;
+    });
+    const updatedRecords = records.filter((r) => r.id !== record.id);
+
+    setTanks(updatedTanks);
+    setRecords(updatedRecords);
+
+    try {
+      localStorage.setItem('erp_fuel_tanks_v1', JSON.stringify(updatedTanks));
+      localStorage.setItem('erp_fuel_meter_records_v1', JSON.stringify(updatedRecords));
+
+      const rawJournals = JSON.parse(localStorage.getItem('erp_journal_entries_v1') || '[]');
+      if (Array.isArray(rawJournals)) {
+        const cleanedJournals = rawJournals.filter((je: any) => je.reference_id !== record.id);
+        localStorage.setItem('erp_journal_entries_v1', JSON.stringify(cleanedJournals));
+      }
+      window.dispatchEvent(new Event('erp-ledger-updated'));
+      window.dispatchEvent(new Event('erp-data-updated'));
+    } catch (err) {
+      console.error('Failed to remove fuel meter record from localStorage:', err);
+    }
+
+    fetch('/api/v1/fuel-station/state', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tanks: updatedTanks, records: updatedRecords }),
+    }).catch(() => {});
+
+    setSuccessMessage('تم حذف سجل الجرد وإعادة الكمية للخزان بنجاح');
+    setTimeout(() => setSuccessMessage(null), 4000);
+  };
+
+  // Reset a single tank balances and delete its related meter records
+  const handleResetSingleTank = (tankId: string) => {
+    const targetTank = tanks.find((t) => t.id === tankId);
+    if (
+      !window.confirm(
+        `هل أنت متأكد من تصفير رصيد (${targetTank?.name || tankId}) وحذف جميع سجلات الجرد المرتبطة به؟`
+      )
+    ) {
+      return;
+    }
+
+    const removedRecordIds = new Set(records.filter((r) => r.tankId === tankId).map((r) => r.id));
+    const updatedTanks = tanks.map((t) =>
+      t.id === tankId
+        ? {
+            ...t,
+            currentStockLiters: 0,
+            previousBalanceLiters: 0,
+            todayRefillLiters: 0,
+            actualDipReadingLiters: 0,
+            lastUpdated: new Date().toISOString(),
+          }
+        : t
+    );
+    const updatedRecords = records.filter((r) => r.tankId !== tankId);
+
+    setTanks(updatedTanks);
+    setRecords(updatedRecords);
+
+    try {
+      localStorage.setItem('erp_fuel_tanks_v1', JSON.stringify(updatedTanks));
+      localStorage.setItem('erp_fuel_meter_records_v1', JSON.stringify(updatedRecords));
+
+      if (removedRecordIds.size > 0) {
+        const rawJournals = JSON.parse(localStorage.getItem('erp_journal_entries_v1') || '[]');
+        if (Array.isArray(rawJournals)) {
+          const cleanedJournals = rawJournals.filter((je: any) => !removedRecordIds.has(je.reference_id));
+          localStorage.setItem('erp_journal_entries_v1', JSON.stringify(cleanedJournals));
+        }
+      }
+      window.dispatchEvent(new Event('erp-ledger-updated'));
+      window.dispatchEvent(new Event('erp-data-updated'));
+    } catch (err) {
+      console.error('Failed to reset single tank in localStorage:', err);
+    }
+
+    fetch('/api/v1/fuel-station/state', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tanks: updatedTanks, records: updatedRecords }),
+    }).catch(() => {});
+
+    setSuccessMessage(`تم تصفير ${targetTank?.name || 'الخزان'} وحذف سجلات الجرد المرتبطة به بنجاح`);
+    setTimeout(() => setSuccessMessage(null), 4000);
+  };
+
+  // Master Reset: delete all meter records, zero out all tanks, clean journals, and sync clean state
+  const handleResetAllFuelStation = () => {
+    if (
+      !window.confirm(
+        'تحذير: هل أنت متأكد من حذف جميع سجلات الجرد وتصفير كافة خزانات الوقود والغاز بالكامل للبدء من جديد؟'
+      )
+    ) {
+      return;
+    }
+
+    const zeroedTanks = tanks.map((t) => ({
+      ...t,
+      currentStockLiters: 0,
+      previousBalanceLiters: 0,
+      todayRefillLiters: 0,
+      actualDipReadingLiters: 0,
+      lastUpdated: new Date().toISOString(),
+    }));
+
+    setRecords([]);
+    setTanks(zeroedTanks);
+    setEntryPrevMeter('0');
+    setEntryCurrMeter('');
+    setEntryOperator('');
+    setEntryCashReceived('');
+    setEntryElectronicReceived('0');
+    setEntryCreditSales('0');
+    setEntryCalibration('0');
+    setRefillLiters('');
+    setRefillSupplier('');
+
+    try {
+      localStorage.removeItem('erp_fuel_meter_records_v1');
+      localStorage.setItem('erp_fuel_station_reset_v1', 'true');
+      localStorage.setItem('erp_fuel_tanks_v1', JSON.stringify(zeroedTanks));
+
+      const rawJournals = JSON.parse(localStorage.getItem('erp_journal_entries_v1') || '[]');
+      if (Array.isArray(rawJournals)) {
+        const cleanedJournals = rawJournals.filter(
+          (je: any) => je.reference_type !== 'FUEL_PUMP_SHIFT' && je.reference_type !== 'FUEL_TANK_REFILL'
+        );
+        localStorage.setItem('erp_journal_entries_v1', JSON.stringify(cleanedJournals));
+      }
+
+      window.dispatchEvent(new Event('erp-ledger-updated'));
+      window.dispatchEvent(new Event('erp-data-updated'));
+    } catch (err) {
+      console.error('Failed to reset fuel station localStorage:', err);
+    }
+
+    fetch('/api/v1/fuel-station/state', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tanks: zeroedTanks, records: [] }),
+    }).catch(() => {});
+
+    setSuccessMessage('تم مسح جميع سجلات الجرد وتصفير خزانات الوقود والغاز بالكامل للبدء من جديد!');
     setTimeout(() => setSuccessMessage(null), 4000);
   };
 
@@ -516,6 +692,16 @@ export const FuelStationTab: React.FC = () => {
             </button>
 
             <ExportActions getConfig={getFuelExportConfig} />
+
+            <button
+              type="button"
+              onClick={handleResetAllFuelStation}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-xl text-xs font-bold border border-rose-500/30 transition-all cursor-pointer shadow-sm"
+              title="مسح كافة سجلات الجرد وتصفير الخزانات للبدء من جديد"
+            >
+              <Trash2 className="w-4 h-4 text-rose-400" />
+              <span>حذف الكل والبدء من جديد</span>
+            </button>
           </div>
         </div>
 
@@ -652,12 +838,13 @@ export const FuelStationTab: React.FC = () => {
                     <th className="p-3.5 font-mono text-left">المسلم فعلياً</th>
                     <th className="p-3.5 text-center">الفارق المالي</th>
                     <th className="p-3.5 text-center">الحالة</th>
+                    <th className="p-3.5 text-center">إجراءات</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 font-medium">
                   {records.length === 0 ? (
                     <tr>
-                      <td colSpan={11} className="p-8 text-center text-slate-500">
+                      <td colSpan={12} className="p-8 text-center text-slate-500">
                         لا توجد قراءات عدادات مسجلة لهذا التاريخ. اضغط على زر "تسجيل قراءة عداد طرمبة" للبدء.
                       </td>
                     </tr>
@@ -735,6 +922,17 @@ export const FuelStationTab: React.FC = () => {
                               معتمد ومرحل
                             </span>
                           </td>
+
+                          <td className="p-3.5 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteMeterRecord(rec)}
+                              className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center"
+                              title="حذف سجل الجرد وإعادة الكمية للخزان"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
                         </tr>
                       );
                     })
@@ -778,17 +976,28 @@ export const FuelStationTab: React.FC = () => {
                     </div>
                   </div>
 
-                  <span
-                    className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
-                      isLow
-                        ? 'bg-rose-500/10 text-rose-300 border-rose-500/30'
-                        : fillPercentage > 75
-                        ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'
-                        : 'bg-amber-500/10 text-amber-300 border-amber-500/30'
-                    }`}
-                  >
-                    {fillPercentage}% من السعة
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
+                        isLow
+                          ? 'bg-rose-500/10 text-rose-300 border-rose-500/30'
+                          : fillPercentage > 75
+                          ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'
+                          : 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                      }`}
+                    >
+                      {fillPercentage}% من السعة
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => handleResetSingleTank(tank.id)}
+                      className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg transition-colors cursor-pointer"
+                      title="تصفير هذا الخزان وحذف سجلات الجرد المرتبطة به"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Visual Gauge Bar */}
@@ -802,7 +1011,7 @@ export const FuelStationTab: React.FC = () => {
                       className={`h-full rounded-full transition-all duration-500 ${
                         isLow ? 'bg-rose-500' : fillPercentage > 75 ? 'bg-emerald-500' : 'bg-amber-500'
                       }`}
-                      style={{ width: `${Math.min(100, Math.max(2, fillPercentage))}%` }}
+                      style={{ width: `${fillPercentage === 0 ? 0 : Math.min(100, Math.max(2, fillPercentage))}%` }}
                     />
                   </div>
                 </div>

@@ -455,6 +455,16 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
                       >
                         <Mail className="w-4 h-4" />
                       </button>
+
+                      {/* Delete / Reverse Invoice */}
+                      <button
+                        type="button"
+                        onClick={() => onDeleteInvoice(inv.id || inv.invoice_number)}
+                        className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg transition-colors cursor-pointer"
+                        title="حذف الفاتورة من السجل وإعادة البضاعة للمخزن وعكس الحسابات"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </td>
                 </tr>

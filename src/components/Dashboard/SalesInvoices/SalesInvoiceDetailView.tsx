@@ -26,6 +26,7 @@ import {
   Check,
   CreditCard,
   Building,
+  Trash2,
 } from 'lucide-react';
 
 interface SalesInvoiceDetailViewProps {
@@ -33,6 +34,7 @@ interface SalesInvoiceDetailViewProps {
   initialInvoice?: any;
   onBack: () => void;
   onRefreshList?: () => void;
+  onDeleteInvoice?: (invoiceId: string) => Promise<void> | void;
 }
 
 export const SalesInvoiceDetailView: React.FC<SalesInvoiceDetailViewProps> = ({
@@ -40,6 +42,7 @@ export const SalesInvoiceDetailView: React.FC<SalesInvoiceDetailViewProps> = ({
   initialInvoice,
   onBack,
   onRefreshList,
+  onDeleteInvoice,
 }) => {
   const [invoice, setInvoice] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -609,10 +612,25 @@ export const SalesInvoiceDetailView: React.FC<SalesInvoiceDetailViewProps> = ({
             <button
               type="button"
               onClick={() => setIsReturnModalOpen(true)}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-colors"
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-colors cursor-pointer"
             >
               <RotateCcw className="w-4 h-4" />
               مرتجع / إشعار دائن
+            </button>
+          )}
+
+          {onDeleteInvoice && (
+            <button
+              type="button"
+              onClick={async () => {
+                await onDeleteInvoice(invoice.id || invoice.invoice_number);
+                onBack();
+              }}
+              className="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+              title="حذف الفاتورة من السجل وإعادة البضاعة للمخزن وعكس الحسابات"
+            >
+              <Trash2 className="w-4 h-4" />
+              حذف الفاتورة وعكس الحسابات
             </button>
           )}
 
@@ -1190,8 +1208,8 @@ export const SalesInvoiceDetailView: React.FC<SalesInvoiceDetailViewProps> = ({
           isOpen={isReturnModalOpen}
           onClose={() => setIsReturnModalOpen(false)}
           onSuccess={() => {
-            fetchDetails();
             onRefreshList?.();
+            onBack();
           }}
         />
       )}

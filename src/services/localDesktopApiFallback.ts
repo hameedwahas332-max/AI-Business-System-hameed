@@ -6272,10 +6272,15 @@ async function internalHandleLocalDesktopApiFallback(
     const returnItems: any[] = bodyData.items || [];
 
     // BUG-07: Validate returned item quantities against original invoice
+    let origInv: any = null;
     if (origInvNum) {
       const existingInvoices = getLocalItem<any[]>('erp_invoices_v1', []);
-      const origInv = existingInvoices.find(
-        (i: any) => String(i.invoice_number) === String(origInvNum) || String(i.invoiceNumber) === String(origInvNum) || String(i.id) === String(origInvNum)
+      const origKeyLower = String(origInvNum).toLowerCase();
+      origInv = existingInvoices.find(
+        (i: any) =>
+          String(i.invoice_number || '').toLowerCase() === origKeyLower ||
+          String(i.invoiceNumber || '').toLowerCase() === origKeyLower ||
+          String(i.id || '').toLowerCase() === origKeyLower
       );
 
       if (origInv && Array.isArray(origInv.items) && origInv.items.length > 0) {
@@ -6350,6 +6355,13 @@ async function internalHandleLocalDesktopApiFallback(
 
     const returnId = `ret_${Date.now()}`;
     const returnNumber = `RET-${Date.now().toString().slice(-6)}`;
+    const computedReturnItemsSum = returnItems.reduce(
+      (acc: number, it: any) => acc + Math.max(0, Number(it.quantity || it.qty || 1)) * Number(it.unit_price || it.unitPrice || it.price || 0),
+      0
+    );
+    const resolvedTotalRefund = Number(
+      bodyData.totalRefund || bodyData.refundAmount || bodyData.refund_amount || bodyData.total || computedReturnItemsSum || 0
+    );
     const returnRecord = {
       id: returnId,
       return_number: returnNumber,
@@ -6358,8 +6370,8 @@ async function internalHandleLocalDesktopApiFallback(
       original_invoice_number: origInvNum,
       originalInvoiceNumber: origInvNum,
       items: returnItems,
-      total: Number(bodyData.totalRefund || bodyData.refundAmount || bodyData.total || 0),
-      totalRefund: Number(bodyData.totalRefund || bodyData.refundAmount || bodyData.total || 0),
+      total: resolvedTotalRefund,
+      totalRefund: resolvedTotalRefund,
       refund_method: bodyData.refundMethod || bodyData.refund_method || 'CASH',
       refundMethod: bodyData.refundMethod || bodyData.refund_method || 'CASH',
       reason: bodyData.reason || 'مرتجع مبيعات',
@@ -6416,22 +6428,61 @@ async function internalHandleLocalDesktopApiFallback(
     const existingReturns = getLocalItem('erp_sales_returns_v1', []);
     setLocalItem('erp_sales_returns_v1', [returnRecord, ...existingReturns], companyId);
 
-    // If refund was CUSTOMER_CREDIT, update customer balance in erp_customers_v1
-    if ((returnRecord.refundMethod === 'CUSTOMER_CREDIT' || returnRecord.refund_method === 'CREDIT_NOTE') && bodyData.customerId) {
+    // If refund was CUSTOMER_CREDIT or CREDIT_NOTE, update customer balance in erp_customers_v1
+    const targetCustId = bodyData.customerId || bodyData.customer_id || origInv?.customer_id || origInv?.customerId;
+    const targetCustName = String(bodyData.customer_name || bodyData.customerName || origInv?.customer_name || '').trim().toLowerCase();
+    if (
+      (returnRecord.refundMethod === 'CUSTOMER_CREDIT' ||
+        returnRecord.refund_method === 'CREDIT_NOTE' ||
+        bodyData.remove_invoice) &&
+      (targetCustId || targetCustName)
+    ) {
       const custs = getLocalItem('erp_customers_v1', []);
-      const updatedCusts = custs.map((c: any) => {
-        if (c.id === bodyData.customerId) {
-          return {
-            ...c,
-            balance: Math.max(0, Number(c.balance || 0) - returnRecord.totalRefund),
-            current_balance: Math.max(0, Number(c.current_balance || c.balance || 0) - returnRecord.totalRefund),
-          };
+      const debtToReduce =
+        returnRecord.refundMethod === 'CUSTOMER_CREDIT' || returnRecord.refund_method === 'CREDIT_NOTE'
+          ? returnRecord.totalRefund
+          : Math.min(returnRecord.totalRefund, Number(origInv?.remaining_amount ?? origInv?.remainingAmount ?? 0));
+      if (debtToReduce > 0) {
+        const updatedCusts = custs.map((c: any) => {
+          const isMatch =
+            (targetCustId && String(c.id) === String(targetCustId)) ||
+            (targetCustName && String(c.name || '').trim().toLowerCase() === targetCustName);
+          if (isMatch) {
+            const nextBal = Math.max(0, Number((Number(c.current_balance ?? c.balance ?? c.total_debt ?? 0) - debtToReduce).toFixed(2)));
+            return {
+              ...c,
+              balance: nextBal,
+              current_balance: nextBal,
+              total_debt: nextBal,
+            };
+          }
+          return c;
+        });
+        setLocalItem('erp_customers_v1', updatedCusts, companyId);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('erp-customers-updated'));
         }
-        return c;
-      });
-      setLocalItem('erp_customers_v1', updatedCusts, companyId);
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('erp-customers-updated'));
+      }
+    }
+
+    // Remove or update the returned invoice in erp_invoices_v1 and erp_pos_sales_log_v1
+    if (origInvNum) {
+      const origKeyLower = String(origInvNum).toLowerCase();
+      const origIdLower = String(origInv?.id || bodyData.originalInvoiceId || bodyData.invoice_id || origInvNum).toLowerCase();
+      const shouldRemoveInv = bodyData.remove_invoice !== false;
+      for (const sKey of ['erp_invoices_v1', 'erp_pos_sales_log_v1']) {
+        const list = getLocalItem<any[]>(sKey, []);
+        if (Array.isArray(list) && list.length > 0) {
+          if (shouldRemoveInv) {
+            const filtered = list.filter(
+              (inv: any) =>
+                String(inv.id || '').toLowerCase() !== origKeyLower &&
+                String(inv.id || '').toLowerCase() !== origIdLower &&
+                String(inv.invoice_number || inv.invoiceNumber || '').toLowerCase() !== origKeyLower
+            );
+            setLocalItem(sKey, filtered, companyId);
+          }
+        }
       }
     }
 
@@ -7683,6 +7734,94 @@ async function internalHandleLocalDesktopApiFallback(
         payment: paymentRecord,
         invoice: invIdx !== -1 ? invoices[invIdx] : inv,
         message: 'تم تسجيل الدفعة وتحديث رصيد الفاتورة والعميل بنجاح',
+      };
+    }
+  }
+
+  // 13.5 Fuel Station State & Reset Fallback (Desktop / Offline)
+  if (cleanUrl.includes('/fuel-station/state') || cleanUrl.includes('/fuel-station/reset')) {
+    if (method === 'GET') {
+      const tanks = getLocalItem<any[]>('erp_fuel_tanks_v1', []);
+      const records = getLocalItem<any[]>('erp_fuel_meter_records_v1', []);
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: { tanks, records },
+      };
+    }
+
+    if (method === 'POST' || method === 'PUT') {
+      let bodyData: any = {};
+      try {
+        if (options?.body) bodyData = JSON.parse(options.body as string);
+      } catch {}
+
+      if (cleanUrl.includes('/fuel-station/reset')) {
+        const currentTanks = getLocalItem<any[]>('erp_fuel_tanks_v1', []);
+        const zeroedTanks = currentTanks.map((t: any) => ({
+          ...t,
+          currentStockLiters: 0,
+          previousBalanceLiters: 0,
+          todayRefillLiters: 0,
+          actualDipReadingLiters: 0,
+          lastUpdated: new Date().toISOString(),
+        }));
+        setLocalItem('erp_fuel_tanks_v1', zeroedTanks, companyId);
+        setLocalItem('erp_fuel_meter_records_v1', [], companyId);
+        try {
+          localStorage.removeItem('erp_fuel_meter_records_v1');
+          localStorage.setItem('erp_fuel_station_reset_v1', 'true');
+        } catch {}
+        return {
+          ok: true,
+          success: true,
+          status: 200,
+          data: { tanks: zeroedTanks, records: [] },
+          message: 'تم تصفير محطة الوقود والغاز بنجاح',
+        };
+      }
+
+      if (Array.isArray(bodyData.tanks)) {
+        setLocalItem('erp_fuel_tanks_v1', bodyData.tanks, companyId);
+      }
+      if (Array.isArray(bodyData.records)) {
+        if (bodyData.records.length === 0) {
+          try {
+            localStorage.removeItem('erp_fuel_meter_records_v1');
+          } catch {}
+        } else {
+          setLocalItem('erp_fuel_meter_records_v1', bodyData.records, companyId);
+        }
+      }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('erp-fuel-updated'));
+        window.dispatchEvent(new Event('erp-data-updated'));
+      }
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: {
+          tanks: Array.isArray(bodyData.tanks) ? bodyData.tanks : getLocalItem<any[]>('erp_fuel_tanks_v1', []),
+          records: Array.isArray(bodyData.records) ? bodyData.records : getLocalItem<any[]>('erp_fuel_meter_records_v1', []),
+        },
+        message: 'تم حفظ حالة محطة الوقود بنجاح',
+      };
+    }
+
+    if (method === 'DELETE') {
+      setLocalItem('erp_fuel_meter_records_v1', [], companyId);
+      try {
+        localStorage.removeItem('erp_fuel_meter_records_v1');
+        localStorage.setItem('erp_fuel_station_reset_v1', 'true');
+      } catch {}
+      return {
+        ok: true,
+        success: true,
+        status: 200,
+        data: { success: true },
+        message: 'تم مسح سجلات محطة الوقود بنجاح',
       };
     }
   }
@@ -9165,7 +9304,228 @@ async function internalHandleLocalDesktopApiFallback(
           String(i.barcode || '').toLowerCase() === targetIdLower
       );
       const actualId = foundToDelete?.id || targetId;
-      const filtered = items.filter((i) => String(i.id) !== String(actualId));
+      const actualIdLower = String(actualId || '').toLowerCase();
+      const actualInvNo = foundToDelete?.invoice_number || foundToDelete?.invoiceNumber || targetId;
+      const actualInvNoLower = String(actualInvNo || '').toLowerCase();
+
+      // If deleting a sales invoice, reverse inventory stock, customer debt, payment vouchers, and accounting journals
+      if (matchedEntityKey === 'invoices' && foundToDelete) {
+        const stUpper = String(foundToDelete.status || '').toUpperCase();
+        if (stUpper !== 'CANCELLED' && stUpper !== 'RETURNED') {
+          const invItems = Array.isArray(foundToDelete.items) ? foundToDelete.items : [];
+          const products = getLocalItem<any[]>('erp_products_v1', [], companyId);
+          const movements = getLocalItem<any[]>('erp_inventory_movements_v1', [], companyId);
+          let totalCogsToReverse = 0;
+
+          for (const it of invItems) {
+            const prodId = it.product_id || it.productId || it.id;
+            const factor = Number(it.unitFactor || it.conversionFactor || 1);
+            const qty = Math.max(0, Number(it.quantity ?? it.qty ?? 1));
+            const baseQty = qty * factor;
+
+            const pIdx = products.findIndex(
+              (p: any) =>
+                String(p.id) === String(prodId) ||
+                (it.item_code && p.sku && String(p.sku) === String(it.item_code)) ||
+                (it.sku && p.sku && String(p.sku) === String(it.sku))
+            );
+
+            const unitCost = Number(
+              it.cost_price ?? it.costPrice ?? (pIdx !== -1 ? products[pIdx].cost_price ?? products[pIdx].purchase_price ?? 0 : 0)
+            );
+            totalCogsToReverse = roundMoney(totalCogsToReverse + baseQty * unitCost);
+
+            if (pIdx !== -1 && baseQty > 0) {
+              const curStock = Number(products[pIdx].current_stock ?? products[pIdx].stock_quantity ?? products[pIdx].qty ?? products[pIdx].stock ?? 0);
+              const restored = curStock + baseQty;
+              products[pIdx].current_stock = restored;
+              products[pIdx].stock_quantity = restored;
+              products[pIdx].qty = restored;
+              products[pIdx].stock = restored;
+              products[pIdx].quantity = restored;
+
+              movements.unshift({
+                id: `mov_rev_sale_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+                company_id: companyId,
+                product_id: products[pIdx].id,
+                product_name: products[pIdx].name,
+                type: 'IN',
+                quantity: baseQty,
+                remaining_stock: restored,
+                reference_type: 'SALES_CANCEL',
+                reference_id: actualInvNo,
+                notes: `إرجاع مخزني لحذف فاتورة مبيعات #${actualInvNo}`,
+                date: new Date().toISOString().split('T')[0],
+              });
+            }
+          }
+          setLocalItem('erp_products_v1', products, companyId);
+          setLocalItem('erp_inventory_movements_v1', movements, companyId);
+
+          // Reverse customer remaining debt
+          const remDebt = roundMoney(
+            Math.max(
+              0,
+              Number(
+                foundToDelete.remaining_amount ??
+                  foundToDelete.remainingAmount ??
+                  foundToDelete.remainingBalance ??
+                  (Number(foundToDelete.total || 0) - Number(foundToDelete.paid_amount ?? foundToDelete.paidAmount ?? 0))
+              )
+            )
+          );
+          const custId = foundToDelete.customer_id || foundToDelete.customerId;
+          const custName = String(foundToDelete.customer_name || foundToDelete.customerName || '').trim().toLowerCase();
+          if (remDebt > 0 && (custId || custName)) {
+            const customers = getLocalItem<any[]>('erp_customers_v1', [], companyId);
+            const cIdx = customers.findIndex(
+              (c: any) =>
+                (custId && String(c.id) === String(custId)) ||
+                (custName && String(c.name || '').trim().toLowerCase() === custName)
+            );
+            if (cIdx !== -1) {
+              const curBal = Number(customers[cIdx].current_balance ?? customers[cIdx].balance ?? customers[cIdx].total_debt ?? 0);
+              const nextBal = roundMoney(Math.max(0, curBal - remDebt));
+              customers[cIdx].current_balance = nextBal;
+              customers[cIdx].balance = nextBal;
+              customers[cIdx].total_debt = nextBal;
+              setLocalItem('erp_customers_v1', customers, companyId);
+            }
+          }
+
+          // Remove linked automatic payment vouchers
+          for (const vKey of ['erp_payments_v1', 'erp_treasury_vouchers_v1']) {
+            const vouchers = getLocalItem<any[]>(vKey, [], companyId);
+            if (Array.isArray(vouchers) && vouchers.length > 0) {
+              const cleanedVouchers = vouchers.filter((v: any) => {
+                const ref = String(v.reference_id || v.reference_no || v.invoice_id || v.invoice_number || '').toLowerCase();
+                return ref !== actualIdLower && ref !== actualInvNoLower && ref !== targetIdLower;
+              });
+              setLocalItem(vKey, cleanedVouchers, companyId);
+            }
+          }
+
+          // Post reversing journal entry
+          const totalVal = roundMoney(Number(foundToDelete.total || foundToDelete.total_amount || 0));
+          const taxVal = roundMoney(Number(foundToDelete.tax || foundToDelete.tax_amount || 0));
+          const discountVal = roundMoney(Number(foundToDelete.discount || foundToDelete.discount_amount || 0));
+          const paidVal = roundMoney(Number(foundToDelete.paid_amount ?? foundToDelete.paidAmount ?? ( totalVal - remDebt )));
+          const creditVal = roundMoney(Math.max(0, totalVal - paidVal));
+          const subtotalVal = roundMoney(Math.max(0, totalVal - taxVal + discountVal));
+
+          const rawMethod = String(foundToDelete.payment_method || foundToDelete.paymentMethod || 'CASH').toUpperCase();
+          const isWallet = ['WALLET', 'MOBILE', 'E_WALLET', 'KURIMI', 'JAWALI', 'FLOUSK', 'ONE_CASH', 'JIB'].includes(rawMethod);
+          const isBank = !isWallet && ['BANK', 'CHECK', 'CARD', 'TRANSFER'].includes(rawMethod);
+          const cashOrBankCode = isWallet ? '1107' : isBank ? '1102' : '1101';
+          const cashOrBankName = isWallet
+            ? 'المحافظ الإلكترونية والشبكات'
+            : isBank
+            ? 'البنك / الحسابات المصرفية'
+            : 'الصندوق / النقدية';
+
+          const revLines: any[] = [];
+          if (subtotalVal > 0) {
+            revLines.push({
+              account_code: '4101',
+              account_name: 'إيرادات المبيعات',
+              debit: subtotalVal,
+              credit: 0,
+              description: `إلغاء إيراد فاتورة مبيعات #${actualInvNo}`,
+            });
+          }
+          if (taxVal > 0) {
+            revLines.push({
+              account_code: '2102',
+              account_name: 'ضريبة القيمة المضافة - مخرجات',
+              debit: taxVal,
+              credit: 0,
+              description: `عكس ضريبة مخرجات فاتورة مبيعات #${actualInvNo}`,
+            });
+          }
+          if (discountVal > 0) {
+            revLines.push({
+              account_code: '4102',
+              account_name: 'خصم مسموح به',
+              debit: 0,
+              credit: discountVal,
+              description: `عكس خصم فاتورة مبيعات #${actualInvNo}`,
+            });
+          }
+          if (paidVal > 0) {
+            revLines.push({
+              account_code: cashOrBankCode,
+              account_name: cashOrBankName,
+              debit: 0,
+              credit: paidVal,
+              description: `استرداد نقدي لحذف فاتورة مبيعات #${actualInvNo}`,
+            });
+          }
+          if (creditVal > 0) {
+            revLines.push({
+              account_code: '1103',
+              account_name: 'العملاء / المدينون',
+              debit: 0,
+              credit: creditVal,
+              description: `إلغاء مديونية عميل فاتورة #${actualInvNo}`,
+            });
+          }
+          if (revLines.length > 0) {
+            postLocalDoubleEntryJournal({
+              company_id: companyId,
+              reference_type: 'SALES_CANCEL',
+              reference_id: String(actualInvNo),
+              description: `قيد عكسي لحذف فاتورة مبيعات #${actualInvNo}`,
+              date: new Date().toISOString().split('T')[0],
+              lines: revLines,
+            });
+          }
+          if (totalCogsToReverse > 0) {
+            postLocalDoubleEntryJournal({
+              company_id: companyId,
+              reference_type: 'COGS_REVERSAL',
+              reference_id: String(actualInvNo),
+              description: `عكس تكلفة البضاعة المباعة لحذف فاتورة #${actualInvNo}`,
+              date: new Date().toISOString().split('T')[0],
+              lines: [
+                {
+                  account_code: '1104',
+                  account_name: 'المخزون السلعي',
+                  debit: totalCogsToReverse,
+                  credit: 0,
+                  description: `إرجاع المخزون السلعي لحذف فاتورة #${actualInvNo}`,
+                },
+                {
+                  account_code: '5101',
+                  account_name: 'تكلفة البضاعة المباعة',
+                  debit: 0,
+                  credit: totalCogsToReverse,
+                  description: `عكس تكلفة البضاعة المباعة فاتورة #${actualInvNo}`,
+                },
+              ],
+            });
+          }
+        }
+
+        // Also remove from erp_pos_sales_log_v1
+        const posLogs = getLocalItem<any[]>('erp_pos_sales_log_v1', [], companyId);
+        if (Array.isArray(posLogs) && posLogs.length > 0) {
+          const filteredPos = posLogs.filter(
+            (i: any) =>
+              String(i.id || '').toLowerCase() !== actualIdLower &&
+              String(i.id || '').toLowerCase() !== targetIdLower &&
+              String(i.invoice_number || i.invoiceNumber || '').toLowerCase() !== actualInvNoLower &&
+              String(i.invoice_number || i.invoiceNumber || '').toLowerCase() !== targetIdLower
+          );
+          setLocalItem('erp_pos_sales_log_v1', filteredPos, companyId);
+        }
+      }
+
+      const filtered = items.filter(
+        (i) =>
+          String(i.id || '').toLowerCase() !== actualIdLower &&
+          String(i.id || '').toLowerCase() !== targetIdLower &&
+          String(i.invoice_number || i.invoiceNumber || '').toLowerCase() !== actualInvNoLower
+      );
       setLocalItem(storeKey, filtered, companyId);
 
       if (actualId) {
@@ -9179,6 +9539,8 @@ async function internalHandleLocalDesktopApiFallback(
           })
         );
         if (event) window.dispatchEvent(new Event(event));
+        window.dispatchEvent(new Event('erp-inventory-updated'));
+        window.dispatchEvent(new Event('erp-customers-updated'));
         window.dispatchEvent(new Event('storage'));
       }
 
