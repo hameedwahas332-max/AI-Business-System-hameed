@@ -24,6 +24,10 @@ import {
   Tag,
   Boxes,
   Barcode,
+  Wallet,
+  Landmark,
+  Banknote,
+  Clock,
 } from 'lucide-react';
 
 export const PurchaseInvoicesTab: React.FC = () => {
@@ -49,6 +53,10 @@ export const PurchaseInvoicesTab: React.FC = () => {
   const [dueDate, setDueDate] = useState('');
   const [status, setStatus] = useState('PENDING'); // DRAFT, PENDING
   const [notes, setNotes] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'BANK' | 'WALLET' | 'CREDIT'>('CASH');
+  const [paymentChannelName, setPaymentChannelName] = useState(''); // اسم البنك أو المحفظة (مثل: جوالي، ون كاش، الكريمي...)
+  const [paymentReferenceNo, setPaymentReferenceNo] = useState(''); // رقم الحوالة أو الإشعار
+  const [hasManualPaidEdit, setHasManualPaidEdit] = useState(false);
   const [paidAmount, setPaidAmount] = useState<any>(0);
   const [invoiceDiscountAmount, setInvoiceDiscountAmount] = useState<any>(0);
   const [invoiceDiscountPercent, setInvoiceDiscountPercent] = useState<any>(0);
@@ -142,11 +150,15 @@ export const PurchaseInvoicesTab: React.FC = () => {
     setDueDate('');
     setStatus('PENDING');
     setNotes('');
-    setPaidAmount(0);
-    setInvoiceDiscountAmount(0);
-    setInvoiceDiscountPercent(0);
+    setPaymentMethod('CASH');
+    setPaymentChannelName('');
+    setPaymentReferenceNo('');
+    setHasManualPaidEdit(false);
     const firstProd = products[0];
     const initialCost = Number(firstProd?.costPrice || firstProd?.purchasePrice || firstProd?.cost_price || firstProd?.purchase_price || 0);
+    setPaidAmount(initialCost);
+    setInvoiceDiscountAmount(0);
+    setInvoiceDiscountPercent(0);
     setBuilderItems([
       {
         product_id: firstProd?.id || '',
@@ -394,6 +406,30 @@ export const PurchaseInvoicesTab: React.FC = () => {
     0
   );
 
+  useEffect(() => {
+    if (!isBuilderOpen || hasManualPaidEdit) return;
+    if (paymentMethod === 'CREDIT') {
+      setPaidAmount(0);
+    } else {
+      setPaidAmount(calculatedTotal);
+    }
+  }, [calculatedTotal, paymentMethod, isBuilderOpen, hasManualPaidEdit]);
+
+  const handlePaymentMethodChange = (method: 'CASH' | 'BANK' | 'WALLET' | 'CREDIT') => {
+    setPaymentMethod(method);
+    setHasManualPaidEdit(false);
+    if (method === 'CREDIT') {
+      setPaidAmount(0);
+      if (!dueDate) {
+        const d = new Date();
+        d.setDate(d.getDate() + 30);
+        setDueDate(d.toISOString().split('T')[0]);
+      }
+    } else {
+      setPaidAmount(calculatedTotal);
+    }
+  };
+
   const totalPurchaseAmount = invoices.reduce((sum, inv) => sum + Number(inv.total || 0), 0);
   const totalPaidToSuppliers = invoices.reduce((sum, inv) => sum + Number(inv.paid_amount || 0), 0);
   const totalRemainingToSuppliers = invoices.reduce((sum, inv) => sum + Number(inv.remaining_amount || 0), 0);
@@ -490,7 +526,29 @@ export const PurchaseInvoicesTab: React.FC = () => {
       }
 
       const supp = suppliers.find((s) => s.id === selectedSupplierId);
-      const remainingToSupplier = Math.max(0, calculatedTotal - Number(paidAmount || 0));
+      const rawPaidInput = Number(paidAmount || 0);
+      const effectivePaid = Math.max(0, Math.min(rawPaidInput, calculatedTotal));
+      const remainingToSupplier = Math.max(0, Number((calculatedTotal - effectivePaid).toFixed(2)));
+
+      let paymentNotes = '';
+      if (paymentMethod === 'BANK') {
+        paymentNotes = [
+          paymentChannelName.trim() ? `بنك: ${paymentChannelName.trim()}` : 'تحويل بنكي',
+          paymentReferenceNo.trim() ? `مرجع: ${paymentReferenceNo.trim()}` : '',
+        ]
+          .filter(Boolean)
+          .join(' - ');
+      } else if (paymentMethod === 'WALLET') {
+        paymentNotes = [
+          paymentChannelName.trim() ? `محفظة: ${paymentChannelName.trim()}` : 'محفظة إلكترونية',
+          paymentReferenceNo.trim() ? `حوالة: ${paymentReferenceNo.trim()}` : '',
+        ]
+          .filter(Boolean)
+          .join(' - ');
+      } else if (paymentMethod === 'CREDIT') {
+        paymentNotes = `شراء بالآجل - قيدت كذمة للمورد (${supp?.name || ''})`;
+      }
+      const combinedNotes = [notes, paymentNotes].filter(Boolean).join(' | ');
 
       const processedItems = builderItems.map((item) => {
         const calcs = getItemCalculations(item);
@@ -520,6 +578,13 @@ export const PurchaseInvoicesTab: React.FC = () => {
         };
       });
 
+      const resolvedStatus =
+        status === 'PENDING' && remainingToSupplier <= 0.01 && calculatedTotal > 0
+          ? 'PAID'
+          : status === 'PENDING' && effectivePaid > 0
+          ? 'PARTIALLY_PAID'
+          : status;
+
       const res = await api.createPurchaseInvoice({
         supplier_id: selectedSupplierId,
         supplier_name: supp?.name || '',
@@ -527,7 +592,15 @@ export const PurchaseInvoicesTab: React.FC = () => {
         exchange_rate: parseFloat(exchangeRate || '1.0'),
         invoice_date: invoiceDate,
         due_date: dueDate || undefined,
-        status: status === 'PENDING' && Number(paidAmount) >= calculatedTotal ? 'PAID' : status === 'PENDING' && Number(paidAmount) > 0 ? 'PARTIALLY_PAID' : status,
+        status: resolvedStatus,
+        payment_method: paymentMethod,
+        paymentMethod: paymentMethod,
+        payment_channel: paymentChannelName.trim() || undefined,
+        payment_reference_no: paymentReferenceNo.trim() || undefined,
+        bank_name: paymentMethod === 'BANK' ? paymentChannelName.trim() || undefined : undefined,
+        bank_ref_no: paymentMethod === 'BANK' ? paymentReferenceNo.trim() || undefined : undefined,
+        wallet_provider: paymentMethod === 'WALLET' ? paymentChannelName.trim() || undefined : undefined,
+        wallet_tx_no: paymentMethod === 'WALLET' ? paymentReferenceNo.trim() || undefined : undefined,
         subtotal: calculatedSubtotal,
         items_discount: calculatedItemsDiscount,
         invoice_discount: numInvoiceDisc,
@@ -537,9 +610,9 @@ export const PurchaseInvoicesTab: React.FC = () => {
         total: calculatedTotal,
         total_received_quantity: calculatedTotalReceivedUnits,
         total_received_base_units: calculatedTotalReceivedUnits,
-        paid_amount: Number(paidAmount || 0),
+        paid_amount: effectivePaid,
         remaining_amount: remainingToSupplier,
-        notes,
+        notes: combinedNotes,
         items: processedItems,
       });
 
@@ -587,13 +660,13 @@ export const PurchaseInvoicesTab: React.FC = () => {
       }
 
       // 3. Record automatic payment voucher (سند صرف) if paid amount > 0
-      if (Number(paidAmount) > 0) {
+      if (effectivePaid > 0) {
         try {
           recordAutomaticTreasuryVoucher({
             type: 'SUPPLIER_PAYMENT',
-            amount: Number(paidAmount),
+            amount: effectivePaid,
             currency: currency || 'YER',
-            paymentMethod: 'CASH',
+            paymentMethod: paymentMethod,
             paymentDate: invoiceDate,
             partyId: selectedSupplierId,
             partyName: supp?.name || 'مورد تجاري',
@@ -602,6 +675,10 @@ export const PurchaseInvoicesTab: React.FC = () => {
             referenceNo: res.data?.invoice_number || `PUR-${Date.now().toString().slice(-6)}`,
             referenceType: 'PURCHASE_INVOICE',
             notes: `سند صرف آلي عن فاتورة مشتريات وتوريد رقم #${res.data?.invoice_number || ''} (المورد: ${supp?.name || 'مورد تجاري'})`,
+            bankName: paymentMethod === 'BANK' ? paymentChannelName.trim() || undefined : undefined,
+            bankRefNo: paymentMethod === 'BANK' ? paymentReferenceNo.trim() || undefined : undefined,
+            walletProvider: paymentMethod === 'WALLET' ? paymentChannelName.trim() || undefined : undefined,
+            walletTxNo: paymentMethod === 'WALLET' ? paymentReferenceNo.trim() || undefined : undefined,
           });
         } catch (pmtErr) {
           console.warn('Voucher sync warn for purchase:', pmtErr);
@@ -642,11 +719,15 @@ export const PurchaseInvoicesTab: React.FC = () => {
           supplier_id: selectedSupplierId,
           supplier_name: supp?.name || 'مورد تجاري',
           total: calculatedTotal,
-          paid_amount: Number(paidAmount || 0),
+          paid_amount: effectivePaid,
           remaining_amount: remainingToSupplier,
-          status: remainingToSupplier <= 0.01 ? 'PAID' : Number(paidAmount) > 0 ? 'PARTIALLY_PAID' : 'PENDING',
+          payment_method: paymentMethod,
+          payment_channel: paymentChannelName.trim() || undefined,
+          payment_reference_no: paymentReferenceNo.trim() || undefined,
+          status: remainingToSupplier <= 0.01 ? 'PAID' : effectivePaid > 0 ? 'PARTIALLY_PAID' : 'PENDING',
           created_at: new Date().toISOString(),
           invoice_date: invoiceDate,
+          notes: combinedNotes,
           items: processedItems,
         };
         localStorage.setItem(
@@ -1277,30 +1358,172 @@ export const PurchaseInvoicesTab: React.FC = () => {
                 </div>
               </div>
 
-              {/* Payment to Supplier & Balances */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-950 p-3.5 rounded-xl border border-slate-800">
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1 text-xs flex items-center justify-between">
-                    <span>المبلغ المسدد للمورد فوراً ({currency})</span>
-                    <span className="text-[10px] text-amber-400 font-mono">0-9 EN</span>
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    dir="ltr"
-                    lang="en"
-                    value={paidAmount}
-                    onChange={(e) => setPaidAmount(toEnglishDigits(e.target.value).replace(/[^0-9.]/g, ''))}
-                    placeholder="0.00"
-                    className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-emerald-400 font-bold font-mono focus:outline-none focus:border-emerald-500"
-                  />
+              {/* Full Payment Methods Selector (نقدي / بنكي / محفظة إلكترونية / آجل) */}
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                  <span className="font-bold text-emerald-400 text-xs flex items-center gap-1.5">
+                    <Banknote className="w-4 h-4" />
+                    <span>طريقة الدفع والسداد للمورد</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400">ترحيل آلي لحساب الصندوق (1101) والبنك (1102) والمحافظ (1107) والموردين (2101)</span>
                 </div>
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1 text-xs">
-                    المتبقي للمورد (دين آجل على المنشأة)
-                  </label>
-                  <div className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl font-bold font-mono text-amber-400 text-sm">
-                    {formatAmount(Math.max(0, calculatedTotal - (parseFloat(paidAmount) || 0)))} {currency}
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => handlePaymentMethodChange('CASH')}
+                    className={`p-3 rounded-xl border text-right transition-all flex flex-col gap-1.5 cursor-pointer ${
+                      paymentMethod === 'CASH'
+                        ? 'bg-emerald-500/15 border-emerald-500/70 ring-1 ring-emerald-500/30 text-white'
+                        : 'bg-slate-900 border-slate-800 hover:bg-slate-800/70 text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <Banknote className="w-4 h-4 text-emerald-400" />
+                      {paymentMethod === 'CASH' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+                    </div>
+                    <div className="font-bold text-xs">نقدي (الصندوق)</div>
+                    <div className="text-[10px] text-slate-400">صرف من حساب 1101</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handlePaymentMethodChange('BANK')}
+                    className={`p-3 rounded-xl border text-right transition-all flex flex-col gap-1.5 cursor-pointer ${
+                      paymentMethod === 'BANK'
+                        ? 'bg-blue-500/15 border-blue-500/70 ring-1 ring-blue-500/30 text-white'
+                        : 'bg-slate-900 border-slate-800 hover:bg-slate-800/70 text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <Landmark className="w-4 h-4 text-blue-400" />
+                      {paymentMethod === 'BANK' && <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />}
+                    </div>
+                    <div className="font-bold text-xs">تحويل بنكي</div>
+                    <div className="text-[10px] text-slate-400">صرف من حساب 1102</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handlePaymentMethodChange('WALLET')}
+                    className={`p-3 rounded-xl border text-right transition-all flex flex-col gap-1.5 cursor-pointer ${
+                      paymentMethod === 'WALLET'
+                        ? 'bg-purple-500/15 border-purple-500/70 ring-1 ring-purple-500/30 text-white'
+                        : 'bg-slate-900 border-slate-800 hover:bg-slate-800/70 text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <Wallet className="w-4 h-4 text-purple-400" />
+                      {paymentMethod === 'WALLET' && <CheckCircle2 className="w-3.5 h-3.5 text-purple-400" />}
+                    </div>
+                    <div className="font-bold text-xs">محفظة إلكترونية</div>
+                    <div className="text-[10px] text-slate-400">صرف من حساب 1107</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handlePaymentMethodChange('CREDIT')}
+                    className={`p-3 rounded-xl border text-right transition-all flex flex-col gap-1.5 cursor-pointer ${
+                      paymentMethod === 'CREDIT'
+                        ? 'bg-amber-500/15 border-amber-500/70 ring-1 ring-amber-500/30 text-white'
+                        : 'bg-slate-900 border-slate-800 hover:bg-slate-800/70 text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <Clock className="w-4 h-4 text-amber-400" />
+                      {paymentMethod === 'CREDIT' && <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />}
+                    </div>
+                    <div className="font-bold text-xs">شراء آجل / جزئي</div>
+                    <div className="text-[10px] text-slate-400">ذمة موردين حساب 2101</div>
+                  </button>
+                </div>
+
+                {(paymentMethod === 'BANK' || paymentMethod === 'WALLET') && (
+                  <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl space-y-2.5">
+                    {paymentMethod === 'WALLET' && (
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {['الكريمي', 'ون كاش', 'جوالي', 'فلوسك', 'جايبي', 'كاش'].map((w) => (
+                          <button
+                            key={w}
+                            type="button"
+                            onClick={() => setPaymentChannelName(w)}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors cursor-pointer ${
+                              paymentChannelName === w
+                                ? 'bg-purple-600/30 border-purple-500 text-purple-200'
+                                : 'bg-slate-950 border-slate-700 text-slate-300 hover:border-purple-500/50'
+                            }`}
+                          >
+                            {w}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] text-slate-400 mb-1">
+                          {paymentMethod === 'BANK' ? 'اسم البنك / الحساب المحول منه' : 'اسم المحفظة / المزود'}
+                        </label>
+                        <input
+                          type="text"
+                          value={paymentChannelName}
+                          onChange={(e) => setPaymentChannelName(e.target.value)}
+                          placeholder={paymentMethod === 'BANK' ? 'مثال: بنك الكريمي / التضامن' : 'مثال: جوالي، ون كاش، الكريمي'}
+                          className="w-full p-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] text-slate-400 mb-1">
+                          رقم الحوالة / الإشعار المرجعي
+                        </label>
+                        <input
+                          type="text"
+                          value={paymentReferenceNo}
+                          onChange={(e) => setPaymentReferenceNo(toEnglishDigits(e.target.value))}
+                          placeholder="رقم العملية أو الإشعار"
+                          className="w-full p-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {paymentMethod === 'CREDIT' && (
+                  <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-300 text-[11px] flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>
+                      شراء آجل: سيتم قيد المبلغ المتبقي على حساب المورد في ذمم الموردين (2101)، مع إمكانية إدخال دفعة مقدمة أدناه.
+                    </span>
+                  </div>
+                )}
+
+                {/* Payment to Supplier & Balances */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-slate-300 font-semibold mb-1 text-xs flex items-center justify-between">
+                      <span>المبلغ المسدد للمورد فوراً ({currency})</span>
+                      <span className="text-[10px] text-amber-400 font-mono">0-9 EN</span>
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      dir="ltr"
+                      lang="en"
+                      value={paidAmount}
+                      onChange={(e) => {
+                        setHasManualPaidEdit(true);
+                        setPaidAmount(toEnglishDigits(e.target.value).replace(/[^0-9.]/g, ''));
+                      }}
+                      placeholder="0.00"
+                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-emerald-400 font-bold font-mono focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-300 font-semibold mb-1 text-xs">
+                      المتبقي للمورد (دين آجل على المنشأة - 2101)
+                    </label>
+                    <div className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl font-bold font-mono text-amber-400 text-sm">
+                      {formatAmount(Math.max(0, calculatedTotal - (parseFloat(paidAmount) || 0)))} {currency}
+                    </div>
                   </div>
                 </div>
               </div>

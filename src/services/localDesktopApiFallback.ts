@@ -8782,13 +8782,25 @@ async function internalHandleLocalDesktopApiFallback(
         const taxAmount = roundMoney(sanitized.tax || sanitized.tax_amount || sanitized.taxAmount || 0);
         const netInventoryVal = roundMoney(Math.max(0, grandTotal - taxAmount));
         const paymentMethod = String(sanitized.payment_method || sanitized.paymentMethod || (bodyData.remainingAmount === 0 || bodyData.remaining_amount === 0 ? 'CASH' : 'CREDIT')).toUpperCase();
+        const rawPaidInput = sanitized.paid_amount ?? sanitized.paidAmount;
         const paidAmount = roundMoney(
-          sanitized.paid_amount ??
-          sanitized.paidAmount ??
-          (['CASH', 'BANK', 'CARD', 'TRANSFER', 'WALLET'].includes(paymentMethod) ? grandTotal : 0)
+          rawPaidInput !== undefined && rawPaidInput !== null
+            ? Math.max(0, Math.min(Number(rawPaidInput), grandTotal))
+            : ['CASH', 'BANK', 'CARD', 'TRANSFER', 'WALLET'].includes(paymentMethod)
+            ? grandTotal
+            : 0
         );
-        const remainingAmount = roundMoney(sanitized.remaining_amount ?? sanitized.remainingAmount ?? Math.max(0, grandTotal - paidAmount));
-        const isBank = ['BANK', 'CARD', 'TRANSFER', 'WALLET'].includes(paymentMethod);
+        const remainingAmount = roundMoney(
+          sanitized.remaining_amount ?? sanitized.remainingAmount ?? Math.max(0, grandTotal - paidAmount)
+        );
+        const isWallet = ['WALLET', 'MOBILE', 'E_WALLET', 'KURIMI', 'JAWALI', 'FLOUSK', 'ONE_CASH', 'JIB'].includes(paymentMethod);
+        const isBank = !isWallet && ['BANK', 'CARD', 'TRANSFER', 'CHECK'].includes(paymentMethod);
+        const cashOrBankCode = isWallet ? '1107' : isBank ? '1102' : '1101';
+        const cashOrBankName = isWallet
+          ? 'المحافظ الإلكترونية والشبكات'
+          : isBank
+          ? 'البنك / الحسابات المصرفية'
+          : 'الخزينة الرئيسية (النقدية)';
 
         // Update supplier balance ONLY if remainingAmount > 0 (never deducting cash purchases from prior supplier balance!)
         if (remainingAmount > 0 && (supplierId || supplierName)) {
@@ -8805,7 +8817,7 @@ async function internalHandleLocalDesktopApiFallback(
           }
         }
 
-        // Purchase Journal Entry: 1104 Dr, 1105 Dr, 1101/1102 Cr, 2101 Cr
+        // Purchase Journal Entry: 1104 Dr, 1105 Dr, 1101/1102/1107 Cr, 2101 Cr
         const purchaseLines: Array<{ account_code: string; account_name: string; debit: number; credit: number; description?: string }> = [
           {
             account_code: '1104',
@@ -8826,11 +8838,11 @@ async function internalHandleLocalDesktopApiFallback(
         }
         if (paidAmount > 0) {
           purchaseLines.push({
-            account_code: isBank ? '1102' : '1101',
-            account_name: isBank ? 'البنك / الحسابات المصرفية' : 'الخزينة الرئيسية (النقدية)',
+            account_code: cashOrBankCode,
+            account_name: cashOrBankName,
             debit: 0,
             credit: paidAmount,
-            description: `سداد ${isBank ? 'بنكي' : 'نقدي'} لمشتريات فاتورة #${invoiceNumber}`,
+            description: `سداد ${isWallet ? 'عبر محفظة إلكترونية' : isBank ? 'بنكي' : 'نقدي'} لمشتريات فاتورة #${invoiceNumber}`,
           });
         }
         if (remainingAmount > 0) {

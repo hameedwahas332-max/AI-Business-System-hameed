@@ -1289,25 +1289,23 @@ export function postPurchaseTransactionAtomic(params: PurchasePostParams) {
     });
   }
 
-  const isBank = ['BANK', 'CARD', 'TRANSFER', 'WALLET'].includes(paymentMethod);
+  const isWallet = ['WALLET', 'MOBILE', 'E_WALLET', 'KURIMI', 'JAWALI', 'FLOUSK', 'ONE_CASH', 'JIB'].includes(paymentMethod);
+  const isBank = !isWallet && ['BANK', 'CARD', 'TRANSFER', 'CHECK'].includes(paymentMethod);
+  const cashOrBankCode = isWallet ? '1107' : isBank ? '1102' : '1101';
+  const cashOrBankName = isWallet
+    ? 'المحافظ الإلكترونية والشبكات'
+    : isBank
+    ? 'البنك / الحسابات البنكية'
+    : 'الصندوق / النقدية';
+
   if (paidVal > 0) {
-    if (isBank) {
-      purchaseLines.push({
-        account_code: '1102',
-        account_name: 'البنك / الحسابات البنكية',
-        debit: 0,
-        credit: paidVal,
-        description: `سداد بنكي لمشتريات فاتورة #${invoiceNumber}`,
-      });
-    } else {
-      purchaseLines.push({
-        account_code: '1101',
-        account_name: 'الصندوق / النقدية',
-        debit: 0,
-        credit: paidVal,
-        description: `سداد نقدي لمشتريات فاتورة #${invoiceNumber}`,
-      });
-    }
+    purchaseLines.push({
+      account_code: cashOrBankCode,
+      account_name: cashOrBankName,
+      debit: 0,
+      credit: paidVal,
+      description: `سداد ${isWallet ? 'عبر محفظة إلكترونية' : isBank ? 'بنكي' : 'نقدي'} لمشتريات فاتورة #${invoiceNumber}`,
+    });
   }
 
   if (unpaidVal > 0) {
@@ -1333,7 +1331,7 @@ export function postPurchaseTransactionAtomic(params: PurchasePostParams) {
     created_by: params.userName || 'حميد وهاس',
   });
 
-  // 5. Record Payment in mockPaymentsList if cash/bank paid
+  // 5. Record Payment in mockPaymentsList if cash/bank/wallet paid
   if (paidVal > 0) {
     mockPaymentsList.unshift({
       id: `pmt-pur-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -1349,7 +1347,11 @@ export function postPurchaseTransactionAtomic(params: PurchasePostParams) {
       supplier_name: supplierName,
       party_name: supplierName,
       amount: paidVal,
-      payment_method: isBank ? 'BANK' : 'CASH',
+      payment_method: isWallet ? 'WALLET' : isBank ? 'BANK' : 'CASH',
+      bank_name: purchaseInvoice.bank_name || (isBank ? purchaseInvoice.payment_channel : undefined),
+      bank_ref_no: purchaseInvoice.bank_ref_no || (isBank ? purchaseInvoice.payment_reference_no : undefined),
+      wallet_provider: purchaseInvoice.wallet_provider || (isWallet ? purchaseInvoice.payment_channel : undefined),
+      wallet_tx_no: purchaseInvoice.wallet_tx_no || (isWallet ? purchaseInvoice.payment_reference_no : undefined),
       reference_type: 'PURCHASE_INVOICE',
       referenceType: 'PURCHASE_INVOICE',
       reference_id: invoiceNumber,
@@ -2753,9 +2755,15 @@ export function reversePurchaseInvoiceAtomic(
   // 4. Reverse Purchase Accounting Journal Entry
   const taxVal = roundMoney(purchase.tax ?? (purchase as any).taxAmount ?? 0);
   const netInventoryVal = roundMoney(Math.max(0, totalVal - taxVal));
-  const isBank = ['BANK', 'CARD', 'TRANSFER'].includes(String(purchase.payment_method || '').toUpperCase());
-  const cashOrBankCode = isBank ? '1102' : '1101';
-  const cashOrBankName = isBank ? 'البنك / الحسابات البنكية' : 'الصندوق / النقدية';
+  const rawMethod = String(purchase.payment_method || (purchase as any).paymentMethod || '').toUpperCase();
+  const isWallet = ['WALLET', 'MOBILE', 'E_WALLET', 'KURIMI', 'JAWALI', 'FLOUSK', 'ONE_CASH', 'JIB'].includes(rawMethod);
+  const isBank = !isWallet && ['BANK', 'CARD', 'TRANSFER', 'CHECK'].includes(rawMethod);
+  const cashOrBankCode = isWallet ? '1107' : isBank ? '1102' : '1101';
+  const cashOrBankName = isWallet
+    ? 'المحافظ الإلكترونية والشبكات'
+    : isBank
+    ? 'البنك / الحسابات البنكية'
+    : 'الصندوق / النقدية';
 
   const revPurLines: JournalLine[] = [];
   if (paidVal > 0) {
