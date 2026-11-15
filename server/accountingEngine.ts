@@ -40,7 +40,7 @@ export interface JournalEntry {
   lines: JournalLine[];
   total_debit: number;
   total_credit: number;
-  status: 'POSTED' | 'DRAFT';
+  status: 'POSTED' | 'DRAFT' | 'CANCELLED';
   company_id: string;
   created_at: string;
   created_by?: string;
@@ -94,16 +94,19 @@ export const STANDARD_CHART_OF_ACCOUNTS: Array<Omit<AccountRecord, 'id' | 'compa
   { code: '1103', name: 'Accounts Receivable', name_ar: 'العملاء / المدينون', type: 'ASSET', nature: 'DEBIT', is_active: true },
   { code: '1104', name: 'Merchandise Inventory', name_ar: 'المخزون السلعي', type: 'ASSET', nature: 'DEBIT', is_active: true },
   { code: '1105', name: 'Input VAT Receivable', name_ar: 'ضريبة القيمة المضافة - مدخلات', type: 'ASSET', nature: 'DEBIT', is_active: true },
-  { code: '1107', name: 'E-Wallets', name_ar: 'المحافظ الإلكترونية', type: 'ASSET', nature: 'DEBIT', is_active: true },
+  { code: '1107', name: 'Electronic Wallets & Networks', name_ar: 'المحافظ الإلكترونية والشبكات', type: 'ASSET', nature: 'DEBIT', is_active: true },
+  { code: '1201', name: 'Fixed Assets & Equipment', name_ar: 'الأصول الثابتة والمعدات', type: 'ASSET', nature: 'DEBIT', is_active: true },
   { code: '2101', name: 'Accounts Payable', name_ar: 'الموردون / الدائنون', type: 'LIABILITY', nature: 'CREDIT', is_active: true },
   { code: '2102', name: 'Output VAT Payable', name_ar: 'ضريبة القيمة المضافة - مخرجات', type: 'LIABILITY', nature: 'CREDIT', is_active: true },
   { code: '2103', name: 'Salaries & Wages Payable', name_ar: 'مستحقات الرواتب والأجور', type: 'LIABILITY', nature: 'CREDIT', is_active: true },
   { code: '3101', name: 'Capital & Opening Balances', name_ar: 'رأس المال والأرصدة الافتتاحية', type: 'EQUITY', nature: 'CREDIT', is_active: true },
+  { code: '3201', name: 'Retained Earnings', name_ar: 'الأرباح المحتجزة / المرحلة', type: 'EQUITY', nature: 'CREDIT', is_active: true },
   { code: '4101', name: 'Sales Revenue', name_ar: 'إيرادات المبيعات', type: 'REVENUE', nature: 'CREDIT', is_active: true },
   { code: '4102', name: 'Sales Returns & Allowances', name_ar: 'مردودات ومسموحات المبيعات', type: 'REVENUE', nature: 'DEBIT', is_active: true },
   { code: '5101', name: 'Cost of Goods Sold (COGS)', name_ar: 'تكلفة البضاعة المباعة', type: 'EXPENSE', nature: 'DEBIT', is_active: true },
   { code: '5201', name: 'Salaries & Wages Expense', name_ar: 'مصروفات الرواتب والأجور', type: 'EXPENSE', nature: 'DEBIT', is_active: true },
   { code: '5202', name: 'General & Administrative Expenses', name_ar: 'المصروفات العمومية والإدارية', type: 'EXPENSE', nature: 'DEBIT', is_active: true },
+  { code: '5203', name: 'Rent & Utilities Expense', name_ar: 'مصروفات الإيجارات والمنافع', type: 'EXPENSE', nature: 'DEBIT', is_active: true },
   { code: '5209', name: 'Inventory Shrinkage & Adjustments', name_ar: 'فروق وعجز التسويات الجردية', type: 'EXPENSE', nature: 'DEBIT', is_active: true },
 ];
 
@@ -221,7 +224,7 @@ export function validateBalancedJournalLines(lines: JournalLine[]): {
 // 4. Tenant Chart of Accounts Initialization & State Management
 // ============================================================================
 
-export function getTenantAccounts(companyId: string): AccountRecord[] {
+function ensureTenantAccountsInitialized(companyId: string): AccountRecord[] {
   const cid = companyId || getCurrentTenantId() || 'comp_001';
   let accounts = tenantAccountsMap.get(cid);
   if (!accounts || accounts.length === 0) {
@@ -235,11 +238,12 @@ export function getTenantAccounts(companyId: string): AccountRecord[] {
     }));
     tenantAccountsMap.set(cid, accounts);
   } else {
-    // Ensure all standard accounts exist
-    const existingCodes = new Set(accounts.map((a) => a.code));
+    // Ensure all standard accounts exist and align standard names
+    const existingByCode = new Map(accounts.map((a) => [a.code, a]));
     const now = new Date().toISOString();
     for (const std of STANDARD_CHART_OF_ACCOUNTS) {
-      if (!existingCodes.has(std.code)) {
+      const existing = existingByCode.get(std.code);
+      if (!existing) {
         accounts.push({
           ...std,
           id: `acc_${cid}_${std.code}`,
@@ -247,10 +251,72 @@ export function getTenantAccounts(companyId: string): AccountRecord[] {
           balance: 0,
           updated_at: now,
         });
+      } else {
+        existing.name = std.name;
+        existing.name_ar = std.name_ar;
+        existing.type = std.type;
+        existing.nature = std.nature;
       }
     }
   }
   return accounts;
+}
+
+export function recalculateTenantAccountBalances(companyId: string): AccountRecord[] {
+  const cid = companyId || getCurrentTenantId() || 'comp_001';
+  const accounts = ensureTenantAccountsInitialized(cid);
+  const now = new Date().toISOString();
+
+  for (const acc of accounts) {
+    acc.balance = 0;
+  }
+
+  const accountMap = new Map<string, AccountRecord>(accounts.map((a) => [a.code, a]));
+  const entries = getTenantJournalEntries(cid);
+
+  for (const je of entries) {
+    if (!je || String((je as any).status || '').toUpperCase() === 'CANCELLED') continue;
+    const lines = Array.isArray(je.lines) ? je.lines : [];
+    for (const line of lines) {
+      const code = String(line.account_code || '').trim();
+      if (!code) continue;
+      let acc = accountMap.get(code);
+      if (!acc) {
+        const std = STANDARD_CHART_OF_ACCOUNTS.find((s) => s.code === code);
+        acc = {
+          id: `acc_${cid}_${code}`,
+          code,
+          name: std?.name || line.account_name || `Account ${code}`,
+          name_ar: std?.name_ar || line.account_name || `حساب ${code}`,
+          type: std?.type || (code.startsWith('1') ? 'ASSET' : code.startsWith('2') ? 'LIABILITY' : code.startsWith('3') ? 'EQUITY' : code.startsWith('4') ? 'REVENUE' : 'EXPENSE'),
+          nature: std?.nature || (code.startsWith('1') || code.startsWith('5') ? 'DEBIT' : 'CREDIT'),
+          balance: 0,
+          is_active: true,
+          company_id: cid,
+          updated_at: now,
+        };
+        accounts.push(acc);
+        accountMap.set(code, acc);
+      }
+
+      const debit = roundMoney(line.debit || 0);
+      const credit = roundMoney(line.credit || 0);
+      if (acc.nature === 'DEBIT') {
+        acc.balance = roundMoney(acc.balance + (debit - credit));
+      } else {
+        acc.balance = roundMoney(acc.balance + (credit - debit));
+      }
+      acc.updated_at = now;
+    }
+  }
+
+  saveTenantAccounts(cid, accounts);
+  return accounts;
+}
+
+export function getTenantAccounts(companyId: string): AccountRecord[] {
+  const cid = companyId || getCurrentTenantId() || 'comp_001';
+  return recalculateTenantAccountBalances(cid);
 }
 
 export function saveTenantAccounts(companyId: string, accounts: AccountRecord[]): void {
@@ -1784,36 +1850,58 @@ export function postExpenseAtomic(params: ExpenseParams) {
     throw err;
   }
 
-  const isPayroll = String(params.category || '').includes('رواتب') || String(params.category || '').toLowerCase().includes('salary');
-  const expenseCode = isPayroll ? '5201' : '5202';
-  const expenseName = isPayroll ? 'مصروفات الرواتب والأجور' : 'المصروفات العمومية والإدارية';
+  const catStr = String(params.category || '');
+  const catLower = catStr.toLowerCase();
+  const isPayroll = catStr.includes('رواتب') || catStr.includes('أجور') || catLower.includes('salary') || catLower.includes('payroll');
+  const isRentOrUtilities =
+    catStr.includes('إيجار') ||
+    catStr.includes('منافع') ||
+    catStr.includes('كهرباء') ||
+    catStr.includes('مياه') ||
+    catLower.includes('rent') ||
+    catLower.includes('utilit');
+  const expenseCode = isPayroll ? '5201' : isRentOrUtilities ? '5203' : '5202';
+  const expenseName = isPayroll
+    ? 'مصروفات الرواتب والأجور'
+    : isRentOrUtilities
+    ? 'مصروفات الإيجارات والمنافع'
+    : 'المصروفات العمومية والإدارية';
 
-  const payMethodStr = String(params.paymentMethod || '').toUpperCase();
-  const treasuryStr = String(params.treasury || '').toUpperCase();
-  const isBankOrWallet =
-    payMethodStr.includes('BANK') ||
-    payMethodStr.includes('WALLET') ||
-    payMethodStr.includes('بنك') ||
-    payMethodStr.includes('مصرف') ||
-    payMethodStr.includes('تحويل') ||
-    payMethodStr.includes('محفظة') ||
-    treasuryStr.includes('BANK') ||
-    treasuryStr.includes('WALLET') ||
-    treasuryStr.includes('بنك') ||
-    treasuryStr.includes('مصرف') ||
-    treasuryStr.includes('تحويل') ||
-    treasuryStr.includes('محفظة') ||
-    String(params.paymentMethod || '').includes('بنك') ||
-    String(params.paymentMethod || '').includes('مصرف') ||
-    String(params.paymentMethod || '').includes('تحويل') ||
-    String(params.paymentMethod || '').includes('محفظة') ||
-    String(params.treasury || '').includes('بنك') ||
-    String(params.treasury || '').includes('مصرف') ||
-    String(params.treasury || '').includes('تحويل') ||
-    String(params.treasury || '').includes('محفظة');
+  const payMethodRaw = String(params.paymentMethod || '');
+  const treasuryRaw = String(params.treasury || '');
+  const combinedPaySource = `${payMethodRaw} ${treasuryRaw}`.trim();
+  const combinedPayUpper = combinedPaySource.toUpperCase();
 
-  const cashOrBankCode = isBankOrWallet ? '1102' : '1101';
-  const cashOrBankName = isBankOrWallet ? 'البنك / الحسابات البنكية والمحافظ' : 'الصندوق / النقدية';
+  const isWallet =
+    combinedPayUpper.includes('WALLET') ||
+    combinedPayUpper.includes('E_WALLET') ||
+    combinedPayUpper.includes('JAWALI') ||
+    combinedPayUpper.includes('ONE_CASH') ||
+    combinedPayUpper.includes('FLOUSK') ||
+    combinedPayUpper.includes('JIB') ||
+    combinedPayUpper.includes('KURIMI') ||
+    combinedPaySource.includes('محفظة') ||
+    combinedPaySource.includes('جوالي') ||
+    combinedPaySource.includes('ون كاش') ||
+    combinedPaySource.includes('فلوسك') ||
+    (combinedPaySource.includes('كاش') && !combinedPaySource.includes('كاشير'));
+
+  const isBank =
+    !isWallet &&
+    (combinedPayUpper.includes('BANK') ||
+      combinedPayUpper.includes('CARD') ||
+      combinedPayUpper.includes('TRANSFER') ||
+      combinedPayUpper.includes('CHECK') ||
+      combinedPaySource.includes('بنك') ||
+      combinedPaySource.includes('مصرف') ||
+      combinedPaySource.includes('تحويل'));
+
+  const cashOrBankCode = isWallet ? '1107' : isBank ? '1102' : '1101';
+  const cashOrBankName = isWallet
+    ? 'المحافظ الإلكترونية والشبكات'
+    : isBank
+    ? 'البنك'
+    : 'الصندوق';
 
   const vNum = params.voucherNumber || `EXP-${Date.now().toString().slice(-6)}`;
   const dateStr = (params.date || new Date().toISOString()).split('T')[0];
@@ -1846,7 +1934,9 @@ export function postExpenseAtomic(params: ExpenseParams) {
   });
 
   const costCenter = params.costCenter || params.cost_center || 'المحل / المعرض الرئيسي';
-  const treasury = params.treasury || (isBankOrWallet ? 'الحساب البنكي - بنك التضامن' : 'الصندوق النقدي الرئيسي');
+  const treasury =
+    params.treasury ||
+    (isWallet ? 'المحافظ الإلكترونية والشبكات' : isBank ? 'الحساب البنكي - بنك التضامن' : 'الصندوق النقدي الرئيسي');
   const currency = params.currency || 'YER';
   const referenceNumber = params.referenceNumber || params.reference_number || params.referenceNo || '';
   const notes = params.notes || '';
@@ -1863,8 +1953,8 @@ export function postExpenseAtomic(params: ExpenseParams) {
     beneficiary: params.beneficiary || '',
     amount: roundAmt,
     currency,
-    payment_method: params.paymentMethod || (isBankOrWallet ? 'تحويل بنكي / محفظة' : 'نقداً'),
-    paymentMethod: params.paymentMethod || (isBankOrWallet ? 'تحويل بنكي / محفظة' : 'نقداً'),
+    payment_method: params.paymentMethod || (isWallet ? 'محفظة إلكترونية' : isBank ? 'تحويل بنكي' : 'نقداً'),
+    paymentMethod: params.paymentMethod || (isWallet ? 'محفظة إلكترونية' : isBank ? 'تحويل بنكي' : 'نقداً'),
     treasury,
     referenceNumber,
     reference_number: referenceNumber,
@@ -1891,8 +1981,8 @@ export function postExpenseAtomic(params: ExpenseParams) {
     party_id: newExp.id,
     party_name: params.beneficiary || newExp.category,
     beneficiary: params.beneficiary || '',
-    payment_method: isBankOrWallet ? 'BANK' : 'CASH',
-    paymentMethod: isBankOrWallet ? 'BANK' : 'CASH',
+    payment_method: isWallet ? 'WALLET' : isBank ? 'BANK' : 'CASH',
+    paymentMethod: isWallet ? 'WALLET' : isBank ? 'BANK' : 'CASH',
     treasury,
     costCenter,
     cost_center: costCenter,
@@ -2000,6 +2090,9 @@ export function computeUnifiedFinancialMetrics(
   const cid = companyId || getCurrentTenantId() || 'comp_001';
   const isClean = isTenantCleanProductionMode(cid);
 
+  if (!customAccounts) {
+    recalculateTenantAccountBalances(cid);
+  }
   const accounts = customAccounts || getTenantAccounts(cid);
   const journalEntries = customJournalEntries || getTenantJournalEntries(cid);
 
@@ -2253,10 +2346,12 @@ export function computeUnifiedFinancialMetrics(
 
   const grossProfit = roundMoney(netRevenue - cogs);
 
-  // Operating Expenses = 5201 + 5202 + mockExpenses
+  // Operating Expenses = 5201 + 5202 + 5203 + 5209 + mockExpenses
   let salariesExpense = roundMoney(accMap.get('5201')?.balance || 0);
   let adminExpense = roundMoney(accMap.get('5202')?.balance || 0);
-  let totalExpenses = roundMoney(salariesExpense + adminExpense);
+  let rentExpense = roundMoney(accMap.get('5203')?.balance || 0);
+  let shrinkageExpense = roundMoney(accMap.get('5209')?.balance || 0);
+  let totalExpenses = roundMoney(salariesExpense + adminExpense + rentExpense + shrinkageExpense);
 
   if (totalExpenses <= 0 && mockExpensesList.length > 0) {
     totalExpenses = roundMoney(mockExpensesList.reduce((sum, exp: any) => sum + Number(exp.amount || 0), 0));
@@ -3036,13 +3131,53 @@ export function reverseExpenseAtomic(
   const roundAmt = roundMoney(exp.amount || 0);
   const todayStr = new Date().toISOString().split('T')[0];
 
-  const isPayroll = String(exp.category || '').includes('رواتب') || String(exp.category || '').toLowerCase().includes('salary');
-  const expenseCode = isPayroll ? '5201' : '5202';
-  const expenseName = isPayroll ? 'مصروفات الرواتب والأجور' : 'المصروفات العمومية والإدارية';
+  const catStr = String(exp.category || '');
+  const catLower = catStr.toLowerCase();
+  const isPayroll = catStr.includes('رواتب') || catStr.includes('أجور') || catLower.includes('salary') || catLower.includes('payroll');
+  const isRentOrUtilities =
+    catStr.includes('إيجار') ||
+    catStr.includes('منافع') ||
+    catStr.includes('كهرباء') ||
+    catStr.includes('مياه') ||
+    catLower.includes('rent') ||
+    catLower.includes('utilit');
+  const expenseCode = isPayroll ? '5201' : isRentOrUtilities ? '5203' : '5202';
+  const expenseName = isPayroll
+    ? 'مصروفات الرواتب والأجور'
+    : isRentOrUtilities
+    ? 'مصروفات الإيجارات والمنافع'
+    : 'المصروفات العمومية والإدارية';
 
-  const isBank = (exp.paymentMethod || exp.payment_method) === 'BANK';
-  const cashOrBankCode = isBank ? '1102' : '1101';
-  const cashOrBankName = isBank ? 'البنك / الحسابات البنكية' : 'الصندوق / النقدية';
+  const combinedPaySource = `${String(exp.paymentMethod || exp.payment_method || '')} ${String((exp as any).treasury || '')}`.trim();
+  const combinedPayUpper = combinedPaySource.toUpperCase();
+  const isWallet =
+    combinedPayUpper.includes('WALLET') ||
+    combinedPayUpper.includes('E_WALLET') ||
+    combinedPayUpper.includes('JAWALI') ||
+    combinedPayUpper.includes('ONE_CASH') ||
+    combinedPayUpper.includes('FLOUSK') ||
+    combinedPayUpper.includes('JIB') ||
+    combinedPayUpper.includes('KURIMI') ||
+    combinedPaySource.includes('محفظة') ||
+    combinedPaySource.includes('جوالي') ||
+    combinedPaySource.includes('ون كاش') ||
+    combinedPaySource.includes('فلوسك') ||
+    (combinedPaySource.includes('كاش') && !combinedPaySource.includes('كاشير'));
+  const isBank =
+    !isWallet &&
+    (combinedPayUpper.includes('BANK') ||
+      combinedPayUpper.includes('CARD') ||
+      combinedPayUpper.includes('TRANSFER') ||
+      combinedPayUpper.includes('CHECK') ||
+      combinedPaySource.includes('بنك') ||
+      combinedPaySource.includes('مصرف') ||
+      combinedPaySource.includes('تحويل'));
+  const cashOrBankCode = isWallet ? '1107' : isBank ? '1102' : '1101';
+  const cashOrBankName = isWallet
+    ? 'المحافظ الإلكترونية والشبكات'
+    : isBank
+    ? 'البنك'
+    : 'الصندوق';
 
   // Original expense: Dr Expense (5201/5202), Cr Cash/Bank (1101/1102)
   // Reversal: Dr Cash/Bank (1101/1102), Cr Expense (5201/5202)

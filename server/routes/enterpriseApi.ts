@@ -52,6 +52,7 @@ import {
   validateBalancedJournalLines,
   getTenantAccounts,
   saveTenantAccounts,
+  recalculateTenantAccountBalances,
   getTenantJournalEntries,
   saveTenantJournalEntries,
   postDoubleEntryJournal,
@@ -2059,16 +2060,46 @@ enterpriseRouter.post('/payments/:id/cancel', (req: Request, res: Response) => {
 // 8. General Ledger & Journal Entries
 // ==========================================
 export const mockLedgerEntries = [
-  { id: 'JE-001', entry_number: 'JE-2026-001', date: '2026-10-18', description: 'إثبات مبيعات نقدية فاتورة INV-2026-0042', debit: 1667.5, credit: 1667.5, status: 'POSTED', lines: [
-    { account_code: '10101', account_name: 'الصندوق الرئيسي', debit: 1667.5, credit: 0 },
-    { account_code: '40101', account_name: 'إيرادات المبيعات', debit: 0, credit: 1450.0 },
-    { account_code: '20301', account_name: 'ضريبة القيمة المضافة المستحقة', debit: 0, credit: 217.5 },
-  ]},
-  { id: 'JE-002', entry_number: 'JE-2026-002', date: '2026-10-17', description: 'إثبات مشتريات بطاريات ومحروقات PUR-2026-0012', debit: 14200.0, credit: 14200.0, status: 'POSTED', lines: [
-    { account_code: '10301', account_name: 'مخزون البضائع', debit: 12347.83, credit: 0 },
-    { account_code: '10501', account_name: 'ضريبة القيمة المضافة المدخلات', debit: 1852.17, credit: 0 },
-    { account_code: '20101', account_name: 'الموردين - شركة التوريدات الوطنية', debit: 0, credit: 14200.0 },
-  ]},
+  {
+    id: 'JE-001',
+    entry_number: 'JE-2026-001',
+    date: '2026-10-18',
+    transaction_date: '2026-10-18',
+    reference_type: 'SALES_INVOICE',
+    reference_id: 'INV-2026-0042',
+    description: 'إثبات مبيعات نقدية فاتورة INV-2026-0042',
+    total_debit: 1667.5,
+    total_credit: 1667.5,
+    debit: 1667.5,
+    credit: 1667.5,
+    status: 'POSTED',
+    created_by: 'النظام المحاسبي',
+    lines: [
+      { account_code: '1101', account_name: 'الصندوق / النقدية', debit: 1667.5, credit: 0 },
+      { account_code: '4101', account_name: 'إيرادات المبيعات', debit: 0, credit: 1450.0 },
+      { account_code: '2102', account_name: 'ضريبة القيمة المضافة - مخرجات', debit: 0, credit: 217.5 },
+    ],
+  },
+  {
+    id: 'JE-002',
+    entry_number: 'JE-2026-002',
+    date: '2026-10-17',
+    transaction_date: '2026-10-17',
+    reference_type: 'PURCHASE_INVOICE',
+    reference_id: 'PUR-2026-0012',
+    description: 'إثبات مشتريات بطاريات ومحروقات PUR-2026-0012',
+    total_debit: 14200.0,
+    total_credit: 14200.0,
+    debit: 14200.0,
+    credit: 14200.0,
+    status: 'POSTED',
+    created_by: 'النظام المحاسبي',
+    lines: [
+      { account_code: '1104', account_name: 'المخزون السلعي', debit: 12347.83, credit: 0 },
+      { account_code: '1105', account_name: 'ضريبة القيمة المضافة - مدخلات', debit: 1852.17, credit: 0 },
+      { account_code: '2101', account_name: 'الموردون / الدائنون', debit: 0, credit: 14200.0 },
+    ],
+  },
 ];
 
 enterpriseRouter.get('/ledger', (req: Request, res: Response) => {
@@ -2085,16 +2116,26 @@ enterpriseRouter.get('/ledger', (req: Request, res: Response) => {
     });
   }
 
-  const mappedTenantJournals = tenantJournals.map((j) => ({
-    id: j.id,
-    entry_number: j.entry_number,
-    date: j.date,
-    description: j.description,
-    debit: roundMoney(j.lines.reduce((s, l) => s + Number(l.debit || 0), 0)),
-    credit: roundMoney(j.lines.reduce((s, l) => s + Number(l.credit || 0), 0)),
-    status: 'POSTED',
-    lines: j.lines,
-  }));
+  const mappedTenantJournals = tenantJournals.map((j) => {
+    const total_debit = roundMoney(j.total_debit ?? j.lines.reduce((s, l) => s + Number(l.debit || 0), 0));
+    const total_credit = roundMoney(j.total_credit ?? j.lines.reduce((s, l) => s + Number(l.credit || 0), 0));
+    return {
+      id: j.id,
+      entry_number: j.entry_number,
+      date: j.date,
+      transaction_date: j.date,
+      reference_type: j.reference_type,
+      reference_id: j.reference_id,
+      description: j.description,
+      total_debit,
+      total_credit,
+      debit: total_debit,
+      credit: total_credit,
+      status: j.status,
+      created_by: j.created_by,
+      lines: j.lines,
+    };
+  });
 
   const allEntries = isClean
     ? mappedTenantJournals
@@ -2109,15 +2150,99 @@ enterpriseRouter.get('/ledger', (req: Request, res: Response) => {
 });
 
 enterpriseRouter.post('/ledger', (req: Request, res: Response) => {
-  const newEntry = {
-    id: `JE-${Date.now()}`,
-    entry_number: `JE-2026-${mockLedgerEntries.length + 1}`,
-    date: new Date().toISOString().split('T')[0],
-    status: 'POSTED',
-    ...req.body,
-  };
-  mockLedgerEntries.unshift(newEntry);
-  res.status(201).json({ success: true, data: newEntry, message: 'تم ترحيل القيد المحاسبي بنجاح' });
+  const companyId = resolveCompanyId(req);
+  const body = req.body || {};
+  let rawLines: any[] = Array.isArray(body.lines)
+    ? body.lines
+    : Array.isArray(body.journal_lines)
+    ? body.journal_lines
+    : Array.isArray(body.entries)
+    ? body.entries
+    : Array.isArray(body.items)
+    ? body.items
+    : [];
+
+  if (rawLines.length === 0) {
+    const debitVal = roundMoney(body.debit || 0);
+    const creditVal = roundMoney(body.credit || 0);
+    const amtVal = roundMoney(body.amount || 0);
+    const debitAcc = String(body.debit_account || body.debitAccount || '').trim();
+    const creditAcc = String(body.credit_account || body.creditAccount || '').trim();
+    const accCode = String(body.account_code || body.accountCode || '').trim();
+    const contraCode = String(
+      body.contra_account_code || body.offset_account_code || body.contraAccount || (accCode === '1101' ? '3101' : '1101')
+    ).trim();
+    const desc = body.description || 'قيد دفتر أستاذ';
+
+    if (debitAcc && creditAcc && (amtVal > 0 || (debitVal > 0 && creditVal > 0))) {
+      const dAmt = debitVal > 0 ? debitVal : amtVal;
+      const cAmt = creditVal > 0 ? creditVal : amtVal;
+      rawLines = [
+        { account_code: debitAcc, debit: dAmt, credit: 0, description: desc },
+        { account_code: creditAcc, debit: 0, credit: cAmt, description: desc },
+      ];
+    } else if (accCode) {
+      if (debitVal > 0 && creditVal > 0) {
+        if (Math.abs(debitVal - creditVal) > 0.01) {
+          rawLines = [{ account_code: accCode, account_name: body.account_name, debit: debitVal, credit: creditVal, description: desc }];
+        } else {
+          rawLines = [
+            { account_code: accCode, account_name: body.account_name, debit: debitVal, credit: 0, description: desc },
+            { account_code: contraCode, debit: 0, credit: creditVal, description: `مقابل: ${desc}` },
+          ];
+        }
+      } else if (debitVal > 0) {
+        rawLines = [
+          { account_code: accCode, account_name: body.account_name, debit: debitVal, credit: 0, description: desc },
+          { account_code: contraCode, debit: 0, credit: debitVal, description: `مقابل: ${desc}` },
+        ];
+      } else if (creditVal > 0) {
+        rawLines = [
+          { account_code: contraCode, debit: creditVal, credit: 0, description: `مقابل: ${desc}` },
+          { account_code: accCode, account_name: body.account_name, debit: 0, credit: creditVal, description: desc },
+        ];
+      }
+    }
+  }
+
+  const validation = validateBalancedJournalLines(rawLines);
+  if (!validation.valid) {
+    return res.status(400).json({
+      success: false,
+      code: 'UNBALANCED_JOURNAL_ENTRY',
+      message: validation.error || 'القيد المحاسبي غير متوازن: مجموع المدين لا يساوي مجموع الدائن',
+      difference: validation.difference,
+      totalDebit: validation.totalDebit,
+      totalCredit: validation.totalCredit,
+    });
+  }
+
+  try {
+    const entry = postDoubleEntryJournal({
+      companyId,
+      reference_type: body.reference_type || 'MANUAL_JOURNAL',
+      reference_id: body.reference_id || body.reference_no,
+      description: body.description || 'قيد يومية يدوي',
+      currency: body.currency || 'YER',
+      date: body.date || body.transaction_date,
+      lines: rawLines,
+      created_by: (req as any).user?.full_name || body.created_by || 'المحاسب المالي',
+    });
+
+    persistAllToDisk();
+
+    res.status(201).json({
+      success: true,
+      data: entry,
+      journal_entry: entry,
+      message: 'تم ترحيل القيد المحاسبي وتحديث أرصدة دليل الحسابات وميزان المراجعة بنجاح',
+    });
+  } catch (err: any) {
+    res.status(err.status || 500).json({
+      success: false,
+      message: err?.message || 'خطأ أثناء ترحيل القيد المحاسبي',
+    });
+  }
 });
 
 // ==========================================
@@ -2467,6 +2592,7 @@ enterpriseRouter.post('/journal-entries', (req: Request, res: Response) => {
       created_by: (req as any).user?.full_name || body.created_by || 'المحاسب المالي',
     });
 
+    persistAllToDisk();
     res.status(201).json({
       success: true,
       data: entry,
@@ -2481,6 +2607,51 @@ enterpriseRouter.post('/journal-entries', (req: Request, res: Response) => {
   }
 });
 
+enterpriseRouter.delete(['/journal-entries/:id', '/ledger/:id'], (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const targetId = String(req.params.id || '').trim();
+  const entries = getTenantJournalEntries(companyId);
+  const idx = entries.findIndex(
+    (e) => String(e.id) === targetId || String(e.entry_number) === targetId
+  );
+
+  if (idx === -1) {
+    return res.status(404).json({
+      success: false,
+      message: 'القيد المحاسبي غير موجود',
+    });
+  }
+
+  const target = entries[idx];
+  const refType = String(target.reference_type || '').toUpperCase();
+  const isManual =
+    !refType ||
+    refType === 'MANUAL' ||
+    refType === 'MANUAL_JOURNAL' ||
+    refType === 'ADJUSTMENT' ||
+    refType === 'OPENING_BALANCE';
+
+  if (!isManual) {
+    // Allow reversing via status = CANCELLED if explicitly requested via ?force=true, otherwise mark CANCELLED
+    target.status = 'CANCELLED';
+  } else {
+    entries.splice(idx, 1);
+  }
+
+  saveTenantJournalEntries(companyId, entries);
+  const updatedAccounts = recalculateTenantAccountBalances(companyId);
+  persistAllToDisk();
+
+  res.json({
+    success: true,
+    data: { id: targetId, deleted: isManual, status: isManual ? 'DELETED' : 'CANCELLED' },
+    accounts: updatedAccounts,
+    message: isManual
+      ? 'تم حذف القيد اليدوي وإعادة احتساب أرصدة الحسابات بنجاح'
+      : 'تم عكس/إلغاء القيد وتحديث أرصدة الحسابات بنجاح',
+  });
+});
+
 enterpriseRouter.get('/accounts', (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   const accounts = getTenantAccounts(companyId);
@@ -2489,6 +2660,61 @@ enterpriseRouter.get('/accounts', (req: Request, res: Response) => {
     data: accounts,
     accounts,
     total: accounts.length,
+  });
+});
+
+enterpriseRouter.post('/accounts', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const body = req.body || {};
+  const code = String(body.code || '').trim();
+  const name = String(body.name || body.name_ar || '').trim();
+  const rawType = String(body.type || 'ASSET').toUpperCase();
+  const type = (['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'].includes(rawType) ? rawType : 'ASSET') as
+    | 'ASSET'
+    | 'LIABILITY'
+    | 'EQUITY'
+    | 'REVENUE'
+    | 'EXPENSE';
+  const rawNature = String(body.nature || body.normal_balance || (type === 'ASSET' || type === 'EXPENSE' ? 'DEBIT' : 'CREDIT')).toUpperCase();
+  const nature = (rawNature === 'CREDIT' ? 'CREDIT' : 'DEBIT') as 'DEBIT' | 'CREDIT';
+
+  if (!code || !name) {
+    return res.status(400).json({
+      success: false,
+      message: 'يجب إدخال رقم الحساب واسم الحساب',
+    });
+  }
+
+  const accounts = getTenantAccounts(companyId);
+  if (accounts.some((a) => String(a.code).trim() === code)) {
+    return res.status(409).json({
+      success: false,
+      message: `رقم الحساب (${code}) موجود مسبقاً في شجرة الحسابات`,
+    });
+  }
+
+  const newAcc = {
+    id: `acc_${companyId}_${code}`,
+    company_id: companyId,
+    code,
+    name: String(body.name_en || name),
+    name_ar: name,
+    type,
+    nature,
+    balance: 0,
+    is_active: true,
+    updated_at: new Date().toISOString(),
+  };
+
+  accounts.push(newAcc);
+  saveTenantAccounts(companyId, accounts);
+  persistAllToDisk();
+
+  res.status(201).json({
+    success: true,
+    data: newAcc,
+    account: newAcc,
+    message: 'تم إضافة الحساب الجديد إلى شجرة الحسابات بنجاح',
   });
 });
 
@@ -2689,16 +2915,26 @@ enterpriseRouter.get('/financial-reports/general-ledger', (req: Request, res: Re
     return res.json({ success: true, data: [] });
   }
 
-  const mappedTenantJournals = tenantJournals.map((j) => ({
-    id: j.id,
-    entry_number: j.entry_number,
-    date: j.date,
-    description: j.description,
-    debit: roundMoney(j.lines.reduce((s, l) => s + Number(l.debit || 0), 0)),
-    credit: roundMoney(j.lines.reduce((s, l) => s + Number(l.credit || 0), 0)),
-    status: 'POSTED',
-    lines: j.lines,
-  }));
+  const mappedTenantJournals = tenantJournals.map((j) => {
+    const total_debit = roundMoney(j.total_debit ?? j.lines.reduce((s, l) => s + Number(l.debit || 0), 0));
+    const total_credit = roundMoney(j.total_credit ?? j.lines.reduce((s, l) => s + Number(l.credit || 0), 0));
+    return {
+      id: j.id,
+      entry_number: j.entry_number,
+      date: j.date,
+      transaction_date: j.date,
+      reference_type: j.reference_type,
+      reference_id: j.reference_id,
+      description: j.description,
+      total_debit,
+      total_credit,
+      debit: total_debit,
+      credit: total_credit,
+      status: j.status,
+      created_by: j.created_by,
+      lines: j.lines,
+    };
+  });
 
   const allEntries = isClean
     ? mappedTenantJournals

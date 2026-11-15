@@ -391,20 +391,25 @@ export const LOCAL_STANDARD_CHART_OF_ACCOUNTS = [
   { code: '1103', name: 'العملاء والمدينون التجاريون', type: 'ASSET', category: 'CURRENT_ASSET', normal_balance: 'DEBIT', balance: 0 },
   { code: '1104', name: 'مخزون البضائع', type: 'ASSET', category: 'CURRENT_ASSET', normal_balance: 'DEBIT', balance: 0 },
   { code: '1105', name: 'ضريبة القيمة المضافة المدخلة (مستردة)', type: 'ASSET', category: 'CURRENT_ASSET', normal_balance: 'DEBIT', balance: 0 },
-  { code: '1107', name: 'المحافظ الإلكترونية', type: 'ASSET', category: 'CURRENT_ASSET', normal_balance: 'DEBIT', balance: 0 },
+  { code: '1107', name: 'المحافظ الإلكترونية والشبكات', type: 'ASSET', category: 'CURRENT_ASSET', normal_balance: 'DEBIT', balance: 0 },
   { code: '1201', name: 'الأصول الثابتة والمعدات', type: 'ASSET', category: 'FIXED_ASSET', normal_balance: 'DEBIT', balance: 0 },
   { code: '2101', name: 'الموردون والدائنون التجاريون', type: 'LIABILITY', category: 'CURRENT_LIABILITY', normal_balance: 'CREDIT', balance: 0 },
   { code: '2102', name: 'ضريبة القيمة المضافة المخرجة (مستحقة)', type: 'LIABILITY', category: 'CURRENT_LIABILITY', normal_balance: 'CREDIT', balance: 0 },
   { code: '2103', name: 'المصروفات والرواتب المستحقة', type: 'LIABILITY', category: 'CURRENT_LIABILITY', normal_balance: 'CREDIT', balance: 0 },
   { code: '3101', name: 'رأس المال المدفوع', type: 'EQUITY', category: 'EQUITY', normal_balance: 'CREDIT', balance: 0 },
-  { code: '3201', name: 'الأرباح المحتجزة / السابقة', type: 'EQUITY', category: 'EQUITY', normal_balance: 'CREDIT', balance: 0 },
+  { code: '3201', name: 'الأرباح المحتجزة / المرحلة', type: 'EQUITY', category: 'EQUITY', normal_balance: 'CREDIT', balance: 0 },
   { code: '4101', name: 'إيرادات المبيعات', type: 'REVENUE', category: 'OPERATING_REVENUE', normal_balance: 'CREDIT', balance: 0 },
   { code: '4102', name: 'مردودات ومسموحات المبيعات', type: 'REVENUE', category: 'OPERATING_REVENUE', normal_balance: 'DEBIT', balance: 0 },
   { code: '5101', name: 'تكلفة البضاعة المباعة (COGS)', type: 'EXPENSE', category: 'DIRECT_COST', normal_balance: 'DEBIT', balance: 0 },
-  { code: '5201', name: 'مصروفات عمومية وإدارية', type: 'EXPENSE', category: 'OPERATING_EXPENSE', normal_balance: 'DEBIT', balance: 0 },
-  { code: '5202', name: 'مصروفات الرواتب والأجور', type: 'EXPENSE', category: 'OPERATING_EXPENSE', normal_balance: 'DEBIT', balance: 0 },
-  { code: '5203', name: 'إيجارات ومنافع', type: 'EXPENSE', category: 'OPERATING_EXPENSE', normal_balance: 'DEBIT', balance: 0 },
-];
+  { code: '5201', name: 'مصروفات الرواتب والأجور', type: 'EXPENSE', category: 'OPERATING_EXPENSE', normal_balance: 'DEBIT', balance: 0 },
+  { code: '5202', name: 'المصروفات العمومية والإدارية', type: 'EXPENSE', category: 'OPERATING_EXPENSE', normal_balance: 'DEBIT', balance: 0 },
+  { code: '5203', name: 'مصروفات الإيجارات والمنافع', type: 'EXPENSE', category: 'OPERATING_EXPENSE', normal_balance: 'DEBIT', balance: 0 },
+  { code: '5209', name: 'فروق وعجز التسويات الجردية', type: 'EXPENSE', category: 'OPERATING_EXPENSE', normal_balance: 'DEBIT', balance: 0 },
+].map((acc) => ({
+  ...acc,
+  name_ar: acc.name,
+  nature: acc.normal_balance,
+}));
 
 /**
  * Safe local storage getter with tenant isolation
@@ -501,39 +506,156 @@ function setLocalItem(key: string, value: any, companyId?: string): void {
 }
 
 /**
- * Get or initialize local Chart of Accounts for company
+ * Ensure local Chart of Accounts is initialized with all standard accounts
  */
-export function getLocalAccounts(companyId: string): any[] {
-  let accounts = getLocalItem<any[]>('erp_accounts_v1', [], companyId);
+function ensureLocalAccountsInitialized(companyId: string): any[] {
+  const cid = companyId || getActiveCompanyId();
+  let accounts = getLocalItem<any[]>('erp_accounts_v1', [], cid);
   if (!Array.isArray(accounts) || accounts.length === 0) {
     accounts = LOCAL_STANDARD_CHART_OF_ACCOUNTS.map((acc) => ({
       ...acc,
-      id: `acc_${companyId}_${acc.code}`,
-      company_id: companyId,
+      id: `acc_${cid}_${acc.code}`,
+      company_id: cid,
+      debit_total: 0,
+      credit_total: 0,
+      balance: 0,
+      is_active: true,
       created_at: new Date().toISOString(),
     }));
-    setLocalItem('erp_accounts_v1', accounts, companyId);
-    setLocalItem('erp_local_accounts_v1', accounts, companyId);
+    setLocalItem('erp_accounts_v1', accounts, cid);
+    setLocalItem('erp_local_accounts_v1', accounts, cid);
     return accounts;
   }
 
   let updated = false;
+  const byCode = new Map<string, any>(accounts.map((a) => [String(a.code), a]));
   for (const std of LOCAL_STANDARD_CHART_OF_ACCOUNTS) {
-    if (!accounts.some((a) => a.code === std.code)) {
+    const existing = byCode.get(std.code);
+    if (!existing) {
       accounts.push({
         ...std,
-        id: `acc_${companyId}_${std.code}`,
-        company_id: companyId,
+        id: `acc_${cid}_${std.code}`,
+        company_id: cid,
+        debit_total: 0,
+        credit_total: 0,
+        balance: 0,
+        is_active: true,
         created_at: new Date().toISOString(),
       });
       updated = true;
+    } else {
+      if (
+        existing.name !== std.name ||
+        existing.name_ar !== std.name_ar ||
+        existing.nature !== std.nature ||
+        existing.normal_balance !== std.normal_balance
+      ) {
+        existing.name = std.name;
+        existing.name_ar = std.name_ar;
+        existing.type = std.type;
+        existing.category = std.category;
+        existing.normal_balance = std.normal_balance;
+        existing.nature = std.nature;
+        updated = true;
+      }
     }
   }
   if (updated) {
-    setLocalItem('erp_accounts_v1', accounts, companyId);
-    setLocalItem('erp_local_accounts_v1', accounts, companyId);
+    setLocalItem('erp_accounts_v1', accounts, cid);
+    setLocalItem('erp_local_accounts_v1', accounts, cid);
   }
   return accounts;
+}
+
+/**
+ * Recalculate all local account balances (debit_total, credit_total, balance)
+ * directly from non-CANCELLED journal entry lines in erp_journal_entries_v1
+ */
+export function recalculateLocalAccountBalances(companyId: string): any[] {
+  const cid = companyId || getActiveCompanyId();
+  const accounts = ensureLocalAccountsInitialized(cid);
+  const nowIso = new Date().toISOString();
+
+  for (const acc of accounts) {
+    acc.debit_total = 0;
+    acc.credit_total = 0;
+    acc.balance = 0;
+  }
+
+  const accByCode = new Map<string, any>();
+  const accById = new Map<string, any>();
+  for (const acc of accounts) {
+    if (acc.code) accByCode.set(String(acc.code).trim(), acc);
+    if (acc.id) accById.set(String(acc.id).trim(), acc);
+  }
+
+  const entries = getLocalItem<any[]>('erp_journal_entries_v1', [], cid);
+  for (const je of entries) {
+    if (!je || String(je.status || '').toUpperCase() === 'CANCELLED') continue;
+    const lines = Array.isArray(je.lines) ? je.lines : [];
+    for (const line of lines) {
+      const code = String(line.account_code || '').trim();
+      const accId = String(line.account_id || '').trim();
+      let acc = (code ? accByCode.get(code) : undefined) || (accId ? accById.get(accId) : undefined);
+
+      if (!acc && code) {
+        const std = LOCAL_STANDARD_CHART_OF_ACCOUNTS.find((s) => s.code === code);
+        const inferredType =
+          std?.type ||
+          (code.startsWith('1') ? 'ASSET' : code.startsWith('2') ? 'LIABILITY' : code.startsWith('3') ? 'EQUITY' : code.startsWith('4') ? 'REVENUE' : 'EXPENSE');
+        const inferredNormal = std?.normal_balance || (inferredType === 'ASSET' || inferredType === 'EXPENSE' ? 'DEBIT' : 'CREDIT');
+        const inferredName = line.account_name || std?.name || `حساب ${code}`;
+        acc = {
+          id: accId || `acc_${cid}_${code}`,
+          code,
+          name: inferredName,
+          name_ar: std?.name_ar || inferredName,
+          type: inferredType,
+          category: std?.category || (code.startsWith('1101') || code.startsWith('1102') || code.startsWith('1107') ? 'CURRENT_ASSET' : 'GENERAL'),
+          normal_balance: inferredNormal,
+          nature: inferredNormal,
+          debit_total: 0,
+          credit_total: 0,
+          balance: 0,
+          is_active: true,
+          company_id: cid,
+          created_at: nowIso,
+          updated_at: nowIso,
+        };
+        accounts.push(acc);
+        accByCode.set(code, acc);
+        accById.set(acc.id, acc);
+      }
+
+      if (!acc) continue;
+
+      const debit = roundMoney(line.debit || 0);
+      const credit = roundMoney(line.credit || 0);
+      acc.debit_total = roundMoney((acc.debit_total || 0) + debit);
+      acc.credit_total = roundMoney((acc.credit_total || 0) + credit);
+
+      const nature = String(
+        acc.nature || acc.normal_balance || (acc.type === 'ASSET' || acc.type === 'EXPENSE' ? 'DEBIT' : 'CREDIT')
+      ).toUpperCase();
+      if (nature === 'DEBIT') {
+        acc.balance = roundMoney((acc.balance || 0) + debit - credit);
+      } else {
+        acc.balance = roundMoney((acc.balance || 0) + credit - debit);
+      }
+      acc.updated_at = nowIso;
+    }
+  }
+
+  setLocalItem('erp_accounts_v1', accounts, cid);
+  setLocalItem('erp_local_accounts_v1', accounts, cid);
+  return accounts;
+}
+
+/**
+ * Get or initialize local Chart of Accounts for company
+ */
+export function getLocalAccounts(companyId: string): any[] {
+  return recalculateLocalAccountBalances(companyId);
 }
 
 /**
@@ -567,7 +689,7 @@ export function postLocalDoubleEntryJournal(options: {
   }
 
   const entries = getLocalItem<any[]>('erp_journal_entries_v1', [], companyId);
-  const accounts = getLocalAccounts(companyId);
+  const accounts = ensureLocalAccountsInitialized(companyId);
 
   const entryId = `je_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
   const entryNumber = `JE-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${(entries.length + 1).toString().padStart(4, '0')}`;
@@ -581,14 +703,20 @@ export function postLocalDoubleEntryJournal(options: {
         std?.type ||
         (code.startsWith('1') ? 'ASSET' : code.startsWith('2') ? 'LIABILITY' : code.startsWith('3') ? 'EQUITY' : code.startsWith('4') ? 'REVENUE' : 'EXPENSE');
       const inferredNormal = std?.normal_balance || (inferredType === 'ASSET' || inferredType === 'EXPENSE' ? 'DEBIT' : 'CREDIT');
+      const resolvedName = line.account_name || std?.name || `حساب ${code}`;
       acc = {
         id: line.account_id || `acc_${companyId}_${code}`,
         code,
-        name: line.account_name || std?.name || `حساب ${code}`,
+        name: resolvedName,
+        name_ar: std?.name_ar || resolvedName,
         type: inferredType,
         category: std?.category || (code.startsWith('1101') || code.startsWith('1102') || code.startsWith('1107') ? 'CURRENT_ASSET' : 'GENERAL'),
         normal_balance: inferredNormal,
+        nature: inferredNormal,
+        debit_total: 0,
+        credit_total: 0,
         balance: 0,
+        is_active: true,
         company_id: companyId,
         created_at: new Date().toISOString(),
       };
@@ -609,35 +737,23 @@ export function postLocalDoubleEntryJournal(options: {
     };
   });
 
-  // Update account balances
-  for (const line of entryLines) {
-    const accIdx = accounts.findIndex((a) => a.id === line.account_id || a.code === line.account_code);
-    if (accIdx !== -1) {
-      const acc = accounts[accIdx];
-      const debit = Number(line.debit || 0);
-      const credit = Number(line.credit || 0);
-      const currentBal = Number(acc.balance || 0);
-      if (acc.type === 'ASSET' || acc.type === 'EXPENSE') {
-        acc.balance = roundMoney(currentBal + debit - credit);
-      } else {
-        acc.balance = roundMoney(currentBal + credit - debit);
-      }
-    }
-  }
-
   setLocalItem('erp_accounts_v1', accounts, companyId);
   setLocalItem('erp_local_accounts_v1', accounts, companyId);
 
+  const entryDate = options.date || new Date().toISOString();
   const newEntry = {
     id: entryId,
     entry_number: entryNumber,
     company_id: companyId,
-    date: options.date || new Date().toISOString(),
+    date: entryDate,
+    transaction_date: entryDate,
     description: options.description || 'قيد محاسبي آلي',
     reference_type: options.reference_type || 'MANUAL',
     reference_id: options.reference_id || null,
     total_debit: validation.totalDebit,
     total_credit: validation.totalCredit,
+    debit: validation.totalDebit,
+    credit: validation.totalCredit,
     status: 'POSTED',
     lines: entryLines,
     created_at: new Date().toISOString(),
@@ -645,6 +761,7 @@ export function postLocalDoubleEntryJournal(options: {
 
   entries.unshift(newEntry);
   setLocalItem('erp_journal_entries_v1', entries, companyId);
+  recalculateLocalAccountBalances(companyId);
   return { success: true, entry: newEntry };
 }
 
@@ -1804,28 +1921,71 @@ export async function executeLocalSeedDemoData(): Promise<LocalApiResponse> {
   // 9. Balanced Double-Entry Journal Entries
   const journalEntries = [
     {
+      id: 'je-6000',
+      entry_number: 'JE-2026-000',
+      entryNumber: 'JE-2026-000',
+      date: dateStr,
+      transaction_date: dateStr,
+      description: 'القيد الافتتاحي للأرصدة النقدية والبنكية ورأس المال',
+      reference_type: 'OPENING_BALANCE',
+      reference_id: 'OPEN-2026',
+      total_debit: 594000,
+      total_credit: 594000,
+      debit: 594000,
+      credit: 594000,
+      status: 'POSTED',
+      currency: 'YER',
+      lines: [
+        { account_code: '1101', account_name: 'الصندوق الرئيسي', debit: 194000, credit: 0, description: 'رصيد افتتاحي نقدي' },
+        { account_code: '1102', account_name: 'البنك / الحسابات المصرفية', debit: 400000, credit: 0, description: 'رصيد افتتاحي بنكي' },
+        { account_code: '3101', account_name: 'رأس المال والأرصدة الافتتاحية', debit: 0, credit: 594000, description: 'رأس المال الافتتاحي' },
+      ],
+    },
+    {
       id: 'je-6001',
+      entry_number: 'JE-2026-001',
       entryNumber: 'JE-2026-001',
       date: dateStr,
+      transaction_date: dateStr,
       description: 'إثبات مبيعات نقدية فاتورة INV-2026-001',
+      reference_type: 'SALES_INVOICE',
+      reference_id: 'INV-2026-001',
       debitAccount: '1101 - الصندوق الرئيسي',
       creditAccount: '4101 - إيرادات المبيعات',
       amount: 120000,
+      total_debit: 120000,
+      total_credit: 120000,
       debit: 120000,
       credit: 120000,
+      status: 'POSTED',
       currency: 'YER',
+      lines: [
+        { account_code: '1101', account_name: 'الصندوق الرئيسي', debit: 120000, credit: 0, description: 'تحصيل مبيعات نقدية INV-2026-001' },
+        { account_code: '4101', account_name: 'إيرادات المبيعات', debit: 0, credit: 120000, description: 'إثبات إيراد مبيعات INV-2026-001' },
+      ],
     },
     {
       id: 'je-6002',
+      entry_number: 'JE-2026-002',
       entryNumber: 'JE-2026-002',
       date: dateStr,
+      transaction_date: dateStr,
       description: 'إثبات مشتريات توريد مخزون فاتورة PUR-2026-001',
-      debitAccount: '1201 - مخزون البضائع',
+      reference_type: 'PURCHASE_INVOICE',
+      reference_id: 'PUR-2026-001',
+      debitAccount: '1104 - مخزون البضائع',
       creditAccount: '2101 - الموردون (مصنع الزيوت)',
       amount: 370000,
+      total_debit: 370000,
+      total_credit: 370000,
       debit: 370000,
       credit: 370000,
+      status: 'POSTED',
       currency: 'YER',
+      lines: [
+        { account_code: '1104', account_name: 'مخزون البضائع', debit: 370000, credit: 0, description: 'توريد مخزون مشتريات PUR-2026-001' },
+        { account_code: '2101', account_name: 'الموردون والدائنون التجاريون', debit: 0, credit: 370000, description: 'ذمم موردين PUR-2026-001' },
+      ],
     },
   ];
 
@@ -1842,13 +2002,13 @@ export async function executeLocalSeedDemoData(): Promise<LocalApiResponse> {
 
   const seededAccounts = LOCAL_STANDARD_CHART_OF_ACCOUNTS.map((acc) => ({
     ...acc,
-    balance: acc.code === '1101' ? 314000 : acc.code === '1102' ? 400000 : acc.balance,
     id: `acc_${companyId}_${acc.code}`,
     company_id: companyId,
     created_at: now.toISOString(),
   }));
   setLocalItem('erp_accounts_v1', seededAccounts, companyId);
   setLocalItem('erp_local_accounts_v1', seededAccounts, companyId);
+  recalculateLocalAccountBalances(companyId);
 
   // Clear clean flags
   localStorage.removeItem('erp_clean_production_mode_v1');
@@ -4675,7 +4835,7 @@ async function internalHandleLocalDesktopApiFallback(
           description: 'تسوية رسوم ومصاريف بنكية من كشف الحساب',
           date: dateStr,
           lines: [
-            { account_code: '5201', account_name: 'مصروفات عمومية وإدارية', debit: bankCharges, credit: 0, description: 'رسوم وعمولات بنكية' },
+            { account_code: '5202', account_name: 'المصروفات العمومية والإدارية', debit: bankCharges, credit: 0, description: 'رسوم وعمولات بنكية' },
             { account_code: '1102', account_name: 'البنك / الحسابات المصرفية', debit: 0, credit: bankCharges, description: 'خصم رسوم بنكية' },
           ],
         });
@@ -4740,8 +4900,14 @@ async function internalHandleLocalDesktopApiFallback(
         const creditName = isWallet ? 'المحافظ الإلكترونية' : isBankOrCard ? 'البنك / الحسابات المصرفية' : 'الخزينة الرئيسية (النقدية)';
 
         const category = String(bodyData.category || 'مصاريف أخرى');
-        const expCode = category.includes('رواتب') ? '5202' : category.includes('إيجار') ? '5203' : '5201';
-        const expAccName = category.includes('رواتب') ? 'مصروفات الرواتب والأجور' : category.includes('إيجار') ? 'إيجارات ومنافع' : 'مصروفات عمومية وإدارية';
+        const isPayrollCat = category.includes('رواتب') || category.includes('أجور');
+        const isRentCat = category.includes('إيجار') || category.includes('منافع') || category.includes('كهرباء') || category.includes('مياه');
+        const expCode = isPayrollCat ? '5201' : isRentCat ? '5203' : '5202';
+        const expAccName = isPayrollCat
+          ? 'مصروفات الرواتب والأجور'
+          : isRentCat
+          ? 'مصروفات الإيجارات والمنافع'
+          : 'المصروفات العمومية والإدارية';
 
         const expNumber = `EXP-${Date.now().toString().slice(-6)}`;
         const expDate = bodyData.expenseDate || bodyData.date || new Date().toISOString().split('T')[0];
@@ -7017,6 +7183,8 @@ async function internalHandleLocalDesktopApiFallback(
 
   // 13.5. Balanced Manual Journal Entries in Offline Mode (POST /journal-entries / /ledger)
   if (
+    !cleanUrl.includes('/customers/') &&
+    !cleanUrl.includes('/suppliers/') &&
     (cleanUrl.includes('/journal-entries') ||
       cleanUrl.includes('/ledger') ||
       cleanUrl.includes('/journal_entries')) &&
@@ -7029,7 +7197,75 @@ async function internalHandleLocalDesktopApiFallback(
       }
     } catch {}
 
-    const lines = bodyData.lines || bodyData.journal_lines || bodyData.entries || [];
+    let lines: any[] = [];
+    const rawLines = bodyData.lines || bodyData.journal_lines || bodyData.entries || bodyData.items;
+
+    if (Array.isArray(rawLines) && rawLines.length > 0) {
+      lines = rawLines;
+    } else {
+      // Convert simplified entry (e.g. { account_code, debit, credit, description }) into a balanced double-entry lines array
+      const debitVal = roundMoney(bodyData.debit || 0);
+      const creditVal = roundMoney(bodyData.credit || 0);
+      const amountVal = roundMoney(bodyData.amount || 0);
+      const debitAccCode = String(bodyData.debit_account || bodyData.debitAccount || '').trim();
+      const creditAccCode = String(bodyData.credit_account || bodyData.creditAccount || '').trim();
+
+      const mapAccountTypeToCode = (accType?: string) => {
+        const t = String(accType || '').toUpperCase();
+        if (t === 'CASH_BANK' || t === 'CASH') return '1101';
+        if (t === 'BANK') return '1102';
+        if (t === 'WALLET') return '1107';
+        if (t === 'ACCOUNTS_RECEIVABLE') return '1103';
+        if (t === 'INVENTORY' || t === 'INVENTORY_ADJUSTMENT') return '1104';
+        if (t === 'ACCOUNTS_PAYABLE') return '2101';
+        if (t === 'SALES_REVENUE') return '4101';
+        if (t === 'OPERATING_EXPENSES' || t === 'PURCHASE_EXPENSE') return '5202';
+        return '';
+      };
+
+      const accCode = String(
+        bodyData.account_code || bodyData.accountCode || mapAccountTypeToCode(bodyData.account_type) || ''
+      ).trim();
+      const contraCode = String(
+        bodyData.contra_account_code ||
+          bodyData.offset_account_code ||
+          bodyData.contraAccount ||
+          (accCode === '1101' ? '3101' : '1101')
+      ).trim();
+      const desc = bodyData.description || 'قيد يومية يدوي';
+
+      if (debitAccCode && creditAccCode && (amountVal > 0 || (debitVal > 0 && creditVal > 0))) {
+        const dAmt = debitVal > 0 ? debitVal : amountVal;
+        const cAmt = creditVal > 0 ? creditVal : amountVal;
+        lines = [
+          { account_code: debitAccCode, debit: dAmt, credit: 0, description: desc },
+          { account_code: creditAccCode, debit: 0, credit: cAmt, description: desc },
+        ];
+      } else if (accCode) {
+        if (debitVal > 0 && creditVal > 0) {
+          if (Math.abs(debitVal - creditVal) > 0.01) {
+            // Unbalanced simplified payload: keep unequal debit/credit so validation rejects it
+            lines = [{ account_code: accCode, account_name: bodyData.account_name, debit: debitVal, credit: creditVal, description: desc }];
+          } else {
+            lines = [
+              { account_code: accCode, account_name: bodyData.account_name, debit: debitVal, credit: 0, description: desc },
+              { account_code: contraCode, debit: 0, credit: creditVal, description: `مقابل: ${desc}` },
+            ];
+          }
+        } else if (debitVal > 0) {
+          lines = [
+            { account_code: accCode, account_name: bodyData.account_name, debit: debitVal, credit: 0, description: desc },
+            { account_code: contraCode, debit: 0, credit: debitVal, description: `مقابل: ${desc}` },
+          ];
+        } else if (creditVal > 0) {
+          lines = [
+            { account_code: contraCode, debit: creditVal, credit: 0, description: `مقابل: ${desc}` },
+            { account_code: accCode, account_name: bodyData.account_name, debit: 0, credit: creditVal, description: desc },
+          ];
+        }
+      }
+    }
+
     const validation = validateLocalBalancedJournalLines(lines);
     if (!validation.valid) {
       return {
@@ -7037,8 +7273,10 @@ async function internalHandleLocalDesktopApiFallback(
         success: false,
         status: 400,
         code: 'UNBALANCED_JOURNAL_ENTRY',
-        error: (validation as any).message || `القيد المحاسبي غير متوازن: مجموع المدين (${validation.totalDebit}) لا يساوي مجموع الدائن (${validation.totalCredit})`,
+        error: `القيد المحاسبي غير متوازن: مجموع المدين (${validation.totalDebit}) لا يساوي مجموع الدائن (${validation.totalCredit})`,
         message: 'القيد المحاسبي غير متوازن: إجمالي المدين لا يساوي إجمالي الدائن',
+        totalDebit: validation.totalDebit,
+        totalCredit: validation.totalCredit,
         data: null,
       };
     }
@@ -7048,7 +7286,7 @@ async function internalHandleLocalDesktopApiFallback(
       reference_type: bodyData.reference_type || bodyData.referenceType || 'MANUAL',
       reference_id: bodyData.reference_id || bodyData.referenceId || bodyData.id || `JE-${Date.now()}`,
       description: bodyData.description || 'قيد يومية يدوي',
-      date: bodyData.date || new Date().toISOString(),
+      date: bodyData.date || bodyData.transaction_date || new Date().toISOString(),
       lines,
     });
 
@@ -7066,6 +7304,7 @@ async function internalHandleLocalDesktopApiFallback(
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('erp-ledger-updated'));
+      window.dispatchEvent(new Event('erp-accounts-updated'));
       window.dispatchEvent(new Event('erp-data-updated'));
     }
 
@@ -7110,7 +7349,18 @@ async function internalHandleLocalDesktopApiFallback(
 
     const calculatedNet = Number(netSalary) || (Number(baseSalary) + Number(bonuses) - Number(advancesDeducted) - Number(otherDeductions));
     const refVoucher = `VCH-PAY-${Date.now().toString().slice(-6)}`;
-    const isBank = treasury.includes('بنك') || treasury.includes('BANK') || treasury.includes('مصرف') || treasury.includes('محفظة');
+    const treasuryNorm = String(treasury || '').toUpperCase();
+    const isWallet =
+      treasuryNorm.includes('WALLET') ||
+      treasury.includes('محفظ') ||
+      treasury.includes('جوالي') ||
+      treasury.includes('ون كاش') ||
+      treasury.includes('فلوسك') ||
+      (treasury.includes('كاش') && !treasury.includes('كاشير'));
+    const isBank = !isWallet && (treasury.includes('بنك') || treasuryNorm.includes('BANK') || treasury.includes('مصرف'));
+    const payMethodCode = isWallet ? 'WALLET' : isBank ? 'BANK' : 'CASH';
+    const payAccCode = isWallet ? '1107' : isBank ? '1102' : '1101';
+    const payAccName = isWallet ? 'المحافظ الإلكترونية والشبكات' : isBank ? 'البنك / الحسابات المصرفية' : 'الخزينة الرئيسية (النقدية)';
 
     const payrollRec = {
       id: `pay-${Date.now()}`,
@@ -7150,7 +7400,7 @@ async function internalHandleLocalDesktopApiFallback(
       amount: calculatedNet,
       currency: payCurrency,
       date: safeDate,
-      paymentMethod: isBank ? 'BANK' : 'CASH',
+      paymentMethod: payMethodCode,
       treasury,
       recipient: employeeName,
       status: 'COMPLETED',
@@ -7176,7 +7426,7 @@ async function internalHandleLocalDesktopApiFallback(
       partyName: employeeName,
       amount: calculatedNet,
       currency: payCurrency,
-      payment_method: isBank ? 'BANK' : 'CASH',
+      payment_method: payMethodCode,
       treasury,
       date: safeDate,
       notes: `صرف راتب شهر ${safeMonth}`,
@@ -7187,7 +7437,7 @@ async function internalHandleLocalDesktopApiFallback(
     });
     setLocalItem('erp_payments_v1', payments, companyId);
 
-    // Post double entry journal: Dr 5201 (رواتب وأجور), Cr 1101/1102 (نقدية/بنك)
+    // Post double entry journal: Dr 5201 (رواتب وأجور), Cr 1101/1102/1107 (نقدية/بنك/محفظة)
     if (calculatedNet > 0) {
       postLocalDoubleEntryJournal({
         company_id: companyId,
@@ -7198,14 +7448,14 @@ async function internalHandleLocalDesktopApiFallback(
         lines: [
           {
             account_code: '5201',
-            account_name: 'رواتب وأجور ومزايا موظفين',
+            account_name: 'مصروفات الرواتب والأجور',
             debit: calculatedNet,
             credit: 0,
             description: `راتب شهر ${safeMonth} - ${employeeName}`,
           },
           {
-            account_code: isBank ? '1102' : '1101',
-            account_name: isBank ? 'البنك / الحسابات المصرفية' : 'الخزينة الرئيسية (النقدية)',
+            account_code: payAccCode,
+            account_name: payAccName,
             debit: 0,
             credit: calculatedNet,
             description: `سداد راتب الموظف ${employeeName}`,
@@ -7500,7 +7750,7 @@ async function internalHandleLocalDesktopApiFallback(
     };
   }
 
-  // 13.7. Chart of Accounts in Offline Mode (GET /accounts)
+  // 13.7. Chart of Accounts & Ledger / Journal Entries in Offline Mode (GET /accounts, GET /ledger, GET /journal-entries)
   if (method === 'GET' && cleanUrl.endsWith('/accounts')) {
     const accounts = getLocalAccounts(companyId);
     return {
@@ -7510,6 +7760,142 @@ async function internalHandleLocalDesktopApiFallback(
       data: accounts,
       accounts,
       total: accounts.length,
+    };
+  }
+
+  if (method === 'POST' && cleanUrl.endsWith('/accounts')) {
+    let bodyData: any = {};
+    try {
+      if (options?.body) {
+        bodyData = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;
+      }
+    } catch {}
+
+    const code = String(bodyData.code || '').trim();
+    const name = String(bodyData.name || bodyData.name_ar || '').trim();
+    const rawType = String(bodyData.type || 'ASSET').toUpperCase();
+    const type = ['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'].includes(rawType) ? rawType : 'ASSET';
+    const rawNature = String(bodyData.nature || bodyData.normal_balance || (type === 'ASSET' || type === 'EXPENSE' ? 'DEBIT' : 'CREDIT')).toUpperCase();
+    const nature = rawNature === 'CREDIT' ? 'CREDIT' : 'DEBIT';
+
+    if (!code || !name) {
+      return {
+        ok: false,
+        success: false,
+        status: 400,
+        error: 'يجب إدخال رقم الحساب واسم الحساب',
+        message: 'يجب إدخال رقم الحساب واسم الحساب',
+        data: null,
+      };
+    }
+
+    const accounts = ensureLocalAccountsInitialized(companyId);
+    if (accounts.some((a) => String(a.code).trim() === code)) {
+      return {
+        ok: false,
+        success: false,
+        status: 409,
+        error: `رقم الحساب (${code}) موجود مسبقاً`,
+        message: `رقم الحساب (${code}) موجود مسبقاً في شجرة الحسابات`,
+        data: null,
+      };
+    }
+
+    const categoryMap: Record<string, string> = {
+      ASSET: 'CURRENT_ASSET',
+      LIABILITY: 'CURRENT_LIABILITY',
+      EQUITY: 'EQUITY',
+      REVENUE: 'REVENUE',
+      EXPENSE: 'OPERATING_EXPENSE',
+    };
+
+    const newAcc = {
+      id: `acc_${companyId}_${code}`,
+      company_id: companyId,
+      code,
+      name,
+      name_ar: name,
+      type,
+      category: categoryMap[type] || 'GENERAL',
+      normal_balance: nature,
+      nature,
+      debit_total: 0,
+      credit_total: 0,
+      balance: 0,
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    accounts.push(newAcc);
+    setLocalItem('erp_accounts_v1', accounts, companyId);
+    setLocalItem('erp_local_accounts_v1', accounts, companyId);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('erp-accounts-updated'));
+      window.dispatchEvent(new Event('erp-data-updated'));
+      window.dispatchEvent(new Event('storage'));
+    }
+
+    return {
+      ok: true,
+      success: true,
+      status: 201,
+      data: newAcc,
+      account: newAcc,
+      message: 'تم إضافة الحساب الجديد إلى شجرة الحسابات بنجاح',
+    };
+  }
+
+  if (
+    method === 'GET' &&
+    !cleanUrl.includes('/customers/') &&
+    !cleanUrl.includes('/suppliers/') &&
+    (cleanUrl.endsWith('/ledger') ||
+      cleanUrl.endsWith('/journal-entries') ||
+      cleanUrl.endsWith('/journal_entries') ||
+      cleanUrl.endsWith('/general-ledger'))
+  ) {
+    const accounts = getLocalAccounts(companyId);
+    const rawEntries = getLocalItem<any[]>('erp_journal_entries_v1', [], companyId);
+    const normalizedEntries = rawEntries.map((j: any) => {
+      const lines = Array.isArray(j.lines) ? j.lines : [];
+      const lineDebitSum = lines.reduce((s: number, l: any) => s + Number(l.debit || 0), 0);
+      const lineCreditSum = lines.reduce((s: number, l: any) => s + Number(l.credit || 0), 0);
+      const totalDebit = roundMoney(
+        j.total_debit !== undefined ? j.total_debit : lines.length > 0 ? lineDebitSum : (j.debit ?? j.amount ?? 0)
+      );
+      const totalCredit = roundMoney(
+        j.total_credit !== undefined ? j.total_credit : lines.length > 0 ? lineCreditSum : (j.credit ?? j.amount ?? 0)
+      );
+      const entryDate =
+        j.date ||
+        j.transaction_date ||
+        (j.created_at ? String(j.created_at).split('T')[0] : new Date().toISOString().split('T')[0]);
+      const txDate = j.transaction_date || j.date || j.created_at || entryDate;
+      return {
+        ...j,
+        entry_number: j.entry_number || j.entryNumber || j.id,
+        date: entryDate,
+        transaction_date: txDate,
+        total_debit: totalDebit,
+        total_credit: totalCredit,
+        debit: totalDebit,
+        credit: totalCredit,
+        status: j.status || 'POSTED',
+        lines,
+      };
+    });
+
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: normalizedEntries,
+      entries: normalizedEntries,
+      items: normalizedEntries,
+      accounts,
+      total: normalizedEntries.length,
     };
   }
 
@@ -8709,6 +9095,7 @@ async function internalHandleLocalDesktopApiFallback(
             ],
           });
         }
+        recalculateLocalAccountBalances(companyId);
       }
 
       // If purchase invoice created: update WAC, stock, supplier balance (if credit), and post purchase journal
@@ -8863,6 +9250,7 @@ async function internalHandleLocalDesktopApiFallback(
           date: invoiceDate,
           lines: purchaseLines,
         });
+        recalculateLocalAccountBalances(companyId);
       }
 
       // BUG-05: Opening Balance Journal Entry for newly created Customer
@@ -8932,9 +9320,29 @@ async function internalHandleLocalDesktopApiFallback(
       // Generic POST: Expense Double-Entry Journal & Payment Voucher
       if (matchedEntityKey === 'expenses') {
         const expAmount = roundMoney(Number(sanitized.amount || sanitized.total || 0));
-        const expMethod = String(sanitized.paymentMethod || sanitized.payment_method || 'CASH').toUpperCase();
-        const isBank = ['BANK', 'CARD', 'TRANSFER', 'WALLET'].includes(expMethod);
-        const expCategory = String(sanitized.category || 'مصروفات تشغيلية عامة');
+        const expMethodRaw = String(sanitized.paymentMethod || sanitized.payment_method || sanitized.treasury || 'CASH').trim();
+        const expMethod = expMethodRaw.toUpperCase();
+        const isWallet =
+          ['WALLET', 'E_WALLET', 'MOBILE', 'JAWALI', 'ONE_CASH', 'FLOUSK', 'JIB', 'KURIMI'].includes(expMethod) ||
+          expMethodRaw.includes('محفظ') ||
+          expMethodRaw.includes('جوالي') ||
+          expMethodRaw.includes('ون كاش') ||
+          expMethodRaw.includes('فلوسك') ||
+          (expMethodRaw.includes('كاش') && !expMethodRaw.includes('كاشير'));
+        const isBank =
+          !isWallet &&
+          (['BANK', 'CARD', 'TRANSFER', 'CHECK'].includes(expMethod) ||
+            expMethodRaw.includes('بنك') ||
+            expMethodRaw.includes('تحويل') ||
+            expMethodRaw.includes('مصرف'));
+        const expPayMethodCode = isWallet ? 'WALLET' : isBank ? 'BANK' : 'CASH';
+        const expCashAccCode = isWallet ? '1107' : isBank ? '1102' : '1101';
+        const expCashAccName = isWallet
+          ? 'المحافظ الإلكترونية والشبكات'
+          : isBank
+          ? 'البنك / الحسابات المصرفية'
+          : 'الخزينة الرئيسية (النقدية)';
+        const expCategory = String(sanitized.category || 'المصروفات العمومية والإدارية');
         const expDate = sanitized.date || new Date().toISOString().split('T')[0];
         const expRef = sanitized.voucherNumber || sanitized.voucher_number || sanitized.id;
 
@@ -8950,8 +9358,8 @@ async function internalHandleLocalDesktopApiFallback(
           partyName: sanitized.recipient || sanitized.beneficiary || expCategory,
           amount: expAmount,
           currency: sanitized.currency || 'YER',
-          payment_method: isBank ? 'BANK' : 'CASH',
-          treasury: sanitized.treasury || (isBank ? 'الحساب البنكي' : 'الخزينة الرئيسية'),
+          payment_method: expPayMethodCode,
+          treasury: sanitized.treasury || (isWallet ? 'المحفظة الإلكترونية' : isBank ? 'الحساب البنكي' : 'الخزينة الرئيسية'),
           date: expDate,
           notes: sanitized.notes || sanitized.description || `سند صرف مصروف: ${expCategory}`,
           status: 'COMPLETED',
@@ -8961,18 +9369,21 @@ async function internalHandleLocalDesktopApiFallback(
         });
         setLocalItem('erp_payments_v1', payments, companyId);
 
-        // Map expense account code: 5201 for payroll, 5202 for general operating, 5203 rent, 5204 utilities
+        // Map expense account code: 5201 for payroll, 5202 for general operating, 5203 for rent & utilities
         let expAccCode = '5202';
-        let expAccName = 'مصروفات تشغيلية وإدارية عامة';
+        let expAccName = 'المصروفات العمومية والإدارية';
         if (expCategory.includes('رواتب') || expCategory.includes('أجور') || expCategory.includes('مكافآت')) {
           expAccCode = '5201';
-          expAccName = 'رواتب وأجور ومزايا موظفين';
-        } else if (expCategory.includes('إيجار')) {
+          expAccName = 'مصروفات الرواتب والأجور';
+        } else if (
+          expCategory.includes('إيجار') ||
+          expCategory.includes('كهرباء') ||
+          expCategory.includes('مياه') ||
+          expCategory.includes('إنترنت') ||
+          expCategory.includes('منافع')
+        ) {
           expAccCode = '5203';
-          expAccName = 'مصروفات إيجار';
-        } else if (expCategory.includes('كهرباء') || expCategory.includes('مياه') || expCategory.includes('إنترنت')) {
-          expAccCode = '5204';
-          expAccName = 'منافع وخدمات عامة';
+          expAccName = 'مصروفات الإيجارات والمنافع';
         }
 
         if (expAmount > 0) {
@@ -8991,8 +9402,8 @@ async function internalHandleLocalDesktopApiFallback(
                 description: sanitized.title || expCategory,
               },
               {
-                account_code: isBank ? '1102' : '1101',
-                account_name: isBank ? 'البنك / الحسابات المصرفية' : 'الخزينة الرئيسية (النقدية)',
+                account_code: expCashAccCode,
+                account_name: expCashAccName,
                 debit: 0,
                 credit: expAmount,
                 description: `سداد مصروف ${expCategory}`,
@@ -9277,6 +9688,16 @@ async function internalHandleLocalDesktopApiFallback(
       setLocalItem(storeKey, items, companyId);
       await saveRecord(storeKey, updatedRecord);
 
+      if (
+        matchedEntityKey === 'ledger' ||
+        matchedEntityKey === 'invoices' ||
+        matchedEntityKey === 'purchase-invoices' ||
+        matchedEntityKey === 'payments' ||
+        matchedEntityKey === 'expenses'
+      ) {
+        recalculateLocalAccountBalances(companyId);
+      }
+
       try {
         localStorage.removeItem('erp_clean_production_mode_v1');
         localStorage.removeItem('erp_sample_data_cleaned');
@@ -9310,6 +9731,8 @@ async function internalHandleLocalDesktopApiFallback(
       const foundToDelete = items.find(
         (i) =>
           String(i.id || '').toLowerCase() === targetIdLower ||
+          String(i.entry_number || '').toLowerCase() === targetIdLower ||
+          String(i.entryNumber || '').toLowerCase() === targetIdLower ||
           String(i.invoice_number || '').toLowerCase() === targetIdLower ||
           String(i.invoiceNumber || '').toLowerCase() === targetIdLower ||
           String(i.code || '').toLowerCase() === targetIdLower ||
@@ -9544,6 +9967,16 @@ async function internalHandleLocalDesktopApiFallback(
         await deleteRecord(storeKey, String(actualId)).catch(() => {});
       }
 
+      if (
+        matchedEntityKey === 'ledger' ||
+        matchedEntityKey === 'invoices' ||
+        matchedEntityKey === 'purchase-invoices' ||
+        matchedEntityKey === 'payments' ||
+        matchedEntityKey === 'expenses'
+      ) {
+        recalculateLocalAccountBalances(companyId);
+      }
+
       if (typeof window !== 'undefined') {
         window.dispatchEvent(
           new CustomEvent('erp-data-updated', {
@@ -9551,6 +9984,8 @@ async function internalHandleLocalDesktopApiFallback(
           })
         );
         if (event) window.dispatchEvent(new Event(event));
+        window.dispatchEvent(new Event('erp-accounts-updated'));
+        window.dispatchEvent(new Event('erp-ledger-updated'));
         window.dispatchEvent(new Event('erp-inventory-updated'));
         window.dispatchEvent(new Event('erp-customers-updated'));
         window.dispatchEvent(new Event('storage'));
