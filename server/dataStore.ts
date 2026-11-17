@@ -2005,9 +2005,22 @@ export async function initPermanentPostgresTables(pool: any): Promise<void> {
   if (pool) {
     activeDbPool = pool;
   }
-  if (!pool) return;
+  if (!pool) {
+    if (process.env.NODE_ENV === 'production') {
+      console.warn(
+        '[CRITICAL_PERSISTENCE_WARNING] DATABASE_URL is not configured in production; falling back to local disk store.'
+      );
+    }
+    return;
+  }
   try {
     await pool.query(`
+      CREATE TABLE IF NOT EXISTS schema_migrations (
+        version VARCHAR(64) PRIMARY KEY,
+        filename VARCHAR(255) UNIQUE NOT NULL,
+        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
       CREATE TABLE IF NOT EXISTS erp_permanent_users (
         id VARCHAR(64) PRIMARY KEY,
         email VARCHAR(255) UNIQUE NOT NULL,
@@ -2030,6 +2043,43 @@ export async function initPermanentPostgresTables(pool: any): Promise<void> {
         PRIMARY KEY (company_id, data_type)
       );
     `);
+
+    // Execute ordered SQL migrations from migrations/ directory
+    try {
+      const migrationsDir = path.resolve(process.cwd(), 'migrations');
+      if (fs.existsSync(migrationsDir)) {
+        const appliedRes = await pool.query('SELECT filename, version FROM schema_migrations');
+        const appliedSet = new Set<string>(
+          (appliedRes?.rows || []).flatMap((r: any) => [String(r.filename || ''), String(r.version || '')])
+        );
+
+        const sqlFiles = fs
+          .readdirSync(migrationsDir)
+          .filter((f) => f.toLowerCase().endsWith('.sql'))
+          .sort((a, b) => a.localeCompare(b));
+
+        for (const filename of sqlFiles) {
+          const version = filename.split('_')[0] || filename;
+          if (appliedSet.has(filename) || appliedSet.has(version)) {
+            continue;
+          }
+          const fullPath = path.join(migrationsDir, filename);
+          const sqlContent = fs.readFileSync(fullPath, 'utf8');
+          if (sqlContent.trim()) {
+            await pool.query(sqlContent);
+          }
+          await pool.query(
+            `INSERT INTO schema_migrations (version, filename, applied_at)
+             VALUES ($1, $2, CURRENT_TIMESTAMP)
+             ON CONFLICT (version) DO NOTHING`,
+            [version, filename]
+          );
+          console.log(`[PG_MIGRATION_APPLIED] Executed migration: ${filename}`);
+        }
+      }
+    } catch (migErr: any) {
+      console.warn('[PG_MIGRATIONS_RUNNER_WARN]', migErr?.message);
+    }
 
     // Load registered users from database if present
     const res = await pool.query('SELECT * FROM erp_permanent_users');

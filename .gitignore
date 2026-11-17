@@ -1,6 +1,7 @@
 # Node & Build artifacts
 node_modules/
 dist/
+dist-ssr/
 build/
 .cache/
 
@@ -19,8 +20,19 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Runtime persistent store & secrets
+# Runtime persistent store, local SQLite databases & snapshots
 data/permanent_erp_store.json
+*.sqlite
+*.db
+
+# Ensure governance baseline, migrations, and automated tests remain tracked
+!SYSTEM_BASELINE.md
+!AGENTS.md
+!CHANGE_CONTROL_BASELINE.md
+!migrations/
+!migrations/**
+!tests/
+!tests/**
 
 # OS specific
 .DS_Store

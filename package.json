@@ -8,6 +8,8 @@
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/server.js",
     "gcp-build": "npm run build",
     "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "npx tsx --test tests/*.test.ts",
     "test:openapi": "tsx server/services/openApiVerifier.ts",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
