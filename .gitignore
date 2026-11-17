@@ -19,6 +19,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Runtime persistent store & secrets
+data/permanent_erp_store.json
+
 # OS specific
 .DS_Store
 Thumbs.db

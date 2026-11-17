@@ -28,7 +28,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' http://localhost:* ws://localhost:* https:; connect-src 'self' http://localhost:* ws://localhost:* https:; img-src 'self' asset: https: data: blob:; style-src 'self' 'unsafe-inline' https:; font-src 'self' https: data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:;"
+      "csp": "default-src 'self' http://localhost:* https://*.run.app https://graph.facebook.com; connect-src 'self' http://localhost:* https://*.run.app https://graph.facebook.com https:; img-src 'self' asset: https: data: blob:; style-src 'self' 'unsafe-inline' https:; font-src 'self' https: data:; script-src 'self' 'unsafe-inline' https:;"
     }
   },
   "bundle": {

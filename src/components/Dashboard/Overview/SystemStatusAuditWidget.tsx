@@ -23,20 +23,12 @@ export const SystemStatusAuditWidget: React.FC<SystemStatusAuditWidgetProps> = (
 }) => {
   const safeLogs = Array.isArray(auditLogs) ? auditLogs : [];
 
-  const defaultLogs = [
-    { action: 'إصدار فاتورة ضريبية', entity: 'INV-2026-0042', time: 'منذ 10 دقائق', user: 'admin' },
-    { action: 'تحصيل دفعة عميل', entity: 'PAY-2026-0088', time: 'منذ 25 دقيقة', user: 'cashier1' },
-    { action: 'تعديل سعر بيع صنف', entity: 'COF-02', time: 'منذ ساعة', user: 'admin' },
-  ];
-
-  const activeLogs = safeLogs.length > 0
-    ? safeLogs.slice(0, 3).map((l, i) => ({
-        action: l.action || 'عملية مالية',
-        entity: l.entity_id || l.entity || `OP-${i + 1}`,
-        time: l.created_at ? l.created_at.substring(11, 16) : 'اليوم',
-        user: l.user_email?.split('@')[0] || l.user_id || 'system',
-      }))
-    : defaultLogs;
+  const activeLogs = safeLogs.slice(0, 3).map((l, i) => ({
+    action: l.action || 'عملية مالية',
+    entity: l.entity_id || l.entity || `OP-${i + 1}`,
+    time: l.created_at ? l.created_at.substring(11, 16) : 'اليوم',
+    user: l.user_email?.split('@')[0] || l.user_id || 'system',
+  }));
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 text-right flex flex-col justify-between h-full">
@@ -125,19 +117,25 @@ export const SystemStatusAuditWidget: React.FC<SystemStatusAuditWidgetProps> = (
         </div>
 
         <div className="space-y-1.5">
-          {activeLogs.map((log, idx) => (
-            <div
-              key={idx}
-              className="p-2 rounded-xl bg-slate-800/30 border border-slate-800/60 flex items-center justify-between text-[11px]"
-            >
-              <div className="flex items-center gap-2 truncate">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                <span className="font-bold text-slate-200 truncate">{log.action}</span>
-                <span className="font-mono text-[10px] text-slate-400">({log.entity})</span>
+          {activeLogs.length > 0 ? (
+            activeLogs.map((log, idx) => (
+              <div
+                key={idx}
+                className="p-2 rounded-xl bg-slate-800/30 border border-slate-800/60 flex items-center justify-between text-[11px]"
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                  <span className="font-bold text-slate-200 truncate">{log.action}</span>
+                  <span className="font-mono text-[10px] text-slate-400">({log.entity})</span>
+                </div>
+                <span className="font-mono text-[10px] text-slate-500 shrink-0">{log.time}</span>
               </div>
-              <span className="font-mono text-[10px] text-slate-500 shrink-0">{log.time}</span>
+            ))
+          ) : (
+            <div className="p-3 rounded-xl bg-slate-800/20 border border-slate-800/50 text-center text-[11px] text-slate-400">
+              لا توجد حركات تدقيق مسجلة حتى الآن
             </div>
-          ))}
+          )}
         </div>
       </div>
 

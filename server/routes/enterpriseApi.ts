@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import {
   mockCustomersList,
   mockSuppliersList,
@@ -40,6 +40,7 @@ import {
   extractBearerToken,
   verifySignedToken,
   hashPassword,
+  hasPermission,
 } from '../security.js';
 import {
   postSalesTransactionAtomic,
@@ -74,6 +75,27 @@ export {
 };
 
 export const enterpriseRouter = Router();
+
+export function requirePermission(permission: string) {
+  return (_req: Request, res: Response, next: NextFunction) => {
+    const ctx = getCurrentTenantContext();
+    if (!ctx || !ctx.isAuthenticated) {
+      return res.status(401).json({
+        success: false,
+        error: 'AUTHENTICATION_REQUIRED',
+        message: 'جلسة العمل غير مسجلة أو انتهت صلاحيتها، يرجى تسجيل الدخول',
+      });
+    }
+    if (!hasPermission(ctx.role, permission)) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: `ليس لديك الصلاحية المطلوبة (${permission}) لإتمام هذه العملية`,
+      });
+    }
+    next();
+  };
+}
 
 // ==========================================
 // 0. PostgreSQL JSONB Persistence & In-Memory Store
@@ -385,7 +407,7 @@ enterpriseRouter.get('/roles/permissions', (_req: Request, res: Response) => {
   });
 });
 
-enterpriseRouter.post('/roles/permissions', (req: Request, res: Response) => {
+enterpriseRouter.post('/roles/permissions', requirePermission('system:write'), (req: Request, res: Response) => {
   const body = req.body || {};
   const newPerm = {
     id: body.id || `p-${Date.now()}`,
@@ -430,7 +452,7 @@ enterpriseRouter.get('/roles', (_req: Request, res: Response) => {
   });
 });
 
-enterpriseRouter.post('/roles', (req: Request, res: Response) => {
+enterpriseRouter.post('/roles', requirePermission('system:write'), (req: Request, res: Response) => {
   const body = req.body || {};
   const newRole = {
     id: body.id || `role-${Date.now()}`,
@@ -458,7 +480,7 @@ enterpriseRouter.get('/roles/:id', (req: Request, res: Response) => {
   res.json({ success: true, data: role });
 });
 
-enterpriseRouter.put('/roles/:id', (req: Request, res: Response) => {
+enterpriseRouter.put('/roles/:id', requirePermission('system:write'), (req: Request, res: Response) => {
   const idx = systemRoles.findIndex((r) => r.id === req.params.id);
   if (idx === -1) {
     return res.status(404).json({ success: false, error: 'Role not found' });
@@ -471,7 +493,7 @@ enterpriseRouter.put('/roles/:id', (req: Request, res: Response) => {
   res.json({ success: true, data: systemRoles[idx] });
 });
 
-enterpriseRouter.put('/roles/:id/permissions', (req: Request, res: Response) => {
+enterpriseRouter.put('/roles/:id/permissions', requirePermission('system:write'), (req: Request, res: Response) => {
   const idx = systemRoles.findIndex((r) => r.id === req.params.id);
   if (idx === -1) {
     return res.status(404).json({ success: false, error: 'Role not found' });
@@ -485,7 +507,7 @@ enterpriseRouter.put('/roles/:id/permissions', (req: Request, res: Response) => 
   });
 });
 
-enterpriseRouter.delete('/roles/:id', (req: Request, res: Response) => {
+enterpriseRouter.delete('/roles/:id', requirePermission('system:write'), (req: Request, res: Response) => {
   const idx = systemRoles.findIndex((r) => r.id === req.params.id);
   if (idx === -1) {
     return res.status(404).json({ success: false, error: 'Role not found' });
@@ -509,7 +531,7 @@ enterpriseRouter.get('/users', (_req: Request, res: Response) => {
   });
 });
 
-enterpriseRouter.post('/users', (req: Request, res: Response) => {
+enterpriseRouter.post('/users', requirePermission('system:write'), (req: Request, res: Response) => {
   const body = req.body || {};
   const newUser = {
     id: body.id || `user-${Date.now()}`,
@@ -541,7 +563,7 @@ enterpriseRouter.get('/users/:id', (req: Request, res: Response) => {
   res.json({ success: true, data: user });
 });
 
-enterpriseRouter.put('/users/:id', (req: Request, res: Response) => {
+enterpriseRouter.put('/users/:id', requirePermission('system:write'), (req: Request, res: Response) => {
   const idx = systemUsers.findIndex((u) => u.id === req.params.id);
   if (idx === -1) {
     return res.status(404).json({ success: false, error: 'User not found' });
@@ -554,7 +576,7 @@ enterpriseRouter.put('/users/:id', (req: Request, res: Response) => {
   res.json({ success: true, data: systemUsers[idx] });
 });
 
-enterpriseRouter.delete('/users/:id', (req: Request, res: Response) => {
+enterpriseRouter.delete('/users/:id', requirePermission('system:write'), (req: Request, res: Response) => {
   const idx = systemUsers.findIndex((u) => u.id === req.params.id);
   if (idx === -1) {
     return res.status(404).json({ success: false, error: 'User not found' });
@@ -563,7 +585,7 @@ enterpriseRouter.delete('/users/:id', (req: Request, res: Response) => {
   res.json({ success: true, message: 'تم حذف المستخدم بنجاح' });
 });
 
-enterpriseRouter.put('/users/:id/status', (req: Request, res: Response) => {
+enterpriseRouter.put('/users/:id/status', requirePermission('system:write'), (req: Request, res: Response) => {
   const idx = systemUsers.findIndex((u) => u.id === req.params.id);
   if (idx === -1) {
     return res.status(404).json({ success: false, error: 'User not found' });
@@ -578,7 +600,7 @@ enterpriseRouter.put('/users/:id/status', (req: Request, res: Response) => {
   });
 });
 
-enterpriseRouter.post('/users/:id/roles', (req: Request, res: Response) => {
+enterpriseRouter.post('/users/:id/roles', requirePermission('system:write'), (req: Request, res: Response) => {
   const idx = systemUsers.findIndex((u) => u.id === req.params.id);
   if (idx === -1) {
     return res.status(404).json({ success: false, error: 'User not found' });
@@ -599,31 +621,86 @@ enterpriseRouter.post('/users/:id/roles', (req: Request, res: Response) => {
 // 3. Customers & Aging & Statements
 // ==========================================
 
-enterpriseRouter.get('/customers/aging', (_req: Request, res: Response) => {
+enterpriseRouter.get('/customers/aging', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const nowMs = Date.now();
+
+  let current = 0;
+  let days30 = 0;
+  let days60 = 0;
+  let days90Plus = 0;
+  let invoicedDebtSum = 0;
+
+  for (const inv of store.invoices) {
+    if (!inv || inv.status === 'CANCELLED' || inv.status === 'VOID' || inv.status === 'RETURNED') continue;
+    const rem = Number(
+      inv.remaining_amount ??
+        (inv as any).remainingAmount ??
+        (inv as any).balanceDue ??
+        Math.max(0, Number(inv.total || inv.amount || 0) - Number(inv.paid_amount ?? (inv as any).paidAmount ?? 0))
+    );
+    if (rem <= 0) continue;
+    invoicedDebtSum += rem;
+
+    const rawDate = inv.date || (inv as any).invoice_date || inv.created_at;
+    const invMs = rawDate ? new Date(rawDate).getTime() : nowMs;
+    const ageDays = Number.isFinite(invMs) ? Math.max(0, Math.floor((nowMs - invMs) / (1000 * 60 * 60 * 24))) : 0;
+
+    if (ageDays <= 30) {
+      current += rem;
+    } else if (ageDays <= 60) {
+      days30 += rem;
+    } else if (ageDays <= 90) {
+      days60 += rem;
+    } else {
+      days90Plus += rem;
+    }
+  }
+
+  const customerBalancesSum = store.customers.reduce(
+    (sum, c) => sum + Math.max(0, Number(c.current_balance ?? c.balance ?? 0)),
+    0
+  );
+  if (customerBalancesSum > invoicedDebtSum) {
+    current += customerBalancesSum - invoicedDebtSum;
+  }
+
+  current = roundMoney(current);
+  days30 = roundMoney(days30);
+  days60 = roundMoney(days60);
+  days90Plus = roundMoney(days90Plus);
+  const totalOutstanding = roundMoney(current + days30 + days60 + days90Plus);
+
+  const pct = (val: number) => (totalOutstanding > 0 ? Number(((val / totalOutstanding) * 100).toFixed(1)) : 0);
+
   res.json({
     success: true,
     data: {
-      totalOutstanding: 18200,
-      current: 12000,
-      days30: 4200,
-      days60: 2000,
-      days90Plus: 0,
+      totalOutstanding,
+      current,
+      days30,
+      days60,
+      days90Plus,
       brackets: [
-        { label: '0-30 يوم', amount: 12000, percentage: 65.9 },
-        { label: '31-60 يوم', amount: 4200, percentage: 23.1 },
-        { label: '61-90 يوم', amount: 2000, percentage: 11.0 },
-        { label: '+90 يوم', amount: 0, percentage: 0 },
+        { label: '0-30 يوم', amount: current, percentage: pct(current) },
+        { label: '31-60 يوم', amount: days30, percentage: pct(days30) },
+        { label: '61-90 يوم', amount: days60, percentage: pct(days60) },
+        { label: '+90 يوم', amount: days90Plus, percentage: pct(days90Plus) },
       ],
     },
   });
 });
 
 enterpriseRouter.post('/customers', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const body = req.body || {};
   const opVal = Number(body.openingBalance !== undefined ? body.openingBalance : (body.opening_balance !== undefined ? body.opening_balance : (body.balance || 0)));
   const currency = String(body.currency || 'YER').trim().toUpperCase();
   const newCust: CustomerItem = {
     id: body.id || `cust-${Date.now()}`,
+    company_id: companyId,
     name: String(body.name || 'عميل تجاري جديد').trim(),
     phone: body.phone || '',
     email: body.email || '',
@@ -639,11 +716,11 @@ enterpriseRouter.post('/customers', (req: Request, res: Response) => {
     taxNumber: body.taxNumber || '',
     created_at: new Date().toISOString(),
   };
-  mockCustomersList.unshift(newCust);
+  store.customers.unshift(newCust);
+  persistAllToDisk();
 
   // BUG-05: Post opening balance journal entry to General Ledger
   if (opVal > 0) {
-    const companyId = resolveCompanyId(req);
     postDoubleEntryJournal({
       companyId,
       reference_type: 'OPENING_BALANCE',
@@ -677,6 +754,7 @@ enterpriseRouter.post('/customers', (req: Request, res: Response) => {
 
 enterpriseRouter.post(['/customers/merge', '/customers/action/merge'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const body = req.body || {};
   const sourceId = String(body.sourceCustomerId || body.sourceId || '');
   const targetId = String(body.targetCustomerId || body.targetId || '');
@@ -685,15 +763,15 @@ enterpriseRouter.post(['/customers/merge', '/customers/action/merge'], (req: Req
     return res.status(400).json({ success: false, error: 'معرّفات دمج الحساب غير صالحة', message: 'يرجى تحديد حساب المصدر وحساب الهدف بشكل صحيح' });
   }
 
-  const sourceIdx = mockCustomersList.findIndex((c) => String(c.id) === sourceId);
-  const targetIdx = mockCustomersList.findIndex((c) => String(c.id) === targetId);
+  const sourceIdx = store.customers.findIndex((c) => String(c.id) === sourceId);
+  const targetIdx = store.customers.findIndex((c) => String(c.id) === targetId);
 
   if (sourceIdx === -1 || targetIdx === -1) {
     return res.status(404).json({ success: false, error: 'أحد الحسابين المطلوب دمجهما غير موجود', message: 'أحد حسابات العملاء غير موجود' });
   }
 
-  const source = mockCustomersList[sourceIdx];
-  const target = mockCustomersList[targetIdx];
+  const source = store.customers[sourceIdx];
+  const target = store.customers[targetIdx];
 
   // Transfer balance
   const sourceBalance = Number(source.balance || source.current_balance || 0);
@@ -701,7 +779,7 @@ enterpriseRouter.post(['/customers/merge', '/customers/action/merge'], (req: Req
   target.current_balance = target.balance;
 
   // Reassign invoices
-  for (const inv of mockInvoicesList) {
+  for (const inv of store.invoices) {
     if (String(inv.customer_id || (inv as any).customerId) === sourceId || String(inv.customer_name || (inv as any).customerName || '').trim() === source.name.trim()) {
       inv.customer_id = target.id;
       inv.customer_name = target.name;
@@ -709,7 +787,7 @@ enterpriseRouter.post(['/customers/merge', '/customers/action/merge'], (req: Req
   }
 
   // Reassign payments
-  for (const p of mockPaymentsList) {
+  for (const p of store.payments) {
     if (String(p.customer_id || p.party_id) === sourceId || String(p.customer_name || p.party_name || '').trim() === source.name.trim()) {
       p.customer_id = target.id;
       p.customer_name = target.name;
@@ -719,7 +797,7 @@ enterpriseRouter.post(['/customers/merge', '/customers/action/merge'], (req: Req
   }
 
   // Remove source customer
-  mockCustomersList.splice(sourceIdx, 1);
+  store.customers.splice(sourceIdx, 1);
   persistAllToDisk();
 
   res.json({
@@ -730,7 +808,9 @@ enterpriseRouter.post(['/customers/merge', '/customers/action/merge'], (req: Req
 });
 
 enterpriseRouter.get('/customers/:id', (req: Request, res: Response) => {
-  const c = mockCustomersList.find((x) => x.id === req.params.id);
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const c = store.customers.find((x) => x.id === req.params.id);
   if (!c) {
     return res.status(404).json({ success: false, error: 'Customer not found' });
   }
@@ -738,34 +818,45 @@ enterpriseRouter.get('/customers/:id', (req: Request, res: Response) => {
 });
 
 enterpriseRouter.put('/customers/:id', (req: Request, res: Response) => {
-  const idx = mockCustomersList.findIndex((x) => x.id === req.params.id);
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const idx = store.customers.findIndex((x) => x.id === req.params.id);
   if (idx !== -1) {
     const body = req.body || {};
     const opVal = body.openingBalance !== undefined || body.opening_balance !== undefined
       ? Number(body.openingBalance !== undefined ? body.openingBalance : body.opening_balance)
-      : mockCustomersList[idx].opening_balance;
+      : store.customers[idx].opening_balance;
 
-    mockCustomersList[idx] = {
-      ...mockCustomersList[idx],
+    store.customers[idx] = {
+      ...store.customers[idx],
       ...body,
-      opening_balance: opVal !== undefined ? opVal : mockCustomersList[idx].opening_balance,
-      openingBalance: opVal !== undefined ? opVal : mockCustomersList[idx].openingBalance,
-      currency: body.currency ? String(body.currency).trim().toUpperCase() : mockCustomersList[idx].currency,
+      company_id: companyId,
+      opening_balance: opVal !== undefined ? opVal : store.customers[idx].opening_balance,
+      openingBalance: opVal !== undefined ? opVal : store.customers[idx].openingBalance,
+      currency: body.currency ? String(body.currency).trim().toUpperCase() : store.customers[idx].currency,
       updated_at: new Date().toISOString(),
     };
-    return res.json({ success: true, data: mockCustomersList[idx], message: 'تم تحديث بيانات العميل بنجاح' });
+    persistAllToDisk();
+    return res.json({ success: true, data: store.customers[idx], message: 'تم تحديث بيانات العميل بنجاح' });
   }
   res.status(404).json({ success: false, error: 'Customer not found' });
 });
 
 enterpriseRouter.delete('/customers/:id', (req: Request, res: Response) => {
-  const idx = mockCustomersList.findIndex((x) => x.id === req.params.id);
-  if (idx !== -1) mockCustomersList.splice(idx, 1);
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const idx = store.customers.findIndex((x) => x.id === req.params.id);
+  if (idx !== -1) {
+    store.customers.splice(idx, 1);
+    persistAllToDisk();
+  }
   res.json({ success: true, message: 'تم حذف العميل بنجاح' });
 });
 
 enterpriseRouter.get('/customers/:id/statement', (req: Request, res: Response) => {
-  const cust = mockCustomersList.find((c) => c.id === req.params.id);
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const cust = store.customers.find((c) => c.id === req.params.id);
   if (!cust) {
     return res.status(404).json({ success: false, error: 'Customer not found' });
   }
@@ -780,7 +871,7 @@ enterpriseRouter.get('/customers/:id/statement', (req: Request, res: Response) =
   const knownInvoiceRefs = new Set<string>();
 
   // 1. Gather invoices for this customer and pair payments for cash/partial amounts
-  mockInvoicesList.forEach((inv) => {
+  store.invoices.forEach((inv) => {
     const isMatching = inv.customer_id === cust.id || inv.customer === cust.name || inv.customer_name === cust.name;
     if (isMatching) {
       const invNum = String(inv.invoice_number || inv.invoiceNumber || inv.id || '').trim();
@@ -827,7 +918,7 @@ enterpriseRouter.get('/customers/:id/statement', (req: Request, res: Response) =
   });
 
   // 2. Gather standalone account transactions (skip invoice-paired transactions)
-  mockAccountTransactions.forEach((t) => {
+  store.accountTransactions.forEach((t) => {
     const isMatching = t.party_id === cust.id || (t.party_type === 'CUSTOMER' && t.party_id === cust.name);
     if (isMatching) {
       const refNo = String(t.reference_no || t.reference_id || t.id || '').trim().toLowerCase();
@@ -853,7 +944,7 @@ enterpriseRouter.get('/customers/:id/statement', (req: Request, res: Response) =
   });
 
   // 3. Gather standalone payments (skip invoice-paired payments)
-  mockPaymentsList.forEach((pmt) => {
+  store.payments.forEach((pmt) => {
     const isCustomerPayment =
       (pmt.type === 'CUSTOMER_PAYMENT' || pmt.voucher_type === 'RECEIPT') &&
       (pmt.customer_id === cust.id || pmt.customer_name === cust.name || pmt.party_id === cust.id || pmt.party_name === cust.name);
@@ -997,18 +1088,22 @@ enterpriseRouter.get('/customers/:id/statement', (req: Request, res: Response) =
 });
 
 enterpriseRouter.get('/customers/:id/transactions', (req: Request, res: Response) => {
-  const cust = mockCustomersList.find((c) => c.id === req.params.id);
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const cust = store.customers.find((c) => c.id === req.params.id);
   if (!cust) {
     return res.json({ success: true, data: [] });
   }
-  const txs = mockAccountTransactions.filter(
+  const txs = store.accountTransactions.filter(
     (t) => t.party_id === cust.id || (t.party_type === 'CUSTOMER' && t.party_id === cust.name)
   );
   res.json({ success: true, data: txs });
 });
 
 enterpriseRouter.post('/customers/:id/transactions', (req: Request, res: Response) => {
-  const cust = mockCustomersList.find((c) => c.id === req.params.id);
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const cust = store.customers.find((c) => c.id === req.params.id);
   const body = req.body || {};
   const amount = Number(body.amount || 0);
   const rawType = String(body.type || 'DEBIT').toUpperCase();
@@ -1032,6 +1127,7 @@ enterpriseRouter.post('/customers/:id/transactions', (req: Request, res: Respons
 
   const newTx: AccountTransactionItem = {
     id: `ctx-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    company_id: companyId,
     party_id: req.params.id,
     party_type: 'CUSTOMER',
     type: type,
@@ -1046,7 +1142,8 @@ enterpriseRouter.post('/customers/:id/transactions', (req: Request, res: Respons
     created_at: txDate,
   };
 
-  mockAccountTransactions.unshift(newTx);
+  store.accountTransactions.unshift(newTx);
+  persistAllToDisk();
 
   res.status(201).json({
     success: true,
@@ -1056,14 +1153,24 @@ enterpriseRouter.post('/customers/:id/transactions', (req: Request, res: Respons
 });
 
 enterpriseRouter.put('/customers/:id/deactivate', (req: Request, res: Response) => {
-  const cust = mockCustomersList.find((c) => c.id === req.params.id);
-  if (cust) cust.status = 'INACTIVE';
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const cust = store.customers.find((c) => c.id === req.params.id);
+  if (cust) {
+    cust.status = 'INACTIVE';
+    persistAllToDisk();
+  }
   res.json({ success: true, message: 'تم تعطيل حساب العميل' });
 });
 
 enterpriseRouter.put('/customers/:id/reactivate', (req: Request, res: Response) => {
-  const cust = mockCustomersList.find((c) => c.id === req.params.id);
-  if (cust) cust.status = 'ACTIVE';
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const cust = store.customers.find((c) => c.id === req.params.id);
+  if (cust) {
+    cust.status = 'ACTIVE';
+    persistAllToDisk();
+  }
   res.json({ success: true, message: 'تم إعادة تفعيل حساب العميل' });
 });
 
@@ -1072,11 +1179,14 @@ enterpriseRouter.put('/customers/:id/reactivate', (req: Request, res: Response) 
 // ==========================================
 
 enterpriseRouter.post('/suppliers', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const body = req.body || {};
   const opVal = Number(body.openingBalance !== undefined ? body.openingBalance : (body.opening_balance !== undefined ? body.opening_balance : (body.balance || 0)));
   const currency = String(body.currency || 'YER').trim().toUpperCase();
   const newSupp: SupplierItem = {
     id: body.id || `supp-${Date.now()}`,
+    company_id: companyId,
     name: String(body.name || 'مورد تجاري جديد').trim(),
     category: body.category || 'عام',
     balance: opVal,
@@ -1090,11 +1200,11 @@ enterpriseRouter.post('/suppliers', (req: Request, res: Response) => {
     notes: body.notes || '',
     created_at: new Date().toISOString(),
   };
-  mockSuppliersList.unshift(newSupp);
+  store.suppliers.unshift(newSupp);
+  persistAllToDisk();
 
   // BUG-05: Post opening balance journal entry to General Ledger
   if (opVal > 0) {
-    const companyId = resolveCompanyId(req);
     postDoubleEntryJournal({
       companyId,
       reference_type: 'OPENING_BALANCE',
@@ -1127,7 +1237,9 @@ enterpriseRouter.post('/suppliers', (req: Request, res: Response) => {
 });
 
 enterpriseRouter.get('/suppliers/:id', (req: Request, res: Response) => {
-  const s = mockSuppliersList.find((x) => x.id === req.params.id);
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const s = store.suppliers.find((x) => x.id === req.params.id);
   if (!s) {
     return res.status(404).json({ success: false, error: 'Supplier not found' });
   }
@@ -1135,34 +1247,45 @@ enterpriseRouter.get('/suppliers/:id', (req: Request, res: Response) => {
 });
 
 enterpriseRouter.put('/suppliers/:id', (req: Request, res: Response) => {
-  const idx = mockSuppliersList.findIndex((x) => x.id === req.params.id);
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const idx = store.suppliers.findIndex((x) => x.id === req.params.id);
   if (idx !== -1) {
     const body = req.body || {};
     const opVal = body.openingBalance !== undefined || body.opening_balance !== undefined
       ? Number(body.openingBalance !== undefined ? body.openingBalance : body.opening_balance)
-      : mockSuppliersList[idx].opening_balance;
+      : store.suppliers[idx].opening_balance;
 
-    mockSuppliersList[idx] = {
-      ...mockSuppliersList[idx],
+    store.suppliers[idx] = {
+      ...store.suppliers[idx],
       ...body,
-      opening_balance: opVal !== undefined ? opVal : mockSuppliersList[idx].opening_balance,
-      openingBalance: opVal !== undefined ? opVal : mockSuppliersList[idx].openingBalance,
-      currency: body.currency ? String(body.currency).trim().toUpperCase() : mockSuppliersList[idx].currency,
+      company_id: companyId,
+      opening_balance: opVal !== undefined ? opVal : store.suppliers[idx].opening_balance,
+      openingBalance: opVal !== undefined ? opVal : store.suppliers[idx].openingBalance,
+      currency: body.currency ? String(body.currency).trim().toUpperCase() : store.suppliers[idx].currency,
       updated_at: new Date().toISOString(),
     };
-    return res.json({ success: true, data: mockSuppliersList[idx], message: 'تم تحديث بيانات المورد بنجاح' });
+    persistAllToDisk();
+    return res.json({ success: true, data: store.suppliers[idx], message: 'تم تحديث بيانات المورد بنجاح' });
   }
   res.status(404).json({ success: false, error: 'Supplier not found' });
 });
 
 enterpriseRouter.delete('/suppliers/:id', (req: Request, res: Response) => {
-  const idx = mockSuppliersList.findIndex((x) => x.id === req.params.id);
-  if (idx !== -1) mockSuppliersList.splice(idx, 1);
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const idx = store.suppliers.findIndex((x) => x.id === req.params.id);
+  if (idx !== -1) {
+    store.suppliers.splice(idx, 1);
+    persistAllToDisk();
+  }
   res.json({ success: true, message: 'تم حذف المورد بنجاح' });
 });
 
 enterpriseRouter.get('/suppliers/:id/statement', (req: Request, res: Response) => {
-  const supp = mockSuppliersList.find((x) => x.id === req.params.id);
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const supp = store.suppliers.find((x) => x.id === req.params.id);
   if (!supp) {
     return res.status(404).json({ success: false, error: 'Supplier not found' });
   }
@@ -1177,7 +1300,7 @@ enterpriseRouter.get('/suppliers/:id/statement', (req: Request, res: Response) =
   const knownPurchaseRefs = new Set<string>();
 
   // 1. Gather purchase invoices for this supplier and pair payments for cash/partial amounts
-  mockPurchaseInvoicesList.forEach((pur) => {
+  store.purchaseInvoices.forEach((pur) => {
     const isMatching = pur.supplier_id === supp.id || pur.supplier_name === supp.name;
     if (isMatching) {
       const purNum = String(pur.invoice_number || pur.invoiceNumber || pur.id || '').trim();
@@ -1224,7 +1347,7 @@ enterpriseRouter.get('/suppliers/:id/statement', (req: Request, res: Response) =
   });
 
   // 2. Gather standalone account transactions (skip purchase-paired transactions)
-  mockAccountTransactions.forEach((t) => {
+  store.accountTransactions.forEach((t) => {
     const isMatching = t.party_id === supp.id || (t.party_type === 'SUPPLIER' && t.party_id === supp.name);
     if (isMatching) {
       const refNo = String(t.reference_no || t.reference_id || t.id || '').trim().toLowerCase();
@@ -1249,7 +1372,7 @@ enterpriseRouter.get('/suppliers/:id/statement', (req: Request, res: Response) =
   });
 
   // 3. Gather standalone supplier payments (skip purchase-paired payments)
-  mockPaymentsList.forEach((pmt) => {
+  store.payments.forEach((pmt) => {
     const isSupplierPayment =
       (pmt.type === 'SUPPLIER_PAYMENT' || pmt.voucher_type === 'PAYMENT') &&
       (pmt.supplier_id === supp.id || pmt.supplier_name === supp.name || pmt.party_id === supp.id || pmt.party_name === supp.name);
@@ -1391,18 +1514,22 @@ enterpriseRouter.get('/suppliers/:id/statement', (req: Request, res: Response) =
 });
 
 enterpriseRouter.get('/suppliers/:id/transactions', (req: Request, res: Response) => {
-  const supp = mockSuppliersList.find((s) => s.id === req.params.id);
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const supp = store.suppliers.find((s) => s.id === req.params.id);
   if (!supp) {
     return res.json({ success: true, data: [] });
   }
-  const txs = mockAccountTransactions.filter(
+  const txs = store.accountTransactions.filter(
     (t) => t.party_id === supp.id || (t.party_type === 'SUPPLIER' && t.party_id === supp.name)
   );
   res.json({ success: true, data: txs });
 });
 
 enterpriseRouter.post('/suppliers/:id/transactions', (req: Request, res: Response) => {
-  const supp = mockSuppliersList.find((s) => s.id === req.params.id);
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const supp = store.suppliers.find((s) => s.id === req.params.id);
   const body = req.body || {};
   const amount = Number(body.amount || 0);
   const rawType = String(body.type || 'CREDIT').toUpperCase();
@@ -1426,6 +1553,7 @@ enterpriseRouter.post('/suppliers/:id/transactions', (req: Request, res: Respons
 
   const newTx: AccountTransactionItem = {
     id: `stx-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    company_id: companyId,
     party_id: req.params.id,
     party_type: 'SUPPLIER',
     type: type,
@@ -1440,7 +1568,8 @@ enterpriseRouter.post('/suppliers/:id/transactions', (req: Request, res: Respons
     created_at: txDate,
   };
 
-  mockAccountTransactions.unshift(newTx);
+  store.accountTransactions.unshift(newTx);
+  persistAllToDisk();
 
   res.status(201).json({
     success: true,
@@ -1463,7 +1592,8 @@ enterpriseRouter.get('/invoices/returns', (_req: Request, res: Response) => {
 
 enterpriseRouter.get('/invoices/stats', (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
-  const invoices = mockInvoicesList.filter(
+  const store = getTenantCollections(companyId);
+  const invoices = store.invoices.filter(
     (inv) => (!inv.company_id || inv.company_id === companyId) && inv.status !== 'CANCELLED'
   );
   const totalInvoices = invoices.length;
@@ -1499,28 +1629,17 @@ enterpriseRouter.get('/invoices/stats', (req: Request, res: Response) => {
 
 enterpriseRouter.get('/invoices/:id', async (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const idOrNum = String(req.params.id || '').trim();
   const targetLower = idOrNum.toLowerCase();
 
-  let inv: any = mockInvoicesList.find(
+  let inv: any = store.invoices.find(
     (i) =>
       (String(i.id || '').toLowerCase() === targetLower ||
         String(i.invoice_number || '').toLowerCase() === targetLower ||
         String((i as any).invoiceNumber || '').toLowerCase() === targetLower) &&
       (!i.company_id || i.company_id === companyId)
   );
-
-  if (!inv) {
-    const store = getTenantCollections(companyId);
-    if (Array.isArray(store?.invoices)) {
-      inv = store.invoices.find(
-        (i: any) =>
-          String(i.id || '').toLowerCase() === targetLower ||
-          String(i.invoice_number || '').toLowerCase() === targetLower ||
-          String(i.invoiceNumber || '').toLowerCase() === targetLower
-      );
-    }
-  }
 
   if (!inv && enterpriseDbPool) {
     try {
@@ -1547,7 +1666,7 @@ enterpriseRouter.get('/invoices/:id', async (req: Request, res: Response) => {
     return Boolean(s && (s === invIdLower || s === invNumLower || s === targetLower));
   };
 
-  const relatedPayments = mockPaymentsList.filter(
+  const relatedPayments = store.payments.filter(
     (p: any) =>
       (!p.company_id || p.company_id === companyId) &&
       (matchesInv(p.invoice_id) ||
@@ -1607,7 +1726,7 @@ enterpriseRouter.get('/invoices/:id', async (req: Request, res: Response) => {
     }
   });
 
-  const relatedMovements = mockInventoryMovements.filter(
+  const relatedMovements = store.movements.filter(
     (im: any) =>
       (!im.company_id || im.company_id === companyId) &&
       (matchesInv(im.reference_id) ||
@@ -1615,7 +1734,7 @@ enterpriseRouter.get('/invoices/:id', async (req: Request, res: Response) => {
         matchesInv((im as any).invoice_id))
   );
 
-  const cust = mockCustomersList.find(
+  const cust = store.customers.find(
     (c) =>
       (!c.company_id || c.company_id === companyId) &&
       ((inv.customer_id && String(c.id).toLowerCase() === String(inv.customer_id).toLowerCase()) ||
@@ -1648,7 +1767,7 @@ enterpriseRouter.put('/invoices/:id', (req: Request, res: Response) => {
   res.json({ success: true, data: { id: req.params.id, ...req.body } });
 });
 
-enterpriseRouter.delete('/invoices/:id', (req: Request, res: Response) => {
+enterpriseRouter.delete('/invoices/:id', requirePermission('invoices:delete'), (req: Request, res: Response) => {
   try {
     const companyId = resolveCompanyId(req);
     const result = reverseSalesInvoiceAtomic(companyId, req.params.id, true);
@@ -1662,7 +1781,7 @@ enterpriseRouter.delete('/invoices/:id', (req: Request, res: Response) => {
   }
 });
 
-enterpriseRouter.post('/invoices/:id/cancel', (req: Request, res: Response) => {
+enterpriseRouter.post('/invoices/:id/cancel', requirePermission('invoices:delete'), (req: Request, res: Response) => {
   try {
     const companyId = resolveCompanyId(req);
     const result = reverseSalesInvoiceAtomic(companyId, req.params.id, false);
@@ -1677,17 +1796,71 @@ enterpriseRouter.post('/invoices/:id/cancel', (req: Request, res: Response) => {
 });
 
 enterpriseRouter.post('/invoices/:id/return', (req: Request, res: Response) => {
-  res.status(201).json({
-    success: true,
-    data: { id: `RET-${Date.now()}`, invoice_id: req.params.id, ...req.body, created_at: new Date().toISOString() },
-    message: 'تم تسجيل مرتجع الفاتورة بنجاح',
-  });
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const body = req.body || {};
+  const idOrNum = String(req.params.id || '').trim().toLowerCase();
+  const origInv = store.invoices.find(
+    (i) =>
+      (String(i.id || '').toLowerCase() === idOrNum ||
+        String(i.invoice_number || '').toLowerCase() === idOrNum ||
+        String((i as any).invoiceNumber || '').toLowerCase() === idOrNum) &&
+      (!i.company_id || i.company_id === companyId)
+  );
+  const rawItems =
+    Array.isArray(body.items) && body.items.length > 0
+      ? body.items
+      : Array.isArray(origInv?.items)
+      ? origInv!.items
+      : [];
+
+  try {
+    const atomicResult = postSalesReturnAtomic({
+      companyId,
+      returnData: body,
+      items: rawItems,
+      originalInvoiceNumber:
+        body.invoice_number ||
+        body.invoiceNumber ||
+        body.original_invoice_number ||
+        origInv?.invoice_number ||
+        (origInv as any)?.invoiceNumber ||
+        req.params.id,
+      customerId: body.customerId || body.customer_id || origInv?.customer_id || (origInv as any)?.customerId,
+      customerName: body.customerName || body.customer_name || origInv?.customer_name || (origInv as any)?.customerName,
+      refundMethod: body.refundMethod || body.paymentMethod || origInv?.payment_method || 'CASH',
+      refundAmount: body.refundAmount ?? body.amount ?? body.total ?? origInv?.total,
+      userId: (req as any).user?.id,
+      userName: (req as any).user?.full_name || 'حميد وهاس',
+    });
+
+    res.status(201).json({
+      success: true,
+      data: {
+        id: `RET-${Date.now()}`,
+        invoice_id: req.params.id,
+        return_number: atomicResult.returnNumber,
+        ...body,
+        status: 'REFUNDED',
+        journal_entry: atomicResult.returnJournal,
+        cogs_journal_entry: atomicResult.cogsReversalJournal,
+        created_at: new Date().toISOString(),
+      },
+      message: 'تم تسجيل مرتجع الفاتورة بنجاح',
+    });
+  } catch (err: any) {
+    res.status(err.status || 400).json({
+      success: false,
+      message: err?.message || 'فشل تسجيل مرتجع الفاتورة',
+    });
+  }
 });
 
 enterpriseRouter.get('/invoices/:id/payments', (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const idOrNum = String(req.params.id || '').trim().toLowerCase();
-  const inv = mockInvoicesList.find(
+  const inv = store.invoices.find(
     (i) =>
       (String(i.id || '').toLowerCase() === idOrNum ||
         String(i.invoice_number || '').toLowerCase() === idOrNum ||
@@ -1696,7 +1869,7 @@ enterpriseRouter.get('/invoices/:id/payments', (req: Request, res: Response) => 
   );
   const invIdLower = String(inv?.id || idOrNum).toLowerCase();
   const invNumLower = String(inv?.invoice_number || (inv as any)?.invoiceNumber || idOrNum).toLowerCase();
-  const payments = mockPaymentsList.filter((p: any) => {
+  const payments = store.payments.filter((p: any) => {
     if (p.company_id && p.company_id !== companyId) return false;
     const refs = [p.invoice_id, p.invoiceId, p.reference_id, p.referenceId, p.reference_no, p.referenceNo, p.reference]
       .filter(Boolean)
@@ -1714,6 +1887,7 @@ enterpriseRouter.get('/invoices/:id/payments', (req: Request, res: Response) => 
 enterpriseRouter.post('/invoices/:id/payments', (req: Request, res: Response) => {
   try {
     const companyId = resolveCompanyId(req);
+    const store = getTenantCollections(companyId);
     const idOrNum = String(req.params.id || '').trim();
     const targetLower = idOrNum.toLowerCase();
     const body = req.body || {};
@@ -1722,7 +1896,7 @@ enterpriseRouter.post('/invoices/:id/payments', (req: Request, res: Response) =>
       return res.status(400).json({ success: false, message: 'مبلغ الدفعة يجب أن يكون أكبر من الصفر' });
     }
 
-    const inv = mockInvoicesList.find(
+    const inv = store.invoices.find(
       (i) =>
         (String(i.id || '').toLowerCase() === targetLower ||
           String(i.invoice_number || '').toLowerCase() === targetLower ||
@@ -1790,7 +1964,9 @@ enterpriseRouter.get('/purchase-invoices/returns', (_req: Request, res: Response
 });
 
 enterpriseRouter.get('/purchase-invoices/:id', (req: Request, res: Response) => {
-  const inv = mockPurchaseInvoicesList.find((p) => p.id === req.params.id || p.invoice_number === req.params.id);
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const inv = store.purchaseInvoices.find((p) => p.id === req.params.id || p.invoice_number === req.params.id);
   if (inv) {
     return res.json({ success: true, data: inv });
   }
@@ -1815,6 +1991,7 @@ enterpriseRouter.get('/purchase-invoices/:id', (req: Request, res: Response) => 
 
 enterpriseRouter.post('/purchase-invoices', (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const pur = req.body || {};
   const rawItems = Array.isArray(pur.items) ? pur.items : [];
 
@@ -1845,6 +2022,7 @@ enterpriseRouter.post('/purchase-invoices', (req: Request, res: Response) => {
     const newPur = {
       ...pur,
       id: pur.id || `PUR-${Date.now()}`,
+      company_id: companyId,
       invoice_number: invoiceNumber,
       invoiceNumber: invoiceNumber,
       supplier_name: supplierName,
@@ -1866,11 +2044,11 @@ enterpriseRouter.post('/purchase-invoices', (req: Request, res: Response) => {
       journal_entry_id: atomicResult.purchaseJournal?.id,
     };
 
-    const alreadyInsertedPur = mockPurchaseInvoicesList.some(
+    const alreadyInsertedPur = store.purchaseInvoices.some(
       (pur) => String(pur.id) === String(newPur.id) || String(pur.invoice_number) === String(invoiceNumber) || String(pur.invoiceNumber) === String(invoiceNumber)
     );
     if (!alreadyInsertedPur) {
-      mockPurchaseInvoicesList.unshift(newPur);
+      store.purchaseInvoices.unshift(newPur);
       persistAllToDisk();
     }
 
@@ -1890,7 +2068,7 @@ enterpriseRouter.put('/purchase-invoices/:id', (req: Request, res: Response) => 
   res.json({ success: true, data: { id: req.params.id, ...req.body } });
 });
 
-enterpriseRouter.delete('/purchase-invoices/:id', (req: Request, res: Response) => {
+enterpriseRouter.delete('/purchase-invoices/:id', requirePermission('financial:delete'), (req: Request, res: Response) => {
   try {
     const companyId = resolveCompanyId(req);
     const result = reversePurchaseInvoiceAtomic(companyId, req.params.id, true);
@@ -1904,7 +2082,7 @@ enterpriseRouter.delete('/purchase-invoices/:id', (req: Request, res: Response) 
   }
 });
 
-enterpriseRouter.post('/purchase-invoices/:id/cancel', (req: Request, res: Response) => {
+enterpriseRouter.post('/purchase-invoices/:id/cancel', requirePermission('financial:delete'), (req: Request, res: Response) => {
   try {
     const companyId = resolveCompanyId(req);
     const result = reversePurchaseInvoiceAtomic(companyId, req.params.id, false);
@@ -1932,7 +2110,8 @@ enterpriseRouter.get('/purchase-invoices/:id/payments', (req: Request, res: Resp
 // ==========================================
 enterpriseRouter.get('/payments/stats', (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
-  const payments = mockPaymentsList.filter(
+  const store = getTenantCollections(companyId);
+  const payments = store.payments.filter(
     (p) => (!p.company_id || p.company_id === companyId) && p.status !== 'CANCELLED'
   );
 
@@ -2014,8 +2193,9 @@ enterpriseRouter.get('/payments/stats', (req: Request, res: Response) => {
 
 enterpriseRouter.get('/payments/:id', (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const idOrNum = req.params.id;
-  const p = mockPaymentsList.find(
+  const p = store.payments.find(
     (item) =>
       (item.id === idOrNum || (item as any).payment_number === idOrNum || (item as any).voucher_number === idOrNum || item.reference_id === idOrNum) &&
       (!item.company_id || item.company_id === companyId)
@@ -2028,7 +2208,7 @@ enterpriseRouter.get('/payments/:id', (req: Request, res: Response) => {
   res.json({ success: true, data: p });
 });
 
-enterpriseRouter.delete('/payments/:id', (req: Request, res: Response) => {
+enterpriseRouter.delete('/payments/:id', requirePermission('financial:delete'), (req: Request, res: Response) => {
   try {
     const companyId = resolveCompanyId(req);
     const result = reverseVoucherAtomic(companyId, req.params.id, true);
@@ -2042,7 +2222,7 @@ enterpriseRouter.delete('/payments/:id', (req: Request, res: Response) => {
   }
 });
 
-enterpriseRouter.post('/payments/:id/cancel', (req: Request, res: Response) => {
+enterpriseRouter.post('/payments/:id/cancel', requirePermission('financial:delete'), (req: Request, res: Response) => {
   try {
     const companyId = resolveCompanyId(req);
     const result = reverseVoucherAtomic(companyId, req.params.id, false);
@@ -2333,6 +2513,7 @@ enterpriseRouter.delete(['/pos/held-sales/:id', '/pos/held/:id'], (req: Request,
 
 enterpriseRouter.post(['/pos/checkout', '/pos/sales', '/pos/sale'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const body = req.body || {};
   const rawItems = Array.isArray(body.items) ? body.items : [];
 
@@ -2370,6 +2551,7 @@ enterpriseRouter.post(['/pos/checkout', '/pos/sales', '/pos/sale'], (req: Reques
     const posInvoice = {
       ...body,
       id: `inv-pos-${Date.now()}`,
+      company_id: companyId,
       invoice_number: invoiceNum,
       invoiceNumber: invoiceNum,
       customer: posCustName,
@@ -2414,11 +2596,11 @@ enterpriseRouter.post(['/pos/checkout', '/pos/sales', '/pos/sale'], (req: Reques
       journal_entry_id: atomicResult.revenueJournal?.id,
       cogs_journal_entry_id: atomicResult.cogsJournal?.id,
     };
-    const alreadyInsertedInv = mockInvoicesList.some(
+    const alreadyInsertedInv = store.invoices.some(
       (inv) => String(inv.id) === String(posInvoice.id) || String(inv.invoice_number) === String(invoiceNum) || String(inv.invoiceNumber) === String(invoiceNum)
     );
     if (!alreadyInsertedInv) {
-      mockInvoicesList.unshift(posInvoice as any);
+      store.invoices.unshift(posInvoice as any);
       persistAllToDisk();
     }
 
@@ -2519,18 +2701,70 @@ enterpriseRouter.post(['/pos/return', '/pos/returns', '/sales-returns', '/invoic
   }
 });
 
-enterpriseRouter.get(['/pos/daily-summary', '/pos/summary/daily'], (_req: Request, res: Response) => {
+enterpriseRouter.get(['/pos/daily-summary', '/pos/summary/daily'], (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const targetDate = typeof req.query.date === 'string' && req.query.date.trim()
+    ? req.query.date.trim().split('T')[0]
+    : new Date().toISOString().split('T')[0];
+  const filterByDate = typeof req.query.date === 'string' && req.query.date.trim().length > 0;
+
+  let totalSales = 0;
+  let cashAmount = 0;
+  let cardAmount = 0;
+  let transactionsCount = 0;
+  let returnsCount = 0;
+  let returnsAmount = 0;
+
+  for (const inv of store.invoices) {
+    if (!inv || inv.status === 'CANCELLED' || inv.status === 'VOID') continue;
+    const invDate = String(inv.date || (inv as any).invoice_date || inv.created_at || '').split('T')[0];
+    if (filterByDate && invDate && invDate !== targetDate) continue;
+
+    const amt = Number(inv.total || (inv as any).grandTotal || inv.amount || 0);
+    if (inv.status === 'RETURNED' || (inv as any).reference_type === 'SALES_RETURN') {
+      returnsCount += 1;
+      returnsAmount += Math.abs(amt);
+      continue;
+    }
+
+    totalSales += amt;
+    transactionsCount += 1;
+    const method = String(inv.payment_method || (inv as any).paymentMethod || 'CASH').toUpperCase();
+    if (['BANK', 'CARD', 'WALLET', 'MOBILE', 'TRANSFER'].includes(method)) {
+      cardAmount += amt;
+    } else {
+      cashAmount += amt;
+    }
+  }
+
+  const returnJournals = getTenantJournalEntries(companyId).filter(
+    (je) =>
+      je.reference_type === 'SALES_RETURN' &&
+      (!filterByDate || String(je.date || '').split('T')[0] === targetDate)
+  );
+  if (returnJournals.length > returnsCount) {
+    returnsCount = returnJournals.length;
+    returnsAmount = returnJournals.reduce((sum, je) => sum + Number(je.total_debit || 0), 0);
+  }
+
+  totalSales = roundMoney(totalSales);
+  cashAmount = roundMoney(cashAmount);
+  cardAmount = roundMoney(cardAmount);
+  returnsAmount = roundMoney(returnsAmount);
+  const netSales = roundMoney(Math.max(0, totalSales - returnsAmount));
+
   res.json({
     success: true,
     data: {
-      date: new Date().toISOString().split('T')[0],
-      totalSales: 8430.0,
-      cashAmount: 3850.0,
-      cardAmount: 4580.0,
-      transactionsCount: 46,
-      returnsCount: 2,
-      returnsAmount: 240.0,
-      netSales: 8190.0,
+      date: targetDate,
+      totalSales,
+      cashAmount,
+      cardAmount,
+      transactionsCount,
+      returnsCount,
+      returnsAmount,
+      netSales,
     },
   });
 });
@@ -2804,8 +3038,8 @@ enterpriseRouter.get(['/financial-reports/cash-flow', '/reports/cash-flow'], (re
   const companyId = resolveCompanyId(req);
   const metrics = computeUnifiedFinancialMetrics(companyId);
 
-  const inflows = metrics.netRevenue;
   const outflows = roundMoney(metrics.cogs + metrics.operatingExpenses);
+  const inflows = roundMoney(metrics.totalCashAndBank + outflows);
 
   res.json({
     success: true,
@@ -2878,30 +3112,32 @@ enterpriseRouter.get(['/reports/Comprehensive', '/financial-reports/comprehensiv
 
 enterpriseRouter.get('/financial-reports/ar-aging', (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const isClean = isTenantCleanProductionMode(companyId);
-  const totalAR = mockCustomersList.reduce((sum, c) => sum + Math.max(0, Number(c.balance || c.current_balance || 0)), 0);
+  const totalAR = store.customers.reduce((sum, c) => sum + Math.max(0, Number(c.balance || c.current_balance || 0)), 0);
 
   res.json({
     success: true,
     data: {
-      totalAR: isClean && mockCustomersList.length === 0 ? 0 : totalAR,
+      totalAR: isClean && store.customers.length === 0 ? 0 : totalAR,
       buckets: { current: totalAR, days30: 0, days60: 0, days90Plus: 0 },
-      debtors: isClean && mockCustomersList.length === 0 ? [] : mockCustomersList,
+      debtors: isClean && store.customers.length === 0 ? [] : store.customers,
     },
   });
 });
 
 enterpriseRouter.get('/financial-reports/ap-aging', (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const isClean = isTenantCleanProductionMode(companyId);
-  const totalAP = mockSuppliersList.reduce((sum, s) => sum + Math.max(0, Number(s.balance || s.current_balance || 0)), 0);
+  const totalAP = store.suppliers.reduce((sum, s) => sum + Math.max(0, Number(s.balance || s.current_balance || 0)), 0);
 
   res.json({
     success: true,
     data: {
-      totalAP: isClean && mockSuppliersList.length === 0 ? 0 : totalAP,
+      totalAP: isClean && store.suppliers.length === 0 ? 0 : totalAP,
       buckets: { current: totalAP, days30: 0, days60: 0, days90Plus: 0 },
-      creditors: isClean && mockSuppliersList.length === 0 ? [] : mockSuppliersList,
+      creditors: isClean && store.suppliers.length === 0 ? [] : store.suppliers,
     },
   });
 });
@@ -2943,12 +3179,14 @@ enterpriseRouter.get('/financial-reports/general-ledger', (req: Request, res: Re
   res.json({ success: true, data: allEntries });
 });
 
-enterpriseRouter.get('/financial-reports/inventory-valuation', (_req: Request, res: Response) => {
-  const totalValuation = mockProducts.reduce(
+enterpriseRouter.get('/financial-reports/inventory-valuation', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const totalValuation = store.products.reduce(
     (sum, prod: any) => sum + (Number(prod.cost_price || prod.purchase_price || 0) * Number(prod.current_stock || prod.stock || 0)),
     0
   );
-  const totalSkus = mockProducts.length;
+  const totalSkus = store.products.length;
 
   res.json({
     success: true,
@@ -2961,9 +3199,11 @@ enterpriseRouter.get('/financial-reports/inventory-valuation', (_req: Request, r
   });
 });
 
-enterpriseRouter.get('/financial-reports/kpis', (_req: Request, res: Response) => {
-  const salesRev = mockInvoicesList.reduce((sum, inv) => sum + Number(inv.total || inv.amount || 0), 0);
-  const purchasesVal = mockPurchaseInvoicesList.reduce((sum, pi) => sum + Number((pi as any).grandTotal || pi.total || 0), 0);
+enterpriseRouter.get('/financial-reports/kpis', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const salesRev = store.invoices.reduce((sum, inv) => sum + Number(inv.total || inv.amount || 0), 0);
+  const purchasesVal = store.purchaseInvoices.reduce((sum, pi) => sum + Number((pi as any).grandTotal || pi.total || 0), 0);
   const grossMargin = salesRev > 0 ? `${(((salesRev - purchasesVal) / salesRev) * 100).toFixed(1)}%` : '0%';
 
   res.json({
@@ -2990,22 +3230,23 @@ enterpriseRouter.get('/financial-reports/alerts', (_req: Request, res: Response)
 
 enterpriseRouter.get('/financial-reports/tax-summary', (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const isClean = isTenantCleanProductionMode(companyId);
 
-  const taxableSales = mockInvoicesList.reduce((sum, inv) => sum + Number(inv.total || inv.amount || 0), 0);
-  const outputTax = mockInvoicesList.reduce((sum, inv) => sum + Number((inv as any).tax || 0), 0) || Math.round(taxableSales * 0.15);
-  const taxablePurchases = mockPurchaseInvoicesList.reduce((sum, pi) => sum + Number((pi as any).grandTotal || pi.total || 0), 0);
-  const inputTax = mockPurchaseInvoicesList.reduce((sum, pi) => sum + Number((pi as any).taxAmount || 0), 0) || Math.round(taxablePurchases * 0.15);
+  const taxableSales = store.invoices.reduce((sum, inv) => sum + Number(inv.total || inv.amount || 0), 0);
+  const outputTax = store.invoices.reduce((sum, inv) => sum + Number((inv as any).tax || (inv as any).taxAmount || 0), 0);
+  const taxablePurchases = store.purchaseInvoices.reduce((sum, pi) => sum + Number((pi as any).grandTotal || pi.total || 0), 0);
+  const inputTax = store.purchaseInvoices.reduce((sum, pi) => sum + Number((pi as any).taxAmount || (pi as any).tax || 0), 0);
   const netTaxPayable = Math.max(0, outputTax - inputTax);
 
   res.json({
     success: true,
     data: {
-      taxableSales: isClean && mockInvoicesList.length === 0 ? 0 : taxableSales,
-      outputTax: isClean && mockInvoicesList.length === 0 ? 0 : outputTax,
-      taxablePurchases: isClean && mockPurchaseInvoicesList.length === 0 ? 0 : taxablePurchases,
-      inputTax: isClean && mockPurchaseInvoicesList.length === 0 ? 0 : inputTax,
-      netTaxPayable: isClean && mockInvoicesList.length === 0 ? 0 : netTaxPayable,
+      taxableSales: isClean && store.invoices.length === 0 ? 0 : taxableSales,
+      outputTax: isClean && store.invoices.length === 0 ? 0 : outputTax,
+      taxablePurchases: isClean && store.purchaseInvoices.length === 0 ? 0 : taxablePurchases,
+      inputTax: isClean && store.purchaseInvoices.length === 0 ? 0 : inputTax,
+      netTaxPayable: isClean && store.invoices.length === 0 ? 0 : netTaxPayable,
       complianceStatus: 'VERIFIED_ZATCA_PHASE_2',
     },
   });
@@ -3034,17 +3275,18 @@ enterpriseRouter.post('/financial-reports/tax-adjustments', (req: Request, res: 
 
 enterpriseRouter.get('/financial-reports/treasury-dashboard', (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const isClean = isTenantCleanProductionMode(companyId);
 
-  const cashIn = mockPaymentsList
+  const cashIn = store.payments
     .filter((p: any) => p.type === 'CUSTOMER_PAYMENT' || p.type === 'RECEIPT' || p.payment_type === 'IN' || p.voucher_type === 'RECEIPT')
     .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-  const cashOut = mockPaymentsList
+  const cashOut = store.payments
     .filter((p: any) => p.type === 'SUPPLIER_PAYMENT' || p.type === 'EXPENSE' || p.payment_type === 'OUT' || p.voucher_type === 'PAYMENT')
     .reduce((sum, p) => sum + Number(p.amount || 0), 0);
   
   let totalCash = Math.max(0, cashIn - cashOut);
-  if (isClean && mockPaymentsList.length === 0) totalCash = 0;
+  if (isClean && store.payments.length === 0) totalCash = 0;
 
   const cashOnHand = Math.round(totalCash * 0.4);
   const bankAccountsTotal = totalCash - cashOnHand;
@@ -3193,21 +3435,22 @@ export const mockBackupsDatabase: Array<{
 
 // Helper to collect ALL real tenant data arrays for 100% full backup
 export function buildCompleteTenantSnapshot(companyId: string) {
+  const store = getTenantCollections(companyId);
   return {
     company_id: companyId,
     timestamp: new Date().toISOString(),
-    customers: [...mockCustomersList],
-    suppliers: [...mockSuppliersList],
-    products: [...mockProducts],
-    inventory_movements: [...mockInventoryMovements],
-    invoices: [...mockInvoicesList],
-    purchase_invoices: [...mockPurchaseInvoicesList],
-    payments: [...mockPaymentsList],
-    employees: [...mockEmployeesList],
-    employee_movements: [...mockEmployeeMovementsList],
-    payroll_records: [...mockPayrollRecordsList],
-    expenses: [...mockExpensesList],
-    audit_logs: [...mockAuditLogsList],
+    customers: [...store.customers],
+    suppliers: [...store.suppliers],
+    products: [...store.products],
+    inventory_movements: [...store.movements],
+    invoices: [...store.invoices],
+    purchase_invoices: [...store.purchaseInvoices],
+    payments: [...store.payments],
+    employees: [...store.employees],
+    employee_movements: [...store.employeeMovements],
+    payroll_records: [...store.payrollRecords],
+    expenses: [...store.expenses],
+    audit_logs: [...store.auditLogs],
     accounts: [...getTenantAccounts(companyId)],
     journal_entries: [...getTenantJournalEntries(companyId)],
   };
@@ -3215,55 +3458,56 @@ export function buildCompleteTenantSnapshot(companyId: string) {
 
 // Helper to overwrite live tenant arrays and persistent storage
 export async function restoreCompleteTenantSnapshot(companyId: string, payload: any) {
+  const store = getTenantCollections(companyId);
   const fullData = payload.full_data || payload.data || payload;
 
   if (Array.isArray(fullData.customers)) {
-    mockCustomersList.length = 0;
-    mockCustomersList.push(...fullData.customers);
+    store.customers.length = 0;
+    store.customers.push(...fullData.customers);
   }
   if (Array.isArray(fullData.suppliers)) {
-    mockSuppliersList.length = 0;
-    mockSuppliersList.push(...fullData.suppliers);
+    store.suppliers.length = 0;
+    store.suppliers.push(...fullData.suppliers);
   }
   if (Array.isArray(fullData.products)) {
-    mockProducts.length = 0;
-    mockProducts.push(...fullData.products);
+    store.products.length = 0;
+    store.products.push(...fullData.products);
   }
   if (Array.isArray(fullData.inventory_movements)) {
-    mockInventoryMovements.length = 0;
-    mockInventoryMovements.push(...fullData.inventory_movements);
+    store.movements.length = 0;
+    store.movements.push(...fullData.inventory_movements);
   }
   if (Array.isArray(fullData.invoices)) {
-    mockInvoicesList.length = 0;
-    mockInvoicesList.push(...fullData.invoices);
+    store.invoices.length = 0;
+    store.invoices.push(...fullData.invoices);
   }
   if (Array.isArray(fullData.purchase_invoices)) {
-    mockPurchaseInvoicesList.length = 0;
-    mockPurchaseInvoicesList.push(...fullData.purchase_invoices);
+    store.purchaseInvoices.length = 0;
+    store.purchaseInvoices.push(...fullData.purchase_invoices);
   }
   if (Array.isArray(fullData.payments)) {
-    mockPaymentsList.length = 0;
-    mockPaymentsList.push(...fullData.payments);
+    store.payments.length = 0;
+    store.payments.push(...fullData.payments);
   }
   if (Array.isArray(fullData.employees)) {
-    mockEmployeesList.length = 0;
-    mockEmployeesList.push(...fullData.employees);
+    store.employees.length = 0;
+    store.employees.push(...fullData.employees);
   }
   if (Array.isArray(fullData.employee_movements)) {
-    mockEmployeeMovementsList.length = 0;
-    mockEmployeeMovementsList.push(...fullData.employee_movements);
+    store.employeeMovements.length = 0;
+    store.employeeMovements.push(...fullData.employee_movements);
   }
   if (Array.isArray(fullData.payroll_records)) {
-    mockPayrollRecordsList.length = 0;
-    mockPayrollRecordsList.push(...fullData.payroll_records);
+    store.payrollRecords.length = 0;
+    store.payrollRecords.push(...fullData.payroll_records);
   }
   if (Array.isArray(fullData.expenses)) {
-    mockExpensesList.length = 0;
-    mockExpensesList.push(...fullData.expenses);
+    store.expenses.length = 0;
+    store.expenses.push(...fullData.expenses);
   }
   if (Array.isArray(fullData.audit_logs)) {
-    mockAuditLogsList.length = 0;
-    mockAuditLogsList.push(...fullData.audit_logs);
+    store.auditLogs.length = 0;
+    store.auditLogs.push(...fullData.audit_logs);
   }
   if (Array.isArray(fullData.accounts)) {
     saveTenantAccounts(companyId, fullData.accounts);
@@ -3303,7 +3547,7 @@ enterpriseRouter.get('/backups', (req: Request, res: Response) => {
   });
 });
 
-enterpriseRouter.post('/backups/create', async (req: Request, res: Response) => {
+enterpriseRouter.post('/backups/create', requirePermission('system:write'), async (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   const payload = req.body || {};
   const backupId = `bkp-${Date.now()}`;
@@ -3449,7 +3693,7 @@ enterpriseRouter.get('/backups/:id/download', async (req: Request, res: Response
   res.send(JSON.stringify(backupPayload, null, 2));
 });
 
-enterpriseRouter.delete('/backups/:id', (req: Request, res: Response) => {
+enterpriseRouter.delete('/backups/:id', requirePermission('system:write'), (req: Request, res: Response) => {
   const idx = mockBackupsDatabase.findIndex((b) => b.id === req.params.id);
   if (idx !== -1) {
     mockBackupsDatabase.splice(idx, 1);
@@ -3457,7 +3701,7 @@ enterpriseRouter.delete('/backups/:id', (req: Request, res: Response) => {
   res.json({ success: true, message: 'تم حذف النسخة الاحتياطية بنجاح' });
 });
 
-enterpriseRouter.post('/backups/:id/restore', async (req: Request, res: Response) => {
+enterpriseRouter.post('/backups/:id/restore', requirePermission('system:write'), async (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   const backup = mockBackupsDatabase.find((b) => b.id === req.params.id);
 
@@ -3479,7 +3723,7 @@ enterpriseRouter.post('/backups/:id/restore', async (req: Request, res: Response
   });
 });
 
-enterpriseRouter.post('/backups/restore-json', async (req: Request, res: Response) => {
+enterpriseRouter.post('/backups/restore-json', requirePermission('system:write'), async (req: Request, res: Response) => {
   try {
     const companyId = resolveCompanyId(req);
     const body = req.body || {};
@@ -3536,11 +3780,11 @@ enterpriseRouter.get('/control-center/setting/:key', (req: Request, res: Respons
   res.json({ success: true, data: setting });
 });
 
-enterpriseRouter.post('/control-center/setting', (req: Request, res: Response) => {
+enterpriseRouter.post('/control-center/setting', requirePermission('system:write'), (req: Request, res: Response) => {
   res.json({ success: true, data: req.body, message: 'تم حفظ وتطبيق الإعداد' });
 });
 
-enterpriseRouter.put('/control-center/setting/:key', (req: Request, res: Response) => {
+enterpriseRouter.put('/control-center/setting/:key', requirePermission('system:write'), (req: Request, res: Response) => {
   res.json({ success: true, data: { key: req.params.key, ...req.body }, message: 'تم حفظ وتطبيق الإعداد' });
 });
 
@@ -3557,15 +3801,15 @@ enterpriseRouter.get('/control-center/governance', (_req: Request, res: Response
   });
 });
 
-enterpriseRouter.post('/control-center/governance/emergency-lock', (req: Request, res: Response) => {
+enterpriseRouter.post('/control-center/governance/emergency-lock', requirePermission('system:write'), (req: Request, res: Response) => {
   res.json({ success: true, message: 'تم تفعيل وضع القفل الطارئ وتجميد كافة الحركات المالية' });
 });
 
-enterpriseRouter.post('/control-center/governance/safe-mode', (req: Request, res: Response) => {
+enterpriseRouter.post('/control-center/governance/safe-mode', requirePermission('system:write'), (req: Request, res: Response) => {
   res.json({ success: true, message: 'تم تفعيل الوضع الآمن (Safe Mode)' });
 });
 
-enterpriseRouter.post('/control-center/governance/expert-mode', (req: Request, res: Response) => {
+enterpriseRouter.post('/control-center/governance/expert-mode', requirePermission('system:write'), (req: Request, res: Response) => {
   res.json({ success: true, message: 'تم تبديل وضع الخبير (Expert Mode)' });
 });
 
@@ -3599,7 +3843,7 @@ enterpriseRouter.get('/control-center/presets/:id/preview', (req: Request, res: 
   res.json({ success: true, data: { presetId: req.params.id, impactSummary: 'لا توجد تعارضات مع البيانات الحالية' } });
 });
 
-enterpriseRouter.post('/control-center/presets/:id/apply', (req: Request, res: Response) => {
+enterpriseRouter.post('/control-center/presets/:id/apply', requirePermission('system:write'), (req: Request, res: Response) => {
   res.json({ success: true, message: 'تم تطبيق حزمة الإعدادات بنجاح' });
 });
 
@@ -3612,7 +3856,7 @@ enterpriseRouter.get('/control-center/snapshots', (_req: Request, res: Response)
   });
 });
 
-enterpriseRouter.post('/control-center/snapshots', (req: Request, res: Response) => {
+enterpriseRouter.post('/control-center/snapshots', requirePermission('system:write'), (req: Request, res: Response) => {
   res.status(201).json({
     success: true,
     data: { id: `snap-${Date.now()}`, name: req.body?.name || 'Snapshot', timestamp: new Date().toISOString() },
@@ -3620,7 +3864,7 @@ enterpriseRouter.post('/control-center/snapshots', (req: Request, res: Response)
   });
 });
 
-enterpriseRouter.post('/control-center/snapshots/:id/restore', (req: Request, res: Response) => {
+enterpriseRouter.post('/control-center/snapshots/:id/restore', requirePermission('system:write'), (req: Request, res: Response) => {
   res.json({ success: true, message: 'تم استعادة لقطة الإعدادات بنجاح' });
 });
 
@@ -3649,7 +3893,7 @@ enterpriseRouter.get('/control-center/drift', (_req: Request, res: Response) => 
   });
 });
 
-enterpriseRouter.post('/control-center/drift/reconcile', (_req: Request, res: Response) => {
+enterpriseRouter.post('/control-center/drift/reconcile', requirePermission('system:write'), (_req: Request, res: Response) => {
   res.json({ success: true, message: 'تم التوفيق وإزالة أي انحرافات في السياسات' });
 });
 
@@ -3666,15 +3910,15 @@ enterpriseRouter.get('/control-center/change-requests', (_req: Request, res: Res
   res.json({ success: true, data: [] });
 });
 
-enterpriseRouter.post('/control-center/change-requests/:id/approve', (req: Request, res: Response) => {
+enterpriseRouter.post('/control-center/change-requests/:id/approve', requirePermission('system:write'), (req: Request, res: Response) => {
   res.json({ success: true, message: 'تمت الموافقة على طلب التغيير وتطبيقه' });
 });
 
-enterpriseRouter.post('/control-center/change-requests/:id/reject', (req: Request, res: Response) => {
+enterpriseRouter.post('/control-center/change-requests/:id/reject', requirePermission('system:write'), (req: Request, res: Response) => {
   res.json({ success: true, message: 'تم رفض طلب التغيير' });
 });
 
-enterpriseRouter.post('/control-center/ai-assistant', (req: Request, res: Response) => {
+enterpriseRouter.post('/control-center/ai-assistant', requirePermission('system:write'), (req: Request, res: Response) => {
   res.json({
     success: true,
     data: {
@@ -3683,14 +3927,14 @@ enterpriseRouter.post('/control-center/ai-assistant', (req: Request, res: Respon
   });
 });
 
-enterpriseRouter.post('/control-center/impact-analysis', (req: Request, res: Response) => {
+enterpriseRouter.post('/control-center/impact-analysis', requirePermission('system:write'), (req: Request, res: Response) => {
   res.json({
     success: true,
     data: { riskLevel: 'LOW', affectedModules: ['pos', 'invoices'], summary: 'التعديل آمن ولا يؤثر على العمليات المالية الجارية' },
   });
 });
 
-enterpriseRouter.post('/control-center/rollback', (req: Request, res: Response) => {
+enterpriseRouter.post('/control-center/rollback', requirePermission('system:write'), (req: Request, res: Response) => {
   res.json({ success: true, message: 'تم التراجع عن آخر تغيير في الإعدادات' });
 });
 
@@ -5139,26 +5383,27 @@ enterpriseRouter.post('/saas/pilot/feedback', (req: Request, res: Response) => {
   res.status(201).json({ success: true, message: 'شكراً لمشاركتنا ملاحظاتك القيمة' });
 });
 
-enterpriseRouter.post('/saas/sample-data/seed', (req: Request, res: Response) => {
+enterpriseRouter.post('/saas/sample-data/seed', requirePermission('system:write'), (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   setTenantCleanProductionMode(companyId, false, enterpriseDbPool);
   const result = seedAllSampleData();
+  const store = getTenantCollections(companyId);
   res.json({
     success: true,
     isSeeded: true,
     cleanProductionMode: false,
     message: result.message,
     counts: {
-      products: mockProducts.length,
-      customers: mockCustomersList.length,
-      suppliers: mockSuppliersList.length,
-      invoices: mockInvoicesList.length,
-      movements: mockInventoryMovements.length,
+      products: store.products.length,
+      customers: store.customers.length,
+      suppliers: store.suppliers.length,
+      invoices: store.invoices.length,
+      movements: store.movements.length,
     },
   });
 });
 
-enterpriseRouter.post(['/saas/sample-data/cleanup', '/production-onboarding/purge-sample-data', '/system/wipe-demo-data'], async (req: Request, res: Response) => {
+enterpriseRouter.post(['/saas/sample-data/cleanup', '/production-onboarding/purge-sample-data', '/system/wipe-demo-data'], requirePermission('system:write'), async (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   mockLedgerEntries.length = 0;
   // Clear in-memory enterprise module states for sample keys
@@ -5205,11 +5450,12 @@ enterpriseRouter.post('/saas/support/tickets/:id/responses', (req: Request, res:
 // ==========================================
 enterpriseRouter.get('/system/production-data-readiness', (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
-  const totalStockUnits = mockProducts.reduce((sum, p) => sum + (p.current_stock || 0), 0);
-  const totalInvoicesAmount = mockInvoicesList.reduce((sum, inv) => sum + (inv.total || 0), 0);
-  const totalPaymentsAmount = mockPaymentsList.reduce((sum, pmt) => sum + (pmt.amount || 0), 0);
-  const totalCustBal = mockCustomersList.reduce((sum, c) => sum + (c.balance || 0), 0);
-  const totalSuppBal = mockSuppliersList.reduce((sum, s) => sum + (s.balance || 0), 0);
+  const store = getTenantCollections(companyId);
+  const totalStockUnits = store.products.reduce((sum, p) => sum + (p.current_stock || 0), 0);
+  const totalInvoicesAmount = store.invoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
+  const totalPaymentsAmount = store.payments.reduce((sum, pmt) => sum + (pmt.amount || 0), 0);
+  const totalCustBal = store.customers.reduce((sum, c) => sum + (c.balance || 0), 0);
+  const totalSuppBal = store.suppliers.reduce((sum, s) => sum + (s.balance || 0), 0);
 
   res.json({
     success: true,
@@ -5234,15 +5480,15 @@ enterpriseRouter.get('/system/production-data-readiness', (req: Request, res: Re
         ledgerBalanceDifference: 0,
       },
       reconciliation: {
-        customersCount: mockCustomersList.length,
+        customersCount: store.customers.length,
         customerOpeningBalanceTotal: totalCustBal,
-        suppliersCount: mockSuppliersList.length,
+        suppliersCount: store.suppliers.length,
         supplierOpeningBalanceTotal: totalSuppBal,
-        productsCount: mockProducts.length,
+        productsCount: store.products.length,
         stockUnitsTotal: totalStockUnits,
-        invoicesCount: mockInvoicesList.length,
+        invoicesCount: store.invoices.length,
         invoicesAmountTotal: totalInvoicesAmount,
-        paymentsCount: mockPaymentsList.length,
+        paymentsCount: store.payments.length,
         paymentsAmountTotal: totalPaymentsAmount,
         ledgerDebitTotal: 0,
         ledgerCreditTotal: 0,
@@ -5898,7 +6144,7 @@ enterpriseRouter.get('/control-center/governance', async (req: Request, res: Res
   });
 });
 
-enterpriseRouter.post('/control-center/governance/safe-mode', async (req: Request, res: Response) => {
+enterpriseRouter.post('/control-center/governance/safe-mode', requirePermission('system:write'), async (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   const { enabled } = req.body || {};
   const current = await getModuleState(companyId, 'control_center_governance', { companyId, safeModeEnabled: true });
@@ -5907,7 +6153,7 @@ enterpriseRouter.post('/control-center/governance/safe-mode', async (req: Reques
   res.json({ success: true, data: updated, message: enabled ? 'تم تفعيل الوضع الآمن' : 'تم تعطيل الوضع الآمن' });
 });
 
-enterpriseRouter.post('/control-center/governance/emergency-lock', async (req: Request, res: Response) => {
+enterpriseRouter.post('/control-center/governance/emergency-lock', requirePermission('system:write'), async (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   const { active, reason } = req.body || {};
   const current = await getModuleState(companyId, 'control_center_governance', { companyId, emergencyLockActive: false });
@@ -5940,7 +6186,7 @@ enterpriseRouter.get('/control-center/change-requests', async (req: Request, res
   });
 });
 
-enterpriseRouter.post('/control-center/change-requests/:id/approve', async (req: Request, res: Response) => {
+enterpriseRouter.post('/control-center/change-requests/:id/approve', requirePermission('system:write'), async (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   const { id } = req.params;
   const crState = await getModuleState(companyId, 'control_center_change_requests', []);
@@ -5950,7 +6196,7 @@ enterpriseRouter.post('/control-center/change-requests/:id/approve', async (req:
   res.json({ success: true, message: `تمت الموافقة على طلب التغيير ${id} بنجاح` });
 });
 
-enterpriseRouter.post('/control-center/change-requests/:id/reject', async (req: Request, res: Response) => {
+enterpriseRouter.post('/control-center/change-requests/:id/reject', requirePermission('system:write'), async (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   const { id } = req.params;
   const { reason } = req.body || {};
@@ -5972,7 +6218,7 @@ enterpriseRouter.get('/control-center/drift', (_req: Request, res: Response) => 
   });
 });
 
-enterpriseRouter.post('/control-center/drift/reconcile', (_req: Request, res: Response) => {
+enterpriseRouter.post('/control-center/drift/reconcile', requirePermission('system:write'), (_req: Request, res: Response) => {
   res.json({
     success: true,
     message: 'تمت مطابقة ومعالجة الانحراف بنجاح وفق السياسات المعتمدة',
@@ -6007,7 +6253,7 @@ enterpriseRouter.get('/control-center/snapshots', async (req: Request, res: Resp
   });
 });
 
-enterpriseRouter.post('/control-center/snapshots', async (req: Request, res: Response) => {
+enterpriseRouter.post('/control-center/snapshots', requirePermission('system:write'), async (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   const { name, description } = req.body || {};
   const snapState = await getModuleState(companyId, 'control_center_snapshots', []);
@@ -6028,7 +6274,7 @@ enterpriseRouter.post('/control-center/snapshots', async (req: Request, res: Res
   });
 });
 
-enterpriseRouter.post('/control-center/snapshots/:id/restore', (_req: Request, res: Response) => {
+enterpriseRouter.post('/control-center/snapshots/:id/restore', requirePermission('system:write'), (_req: Request, res: Response) => {
   res.json({
     success: true,
     message: 'تمت استعادة لقطة الإعدادات بنجاح',
@@ -6058,7 +6304,7 @@ enterpriseRouter.get('/control-center/versions', (_req: Request, res: Response) 
   });
 });
 
-enterpriseRouter.post('/control-center/ai-assistant', (req: Request, res: Response) => {
+enterpriseRouter.post('/control-center/ai-assistant', requirePermission('system:write'), (req: Request, res: Response) => {
   const { prompt } = req.body || {};
   res.json({
     success: true,
@@ -6079,15 +6325,19 @@ enterpriseRouter.post('/control-center/ai-assistant', (req: Request, res: Respon
 // ==========================================
 // 15. Employees & Payroll Management API
 // ==========================================
-enterpriseRouter.get('/employees', (_req: Request, res: Response) => {
+enterpriseRouter.get('/employees', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   res.json({
     success: true,
-    data: mockEmployeesList,
-    total: mockEmployeesList.length,
+    data: store.employees,
+    total: store.employees.length,
   });
 });
 
 enterpriseRouter.post('/employees', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const body = req.body || {};
   if (!body.name || !body.name.trim()) {
     return res.status(400).json({ success: false, message: 'اسم الموظف مطلوب' });
@@ -6095,7 +6345,8 @@ enterpriseRouter.post('/employees', (req: Request, res: Response) => {
 
   const newEmp: EmployeeItem = {
     id: body.id || `emp-${Date.now()}`,
-    code: body.code || `EMP-${100 + mockEmployeesList.length + 1}`,
+    company_id: companyId,
+    code: body.code || `EMP-${100 + store.employees.length + 1}`,
     name: body.name.trim(),
     roleTitle: body.roleTitle || 'عامل',
     phone: body.phone || '',
@@ -6107,9 +6358,9 @@ enterpriseRouter.post('/employees', (req: Request, res: Response) => {
     advancesBalance: Number(body.advancesBalance) || 0,
     notes: body.notes || '',
     created_at: new Date().toISOString(),
-  };
+  } as any;
 
-  mockEmployeesList.unshift(newEmp);
+  store.employees.unshift(newEmp);
   persistAllToDisk();
 
   res.status(201).json({
@@ -6120,21 +6371,24 @@ enterpriseRouter.post('/employees', (req: Request, res: Response) => {
 });
 
 enterpriseRouter.put('/employees/:id', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const { id } = req.params;
-  const index = mockEmployeesList.findIndex((e) => e.id === id);
+  const index = store.employees.findIndex((e) => e.id === id);
   if (index === -1) {
     return res.status(404).json({ success: false, message: 'الموظف غير موجود' });
   }
 
-  const existing = mockEmployeesList[index];
+  const existing = store.employees[index];
   const updated: EmployeeItem = {
     ...existing,
     ...req.body,
     id: existing.id,
+    company_id: companyId,
     baseSalary: req.body.baseSalary !== undefined ? Number(req.body.baseSalary) : existing.baseSalary,
-  };
+  } as any;
 
-  mockEmployeesList[index] = updated;
+  store.employees[index] = updated;
   persistAllToDisk();
 
   res.json({
@@ -6145,13 +6399,15 @@ enterpriseRouter.put('/employees/:id', (req: Request, res: Response) => {
 });
 
 enterpriseRouter.delete('/employees/:id', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const { id } = req.params;
-  const index = mockEmployeesList.findIndex((e) => e.id === id);
+  const index = store.employees.findIndex((e) => e.id === id);
   if (index === -1) {
     return res.status(404).json({ success: false, message: 'الموظف غير موجود' });
   }
 
-  mockEmployeesList.splice(index, 1);
+  store.employees.splice(index, 1);
   persistAllToDisk();
 
   res.json({
@@ -6162,8 +6418,10 @@ enterpriseRouter.delete('/employees/:id', (req: Request, res: Response) => {
 
 // Employee Movements (Advances, Bonuses, Deductions, Attendance)
 enterpriseRouter.get('/employees/movements', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const { employeeId } = req.query;
-  let list = mockEmployeeMovementsList;
+  let list = store.employeeMovements;
   if (employeeId && typeof employeeId === 'string') {
     list = list.filter((m) => m.employeeId === employeeId);
   }
@@ -6175,14 +6433,17 @@ enterpriseRouter.get('/employees/movements', (req: Request, res: Response) => {
 });
 
 enterpriseRouter.post('/employees/movements', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const body = req.body || {};
   if (!body.employeeId) {
     return res.status(400).json({ success: false, message: 'معرف الموظف مطلوب' });
   }
 
-  const emp = mockEmployeesList.find((e) => e.id === body.employeeId);
+  const emp = store.employees.find((e) => e.id === body.employeeId);
   const newMovement: EmployeeMovementItem = {
     id: body.id || `mov-${Date.now()}`,
+    company_id: companyId,
     employeeId: body.employeeId,
     employeeName: emp ? emp.name : (body.employeeName || 'موظف'),
     type: body.type || 'advance',
@@ -6194,9 +6455,9 @@ enterpriseRouter.post('/employees/movements', (req: Request, res: Response) => {
     attendanceStatus: body.attendanceStatus,
     notes: body.notes,
     created_at: new Date().toISOString(),
-  };
+  } as any;
 
-  mockEmployeeMovementsList.unshift(newMovement);
+  store.employeeMovements.unshift(newMovement);
 
   // If advance, record an accounting transaction, update employee advances balance, post journal & payment voucher
   if (newMovement.type === 'advance' && newMovement.amount > 0) {
@@ -6216,9 +6477,9 @@ enterpriseRouter.post('/employees/movements', (req: Request, res: Response) => {
     const creditAccountName = isBankOrWallet ? 'البنك / الحسابات البنكية والمحافظ' : 'الصندوق / النقدية';
 
     const vNum = `ADV-${Date.now().toString().slice(-6)}`;
-    const tenantId = (req as any).user?.company_id || (req as any).companyId || 'comp_001';
+    const tenantId = companyId;
 
-    // Post Double-Entry Journal (Dr 1103/Employee Advances, Cr 1101/1102 based on treasury)
+    // Post Double-Entry Journal (Dr 1106/Employee Advances, Cr 1101/1102 based on treasury)
     postDoubleEntryJournal({
       companyId: tenantId,
       reference_type: 'PAYMENT_VOUCHER',
@@ -6227,8 +6488,8 @@ enterpriseRouter.post('/employees/movements', (req: Request, res: Response) => {
       date: newMovement.date,
       lines: [
         {
-          account_code: '1103',
-          account_name: 'سلف وعهد الموظفين والمدينون',
+          account_code: '1106',
+          account_name: 'سلف وعهد الموظفين',
           debit: newMovement.amount,
           credit: 0,
           description: `سلفة نقدية للموظف: ${newMovement.employeeName}`,
@@ -6244,7 +6505,7 @@ enterpriseRouter.post('/employees/movements', (req: Request, res: Response) => {
       created_by: (req as any).user?.username || 'النظام',
     });
 
-    // Add PAYMENT voucher to mockPaymentsList
+    // Add PAYMENT voucher to store.payments
     const newPmt = {
       id: `PMT-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       company_id: tenantId,
@@ -6273,10 +6534,11 @@ enterpriseRouter.post('/employees/movements', (req: Request, res: Response) => {
       status: 'CONFIRMED',
       created_at: new Date().toISOString(),
     };
-    mockPaymentsList.unshift(newPmt as any);
+    store.payments.unshift(newPmt as any);
 
-    mockAccountTransactions.unshift({
+    store.accountTransactions.unshift({
       id: `trx_adv_${Date.now()}`,
+      company_id: tenantId,
       party_id: newMovement.employeeId,
       party_type: 'CUSTOMER',
       type: 'سلفة موظف',
@@ -6287,7 +6549,7 @@ enterpriseRouter.post('/employees/movements', (req: Request, res: Response) => {
       reference_no: newMovement.id,
       notes: newMovement.notes,
       created_at: new Date().toISOString(),
-    });
+    } as any);
   }
 
   persistAllToDisk();
@@ -6301,8 +6563,10 @@ enterpriseRouter.post('/employees/movements', (req: Request, res: Response) => {
 
 // Payroll Records & Disburse
 enterpriseRouter.get('/payroll', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const { month } = req.query;
-  let list = mockPayrollRecordsList;
+  let list = store.payrollRecords;
   if (month && typeof month === 'string') {
     list = list.filter((p) => p.month === month);
   }
@@ -6314,6 +6578,8 @@ enterpriseRouter.get('/payroll', (req: Request, res: Response) => {
 });
 
 enterpriseRouter.post('/payroll/disburse', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const body = req.body || {};
   const {
     employeeId,
@@ -6328,7 +6594,7 @@ enterpriseRouter.post('/payroll/disburse', (req: Request, res: Response) => {
     notes = '',
   } = body;
 
-  const emp = mockEmployeesList.find((e) => e.id === employeeId);
+  const emp = store.employees.find((e) => e.id === employeeId);
   const employeeName = emp ? emp.name : (body.employeeName || 'موظف');
   const safeDate = paymentDate || new Date().toISOString().split('T')[0];
   const safeMonth = month || safeDate.substring(0, 7);
@@ -6336,10 +6602,11 @@ enterpriseRouter.post('/payroll/disburse', (req: Request, res: Response) => {
 
   const calculatedNet = Number(netSalary) || (Number(baseSalary) + Number(bonuses) - Number(advancesDeducted) - Number(otherDeductions));
   const refVoucher = `VCH-PAY-${Date.now().toString().slice(-6)}`;
-  const tenantId = (req as any).user?.company_id || (req as any).companyId || 'comp_001';
+  const tenantId = companyId;
 
   const payrollRec: PayrollRecordItem = {
     id: `pay-${Date.now()}`,
+    company_id: tenantId,
     employeeId: employeeId || 'emp-unknown',
     employeeName,
     month: safeMonth,
@@ -6355,9 +6622,9 @@ enterpriseRouter.post('/payroll/disburse', (req: Request, res: Response) => {
     referenceVoucher: refVoucher,
     notes,
     created_at: new Date().toISOString(),
-  };
+  } as any;
 
-  mockPayrollRecordsList.unshift(payrollRec);
+  store.payrollRecords.unshift(payrollRec);
 
   // If advances were deducted, reduce the employee's advance balance
   if (emp && Number(advancesDeducted) > 0) {
@@ -6365,7 +6632,7 @@ enterpriseRouter.post('/payroll/disburse', (req: Request, res: Response) => {
   }
 
   // Call postExpenseAtomic so salary disbursement automatically deducts from Cash/Bank (1101/1102),
-  // posts to GL account 5201, creates a payment voucher in mockPaymentsList, and updates Income Statement and Trial Balance
+  // posts to GL account 5201, creates a payment voucher in store.payments, and updates Income Statement and Trial Balance
   let expenseResult: any = null;
   if (calculatedNet > 0) {
     expenseResult = postExpenseAtomic({
@@ -6385,9 +6652,10 @@ enterpriseRouter.post('/payroll/disburse', (req: Request, res: Response) => {
     });
   }
 
-  // Also record in mockAccountTransactions for ledger reference
-  mockAccountTransactions.unshift({
+  // Also record in store.accountTransactions for ledger reference
+  store.accountTransactions.unshift({
     id: `trx_sal_${Date.now()}`,
+    company_id: tenantId,
     party_id: employeeId || 'payroll',
     party_type: 'CUSTOMER',
     type: 'صرف راتب شهري',
@@ -6398,7 +6666,7 @@ enterpriseRouter.post('/payroll/disburse', (req: Request, res: Response) => {
     reference_no: refVoucher,
     notes,
     created_at: new Date().toISOString(),
-  });
+  } as any);
 
   persistAllToDisk();
 
@@ -6418,8 +6686,10 @@ enterpriseRouter.post('/payroll/disburse', (req: Request, res: Response) => {
 // 16. Operating Expenses & Cost Centers API
 // ==========================================
 enterpriseRouter.get('/expenses', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const { category, costCenter, treasury, currency, startDate, endDate } = req.query;
-  let list = [...mockExpensesList];
+  let list = [...store.expenses];
 
   if (category && typeof category === 'string' && category !== 'الكل') {
     list = list.filter((e) => e.category === category);
@@ -6448,72 +6718,91 @@ enterpriseRouter.get('/expenses', (req: Request, res: Response) => {
 });
 
 enterpriseRouter.post('/expenses', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const body = req.body || {};
   if (!body.category || !body.amount) {
     return res.status(400).json({ success: false, message: 'تصنيف المصروف والمبلغ مطلوبان' });
   }
 
-  const newExpense: ExpenseItem = {
-    id: body.id || `exp-${Date.now()}`,
-    voucherNumber: body.voucherNumber || `EXP-${2000 + mockExpensesList.length + 1}`,
-    date: body.date || new Date().toISOString().split('T')[0],
-    category: body.category,
-    costCenter: body.costCenter || 'عام',
-    beneficiary: body.beneficiary || 'غير محدد',
-    amount: Number(body.amount) || 0,
-    currency: body.currency || 'SAR',
-    exchangeRate: Number(body.exchangeRate) || 1,
-    baseCurrencyAmount: Number(body.baseCurrencyAmount) || Number(body.amount) || 0,
-    paymentMethod: body.paymentMethod || 'نقداً',
-    treasury: body.treasury || 'الصندوق النقدي الرئيسي',
-    referenceNumber: body.referenceNumber || '',
-    description: body.description || '',
-    notes: body.notes || '',
-    created_at: new Date().toISOString(),
-  };
+  try {
+    const voucherNumber = body.voucherNumber || body.voucher_number || `EXP-${2000 + store.expenses.length + 1}`;
+    const result = postExpenseAtomic({
+      companyId,
+      category: body.category,
+      description: body.description || body.category || 'مصروف تشغيلي',
+      amount: Number(body.amount) || 0,
+      paymentMethod: body.paymentMethod || body.payment_method || 'نقداً',
+      treasury: body.treasury || 'الصندوق النقدي الرئيسي',
+      costCenter: body.costCenter || body.cost_center || 'عام',
+      currency: body.currency,
+      referenceNumber: body.referenceNumber || body.reference_number || '',
+      notes: body.notes || '',
+      beneficiary: body.beneficiary || 'غير محدد',
+      date: body.date || new Date().toISOString().split('T')[0],
+      voucherNumber,
+      created_by: (req as any).user?.username || 'النظام',
+    });
 
-  mockExpensesList.unshift(newExpense);
+    const createdExpense: any = result.expense || result.data;
+    if (createdExpense) {
+      if (body.id) createdExpense.id = body.id;
+      createdExpense.exchangeRate = Number(body.exchangeRate) || 1;
+      createdExpense.baseCurrencyAmount = Number(body.baseCurrencyAmount) || Number(body.amount) || 0;
+    }
 
-  // Record balanced double-entry in General Ledger
-  mockAccountTransactions.unshift({
-    id: `trx_exp_${Date.now()}`,
-    party_id: 'operating_expenses',
-    party_type: 'CUSTOMER',
-    type: `مصروف - ${newExpense.category}`,
-    amount: newExpense.amount,
-    currency: newExpense.currency,
-    date: newExpense.date,
-    description: `سند صرف: ${newExpense.description || newExpense.category} - المستفيد: ${newExpense.beneficiary} [${newExpense.treasury}]`,
-    reference_no: newExpense.voucherNumber,
-    notes: newExpense.notes,
-    created_at: new Date().toISOString(),
-  });
+    store.accountTransactions.unshift({
+      id: `trx_exp_${Date.now()}`,
+      company_id: companyId,
+      party_id: 'operating_expenses',
+      party_type: 'CUSTOMER',
+      type: `مصروف - ${createdExpense?.category || body.category}`,
+      amount: Number(body.amount) || 0,
+      currency: createdExpense?.currency || body.currency,
+      date: createdExpense?.date || body.date || new Date().toISOString().split('T')[0],
+      description: `سند صرف: ${body.description || body.category} - المستفيد: ${body.beneficiary || 'غير محدد'} [${createdExpense?.treasury || body.treasury || 'الصندوق النقدي الرئيسي'}]`,
+      reference_no: voucherNumber,
+      notes: body.notes || '',
+      created_at: new Date().toISOString(),
+    } as any);
 
-  persistAllToDisk();
+    persistAllToDisk();
 
-  res.status(201).json({
-    success: true,
-    data: newExpense,
-    message: 'تم تسجيل سند المصروف بنجاح وترحيله إلى الخزينة والقيود المحاسبية',
-  });
+    res.status(201).json({
+      success: true,
+      data: createdExpense,
+      expense: createdExpense,
+      payment: result.payment,
+      journal: result.journal,
+      message: 'تم تسجيل سند المصروف بنجاح وترحيله إلى الخزينة والقيود المحاسبية',
+    });
+  } catch (err: any) {
+    res.status(err?.status || 400).json({
+      success: false,
+      message: err?.message || 'فشل تسجيل سند المصروف',
+    });
+  }
 });
 
 enterpriseRouter.put('/expenses/:id', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const { id } = req.params;
-  const index = mockExpensesList.findIndex((e) => e.id === id);
+  const index = store.expenses.findIndex((e) => e.id === id);
   if (index === -1) {
     return res.status(404).json({ success: false, message: 'سند المصروف غير موجود' });
   }
 
-  const existing = mockExpensesList[index];
+  const existing = store.expenses[index];
   const updated: ExpenseItem = {
     ...existing,
     ...req.body,
     id: existing.id,
+    company_id: companyId,
     amount: req.body.amount !== undefined ? Number(req.body.amount) : existing.amount,
-  };
+  } as any;
 
-  mockExpensesList[index] = updated;
+  store.expenses[index] = updated;
   persistAllToDisk();
 
   res.json({
@@ -6523,7 +6812,7 @@ enterpriseRouter.put('/expenses/:id', (req: Request, res: Response) => {
   });
 });
 
-enterpriseRouter.delete('/expenses/:id', (req: Request, res: Response) => {
+enterpriseRouter.delete('/expenses/:id', requirePermission('financial:delete'), (req: Request, res: Response) => {
   try {
     const companyId = resolveCompanyId(req);
     const result = reverseExpenseAtomic(companyId, req.params.id, true);
@@ -6537,7 +6826,7 @@ enterpriseRouter.delete('/expenses/:id', (req: Request, res: Response) => {
   }
 });
 
-enterpriseRouter.post('/expenses/:id/cancel', (req: Request, res: Response) => {
+enterpriseRouter.post('/expenses/:id/cancel', requirePermission('financial:delete'), (req: Request, res: Response) => {
   try {
     const companyId = resolveCompanyId(req);
     const result = reverseExpenseAtomic(companyId, req.params.id, false);

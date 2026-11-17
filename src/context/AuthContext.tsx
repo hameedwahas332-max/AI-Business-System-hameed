@@ -18,7 +18,6 @@ export interface RegisterData {
 export interface EternalVaultAccount {
   user: User;
   company: Company;
-  passwordVerifier?: string;
   token: string;
   businessMode?: string;
   lastActive: string;
@@ -104,12 +103,11 @@ const defaultUser: User = {
 };
 
 // Vault helpers
-export function getVaultAccounts(): Record<string, EternalVaultAccount> {
-  const defaultAccounts: Record<string, EternalVaultAccount> = {
+export function getVaultAccounts(): Record<string, EternalVaultAccount & Record<string, unknown>> {
+  const defaultAccounts: Record<string, EternalVaultAccount & Record<string, unknown>> = {
     'hameedwahas332@gmail.com': {
       user: defaultUser,
       company: defaultCompany,
-      passwordVerifier: 'AdminPass123!',
       token: 'jwt_permanent_wahas_master_01',
       businessMode: 'wholesale_retail_general',
       lastActive: new Date().toISOString(),
@@ -134,7 +132,6 @@ export function getVaultAccounts(): Record<string, EternalVaultAccount> {
         status: 'active',
         created_at: '2026-01-01T00:00:00Z',
       },
-      passwordVerifier: 'admin123',
       token: 'jwt_permanent_admin_001',
       lastActive: new Date().toISOString(),
     },
@@ -158,7 +155,6 @@ export function getVaultAccounts(): Record<string, EternalVaultAccount> {
         status: 'active',
         created_at: '2026-01-01T00:00:00Z',
       },
-      passwordVerifier: 'AdminPass123!',
       token: 'jwt_permanent_alamal_01',
       businessMode: 'wholesale_retail_general',
       lastActive: new Date().toISOString(),
@@ -183,7 +179,6 @@ export function getVaultAccounts(): Record<string, EternalVaultAccount> {
         status: 'active',
         created_at: '2026-01-01T00:00:00Z',
       },
-      passwordVerifier: 'AdminPass123!',
       token: 'jwt_permanent_albaraka_01',
       businessMode: 'wholesale_retail_general',
       lastActive: new Date().toISOString(),
@@ -194,7 +189,15 @@ export function getVaultAccounts(): Record<string, EternalVaultAccount> {
     const raw = localStorage.getItem(VAULT_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      return { ...defaultAccounts, ...parsed };
+      const merged = { ...defaultAccounts, ...parsed };
+      const sanitized: Record<string, EternalVaultAccount & Record<string, unknown>> = {};
+      for (const [k, v] of Object.entries(merged)) {
+        if (v && typeof v === 'object') {
+          const { passwordVerifier: _removed, ...rest } = v as any;
+          sanitized[k] = rest as EternalVaultAccount & Record<string, unknown>;
+        }
+      }
+      return sanitized;
     }
   } catch {}
   return defaultAccounts;
@@ -204,9 +207,11 @@ export function saveAccountToVault(entry: EternalVaultAccount): void {
   try {
     const vault = getVaultAccounts();
     const emailKey = entry.user.email.trim().toLowerCase();
+    const { passwordVerifier: _removedExisting, ...cleanExisting } = (vault[emailKey] || {}) as any;
+    const { passwordVerifier: _removedEntry, ...cleanEntry } = entry as any;
     vault[emailKey] = {
-      ...vault[emailKey],
-      ...entry,
+      ...cleanExisting,
+      ...cleanEntry,
       lastActive: new Date().toISOString(),
     };
     localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(vault));
@@ -360,18 +365,17 @@ export function saveCurrentTenantSnapshotToVault(
       (activeCompanyId ? vault[activeCompanyId] : undefined) ||
       {};
 
-    const updatedEntry: EternalVaultAccount = {
+    const updatedEntry: EternalVaultAccount & Record<string, unknown> = {
       ...existingEntry,
       user: targetUser || existingEntry.user || defaultUser,
       company: targetCompany || existingEntry.company || defaultCompany,
       token: (existingEntry as any).token || localStorage.getItem('erp_auth_token') || 'jwt_permanent',
       lastActive: new Date().toISOString(),
-      ...(existingEntry.passwordVerifier ? { passwordVerifier: existingEntry.passwordVerifier } : {}),
       lastDataSnapshot: {
         data: dataMap,
         timestamp: new Date().toISOString(),
       },
-    } as any;
+    };
 
     if (activeEmail) vault[activeEmail] = updatedEntry;
     if (activeUsername && activeUsername !== activeEmail) vault[activeUsername] = updatedEntry;
@@ -558,7 +562,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         vault['hameedwahas332@gmail.com'] = {
           user: defaultUser,
           company: defaultCompany,
-          passwordVerifier: 'AdminPass123!',
           token: 'jwt_permanent_wahas_master_01',
           businessMode: 'wholesale_retail_general',
           lastActive: new Date().toISOString(),
@@ -596,19 +599,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Auto-Rehydration on boot & session verification
     const rehydrateAndVerify = async () => {
       try {
-        const vault = getVaultAccounts();
         const currentEmail = user?.email?.trim().toLowerCase();
-        const vaultEntry = currentEmail ? vault[currentEmail] : undefined;
 
-        // Push client vault snapshot to server so cold-started container regains full account state
-        if (user && company) {
+        // Push client vault snapshot to server using signed JWT (never sending passwords)
+        if (user && company && token) {
           fetch('/api/v1/auth/rehydrate-account', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
             body: JSON.stringify({
               user,
               company,
-              password: vaultEntry?.passwordVerifier || 'admin123',
             }),
           }).catch(() => {});
         }
@@ -722,16 +725,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch {}
 
-    // 2. Fallback check with local vault
-    const vault = getVaultAccounts();
-    const emailKey = user?.email?.trim().toLowerCase() || '';
-    const entry = vault[emailKey];
-    if (entry && entry.passwordVerifier && entry.passwordVerifier === cleanPassword) {
-      setIsSystemLocked(false);
-      localStorage.removeItem(SYSTEM_LOCK_KEY);
-      return true;
-    }
-
     return false;
   }, [user?.email, token]);
 
@@ -835,7 +828,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           saveAccountToVault({
             user: userObj,
             company: compObj,
-            passwordVerifier: password,
             token: tok,
             lastActive: new Date().toISOString(),
           });
@@ -856,10 +848,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const vault = getVaultAccounts();
       const vaultEntry = vault[email];
       if (vaultEntry) {
-        if (password && vaultEntry.passwordVerifier && vaultEntry.passwordVerifier !== password) {
-          throw new Error('كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى');
-        }
-
         const tok = vaultEntry.token || `jwt_session_${vaultEntry.user.id}_${Date.now()}`;
         setUser(vaultEntry.user);
         setCompany(vaultEntry.company);
@@ -877,14 +865,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         api.setToken(tok);
         api.setCompanyId(vaultEntry.company.id);
 
-        // Rehydrate server asynchronously
+        // Rehydrate server asynchronously using signed JWT (never sending password)
         fetch('/api/v1/auth/rehydrate-account', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(tok ? { Authorization: `Bearer ${tok}` } : {}),
+          },
           body: JSON.stringify({
             user: vaultEntry.user,
             company: vaultEntry.company,
-            password: password || vaultEntry.passwordVerifier,
           }),
         }).catch(() => {});
 
@@ -1019,7 +1009,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       saveAccountToVault({
         user: newUser,
         company: newCompany,
-        passwordVerifier: data.password,
         token: newToken,
         businessMode: data.business_mode,
         lastActive: new Date().toISOString(),
@@ -1050,7 +1039,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('erp_active_user_email');
     localStorage.removeItem('erp_active_session_v1');
     localStorage.removeItem(SYSTEM_LOCK_KEY);
-    api.clearToken();
+    api.setToken(null);
+    api.setCompanyId(null);
+    api.clearToken?.();
     try {
       fetch('/api/v1/auth/logout', { method: 'POST' }).catch(() => {});
     } catch {}

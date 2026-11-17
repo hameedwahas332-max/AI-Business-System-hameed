@@ -4,13 +4,15 @@
 import crypto from 'crypto';
 import { Response } from 'express';
 import {
-  mockInvoicesList,
-  mockPurchaseInvoicesList,
-  mockPaymentsList,
-  mockProducts,
-  mockInventoryMovements,
+  getTenantCollections,
   persistAllToDisk
 } from '../dataStore';
+import {
+  postSalesTransactionAtomic,
+  postPurchaseTransactionAtomic,
+  postVoucherAtomic,
+  resolveTenantDefaultCurrency
+} from '../accountingEngine';
 
 export interface ServerSyncTransaction {
   uuid: string;
@@ -164,7 +166,7 @@ function appendFinancialLedger(tenantId: string, entryData: {
     accountCode: entryData.accountCode,
     debit: Number(entryData.debit) || 0,
     credit: Number(entryData.credit) || 0,
-    currency: entryData.currency || 'YER',
+    currency: entryData.currency || resolveTenantDefaultCurrency(tenantId),
     timestamp: new Date().toISOString(),
     referenceId: entryData.referenceId,
     description: entryData.description,
@@ -199,6 +201,8 @@ export async function handleSyncPush(params: {
   }>;
 }> {
   const { tenantId, deviceId, transactions } = params;
+  const store = getTenantCollections(tenantId);
+  const defaultCurrency = resolveTenantDefaultCurrency(tenantId);
   const results: Array<{
     uuid: string;
     status: 'ACCEPTED' | 'CONFLICT' | 'REJECTED';
@@ -213,230 +217,316 @@ export async function handleSyncPush(params: {
   for (const tx of transactions) {
     try {
       // 1. Idempotency Check
-    if (idempotencyRegistry.has(tx.idempotencyKey)) {
-      const cached = idempotencyRegistry.get(tx.idempotencyKey)!;
-      results.push({
-        uuid: tx.uuid,
-        status: cached.status as any,
-        serverSeq: cached.serverSeq,
-        reason: 'Idempotent replay accepted'
-      });
-      continue;
-    }
+      if (idempotencyRegistry.has(tx.idempotencyKey)) {
+        const cached = idempotencyRegistry.get(tx.idempotencyKey)!;
+        results.push({
+          uuid: tx.uuid,
+          status: cached.status as any,
+          serverSeq: cached.serverSeq,
+          reason: 'Idempotent replay accepted'
+        });
+        continue;
+      }
 
-    // 2. Conflict & Concurrency Detection
-    const tType = (tx.transactionType || '').toUpperCase();
-    let hasConflict = false;
-    let conflictReason = '';
-    let existingServerPayload: any = null;
+      // 2. Conflict & Concurrency Detection
+      const tType = (tx.transactionType || '').toUpperCase();
+      let hasConflict = false;
+      let conflictReason = '';
+      let existingServerPayload: any = null;
 
-    if (tType.includes('INVOICE') || tType.includes('POS_SALE')) {
-      const invoiceNumber = tx.payload?.invoice_number || tx.payload?.id;
-      const existing = mockInvoicesList.find((inv) => (inv.invoice_number === invoiceNumber || inv.id === invoiceNumber) && (inv as any).company_id === tenantId);
-      if (existing) {
-        // If an invoice with same number exists and has different rowVersion or modified total
-        if (existing.status === 'CANCELLED' || existing.status === 'RETURNED') {
-          hasConflict = true;
-          conflictReason = `Invoice is already in terminal state: ${existing.status}`;
-          existingServerPayload = existing;
+      if (tType.includes('INVOICE') || tType.includes('POS_SALE')) {
+        const invoiceNumber = tx.payload?.invoice_number || tx.payload?.invoiceNumber || tx.payload?.id;
+        const existing = store.invoices.find(
+          (inv) =>
+            (inv.invoice_number === invoiceNumber || (inv as any).invoiceNumber === invoiceNumber || inv.id === invoiceNumber) &&
+            (!inv.company_id || inv.company_id === tenantId)
+        );
+        if (existing) {
+          if (existing.status === 'CANCELLED' || existing.status === 'RETURNED') {
+            hasConflict = true;
+            conflictReason = `Invoice is already in terminal state: ${existing.status}`;
+            existingServerPayload = existing;
+          }
+        }
+      } else if (tType.includes('STOCK') || tType.includes('INVENTORY')) {
+        const productId = tx.payload?.productId || tx.payload?.product_id;
+        const existingProduct = store.products.find((p) => p.id === productId);
+        if (existingProduct) {
+          const requiredQty = Number(tx.payload?.quantity || tx.payload?.qty || 0);
+          const availableStock = Number(existingProduct.current_stock ?? existingProduct.qty ?? 0);
+          if (tx.payload?.movementType === 'OUT' && availableStock < requiredQty) {
+            hasConflict = true;
+            conflictReason = `Insufficient server stock: Available ${availableStock}, requested ${requiredQty}`;
+            existingServerPayload = existingProduct;
+          }
         }
       }
-    } else if (tType.includes('STOCK') || tType.includes('INVENTORY')) {
-      const productId = tx.payload?.productId || tx.payload?.product_id;
-      const existingProduct = mockProducts.find((p) => p.id === productId);
-      if (existingProduct) {
-        const requiredQty = Number(tx.payload?.quantity || tx.payload?.qty || 0);
-        const availableStock = Number(existingProduct.current_stock ?? existingProduct.qty ?? 0);
-        if (tx.payload?.movementType === 'OUT' && availableStock < requiredQty) {
-          hasConflict = true;
-          conflictReason = `Insufficient server stock: Available ${availableStock}, requested ${requiredQty}`;
-          existingServerPayload = existingProduct;
+
+      if (hasConflict) {
+        if (!tenantConflicts.has(tenantId)) tenantConflicts.set(tenantId, []);
+        const conflictRecord: ServerSyncConflict = {
+          id: `conf_srv_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          transactionUuid: tx.uuid,
+          transactionType: tx.transactionType,
+          tenantId,
+          localPayload: tx.payload,
+          serverPayload: existingServerPayload,
+          conflictReason,
+          createdAt: new Date().toISOString()
+        };
+        tenantConflicts.get(tenantId)!.push(conflictRecord);
+
+        results.push({
+          uuid: tx.uuid,
+          status: 'CONFLICT',
+          reason: conflictReason,
+          conflictDetails: { serverPayload: existingServerPayload }
+        });
+
+        idempotencyRegistry.set(tx.idempotencyKey, {
+          status: 'CONFLICT',
+          serverSeq: highestCommittedSeq,
+          response: { reason: conflictReason },
+          timestamp: new Date().toISOString()
+        });
+        continue;
+      }
+
+      // 3. Commit Transaction to Server-Authoritative State via Atomic Accounting Engine
+      const nextSeq = getNextTenantServerSeq(tenantId);
+      highestCommittedSeq = nextSeq;
+
+      if (tType.includes('INVOICE') || tType.includes('POS_SALE')) {
+        const inv = tx.payload || {};
+        const rawItems = Array.isArray(inv.items) ? inv.items : [];
+        const paymentMethod = String(
+          inv.payment_method || inv.paymentMethod || (tType.includes('POS_SALE') ? 'CASH' : 'CREDIT')
+        ).toUpperCase();
+        const invoiceTotal = Number(inv.grand_total ?? inv.total ?? inv.grandTotal ?? inv.amount ?? 0);
+        const isCashSale = ['CASH', 'BANK', 'CARD', 'WALLET', 'MOBILE', 'TRANSFER'].includes(paymentMethod);
+        const paidAmount =
+          inv.paid_amount !== undefined
+            ? Number(inv.paid_amount)
+            : inv.paidAmount !== undefined
+            ? Number(inv.paidAmount)
+            : isCashSale
+            ? invoiceTotal
+            : 0;
+
+        const atomicSales = postSalesTransactionAtomic({
+          companyId: tenantId,
+          invoice: {
+            ...inv,
+            id: inv.id || tx.uuid,
+            company_id: tenantId,
+            serverSeq: nextSeq,
+            currency: inv.currency || defaultCurrency,
+            updated_at: new Date().toISOString(),
+          },
+          items: rawItems,
+          customerId: inv.customer_id || inv.customerId,
+          customerName: inv.customer_name || inv.customerName || inv.customer,
+          paymentMethod,
+          paidAmount,
+          userId: tx.userId,
+        });
+
+        const committedTotal = Number(atomicSales.totalVal || invoiceTotal || 0);
+        const committedPaid = Number(atomicSales.paidVal || 0);
+        const committedRemaining = Number(atomicSales.remainingVal || 0);
+        const txCurrency = inv.currency || defaultCurrency;
+        const refId = atomicSales.invoiceNumber || inv.invoice_number || tx.uuid;
+
+        if (committedTotal > 0) {
+          if (committedPaid > 0) {
+            appendFinancialLedger(tenantId, {
+              transactionUuid: tx.uuid,
+              transactionType: 'SALES_INVOICE_POSTING',
+              accountCode: '1101',
+              debit: committedPaid,
+              credit: 0,
+              currency: txCurrency,
+              referenceId: refId,
+              description: `تحصيل مبيعات فاتورة رقم ${refId}`
+            });
+          }
+          if (committedRemaining > 0) {
+            appendFinancialLedger(tenantId, {
+              transactionUuid: tx.uuid,
+              transactionType: 'SALES_INVOICE_POSTING',
+              accountCode: '1103',
+              debit: committedRemaining,
+              credit: 0,
+              currency: txCurrency,
+              referenceId: refId,
+              description: `ذمم عملاء فاتورة مبيعات رقم ${refId}`
+            });
+          }
+          appendFinancialLedger(tenantId, {
+            transactionUuid: tx.uuid,
+            transactionType: 'SALES_INVOICE_POSTING',
+            accountCode: '4101',
+            debit: 0,
+            credit: committedTotal,
+            currency: txCurrency,
+            referenceId: refId,
+            description: `إيراد مبيعات فاتورة رقم ${refId}`
+          });
+        }
+      } else if (tType.includes('PURCHASE')) {
+        const pInv = tx.payload || {};
+        const rawItems = Array.isArray(pInv.items) ? pInv.items : [];
+        const paymentMethod = String(pInv.payment_method || pInv.paymentMethod || 'CREDIT').toUpperCase();
+        const pTotal = Number(pInv.grand_total ?? pInv.total ?? pInv.grandTotal ?? pInv.amount ?? 0);
+        const isCashPurchase = ['CASH', 'BANK', 'CARD', 'WALLET', 'MOBILE', 'TRANSFER'].includes(paymentMethod);
+        const paidAmount =
+          pInv.paid_amount !== undefined
+            ? Number(pInv.paid_amount)
+            : pInv.paidAmount !== undefined
+            ? Number(pInv.paidAmount)
+            : isCashPurchase
+            ? pTotal
+            : 0;
+
+        const atomicPur = postPurchaseTransactionAtomic({
+          companyId: tenantId,
+          purchaseInvoice: {
+            ...pInv,
+            id: pInv.id || tx.uuid,
+            company_id: tenantId,
+            serverSeq: nextSeq,
+            currency: pInv.currency || defaultCurrency,
+            updated_at: new Date().toISOString(),
+          },
+          items: rawItems,
+          supplierId: pInv.supplier_id || pInv.supplierId,
+          supplierName: pInv.supplier_name || pInv.supplierName || pInv.supplier,
+          paymentMethod,
+          paidAmount,
+          userId: tx.userId,
+        });
+
+        const committedPurTotal = Number(atomicPur.totalVal || pTotal || 0);
+        const committedPurPaid = Number(atomicPur.paidVal || 0);
+        const committedPurUnpaid = Number(atomicPur.unpaidVal || 0);
+        const txCurrency = pInv.currency || defaultCurrency;
+        const refId = atomicPur.invoiceNumber || pInv.invoice_number || tx.uuid;
+
+        if (committedPurTotal > 0) {
+          appendFinancialLedger(tenantId, {
+            transactionUuid: tx.uuid,
+            transactionType: 'PURCHASE_INVOICE_POSTING',
+            accountCode: '1104',
+            debit: committedPurTotal,
+            credit: 0,
+            currency: txCurrency,
+            referenceId: refId,
+            description: `فاتورة مشتريات رقم ${refId}`
+          });
+          if (committedPurPaid > 0) {
+            appendFinancialLedger(tenantId, {
+              transactionUuid: tx.uuid,
+              transactionType: 'PURCHASE_INVOICE_POSTING',
+              accountCode: '1101',
+              debit: 0,
+              credit: committedPurPaid,
+              currency: txCurrency,
+              referenceId: refId,
+              description: `سداد نقدي فاتورة مشتريات رقم ${refId}`
+            });
+          }
+          if (committedPurUnpaid > 0) {
+            appendFinancialLedger(tenantId, {
+              transactionUuid: tx.uuid,
+              transactionType: 'PURCHASE_INVOICE_POSTING',
+              accountCode: '2101',
+              debit: 0,
+              credit: committedPurUnpaid,
+              currency: txCurrency,
+              referenceId: refId,
+              description: `ذمم موردين فاتورة مشتريات رقم ${refId}`
+            });
+          }
+        }
+      } else if (tType.includes('PAYMENT') || tType.includes('RECEIPT')) {
+        const pmt = tx.payload || {};
+        const amt = Number(pmt.amount || 0);
+        const isReceipt =
+          tType.includes('RECEIPT') ||
+          (pmt.type || '').toUpperCase().includes('RECEIPT') ||
+          pmt.type === 'سند قبض' ||
+          pmt.voucher_type === 'RECEIPT';
+        const txCurrency = pmt.currency || defaultCurrency;
+        const vRef = pmt.voucher_number || pmt.voucherNumber || pmt.reference_number || tx.uuid;
+
+        if (amt > 0) {
+          const atomicVoucher = postVoucherAtomic({
+            companyId: tenantId,
+            type: isReceipt ? 'RECEIPT' : 'PAYMENT',
+            voucherNumber: vRef,
+            amount: amt,
+            partyType: isReceipt ? 'CUSTOMER' : 'SUPPLIER',
+            partyId: pmt.party_id || pmt.customer_id || pmt.supplier_id,
+            partyName: pmt.party_name || pmt.customer_name || pmt.supplier_name,
+            paymentMethod: pmt.payment_method || pmt.paymentMethod || 'CASH',
+            currency: txCurrency,
+            reference: pmt.reference_number || pmt.reference || tx.uuid,
+            notes: pmt.notes || pmt.description,
+            description: pmt.description || pmt.notes || (isReceipt ? 'سند قبض متزامن' : 'سند صرف متزامن'),
+            date: pmt.date || pmt.payment_date,
+          });
+          if (atomicVoucher.payment) {
+            (atomicVoucher.payment as any).serverSeq = nextSeq;
+          }
+
+          appendFinancialLedger(tenantId, {
+            transactionUuid: tx.uuid,
+            transactionType: isReceipt ? 'RECEIPT_VOUCHER_POSTING' : 'PAYMENT_VOUCHER_POSTING',
+            accountCode: isReceipt ? '1101' : '2101',
+            debit: amt,
+            credit: 0,
+            currency: txCurrency,
+            referenceId: vRef,
+            description: pmt.notes || pmt.description || 'سند مالي'
+          });
+          appendFinancialLedger(tenantId, {
+            transactionUuid: tx.uuid,
+            transactionType: isReceipt ? 'RECEIPT_VOUCHER_POSTING' : 'PAYMENT_VOUCHER_POSTING',
+            accountCode: isReceipt ? '1103' : '1101',
+            debit: 0,
+            credit: amt,
+            currency: txCurrency,
+            referenceId: vRef,
+            description: pmt.notes || pmt.description || 'سند مالي'
+          });
         }
       }
-    }
 
-    if (hasConflict) {
-      // Record conflict in tenant conflict store
-      if (!tenantConflicts.has(tenantId)) tenantConflicts.set(tenantId, []);
-      const conflictRecord: ServerSyncConflict = {
-        id: `conf_srv_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-        transactionUuid: tx.uuid,
-        transactionType: tx.transactionType,
-        tenantId,
-        localPayload: tx.payload,
-        serverPayload: existingServerPayload,
-        conflictReason,
-        createdAt: new Date().toISOString()
-      };
-      tenantConflicts.get(tenantId)!.push(conflictRecord);
-
-      results.push({
-        uuid: tx.uuid,
-        status: 'CONFLICT',
-        reason: conflictReason,
-        conflictDetails: { serverPayload: existingServerPayload }
+      // Record committed transaction for delta pull
+      if (!tenantCommittedTransactions.has(tenantId)) {
+        tenantCommittedTransactions.set(tenantId, []);
+      }
+      tenantCommittedTransactions.get(tenantId)!.push({
+        serverSeq: nextSeq,
+        tx,
+        committedAt: new Date().toISOString()
       });
 
+      // Record in idempotency cache
       idempotencyRegistry.set(tx.idempotencyKey, {
-        status: 'CONFLICT',
-        serverSeq: highestCommittedSeq,
-        response: { reason: conflictReason },
+        status: 'ACCEPTED',
+        serverSeq: nextSeq,
+        response: { uuid: tx.uuid },
         timestamp: new Date().toISOString()
       });
-      continue;
-    }
 
-    // 3. Commit Transaction to Server-Authoritative State
-    const nextSeq = getNextTenantServerSeq(tenantId);
-    highestCommittedSeq = nextSeq;
+      results.push({
+        uuid: tx.uuid,
+        status: 'ACCEPTED',
+        serverSeq: nextSeq
+      });
 
-    // Apply to underlying data stores
-    if (tType.includes('INVOICE') || tType.includes('POS_SALE')) {
-      const inv = tx.payload;
-      const cleanInv = {
-        ...inv,
-        id: inv.id || tx.uuid,
-        company_id: tenantId,
-        serverSeq: nextSeq,
-        updated_at: new Date().toISOString()
-      };
-      const existingIdx = mockInvoicesList.findIndex((i) => i.id === cleanInv.id || i.invoice_number === cleanInv.invoice_number);
-      if (existingIdx >= 0) {
-        mockInvoicesList[existingIdx] = cleanInv;
-      } else {
-        mockInvoicesList.unshift(cleanInv);
-      }
-
-      // Append ledger debit to Accounts Receivable and credit to Sales Revenue
-      const invoiceTotal = Number(inv.grand_total || inv.total || 0);
-      if (invoiceTotal > 0) {
-        appendFinancialLedger(tenantId, {
-          transactionUuid: tx.uuid,
-          transactionType: 'SALES_INVOICE_POSTING',
-          accountCode: '1100_AR',
-          debit: invoiceTotal,
-          credit: 0,
-          currency: inv.currency || 'YER',
-          referenceId: inv.invoice_number || tx.uuid,
-          description: `فاتورة مبيعات رقم ${inv.invoice_number || ''}`
-        });
-        appendFinancialLedger(tenantId, {
-          transactionUuid: tx.uuid,
-          transactionType: 'SALES_INVOICE_POSTING',
-          accountCode: '4100_SALES_REV',
-          debit: 0,
-          credit: invoiceTotal,
-          currency: inv.currency || 'YER',
-          referenceId: inv.invoice_number || tx.uuid,
-          description: `إيراد مبيعات فاتورة رقم ${inv.invoice_number || ''}`
-        });
-      }
-    } else if (tType.includes('PURCHASE')) {
-      const pInv = tx.payload;
-      const cleanPInv = {
-        ...pInv,
-        id: pInv.id || tx.uuid,
-        company_id: tenantId,
-        serverSeq: nextSeq,
-        updated_at: new Date().toISOString()
-      };
-      const existingIdx = mockPurchaseInvoicesList.findIndex((i) => i.id === cleanPInv.id || i.invoice_number === cleanPInv.invoice_number);
-      if (existingIdx >= 0) {
-        mockPurchaseInvoicesList[existingIdx] = cleanPInv;
-      } else {
-        mockPurchaseInvoicesList.unshift(cleanPInv);
-      }
-
-      const pTotal = Number(pInv.grand_total || pInv.total || 0);
-      if (pTotal > 0) {
-        appendFinancialLedger(tenantId, {
-          transactionUuid: tx.uuid,
-          transactionType: 'PURCHASE_INVOICE_POSTING',
-          accountCode: '1300_INVENTORY',
-          debit: pTotal,
-          credit: 0,
-          currency: pInv.currency || 'YER',
-          referenceId: pInv.invoice_number || tx.uuid,
-          description: `فاتورة مشتريات رقم ${pInv.invoice_number || ''}`
-        });
-        appendFinancialLedger(tenantId, {
-          transactionUuid: tx.uuid,
-          transactionType: 'PURCHASE_INVOICE_POSTING',
-          accountCode: '2100_AP',
-          debit: 0,
-          credit: pTotal,
-          currency: pInv.currency || 'YER',
-          referenceId: pInv.invoice_number || tx.uuid,
-          description: `ذمم موردين فاتورة مشتريات رقم ${pInv.invoice_number || ''}`
-        });
-      }
-    } else if (tType.includes('PAYMENT') || tType.includes('RECEIPT')) {
-      const pmt = tx.payload;
-      const cleanPmt = {
-        ...pmt,
-        id: pmt.id || tx.uuid,
-        company_id: tenantId,
-        serverSeq: nextSeq,
-        updated_at: new Date().toISOString()
-      };
-      const existingIdx = mockPaymentsList.findIndex((p) => p.id === cleanPmt.id);
-      if (existingIdx >= 0) {
-        mockPaymentsList[existingIdx] = cleanPmt;
-      } else {
-        mockPaymentsList.unshift(cleanPmt);
-      }
-
-      const amt = Number(pmt.amount || 0);
-      if (amt > 0) {
-        const isReceipt = (pmt.type || '').toUpperCase().includes('RECEIPT') || pmt.type === 'سند قبض';
-        appendFinancialLedger(tenantId, {
-          transactionUuid: tx.uuid,
-          transactionType: isReceipt ? 'RECEIPT_VOUCHER_POSTING' : 'PAYMENT_VOUCHER_POSTING',
-          accountCode: isReceipt ? '1010_CASH' : '2100_AP',
-          debit: amt,
-          credit: 0,
-          currency: pmt.currency || 'YER',
-          referenceId: pmt.reference_number || tx.uuid,
-          description: pmt.notes || pmt.description || 'سند مالي'
-        });
-        appendFinancialLedger(tenantId, {
-          transactionUuid: tx.uuid,
-          transactionType: isReceipt ? 'RECEIPT_VOUCHER_POSTING' : 'PAYMENT_VOUCHER_POSTING',
-          accountCode: isReceipt ? '1100_AR' : '1010_CASH',
-          debit: 0,
-          credit: amt,
-          currency: pmt.currency || 'YER',
-          referenceId: pmt.reference_number || tx.uuid,
-          description: pmt.notes || pmt.description || 'سند مالي'
-        });
-      }
-    }
-
-    // Record committed transaction for delta pull
-    if (!tenantCommittedTransactions.has(tenantId)) {
-      tenantCommittedTransactions.set(tenantId, []);
-    }
-    tenantCommittedTransactions.get(tenantId)!.push({
-      serverSeq: nextSeq,
-      tx,
-      committedAt: new Date().toISOString()
-    });
-
-    // Record in idempotency cache
-    idempotencyRegistry.set(tx.idempotencyKey, {
-      status: 'ACCEPTED',
-      serverSeq: nextSeq,
-      response: { uuid: tx.uuid },
-      timestamp: new Date().toISOString()
-    });
-
-    results.push({
-      uuid: tx.uuid,
-      status: 'ACCEPTED',
-      serverSeq: nextSeq
-    });
-
-    acceptedCount++;
+      acceptedCount++;
     } catch (txErr: any) {
       console.warn(`[SyncEngineServer] Fault isolated on transaction ${tx?.uuid}:`, txErr);
       results.push({
@@ -493,6 +583,7 @@ export function handleConflictResolution(params: {
   resolvedPayload?: any;
 }): { success: boolean; message: string; resolvedConflict?: ServerSyncConflict } {
   const { tenantId, userId, conflictId, resolutionStrategy, resolvedPayload } = params;
+  const store = getTenantCollections(tenantId);
   const conflicts = tenantConflicts.get(tenantId) || [];
   const target = conflicts.find((c) => c.id === conflictId);
 
@@ -507,7 +598,6 @@ export function handleConflictResolution(params: {
   if (resolutionStrategy === 'CLIENT_WINS' || resolutionStrategy === 'MANUAL_MERGE') {
     const payloadToApply = resolutionStrategy === 'MANUAL_MERGE' ? resolvedPayload : target.localPayload;
     if (payloadToApply) {
-      // Re-apply to mockInvoicesList or relevant store
       const nextSeq = getNextTenantServerSeq(tenantId);
       const cleanRecord = {
         ...payloadToApply,
@@ -515,9 +605,9 @@ export function handleConflictResolution(params: {
         serverSeq: nextSeq,
         updated_at: new Date().toISOString()
       };
-      const idx = mockInvoicesList.findIndex((i) => i.id === cleanRecord.id);
+      const idx = store.invoices.findIndex((i) => i.id === cleanRecord.id);
       if (idx >= 0) {
-        mockInvoicesList[idx] = cleanRecord;
+        store.invoices[idx] = cleanRecord;
       }
     }
   }

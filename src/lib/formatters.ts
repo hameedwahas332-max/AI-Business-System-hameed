@@ -195,36 +195,65 @@ export function applyStockMovementSync(items: StockDeductionItem[], options: Sto
   if (typeof window === 'undefined' || !window.localStorage) return;
   try {
     const today = options.date || new Date().toISOString().split('T')[0];
+    const authData = localStorage.getItem('erp_auth_company_v1');
+    let activeCompanyId = '';
+    if (authData) {
+      try {
+        const comp = JSON.parse(authData);
+        if (comp?.id) activeCompanyId = String(comp.id);
+      } catch {}
+    }
+
     const rawProducts = localStorage.getItem('erp_products_v1');
     let products: any[] = rawProducts ? JSON.parse(rawProducts) : [];
+    if ((!Array.isArray(products) || products.length === 0) && activeCompanyId) {
+      const compProducts = localStorage.getItem(`erp_products_v1_${activeCompanyId}`);
+      if (compProducts) {
+        try {
+          products = JSON.parse(compProducts);
+        } catch {}
+      }
+    }
+    if (!Array.isArray(products)) products = [];
+
     const rawMovements = localStorage.getItem('erp_inventory_movements_v1');
     let movements: any[] = rawMovements ? JSON.parse(rawMovements) : [];
+    if (!Array.isArray(movements)) movements = [];
 
     const isStockDecrease = options.type === 'sale' || options.type === 'pos_sale';
     const isStockIncrease = options.type === 'purchase' || options.type === 'return';
 
     items.forEach((item) => {
-      const pIdx = products.findIndex((p) => 
-        (item.productId && (String(p.id) === String(item.productId) || String(p.itemCode) === String(item.productId) || String(p.sku) === String(item.productId))) ||
-        (item.sku && String(p.sku) === String(item.sku)) ||
-        (item.barcode && String(p.barcode) === String(item.barcode)) ||
-        (item.name && String(p.name).trim().toLowerCase() === String(item.name).trim().toLowerCase())
+      const targetProdId = item.productId || (item as any).product_id || (item as any).id || '';
+      const targetSku = item.sku || item.itemCode || '';
+      const targetBarcode = item.barcode || '';
+      const targetName = item.name || (item as any).productName || (item as any).product_name || '';
+
+      const pIdx = products.findIndex((p) =>
+        (targetProdId && (String(p.id) === String(targetProdId) || String(p.itemCode) === String(targetProdId) || String(p.sku) === String(targetProdId))) ||
+        (targetSku && (String(p.sku) === String(targetSku) || String(p.itemCode) === String(targetSku))) ||
+        (targetBarcode && String(p.barcode) === String(targetBarcode)) ||
+        (targetName && String(p.name || p.productName || p.product_name || '').trim().toLowerCase() === String(targetName).trim().toLowerCase())
       );
 
-      let stockBefore = 0;
-      let stockAfter = 0;
-      let prodName = item.name || 'صنف تجاري';
-      let prodCode = item.sku || item.itemCode || '';
-      let baseQty = Number(item.quantity || 0) * Number(item.unitFactor || 1);
+      const matchedProd = pIdx !== -1 ? products[pIdx] : null;
+      let stockBefore = matchedProd
+        ? Number(matchedProd.current_stock ?? matchedProd.qty ?? matchedProd.stock ?? matchedProd.quantity ?? 0)
+        : Number((item as any).stockBefore ?? (item as any).current_stock ?? (item as any).qty ?? (item as any).stock ?? 0);
+      let prodName = (matchedProd && (matchedProd.name || matchedProd.productName || matchedProd.product_name)) || targetName || 'صنف تجاري';
+      let prodCode = (matchedProd && (matchedProd.itemCode || matchedProd.sku || matchedProd.barcode)) || targetSku || targetBarcode || '';
+      const rawQty = Number(item.quantity ?? (item as any).qty ?? 0);
+      let baseQty = rawQty * Number(item.unitFactor || 1);
+      let stockAfter = stockBefore;
 
-      if (pIdx !== -1) {
-        const p = products[pIdx];
+      if (matchedProd) {
+        const p = matchedProd;
         const pFactor = Number(p.majorUnitFactor || p.conversionFactor || 1);
         const itemFactor = Number(item.unitFactor || 1);
         const itemUnit = (item.unit || item.unitName || '').trim().toLowerCase();
         const pMajorUnit = (p.majorUnitName || '').trim().toLowerCase();
 
-        baseQty = Number(item.quantity || 0);
+        baseQty = rawQty;
         if (itemFactor > 1) {
           baseQty = baseQty * itemFactor;
         } else if (pFactor > 1 && pMajorUnit && itemUnit === pMajorUnit) {
@@ -232,10 +261,6 @@ export function applyStockMovementSync(items: StockDeductionItem[], options: Sto
         } else if (pFactor > 1 && (itemUnit.includes('كيس') || itemUnit.includes('كرتون') || itemUnit.includes('شوال'))) {
           baseQty = baseQty * pFactor;
         }
-
-        stockBefore = Number(p.current_stock !== undefined ? p.current_stock : (p.stock !== undefined ? p.stock : (p.quantity || 0)));
-        prodName = p.name || prodName;
-        prodCode = p.itemCode || p.sku || p.barcode || '';
 
         if (isStockDecrease) {
           stockAfter = Math.max(0, stockBefore - baseQty);
@@ -266,27 +291,40 @@ export function applyStockMovementSync(items: StockDeductionItem[], options: Sto
           p.incomingStock = stockAfter + Number(p.totalSold || 0);
         }
 
+        const minLevel = Number(p.min_stock_level ?? p.minStock ?? 5);
         p.current_stock = stockAfter;
         p.stock = stockAfter;
         p.quantity = stockAfter;
         p.qty = stockAfter;
+        p.status = stockAfter <= 0 ? 'نفد' : stockAfter <= minLevel ? 'قريب من النفاذ' : 'متوفر';
         p.updated_at = new Date().toISOString();
         products[pIdx] = p;
+      } else {
+        if (isStockDecrease) {
+          stockAfter = Math.max(0, stockBefore - baseQty);
+        } else if (isStockIncrease) {
+          stockAfter = stockBefore + baseQty;
+        }
       }
 
       movements.unshift({
         id: `mov-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         date: today,
         timestamp: new Date().toISOString(),
-        productId: item.productId,
+        productId: matchedProd?.id || targetProdId,
+        product_id: matchedProd?.id || targetProdId,
         productCode: prodCode,
         productName: prodName,
+        product_name: prodName,
         type: options.type,
-        unitName: item.unitName || item.unit || 'حبة',
-        quantity: Number(item.quantity || 0),
+        unitName: item.unitName || item.unit || matchedProd?.unit || matchedProd?.baseUnitName || 'حبة',
+        quantity: rawQty,
         baseQuantity: baseQty,
         stockBefore,
+        stock_before: stockBefore,
         stockAfter,
+        stock_after: stockAfter,
+        remaining_stock: stockAfter,
         referenceNumber: options.referenceNumber,
         customerOrSupplierName: options.customerOrSupplierName || 'العميل النقدي',
         totalAmount: Number(item.total || 0),
@@ -297,14 +335,8 @@ export function applyStockMovementSync(items: StockDeductionItem[], options: Sto
     localStorage.setItem('erp_inventory_movements_v1', JSON.stringify(movements.slice(0, 500)));
 
     // Save to company specific key if present
-    const authData = localStorage.getItem('erp_auth_company_v1');
-    if (authData) {
-      try {
-        const comp = JSON.parse(authData);
-        if (comp?.id) {
-          localStorage.setItem(`erp_products_v1_${comp.id}`, JSON.stringify(products));
-        }
-      } catch {}
+    if (activeCompanyId) {
+      localStorage.setItem(`erp_products_v1_${activeCompanyId}`, JSON.stringify(products));
     }
 
     // Broadcast global event

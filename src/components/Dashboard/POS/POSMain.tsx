@@ -52,10 +52,8 @@ import {
   applyStockMovementSync,
 } from '../../../lib/formatters';
 import { printInvoiceDocument } from '../../../lib/exportUtils';
-import { recordAutomaticTreasuryVoucher } from '../../../utils/treasuryVoucherHelper';
 import { normalizeScannedBarcode, playBarcodeBeep, findProductByBarcode, attachGlobalBarcodeScannerListener, shouldProcessBarcodeScan } from '../../../utils/barcodeUtils';
 import { formatProductStock, computeLiveProductStockMetrics } from '../../../utils/inventoryMath';
-import { enqueueOutboxTransaction } from '../../../services/transactionalOutbox';
 import { ModuleSettingsModal } from '../../Common/ModuleSettingsModal';
 import { POSQuickItemModal } from './POSQuickItemModal';
 import { POSCustomerSelector } from './POSCustomerSelector';
@@ -176,7 +174,10 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
       // Load held sales from unified key erp_pos_held_orders_v1 first, then api
       const localHeld = (() => {
         try {
-          const raw = localStorage.getItem('erp_pos_held_orders_v1') || localStorage.getItem('erp_pos_held_sales_v1');
+          const raw =
+            localStorage.getItem('erp_pos_held_orders_v1') ||
+            localStorage.getItem('erp_pos_held_v1') ||
+            localStorage.getItem('erp_pos_held_sales_v1');
           return raw ? JSON.parse(raw) : [];
         } catch {
           return [];
@@ -423,37 +424,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
         customer: selectedCustomer || { name: 'عميل نقدي سريع' },
       };
 
-      // 1. Sync Central Stock Deduction and Movements
-      applyStockMovementSync(enrichedCartItems, {
-        type: 'pos_sale',
-        referenceNumber: invoiceNum,
-        customerName: payload.customerName,
-        paymentMethod: 'CASH',
-        total: grandTotal,
-      });
-
-      // 1.1 Record Automatic Treasury Receipt Voucher (سند قبض)
-      try {
-        recordAutomaticTreasuryVoucher({
-          type: 'CUSTOMER_PAYMENT',
-          amount: grandTotal,
-          currency: currency || 'YER',
-          paymentMethod: 'CASH',
-          paymentDate: new Date().toISOString().split('T')[0],
-          partyId: selectedCustomer?.id || 'cust-direct',
-          partyName: payload.customerName,
-          partyPhone: selectedCustomer?.phone,
-          referenceId: receiptDataObj.id,
-          referenceNo: invoiceNum,
-          referenceType: 'SALES_INVOICE',
-          notes: `سند قبض نقدي سريع نقطة البيع (POS) رقم #${invoiceNum} (العميل: ${payload.customerName})`,
-          cashierName: (user?.full_name || (user as any)?.name || 'حميد وهاس').trim(),
-        });
-      } catch (err) {
-        console.warn('Treasury sync warn:', err);
-      }
-
-      // 2. Record to Central POS Sales Log
+      // Record to Central POS Sales Log
       const posLogRecord = {
         id: res.data?.id || `pos-${Date.now()}`,
         invoiceNumber: invoiceNum,
@@ -963,12 +934,14 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
         note: refLabel,
       };
 
-      // 1. Immediately store in unified localStorage key
-      const stored = localStorage.getItem('erp_pos_held_orders_v1') || localStorage.getItem('erp_pos_held_sales_v1');
+      // 1. Immediately store in unified localStorage key erp_pos_held_orders_v1
+      const stored =
+        localStorage.getItem('erp_pos_held_orders_v1') ||
+        localStorage.getItem('erp_pos_held_v1') ||
+        localStorage.getItem('erp_pos_held_sales_v1');
       const list: any[] = stored ? JSON.parse(stored) : [];
       const updated = [newHeldRecord, ...list.filter((h: any) => h.id !== heldId)];
       localStorage.setItem('erp_pos_held_orders_v1', JSON.stringify(updated));
-      localStorage.setItem('erp_pos_held_sales_v1', JSON.stringify(updated));
       setHeldSales(updated);
       window.dispatchEvent(new Event('erp-pos-held-updated'));
 
@@ -1031,13 +1004,15 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
       note: effectiveNote,
     };
 
-    // 1. Save locally
+    // 1. Save locally in unified key erp_pos_held_orders_v1
     try {
-      const stored = localStorage.getItem('erp_pos_held_orders_v1') || localStorage.getItem('erp_pos_held_sales_v1');
+      const stored =
+        localStorage.getItem('erp_pos_held_orders_v1') ||
+        localStorage.getItem('erp_pos_held_v1') ||
+        localStorage.getItem('erp_pos_held_sales_v1');
       const list: any[] = stored ? JSON.parse(stored) : [];
       const updated = [newCreditHeld, ...list.filter((h: any) => h.id !== heldId)];
       localStorage.setItem('erp_pos_held_orders_v1', JSON.stringify(updated));
-      localStorage.setItem('erp_pos_held_sales_v1', JSON.stringify(updated));
       setHeldSales(updated);
       window.dispatchEvent(new Event('erp-pos-held-updated'));
     } catch (e) {
@@ -1090,13 +1065,15 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
   // Delete Held Sale
   const handleDeleteHeldSale = async (heldId: string) => {
     try {
-      const stored = localStorage.getItem('erp_pos_held_orders_v1') || localStorage.getItem('erp_pos_held_sales_v1');
+      const stored =
+        localStorage.getItem('erp_pos_held_orders_v1') ||
+        localStorage.getItem('erp_pos_held_v1') ||
+        localStorage.getItem('erp_pos_held_sales_v1');
       if (stored) {
         try {
           const list: any[] = stored ? JSON.parse(stored) : [];
           const filtered = list.filter((h: any) => h.id !== heldId && h.reference_no !== heldId);
           localStorage.setItem('erp_pos_held_orders_v1', JSON.stringify(filtered));
-          localStorage.setItem('erp_pos_held_sales_v1', JSON.stringify(filtered));
           setHeldSales(filtered);
         } catch {}
       }
@@ -1296,22 +1273,12 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
       const res = await api.posCheckout(payload);
 
       if (res.success && res.data) {
-        // 1. Sync Central Stock Deduction and Movements
-        applyStockMovementSync(enrichedCartItems, {
-          type: 'pos_sale',
-          referenceNumber: invNum,
-          customerName: effectiveCustomer,
-          paymentMethod: paymentData.paymentMethod || 'MULTI',
-          total: grandTotal,
-          currency,
-        });
-
-        // 2. Record to Central Invoices and POS Sales Log
+        // Record to Central Invoices and POS Sales Log from server response
         const finalPosInvoice = {
           ...res.data,
-          id: invNum,
-          invoice_number: invNum,
-          invoiceNumber: invNum,
+          id: res.data.id || invNum,
+          invoice_number: res.data.invoice_number || invNum,
+          invoiceNumber: res.data.invoiceNumber || res.data.invoice_number || invNum,
           customer_name: effectiveCustomer,
           customer: effectiveCustomer,
           customerName: effectiveCustomer,
@@ -1354,60 +1321,8 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
             JSON.stringify([finalPosInvoice, ...existingList.filter((i) => i.id !== finalPosInvoice.id && i.invoice_number !== invNum)])
           );
           window.dispatchEvent(new CustomEvent('erp-invoices-updated'));
-
-          // Enqueue into persistent Transactional Outbox (CR-2026-TAURI-OFFLINE-SYNC-001)
-          enqueueOutboxTransaction('POS_SALE_CREATE', finalPosInvoice, {
-            dependencyOrder: 20,
-            idempotencyKey: `pos_${finalPosInvoice.id}`,
-          }).catch((e) => console.warn('[OUTBOX_POS_WARN]', e));
         } catch (e) {
           console.error('Failed to sync POS invoice to erp_invoices_v1:', e);
-        }
-
-        // Record automatic treasury receipt voucher (سند قبض) if paid amount > 0
-        if (Number(paymentData.paidAmount) > 0) {
-          try {
-            recordAutomaticTreasuryVoucher({
-              type: 'CUSTOMER_PAYMENT',
-              amount: Number(paymentData.paidAmount),
-              currency: currency || 'YER',
-              paymentMethod: paymentData.paymentMethod || 'CASH',
-              paymentDate: new Date().toISOString().split('T')[0],
-              partyId: selectedCustomer?.id || 'cust-direct',
-              partyName: effectiveCustomer,
-              partyPhone: selectedCustomer?.phone,
-              referenceId: finalPosInvoice.id,
-              referenceNo: invNum,
-              referenceType: 'SALES_INVOICE',
-              notes: `سند قبض آلي عن مبيعات نقطة البيع (POS) رقم #${invNum} (العميل: ${effectiveCustomer})`,
-              cashierName: effectiveSalesperson,
-            });
-          } catch (pmtErr) {
-            console.error('Failed to record automatic treasury voucher from POS:', pmtErr);
-          }
-        }
-
-        // If credit balance remaining, sync customer balance in erp_customers_v1 ONCE (no duplicate addCustomerTransaction call)
-        if (paymentData.remainingAmount > 0 && selectedCustomer?.name) {
-          try {
-            const custStored = localStorage.getItem('erp_customers_v1');
-            const custList: any[] = custStored ? JSON.parse(custStored) : [];
-            const updatedCustList = custList.map((c) => {
-              if (c.id === selectedCustomer.id || c.name?.trim() === selectedCustomer.name.trim()) {
-                return {
-                  ...c,
-                  current_balance: newBal !== undefined ? newBal : Number(c.current_balance || 0) + Number(paymentData.remainingAmount),
-                  balance: newBal !== undefined ? newBal : Number(c.balance || c.current_balance || 0) + Number(paymentData.remainingAmount),
-                  total_sales: Number(c.total_sales || 0) + grandTotal,
-                };
-              }
-              return c;
-            });
-            localStorage.setItem('erp_customers_v1', JSON.stringify(updatedCustList));
-            window.dispatchEvent(new CustomEvent('erp-customers-updated'));
-          } catch (e) {
-            console.error('Failed to update customer balance from POS:', e);
-          }
         }
 
         const posLogRecord = {

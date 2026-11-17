@@ -11,8 +11,14 @@ import {
   persistAllToDisk,
   getTenantCollections,
   isTenantCleanProductionMode,
+  permanentCompaniesMap,
 } from './dataStore.js';
 import { getCurrentTenantId } from './security.js';
+
+export function resolveTenantDefaultCurrency(companyId: string): string {
+  const cid = companyId || getCurrentTenantId() || 'comp_001';
+  return (typeof permanentCompaniesMap !== 'undefined' ? permanentCompaniesMap.get(cid)?.currency : undefined) || 'YER';
+}
 
 // ============================================================================
 // 1. Types & Interfaces
@@ -69,13 +75,10 @@ export const tenantJournalEntriesMap = new Map<string, JournalEntry[]>();
 export function wipeAllJournalEntriesAndResetAccounts(companyId?: string): void {
   const cid = companyId || getCurrentTenantId() || 'comp_001';
   tenantJournalEntriesMap.set(cid, []);
-  if (cid !== 'comp_001') {
-    tenantJournalEntriesMap.set('comp_001', []);
-  }
-  tenantJournalEntriesMap.clear();
 
-  for (const [_, accs] of tenantAccountsMap.entries()) {
-    if (Array.isArray(accs)) {
+  ensureTenantAccountsInitialized(cid);
+  for (const [key, accs] of tenantAccountsMap.entries()) {
+    if (key === cid && Array.isArray(accs)) {
       for (const a of accs) {
         a.balance = 0;
         a.updated_at = new Date().toISOString();
@@ -94,6 +97,7 @@ export const STANDARD_CHART_OF_ACCOUNTS: Array<Omit<AccountRecord, 'id' | 'compa
   { code: '1103', name: 'Accounts Receivable', name_ar: 'العملاء / المدينون', type: 'ASSET', nature: 'DEBIT', is_active: true },
   { code: '1104', name: 'Merchandise Inventory', name_ar: 'المخزون السلعي', type: 'ASSET', nature: 'DEBIT', is_active: true },
   { code: '1105', name: 'Input VAT Receivable', name_ar: 'ضريبة القيمة المضافة - مدخلات', type: 'ASSET', nature: 'DEBIT', is_active: true },
+  { code: '1106', name: 'Employee Advances & Petty Cash', name_ar: 'سلف وعهد الموظفين', type: 'ASSET', nature: 'DEBIT', is_active: true },
   { code: '1107', name: 'Electronic Wallets & Networks', name_ar: 'المحافظ الإلكترونية والشبكات', type: 'ASSET', nature: 'DEBIT', is_active: true },
   { code: '1201', name: 'Fixed Assets & Equipment', name_ar: 'الأصول الثابتة والمعدات', type: 'ASSET', nature: 'DEBIT', is_active: true },
   { code: '2101', name: 'Accounts Payable', name_ar: 'الموردون / الدائنون', type: 'LIABILITY', nature: 'CREDIT', is_active: true },
@@ -163,6 +167,19 @@ export function roundMoney(val: unknown): number {
   const num = Number(val);
   if (isNaN(num) || !isFinite(num)) return 0;
   return Math.round((num + Number.EPSILON) * 100) / 100;
+}
+
+export function syncProductAvailabilityStatus(prod: any): void {
+  if (!prod || typeof prod !== 'object') return;
+  const stock = Number(prod.current_stock ?? prod.qty ?? prod.stock ?? 0);
+  const min = Number(prod.min_stock_level ?? 5);
+  if (stock <= 0) {
+    prod.status = 'نفد';
+  } else if (stock <= min) {
+    prod.status = 'قريب من النفاذ';
+  } else {
+    prod.status = 'متوفر';
+  }
 }
 
 /**
@@ -357,7 +374,7 @@ export interface PostJournalOptions {
 export function postDoubleEntryJournal(options: PostJournalOptions): JournalEntry {
   const { companyId, reference_type, reference_id, description, lines } = options;
   const cid = companyId || getCurrentTenantId() || 'comp_001';
-  const currency = options.currency || 'YER';
+  const currency = options.currency || resolveTenantDefaultCurrency(cid);
   const dateStr = (options.date || new Date().toISOString()).split('T')[0];
   const now = new Date().toISOString();
 
@@ -450,10 +467,11 @@ export function postDoubleEntryJournal(options: PostJournalOptions): JournalEntr
   entries.unshift(journalEntry);
   saveTenantJournalEntries(cid, entries);
 
-  // 4. Synchronize into mockAccountTransactions for instant Ledger tab availability
+  // 4. Synchronize into store.accountTransactions for instant Ledger tab availability
+  const store = getTenantCollections(cid);
   for (const line of entryLines) {
     if (line.debit > 0 || line.credit > 0) {
-      mockAccountTransactions.unshift({
+      store.accountTransactions.unshift({
         id: `ctx-${journalEntry.id}-${line.account_code}`,
         company_id: cid,
         party_id: line.party_id || undefined,
@@ -500,6 +518,7 @@ export function postSalesTransactionAtomic(params: SalesPostParams) {
   const { companyId, invoice, enforceStockCheck = true } = params;
   const items = params.items || invoice.items || [];
   const cid = companyId || getCurrentTenantId() || 'comp_001';
+  const store = getTenantCollections(cid);
   const paymentMethod = String(params.paymentMethod || invoice.payment_method || invoice.paymentMethod || 'CASH').toUpperCase();
   const rawDate = String(invoice.date || invoice.invoice_date || invoice.created_at || '').trim();
   const invoiceDate = rawDate ? rawDate.split('T')[0] : new Date().toISOString().split('T')[0];
@@ -516,7 +535,7 @@ export function postSalesTransactionAtomic(params: SalesPostParams) {
     const qty = Math.max(0, Number(it.quantity || 1));
     const baseQty = qty * factor;
 
-    const prod = mockProducts.find(
+    const prod = store.products.find(
       (p) => p.id === prodId || (p.sku && p.sku === it.sku) || (p.barcode && p.barcode === it.barcode)
     );
 
@@ -553,8 +572,9 @@ export function postSalesTransactionAtomic(params: SalesPostParams) {
       v.prod.stock = newStock;
       v.prod.totalSold = (Number(v.prod.totalSold) || 0) + v.baseQty;
       v.prod.soldToday = (Number(v.prod.soldToday) || 0) + v.baseQty;
+      syncProductAvailabilityStatus(v.prod);
 
-      mockInventoryMovements.unshift({
+      store.movements.unshift({
         id: `mov-sale-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         company_id: cid,
         product_id: v.prod.id,
@@ -600,7 +620,7 @@ export function postSalesTransactionAtomic(params: SalesPostParams) {
   let customerName = String(
     params.customerName || invoice.customer_name || invoice.customerName || invoice.customer || ''
   ).trim();
-  let cust = mockCustomersList.find(
+  let cust = store.customers.find(
     (c) =>
       (params.customerId && params.customerId !== 'cust-cash' && params.customerId !== 'cust-direct' && c.id === params.customerId) ||
       (customerName && c.name.toLowerCase() === customerName.toLowerCase())
@@ -619,12 +639,12 @@ export function postSalesTransactionAtomic(params: SalesPostParams) {
         balance: remainingVal,
         creditLimit: 0,
         status: 'ACTIVE',
-        currency: invoice.currency || 'YER',
+        currency: invoice.currency || resolveTenantDefaultCurrency(cid),
         is_active: true,
         created_at: invoiceCreatedAt,
         updated_at: invoiceCreatedAt,
       };
-      mockCustomersList.unshift(cust);
+      store.customers.unshift(cust);
     } else if (cust) {
       const prevBal = Number(cust.current_balance ?? cust.balance ?? 0);
       cust.current_balance = roundMoney(prevBal + remainingVal);
@@ -706,7 +726,7 @@ export function postSalesTransactionAtomic(params: SalesPostParams) {
     reference_type: 'SALES_INVOICE',
     reference_id: invoiceNumber,
     description: `إثبات مبيعات فاتورة #${invoiceNumber} (${customerName})`,
-    currency: invoice.currency || 'YER',
+    currency: invoice.currency || resolveTenantDefaultCurrency(cid),
     date: invoiceDate,
     lines: revenueLines,
     created_by: params.userName || invoice.created_by_name || 'حميد وهاس',
@@ -720,7 +740,7 @@ export function postSalesTransactionAtomic(params: SalesPostParams) {
       reference_type: 'INVENTORY_COGS',
       reference_id: invoiceNumber,
       description: `إثبات تكلفة البضاعة المباعة (COGS) فاتورة #${invoiceNumber}`,
-      currency: invoice.currency || 'YER',
+      currency: invoice.currency || resolveTenantDefaultCurrency(cid),
       date: invoiceDate,
       lines: [
         {
@@ -742,9 +762,9 @@ export function postSalesTransactionAtomic(params: SalesPostParams) {
     });
   }
 
-  // 7. Record Payment in mockPaymentsList if cash/bank received
+  // 7. Record Payment in store.payments if cash/bank received
   if (paidVal > 0) {
-    mockPaymentsList.unshift({
+    store.payments.unshift({
       id: `pmt-sale-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       company_id: cid,
       voucher_number: `REC-${invoiceNumber}`,
@@ -772,7 +792,7 @@ export function postSalesTransactionAtomic(params: SalesPostParams) {
     } as any);
   }
 
-  // 8. Construct complete invoice record and store in mockInvoicesList
+  // 8. Construct complete invoice record and store in store.invoices
   const invoiceStatus = remainingVal <= 0.01 && totalVal > 0 ? 'PAID' : (paidVal > 0 ? 'PARTIAL' : 'ISSUED');
   const newInv = {
     ...invoice,
@@ -817,13 +837,13 @@ export function postSalesTransactionAtomic(params: SalesPostParams) {
     created_at: invoiceCreatedAt,
   };
 
-  const existingInvIdx = mockInvoicesList.findIndex(
+  const existingInvIdx = store.invoices.findIndex(
     (inv) => String(inv.id) === String(newInv.id) || String(inv.invoice_number) === String(invoiceNumber) || String(inv.invoiceNumber) === String(invoiceNumber)
   );
   if (existingInvIdx !== -1) {
-    mockInvoicesList.splice(existingInvIdx, 1);
+    store.invoices.splice(existingInvIdx, 1);
   }
-  mockInvoicesList.unshift(newInv);
+  store.invoices.unshift(newInv);
 
   persistAllToDisk();
 
@@ -862,6 +882,7 @@ export interface SalesReturnParams {
 export function postSalesReturnAtomic(params: SalesReturnParams) {
   const { companyId, returnData, items } = params;
   const cid = companyId || getCurrentTenantId() || 'comp_001';
+  const store = getTenantCollections(cid);
   const refundMethod = String(params.refundMethod || returnData.refundMethod || returnData.paymentMethod || 'CASH').toUpperCase();
   const rawDate = String(returnData.date || returnData.created_at || '').trim();
   const returnDate = rawDate ? rawDate.split('T')[0] : new Date().toISOString().split('T')[0];
@@ -870,7 +891,7 @@ export function postSalesReturnAtomic(params: SalesReturnParams) {
   const origInvNumLower = String(origInvNum || '').trim().toLowerCase();
 
   // BUG-07: Validate returned item quantities against original invoice sold quantity
-  const origInv = mockInvoicesList.find(
+  const origInv = store.invoices.find(
     (i) =>
       (String(i.invoice_number || '').toLowerCase() === origInvNumLower ||
         String(i.id || '').toLowerCase() === origInvNumLower ||
@@ -907,7 +928,7 @@ export function postSalesReturnAtomic(params: SalesReturnParams) {
 
       // Sum all previously returned quantities for this product on this original invoice
       let prevReturnedBaseQty = 0;
-      for (const inv of mockInvoicesList) {
+      for (const inv of store.invoices) {
         if (
           inv.status !== 'CANCELLED' &&
           (inv.original_invoice_number === origInvNum || inv.reference_id === origInvNum) &&
@@ -928,7 +949,7 @@ export function postSalesReturnAtomic(params: SalesReturnParams) {
       }
 
       if (prevReturnedBaseQty === 0) {
-        for (const mov of mockInventoryMovements) {
+        for (const mov of store.movements) {
           if (
             mov.reference_type === 'SALES_RETURN' &&
             mov.product_id === prodId &&
@@ -961,7 +982,7 @@ export function postSalesReturnAtomic(params: SalesReturnParams) {
     const qty = Math.max(0, Number(it.quantity || 1));
     const baseQty = qty * factor;
 
-    const prod = mockProducts.find(
+    const prod = store.products.find(
       (p) => p.id === prodId || (p.sku && p.sku === it.sku) || (p.barcode && p.barcode === it.barcode)
     );
 
@@ -972,12 +993,13 @@ export function postSalesReturnAtomic(params: SalesReturnParams) {
       prod.qty = newStock;
       prod.stock = newStock;
       prod.totalSold = Math.max(0, (Number(prod.totalSold) || 0) - baseQty);
+      syncProductAvailabilityStatus(prod);
 
       const unitCost = Number(prod.cost_price || prod.purchase_price || it.cost_price || 0);
       const lineCogs = roundMoney(baseQty * unitCost);
       totalReturnCogs = roundMoney(totalReturnCogs + lineCogs);
 
-      mockInventoryMovements.unshift({
+      store.movements.unshift({
         id: `mov-ret-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         company_id: cid,
         product_id: prod.id,
@@ -1014,7 +1036,7 @@ export function postSalesReturnAtomic(params: SalesReturnParams) {
   // 3. Customer Balance Reversal if Credit Note or if removing invoice with remaining debt
   const targetCustId = params.customerId || returnData.customer_id || returnData.customerId || origInv?.customer_id || (origInv as any)?.customerId;
   const targetCustName = params.customerName || returnData.customer_name || returnData.customerName || origInv?.customer_name || (origInv as any)?.customerName;
-  let cust = mockCustomersList.find(
+  let cust = store.customers.find(
     (c) =>
       (targetCustId && c.id === targetCustId) ||
       (targetCustName && String(c.name || '').trim().toLowerCase() === String(targetCustName).trim().toLowerCase())
@@ -1026,25 +1048,23 @@ export function postSalesReturnAtomic(params: SalesReturnParams) {
     refundMethod === 'ON_ACCOUNT' ||
     refundMethod === 'CUSTOMER_CREDIT';
 
-  if (cust && totalRefund > 0) {
-    if (isCreditReturn) {
-      cust.current_balance = roundMoney(Math.max(0, (cust.current_balance || 0) - totalRefund));
-      cust.balance = cust.current_balance;
-      (cust as any).total_debt = cust.current_balance;
-    } else if (returnData.remove_invoice !== false && origInv) {
-      const remDebt = Number(origInv.remaining_amount ?? (origInv as any).remainingAmount ?? 0);
-      if (remDebt > 0) {
-        const reduceAmt = Math.min(totalRefund, remDebt);
-        cust.current_balance = roundMoney(Math.max(0, (cust.current_balance || 0) - reduceAmt));
-        cust.balance = cust.current_balance;
-        (cust as any).total_debt = cust.current_balance;
-      }
-    }
+  const remDebt = origInv ? Number(origInv.remaining_amount ?? (origInv as any).remainingAmount ?? 0) : 0;
+  const debtReduction = isCreditReturn
+    ? totalRefund
+    : remDebt > 0
+      ? roundMoney(Math.min(totalRefund, remDebt))
+      : 0;
+  const actualCashRefund = isCreditReturn ? 0 : roundMoney(Math.max(0, totalRefund - debtReduction));
+
+  if (cust && debtReduction > 0) {
+    cust.current_balance = roundMoney(Math.max(0, (cust.current_balance || 0) - debtReduction));
+    cust.balance = cust.current_balance;
+    (cust as any).total_debt = cust.current_balance;
   }
 
   // 4. Return Journal Entry
   // Debits: 4102 Sales Returns & Allowances (net), 2102 Output VAT Payable (tax reversal)
-  // Credits: 1101 Cash / 1102 Bank / 1107 E-Wallet / 1103 Accounts Receivable
+  // Credits: 1103 Accounts Receivable (debtReduction), 1101 Cash / 1102 Bank / 1107 E-Wallet (actualCashRefund)
   const returnLines: JournalLine[] = [
     {
       account_code: '4102',
@@ -1065,41 +1085,45 @@ export function postSalesReturnAtomic(params: SalesReturnParams) {
     });
   }
 
-  const isWalletRefund = ['WALLET', 'MOBILE', 'E_WALLET', 'KURIMI', 'JAWALI', 'FLOUSK', 'ONE_CASH', 'JIB'].includes(refundMethod);
-  if (isWalletRefund) {
-    returnLines.push({
-      account_code: '1107',
-      account_name: 'المحافظ الإلكترونية والشبكات',
-      debit: 0,
-      credit: totalRefund,
-      description: `رد قيمة مردودات مبيعات عبر المحفظة الإلكترونية #${returnNumber}`,
-    });
-  } else if (refundMethod === 'BANK' || refundMethod === 'BANK_REFUND' || refundMethod === 'CARD') {
-    returnLines.push({
-      account_code: '1102',
-      account_name: 'البنك / الحسابات البنكية',
-      debit: 0,
-      credit: totalRefund,
-      description: `رد قيمة مردودات مبيعات عبر البنك #${returnNumber}`,
-    });
-  } else if (isCreditReturn) {
+  if (debtReduction > 0) {
     returnLines.push({
       account_code: '1103',
       account_name: 'العملاء / المدينون',
       debit: 0,
-      credit: totalRefund,
-      description: `إشعار دائن لحساب العميل بمردودات مبيعات #${returnNumber}`,
+      credit: debtReduction,
+      description: `تسوية مديونية العميل بمردودات مبيعات #${returnNumber}`,
       party_id: cust?.id,
       party_type: 'CUSTOMER',
     });
-  } else {
-    returnLines.push({
-      account_code: '1101',
-      account_name: 'الصندوق / النقدية',
-      debit: 0,
-      credit: totalRefund,
-      description: `رد نقدي لمردودات مبيعات #${returnNumber}`,
-    });
+  }
+
+  if (actualCashRefund > 0) {
+    const isWalletRefund = ['WALLET', 'MOBILE', 'E_WALLET', 'KURIMI', 'JAWALI', 'FLOUSK', 'ONE_CASH', 'JIB'].includes(refundMethod);
+    if (isWalletRefund) {
+      returnLines.push({
+        account_code: '1107',
+        account_name: 'المحافظ الإلكترونية والشبكات',
+        debit: 0,
+        credit: actualCashRefund,
+        description: `رد قيمة مردودات مبيعات عبر المحفظة الإلكترونية #${returnNumber}`,
+      });
+    } else if (refundMethod === 'BANK' || refundMethod === 'BANK_REFUND' || refundMethod === 'CARD') {
+      returnLines.push({
+        account_code: '1102',
+        account_name: 'البنك / الحسابات البنكية',
+        debit: 0,
+        credit: actualCashRefund,
+        description: `رد قيمة مردودات مبيعات عبر البنك #${returnNumber}`,
+      });
+    } else {
+      returnLines.push({
+        account_code: '1101',
+        account_name: 'الصندوق / النقدية',
+        debit: 0,
+        credit: actualCashRefund,
+        description: `رد نقدي لمردودات مبيعات #${returnNumber}`,
+      });
+    }
   }
 
   const returnJournal = postDoubleEntryJournal({
@@ -1107,7 +1131,7 @@ export function postSalesReturnAtomic(params: SalesReturnParams) {
     reference_type: 'SALES_RETURN',
     reference_id: returnNumber,
     description: `مردودات مبيعات مرتجع #${returnNumber} للفاتورة #${origInvNum}`,
-    currency: returnData.currency || 'YER',
+    currency: returnData.currency || resolveTenantDefaultCurrency(cid),
     date: returnDate,
     lines: returnLines,
     created_by: params.userName || 'حميد وهاس',
@@ -1121,7 +1145,7 @@ export function postSalesReturnAtomic(params: SalesReturnParams) {
       reference_type: 'INVENTORY_RETURN_COGS',
       reference_id: returnNumber,
       description: `عكس تكلفة البضاعة المباعة لمردودات مبيعات #${returnNumber}`,
-      currency: returnData.currency || 'YER',
+      currency: returnData.currency || resolveTenantDefaultCurrency(cid),
       date: returnDate,
       lines: [
         {
@@ -1143,16 +1167,24 @@ export function postSalesReturnAtomic(params: SalesReturnParams) {
     });
   }
 
-  // If remove_invoice is requested (default true from Return Modal) or full return, remove original invoice from active sales register
+  // Keep original invoice in store.invoices as a tax reference and update its status & remaining_amount
+  if (origInv) {
+    const newRemaining = roundMoney(Math.max(0, remDebt - debtReduction));
+    origInv.remaining_amount = newRemaining;
+    (origInv as any).remainingAmount = newRemaining;
+    (origInv as any).balanceDue = newRemaining;
+    (origInv as any).balance_due = newRemaining;
+    const prevReturned = Number((origInv as any).returned_amount || 0);
+    const totalReturnedAmount = roundMoney(prevReturned + totalRefund);
+    (origInv as any).returned_amount = totalReturnedAmount;
+    const origTotal = Number(origInv.total ?? (origInv as any).grandTotal ?? origInv.amount ?? 0);
+    origInv.status = (origTotal > 0 && totalReturnedAmount < origTotal - 0.01 ? 'PARTIALLY_RETURNED' : 'RETURNED') as any;
+  }
+
   const shouldRemoveOrig = returnData.remove_invoice !== false;
-  if (origInv && shouldRemoveOrig) {
-    const origIdx = mockInvoicesList.findIndex((i) => i.id === origInv.id);
-    if (origIdx !== -1) {
-      mockInvoicesList.splice(origIdx, 1);
-    }
-  } else if (!shouldRemoveOrig) {
-    // BUG-07: Record return invoice into mockInvoicesList to enforce cumulative return limits when keeping original invoice
-    mockInvoicesList.unshift({
+  if (!shouldRemoveOrig) {
+    // BUG-07: Record return invoice into store.invoices to enforce cumulative return limits when keeping original invoice
+    store.invoices.unshift({
       id: `inv-ret-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       company_id: cid,
       invoice_number: returnNumber,
@@ -1211,6 +1243,7 @@ export function postPurchaseTransactionAtomic(params: PurchasePostParams) {
   const { companyId, purchaseInvoice } = params;
   const items = params.items || purchaseInvoice.items || [];
   const cid = companyId || getCurrentTenantId() || 'comp_001';
+  const store = getTenantCollections(cid);
   const paymentMethod = String(params.paymentMethod || purchaseInvoice.payment_method || 'CREDIT').toUpperCase();
   const rawDate = String(purchaseInvoice.invoice_date || purchaseInvoice.date || purchaseInvoice.created_at || '').trim();
   const invoiceDate = rawDate ? rawDate.split('T')[0] : new Date().toISOString().split('T')[0];
@@ -1235,7 +1268,7 @@ export function postPurchaseTransactionAtomic(params: PurchasePostParams) {
     calculatedTax = roundMoney(calculatedTax + lineTax);
 
     const prodId = it.product_id || it.productId || it.id;
-    const prod = mockProducts.find(
+    const prod = store.products.find(
       (p) => p.id === prodId || (p.sku && p.sku === it.sku) || (p.barcode && p.barcode === it.barcode)
     );
 
@@ -1262,8 +1295,9 @@ export function postPurchaseTransactionAtomic(params: PurchasePostParams) {
       prod.current_stock = newStock;
       prod.qty = newStock;
       prod.stock = newStock;
+      syncProductAvailabilityStatus(prod);
 
-      mockInventoryMovements.unshift({
+      store.movements.unshift({
         id: `mov-pur-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         company_id: cid,
         product_id: prod.id,
@@ -1304,7 +1338,7 @@ export function postPurchaseTransactionAtomic(params: PurchasePostParams) {
   let supplierName = String(
     params.supplierName || purchaseInvoice.supplier_name || purchaseInvoice.supplierName || purchaseInvoice.supplier || ''
   ).trim();
-  let supp = mockSuppliersList.find(
+  let supp = store.suppliers.find(
     (s) => (params.supplierId && s.id === params.supplierId) || (supplierName && s.name.toLowerCase() === supplierName.toLowerCase())
   );
   if (supp && !supplierName) supplierName = supp.name;
@@ -1319,12 +1353,12 @@ export function postPurchaseTransactionAtomic(params: PurchasePostParams) {
         phone: purchaseInvoice.supplier_phone || '',
         current_balance: unpaidVal,
         balance: unpaidVal,
-        currency: purchaseInvoice.currency || 'YER',
+        currency: purchaseInvoice.currency || resolveTenantDefaultCurrency(cid),
         is_active: true,
         created_at: invoiceCreatedAt,
         updated_at: invoiceCreatedAt,
       };
-      mockSuppliersList.unshift(supp);
+      store.suppliers.unshift(supp);
     } else if (supp) {
       supp.current_balance = roundMoney((supp.current_balance || 0) + unpaidVal);
       supp.balance = supp.current_balance;
@@ -1391,15 +1425,15 @@ export function postPurchaseTransactionAtomic(params: PurchasePostParams) {
     reference_type: 'PURCHASE_INVOICE',
     reference_id: invoiceNumber,
     description: `إثبات مشتريات وتوريد مخزون فاتورة #${invoiceNumber} (${supplierName})`,
-    currency: purchaseInvoice.currency || 'YER',
+    currency: purchaseInvoice.currency || resolveTenantDefaultCurrency(cid),
     date: invoiceDate,
     lines: purchaseLines,
     created_by: params.userName || 'حميد وهاس',
   });
 
-  // 5. Record Payment in mockPaymentsList if cash/bank/wallet paid
+  // 5. Record Payment in store.payments if cash/bank/wallet paid
   if (paidVal > 0) {
-    mockPaymentsList.unshift({
+    store.payments.unshift({
       id: `pmt-pur-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       company_id: cid,
       voucher_number: `PAY-${invoiceNumber}`,
@@ -1431,7 +1465,7 @@ export function postPurchaseTransactionAtomic(params: PurchasePostParams) {
     } as any);
   }
 
-  // 6. Construct complete purchase invoice record and store in mockPurchaseInvoicesList
+  // 6. Construct complete purchase invoice record and store in store.purchaseInvoices
   const purStatus = unpaidVal <= 0.01 ? 'PAID' : (paidVal > 0 ? 'PARTIAL' : 'PENDING');
   const newPur = {
     ...purchaseInvoice,
@@ -1463,13 +1497,13 @@ export function postPurchaseTransactionAtomic(params: PurchasePostParams) {
     created_at: invoiceCreatedAt,
   };
 
-  const existingPurIdx = mockPurchaseInvoicesList.findIndex(
+  const existingPurIdx = store.purchaseInvoices.findIndex(
     (pur) => String(pur.id) === String(newPur.id) || String(pur.invoice_number) === String(invoiceNumber) || String(pur.invoiceNumber) === String(invoiceNumber)
   );
   if (existingPurIdx !== -1) {
-    mockPurchaseInvoicesList.splice(existingPurIdx, 1);
+    store.purchaseInvoices.splice(existingPurIdx, 1);
   }
-  mockPurchaseInvoicesList.unshift(newPur);
+  store.purchaseInvoices.unshift(newPur);
 
   persistAllToDisk();
 
@@ -1538,6 +1572,7 @@ export interface VoucherParams {
 export function postVoucherAtomic(params: VoucherParams) {
   const { companyId, type, amount } = params;
   const cid = companyId || getCurrentTenantId() || 'comp_001';
+  const store = getTenantCollections(cid);
   const roundAmt = roundMoney(amount);
   if (roundAmt <= 0) {
     const err: any = new Error('مبلغ السند يجب أن يكون أكبر من الصفر');
@@ -1548,14 +1583,14 @@ export function postVoucherAtomic(params: VoucherParams) {
   const vNum = params.voucherNumber || `${type === 'RECEIPT' ? 'REC' : 'PAY'}-${Date.now().toString().slice(-6)}`;
   const dateStr = (params.date || params.payment_date || new Date().toISOString()).split('T')[0];
   
-  // 1. Resolve partyName automatically from mockCustomersList or mockSuppliersList if not provided
+  // 1. Resolve partyName automatically from store.customers or store.suppliers if not provided
   let resolvedPartyName = params.partyName;
   if (!resolvedPartyName && params.partyId) {
     if (params.partyType === 'CUSTOMER' || type === 'RECEIPT') {
-      const c = mockCustomersList.find((x) => String(x.id) === String(params.partyId));
+      const c = store.customers.find((x) => String(x.id) === String(params.partyId));
       if (c) resolvedPartyName = c.name;
     } else {
-      const s = mockSuppliersList.find((x) => String(x.id) === String(params.partyId));
+      const s = store.suppliers.find((x) => String(x.id) === String(params.partyId));
       if (s) resolvedPartyName = s.name;
     }
   }
@@ -1591,7 +1626,7 @@ export function postVoucherAtomic(params: VoucherParams) {
     desc.includes('تحصيل مبيعات فاتورة');
 
   if (isInvoiceAutoVoucher) {
-    const existingPmt = mockPaymentsList.find((p) => {
+    const existingPmt = store.payments.find((p) => {
       const pRef = String(p.reference_no || p.referenceNo || p.reference_id || p.referenceId || '').trim();
       const pVouch = String(p.voucher_number || p.voucherNumber || p.payment_number || p.paymentNumber || '').trim();
       return (
@@ -1628,7 +1663,7 @@ export function postVoucherAtomic(params: VoucherParams) {
       party_id: params.partyId,
       party_name: resolvedPartyName,
       payment_method: paymentMethod,
-      currency: params.currency || 'YER',
+      currency: params.currency || resolveTenantDefaultCurrency(cid),
       exchange_rate: Number(params.exchange_rate ?? params.exchangeRate ?? 1.0),
       reference: params.reference || refNo || undefined,
       reference_no: params.reference || refNo || undefined,
@@ -1653,7 +1688,7 @@ export function postVoucherAtomic(params: VoucherParams) {
       status: 'CONFIRMED',
       created_at: new Date().toISOString(),
     };
-    mockPaymentsList.unshift(autoPmt as any);
+    store.payments.unshift(autoPmt as any);
     persistAllToDisk();
     return {
       voucherNumber: params.voucherNumber || vNum,
@@ -1687,7 +1722,7 @@ export function postVoucherAtomic(params: VoucherParams) {
 
     // Decrease Customer Balance
     if (params.partyId) {
-      const cust = mockCustomersList.find((c) => String(c.id) === String(params.partyId));
+      const cust = store.customers.find((c) => String(c.id) === String(params.partyId));
       if (cust) {
         cust.current_balance = roundMoney(Math.max(0, (cust.current_balance || 0) - roundAmt));
         cust.balance = cust.current_balance;
@@ -1714,7 +1749,7 @@ export function postVoucherAtomic(params: VoucherParams) {
 
     // Decrease Supplier Balance
     if (params.partyId) {
-      const supp = mockSuppliersList.find((s) => String(s.id) === String(params.partyId));
+      const supp = store.suppliers.find((s) => String(s.id) === String(params.partyId));
       if (supp) {
         supp.current_balance = roundMoney(Math.max(0, (supp.current_balance || 0) - roundAmt));
         supp.balance = supp.current_balance;
@@ -1722,14 +1757,14 @@ export function postVoucherAtomic(params: VoucherParams) {
     }
   }
 
-  // 3. Update allocated invoices in mockInvoicesList or mockPurchaseInvoicesList
+  // 3. Update allocated invoices in store.invoices or store.purchaseInvoices
   if (Array.isArray(params.allocations)) {
     for (const alloc of params.allocations) {
       const invId = alloc.invoice_id || (alloc as any).invoiceId;
       const allocAmt = Number(alloc.allocated_amount ?? (alloc as any).amount ?? 0);
       if (invId && allocAmt > 0) {
         if (type === 'RECEIPT') {
-          const inv = mockInvoicesList.find(
+          const inv = store.invoices.find(
             (i) => String(i.id) === String(invId) || String(i.invoice_number) === String(invId) || String((i as any).invoiceNumber) === String(invId)
           );
           if (inv) {
@@ -1743,7 +1778,7 @@ export function postVoucherAtomic(params: VoucherParams) {
             inv.status = (newRemaining <= 0.01 ? 'paid' : 'partial') as any;
           }
         } else {
-          const pur = mockPurchaseInvoicesList.find(
+          const pur = store.purchaseInvoices.find(
             (p) => String(p.id) === String(invId) || String(p.invoice_number) === String(invId) || String((p as any).invoiceNumber) === String(invId)
           );
           if (pur) {
@@ -1766,6 +1801,7 @@ export function postVoucherAtomic(params: VoucherParams) {
     reference_type: type === 'RECEIPT' ? 'RECEIPT_VOUCHER' : 'PAYMENT_VOUCHER',
     reference_id: vNum,
     description: params.description || `سند ${type === 'RECEIPT' ? 'قبض' : 'صرف'} رقم #${vNum}`,
+    currency: params.currency || resolveTenantDefaultCurrency(cid),
     date: dateStr,
     lines,
     created_by: params.created_by,
@@ -1789,7 +1825,7 @@ export function postVoucherAtomic(params: VoucherParams) {
     party_id: params.partyId,
     party_name: resolvedPartyName,
     payment_method: paymentMethod,
-    currency: params.currency || 'YER',
+    currency: params.currency || resolveTenantDefaultCurrency(cid),
     exchange_rate: Number(params.exchange_rate ?? params.exchangeRate ?? 1.0),
     reference: params.reference || params.reference_no || params.referenceNo || undefined,
     reference_no: params.reference || params.reference_no || params.referenceNo || undefined,
@@ -1810,7 +1846,7 @@ export function postVoucherAtomic(params: VoucherParams) {
     status: 'CONFIRMED',
     created_at: new Date().toISOString(),
   };
-  mockPaymentsList.unshift(newPmt as any);
+  store.payments.unshift(newPmt as any);
 
   persistAllToDisk();
   return { voucherNumber: vNum, amount: roundAmt, journal, payment: newPmt, data: newPmt };
@@ -1843,6 +1879,7 @@ export interface ExpenseParams {
 export function postExpenseAtomic(params: ExpenseParams) {
   const { companyId, description, amount } = params;
   const cid = companyId || getCurrentTenantId() || 'comp_001';
+  const store = getTenantCollections(cid);
   const roundAmt = roundMoney(amount);
   if (roundAmt <= 0) {
     const err: any = new Error('مبلغ المصروف يجب أن يكون أكبر من الصفر');
@@ -1928,6 +1965,7 @@ export function postExpenseAtomic(params: ExpenseParams) {
     reference_type: 'EXPENSE_VOUCHER',
     reference_id: vNum,
     description: `إثبات مصروف: ${description}`,
+    currency: params.currency || resolveTenantDefaultCurrency(cid),
     date: dateStr,
     lines,
     created_by: params.created_by,
@@ -1937,7 +1975,7 @@ export function postExpenseAtomic(params: ExpenseParams) {
   const treasury =
     params.treasury ||
     (isWallet ? 'المحافظ الإلكترونية والشبكات' : isBank ? 'الحساب البنكي - بنك التضامن' : 'الصندوق النقدي الرئيسي');
-  const currency = params.currency || 'YER';
+  const currency = params.currency || resolveTenantDefaultCurrency(cid);
   const referenceNumber = params.referenceNumber || params.reference_number || params.referenceNo || '';
   const notes = params.notes || '';
 
@@ -1964,9 +2002,9 @@ export function postExpenseAtomic(params: ExpenseParams) {
     status: 'PAID',
     created_at: new Date().toISOString(),
   };
-  mockExpensesList.unshift(newExp as any);
+  store.expenses.unshift(newExp as any);
 
-  // Push corresponding PAYMENT voucher into mockPaymentsList
+  // Push corresponding PAYMENT voucher into store.payments
   const newPmt = {
     id: `PMT-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     company_id: cid,
@@ -1998,7 +2036,7 @@ export function postExpenseAtomic(params: ExpenseParams) {
     status: 'CONFIRMED',
     created_at: new Date().toISOString(),
   };
-  mockPaymentsList.unshift(newPmt as any);
+  store.payments.unshift(newPmt as any);
 
   persistAllToDisk();
   return { voucherNumber: vNum, amount: roundAmt, journal, expense: newExp, payment: newPmt, data: newExp };
@@ -2088,6 +2126,7 @@ export function computeUnifiedFinancialMetrics(
   customAccounts?: AccountRecord[]
 ) {
   const cid = companyId || getCurrentTenantId() || 'comp_001';
+  const store = getTenantCollections(cid);
   const isClean = isTenantCleanProductionMode(cid);
 
   if (!customAccounts) {
@@ -2100,7 +2139,7 @@ export function computeUnifiedFinancialMetrics(
 
   // Live Inventory Valuation: sum(prod.current_stock * prod.cost_price)
   const physicalInventoryValuation = roundMoney(
-    mockProducts.reduce(
+    store.products.reduce(
       (sum, p: any) => sum + (Math.max(0, Number(p.current_stock ?? p.qty ?? p.stock ?? 0)) * Math.max(0, Number(p.cost_price ?? p.purchase_price ?? 0))),
       0
     )
@@ -2108,10 +2147,10 @@ export function computeUnifiedFinancialMetrics(
 
   // Live Receivables and Payables from Customers and Suppliers
   const physicalReceivables = roundMoney(
-    mockCustomersList.reduce((sum, c: any) => sum + Math.max(0, Number(c.balance ?? c.current_balance ?? 0)), 0)
+    store.customers.reduce((sum, c: any) => sum + Math.max(0, Number(c.balance ?? c.current_balance ?? 0)), 0)
   );
   const physicalPayables = roundMoney(
-    mockSuppliersList.reduce((sum, s: any) => sum + Math.max(0, Number(s.balance ?? s.current_balance ?? 0)), 0)
+    store.suppliers.reduce((sum, s: any) => sum + Math.max(0, Number(s.balance ?? s.current_balance ?? 0)), 0)
   );
 
   // Detailed Accounts & Liquidity Calculations
@@ -2128,7 +2167,7 @@ export function computeUnifiedFinancialMetrics(
   let bankSalesCollected = 0;
   let walletSalesCollected = 0;
 
-  for (const inv of mockInvoicesList) {
+  for (const inv of store.invoices) {
     if ((inv.status || '').toUpperCase() === 'CANCELLED') continue;
     const paid = Number(inv.paid_amount ?? inv.paidAmount ?? (inv.status === 'PAID' ? (inv.total || inv.amount || 0) : 0));
     if (paid > 0) {
@@ -2150,7 +2189,7 @@ export function computeUnifiedFinancialMetrics(
   let bankDisbursements = 0;
   let walletDisbursements = 0;
 
-  for (const p of mockPaymentsList) {
+  for (const p of store.payments) {
     if (p.status === 'CANCELLED') continue;
     const amt = Number(p.amount || 0);
     const method = p.payment_method || (p as any).paymentMethod || 'CASH';
@@ -2168,7 +2207,7 @@ export function computeUnifiedFinancialMetrics(
     }
   }
 
-  for (const pur of mockPurchaseInvoicesList) {
+  for (const pur of store.purchaseInvoices) {
     if ((pur.status || '').toUpperCase() === 'CANCELLED') continue;
     const paid = Number(pur.paid_amount ?? pur.paidAmount ?? (pur.status === 'PAID' ? (pur.total || 0) : 0));
     if (paid > 0) {
@@ -2179,7 +2218,7 @@ export function computeUnifiedFinancialMetrics(
     }
   }
 
-  for (const exp of mockExpensesList) {
+  for (const exp of store.expenses) {
     const expAmt = Number(exp.amount || 0);
     if (expAmt > 0) {
       const method = exp.payment_method || exp.paymentMethod || 'CASH';
@@ -2205,16 +2244,12 @@ export function computeUnifiedFinancialMetrics(
       .reduce((s, a) => s + Number(a.balance || 0), 0)
   );
 
-  const tenantStore = getTenantCollections(cid);
+  const tenantStore = store;
   const hasAnyCompanyTransactions =
     tenantStore.invoices.length > 0 ||
     tenantStore.payments.length > 0 ||
     tenantStore.purchaseInvoices.length > 0 ||
     tenantStore.expenses.length > 0 ||
-    mockInvoicesList.length > 0 ||
-    mockPaymentsList.length > 0 ||
-    mockPurchaseInvoicesList.length > 0 ||
-    mockExpensesList.length > 0 ||
     journalEntries.length > 0;
 
   const hasAnyBankActivity = bankSalesCollected > 0 || bankReceipts > 0 || bankDisbursements > 0;
@@ -2262,32 +2297,33 @@ export function computeUnifiedFinancialMetrics(
     total: totalCashAndBank,
   };
 
-  const arBalance = roundMoney(accMap.get('1103')?.balance || physicalReceivables);
-  const inventoryBalance = roundMoney(accMap.get('1104')?.balance || physicalInventoryValuation);
+  const hasLedgerActivity = journalEntries.length > 0 || isClean;
+  const arBalance = roundMoney(hasLedgerActivity ? (accMap.get('1103')?.balance ?? 0) : physicalReceivables);
+  const inventoryBalance = roundMoney(hasLedgerActivity ? (accMap.get('1104')?.balance ?? 0) : physicalInventoryValuation);
   const inputVatBalance = roundMoney(accMap.get('1105')?.balance || 0);
 
-  const apBalance = roundMoney(accMap.get('2101')?.balance || physicalPayables);
+  const apBalance = roundMoney(hasLedgerActivity ? (accMap.get('2101')?.balance ?? 0) : physicalPayables);
   const outputVatBalance = roundMoney(accMap.get('2102')?.balance || 0);
   const payrollPayableBalance = roundMoney(accMap.get('2103')?.balance || 0);
 
   const rawSalesRevenue = roundMoney(accMap.get('4101')?.balance || 0);
   const salesReturns = roundMoney(accMap.get('4102')?.balance || 0);
 
-  // Net Revenue = 4101 - 4102 (or fallback to mockInvoicesList sum if no journal entries yet)
+  // Net Revenue = 4101 - 4102 (or fallback to store.invoices sum if no journal entries yet)
   let netRevenue = roundMoney(rawSalesRevenue - salesReturns);
-  if (netRevenue <= 0 && mockInvoicesList.length > 0 && !isClean) {
-    netRevenue = roundMoney(mockInvoicesList.reduce((sum, inv: any) => sum + Number(inv.total || inv.amount || 0), 0));
+  if (netRevenue <= 0 && store.invoices.length > 0 && !isClean) {
+    netRevenue = roundMoney(store.invoices.reduce((sum, inv: any) => sum + Number(inv.total || inv.amount || 0), 0));
   }
 
   const purchasesTotal = roundMoney(
-    mockPurchaseInvoicesList
+    store.purchaseInvoices
       .filter((p: any) => (p.status || '').toUpperCase() !== 'CANCELLED')
       .reduce((sum: number, pur: any) => sum + Number(pur.grandTotal ?? pur.total ?? pur.total_amount ?? 0), 0)
   );
 
   // Exact IFRS/GAAP COGS: Cost of actual units sold (soldItemsCost)
   let soldItemsCost = 0;
-  for (const inv of mockInvoicesList) {
+  for (const inv of store.invoices) {
     if ((inv.status || '').toUpperCase() === 'CANCELLED') continue;
     const items: any[] = (inv as any).items || (inv as any).cartData || (inv as any).invoice_items || (inv as any).products || [];
     if (Array.isArray(items)) {
@@ -2296,7 +2332,7 @@ export function computeUnifiedFinancialMetrics(
         const itSku = String(it.sku || '').trim().toLowerCase();
         const itName = String(it.name || it.product_name || it.title || '').trim().toLowerCase();
 
-        const matchedProduct = mockProducts.find((p) => {
+        const matchedProduct = store.products.find((p) => {
           const prId = String(p.id || '').trim();
           const prSku = String(p.sku || '').trim().toLowerCase();
           const prName = String(p.name || '').trim().toLowerCase();
@@ -2346,15 +2382,15 @@ export function computeUnifiedFinancialMetrics(
 
   const grossProfit = roundMoney(netRevenue - cogs);
 
-  // Operating Expenses = 5201 + 5202 + 5203 + 5209 + mockExpenses
+  // Operating Expenses = 5201 + 5202 + 5203 + 5209 + store.expenses
   let salariesExpense = roundMoney(accMap.get('5201')?.balance || 0);
   let adminExpense = roundMoney(accMap.get('5202')?.balance || 0);
   let rentExpense = roundMoney(accMap.get('5203')?.balance || 0);
   let shrinkageExpense = roundMoney(accMap.get('5209')?.balance || 0);
   let totalExpenses = roundMoney(salariesExpense + adminExpense + rentExpense + shrinkageExpense);
 
-  if (totalExpenses <= 0 && mockExpensesList.length > 0) {
-    totalExpenses = roundMoney(mockExpensesList.reduce((sum, exp: any) => sum + Number(exp.amount || 0), 0));
+  if (totalExpenses <= 0 && store.expenses.length > 0) {
+    totalExpenses = roundMoney(store.expenses.reduce((sum, exp: any) => sum + Number(exp.amount || 0), 0));
   }
 
   const netProfit = roundMoney(grossProfit - totalExpenses);
@@ -2422,7 +2458,7 @@ export function computeUnifiedFinancialMetrics(
   const tbDiff = roundMoney(Math.abs(tbTotalDebit - tbTotalCredit));
   const isBalanced = tbDiff <= 0.01;
 
-  if (isClean && mockInvoicesList.length === 0 && mockProducts.length === 0) {
+  if (isClean && store.invoices.length === 0 && store.products.length === 0) {
     return {
       revenue: 0,
       salesRevenue: 0,
@@ -2511,10 +2547,11 @@ export function reverseSalesInvoiceAtomic(
   isPermanentDelete = false
 ) {
   const cid = companyId || getCurrentTenantId() || 'comp_001';
+  const store = getTenantCollections(cid);
   const targetId = String(invoiceIdOrNumber || '').trim();
   const targetIdLower = targetId.toLowerCase();
 
-  const idx = mockInvoicesList.findIndex(
+  const idx = store.invoices.findIndex(
     (inv) =>
       (String(inv.id || '').toLowerCase() === targetIdLower ||
         String(inv.invoice_number || '').toLowerCase() === targetIdLower ||
@@ -2528,11 +2565,11 @@ export function reverseSalesInvoiceAtomic(
     throw err;
   }
 
-  const invoice = mockInvoicesList[idx];
+  const invoice = store.invoices[idx];
 
   if (invoice.status === 'CANCELLED' || invoice.status === 'RETURNED') {
     if (isPermanentDelete) {
-      mockInvoicesList.splice(idx, 1);
+      store.invoices.splice(idx, 1);
       persistAllToDisk();
       return {
         success: true,
@@ -2557,7 +2594,7 @@ export function reverseSalesInvoiceAtomic(
 
   for (const it of items) {
     const prodId = it.product_id || (it as any).productId || it.id;
-    const prod = mockProducts.find(
+    const prod = store.products.find(
       (p) => p.id === prodId || (p.sku && p.sku === it.sku) || (p.barcode && p.barcode === it.barcode)
     );
 
@@ -2574,8 +2611,14 @@ export function reverseSalesInvoiceAtomic(
       prod.current_stock = restoredStock;
       prod.qty = restoredStock;
       prod.stock = restoredStock;
+      prod.totalSold = Math.max(0, (Number(prod.totalSold) || 0) - baseQty);
+      const invDateStr = String(invoice.date || invoice.invoice_date || invoice.created_at || '').split('T')[0];
+      if (!invDateStr || invDateStr === todayStr) {
+        prod.soldToday = Math.max(0, (Number(prod.soldToday) || 0) - baseQty);
+      }
+      syncProductAvailabilityStatus(prod);
 
-      mockInventoryMovements.unshift({
+      store.movements.unshift({
         id: `mov-rev-sale-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         company_id: cid,
         product_id: prod.id,
@@ -2603,7 +2646,7 @@ export function reverseSalesInvoiceAtomic(
   if (remainingDebt > 0) {
     const custId = invoice.customer_id || (invoice as any).customerId;
     const custName = invoice.customer_name || (invoice as any).customerName;
-    const cust = mockCustomersList.find(
+    const cust = store.customers.find(
       (c) => (custId && c.id === custId) || (custName && c.name.toLowerCase() === String(custName).toLowerCase())
     );
     if (cust) {
@@ -2612,8 +2655,8 @@ export function reverseSalesInvoiceAtomic(
     }
   }
 
-  // 3. Cancel Linked Automatic Payment Vouchers in mockPaymentsList
-  for (const pmt of mockPaymentsList) {
+  // 3. Cancel Linked Automatic Payment Vouchers in store.payments
+  for (const pmt of store.payments) {
     const pRef = String(pmt.reference_no || (pmt as any).referenceNo || pmt.reference_id || (pmt as any).referenceId || '').trim();
     if (pRef === invNo || (pmt as any).invoice_id === invoice.id || pRef === invoice.id) {
       pmt.status = 'CANCELLED';
@@ -2729,7 +2772,7 @@ export function reverseSalesInvoiceAtomic(
   // 5. Update Status or Delete
   invoice.status = 'CANCELLED';
   if (isPermanentDelete) {
-    mockInvoicesList.splice(idx, 1);
+    store.invoices.splice(idx, 1);
   }
 
   persistAllToDisk();
@@ -2745,7 +2788,7 @@ export function reverseSalesInvoiceAtomic(
  * Atomically cancels or deletes a purchase invoice, reversing:
  * 1. Product stock additions (deducts stock and records 'OUT' movement)
  * 2. Supplier balance (reduces payable balance by remaining_amount)
- * 3. Linked payment vouchers in mockPaymentsList
+ * 3. Linked payment vouchers in store.payments
  * 4. General ledger double-entry journals (Merchandise Inventory, Input VAT, Cash/Payables)
  */
 export function reversePurchaseInvoiceAtomic(
@@ -2754,9 +2797,10 @@ export function reversePurchaseInvoiceAtomic(
   isPermanentDelete = false
 ) {
   const cid = companyId || getCurrentTenantId() || 'comp_001';
+  const store = getTenantCollections(cid);
   const targetId = String(purchaseIdOrNumber || '').trim();
 
-  const idx = mockPurchaseInvoicesList.findIndex(
+  const idx = store.purchaseInvoices.findIndex(
     (p) =>
       (p.id === targetId || p.invoice_number === targetId || (p as any).invoiceNumber === targetId) &&
       (p.company_id === cid || !p.company_id || cid === 'comp_001')
@@ -2768,7 +2812,7 @@ export function reversePurchaseInvoiceAtomic(
     throw err;
   }
 
-  const purchase = mockPurchaseInvoicesList[idx];
+  const purchase = store.purchaseInvoices[idx];
 
   if (purchase.status === 'CANCELLED') {
     const err: any = new Error('فاتورة المشتريات ملغاة مسبقاً');
@@ -2783,7 +2827,7 @@ export function reversePurchaseInvoiceAtomic(
   const items = purchase.items || [];
   for (const it of items) {
     const prodId = it.product_id || (it as any).productId || it.id;
-    const prod = mockProducts.find(
+    const prod = store.products.find(
       (p) => p.id === prodId || (p.sku && p.sku === it.sku) || (p.barcode && p.barcode === it.barcode)
     );
 
@@ -2799,8 +2843,9 @@ export function reversePurchaseInvoiceAtomic(
       prod.current_stock = newStock;
       prod.qty = newStock;
       prod.stock = newStock;
+      syncProductAvailabilityStatus(prod);
 
-      mockInventoryMovements.unshift({
+      store.movements.unshift({
         id: `mov-rev-pur-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         company_id: cid,
         product_id: prod.id,
@@ -2817,20 +2862,24 @@ export function reversePurchaseInvoiceAtomic(
   }
 
   // 2. Reduce Supplier Payable Balance for unpaid portion
+  const rawMethod = String(purchase.payment_method || (purchase as any).paymentMethod || '').toUpperCase();
+  const isWallet = ['WALLET', 'MOBILE', 'E_WALLET', 'KURIMI', 'JAWALI', 'FLOUSK', 'ONE_CASH', 'JIB'].includes(rawMethod);
+  const isBank = !isWallet && ['BANK', 'CARD', 'TRANSFER', 'CHECK'].includes(rawMethod);
+
   const totalVal = roundMoney(purchase.total ?? (purchase as any).grandTotal ?? 0);
   const paidVal = roundMoney(
     purchase.paid_amount !== undefined
       ? purchase.paid_amount
       : (purchase as any).paidAmount !== undefined
       ? (purchase as any).paidAmount
-      : (purchase.payment_method === 'CASH' || purchase.payment_method === 'BANK' ? totalVal : 0)
+      : (rawMethod === 'CASH' || isBank || isWallet ? totalVal : 0)
   );
   const unpaidVal = roundMoney(Math.max(0, totalVal - paidVal));
 
   if (unpaidVal > 0) {
     const suppId = purchase.supplier_id || (purchase as any).supplierId;
     const suppName = purchase.supplier_name || (purchase as any).supplierName;
-    const supp = mockSuppliersList.find(
+    const supp = store.suppliers.find(
       (s) => (suppId && s.id === suppId) || (suppName && s.name.toLowerCase() === String(suppName).toLowerCase())
     );
     if (supp) {
@@ -2839,8 +2888,8 @@ export function reversePurchaseInvoiceAtomic(
     }
   }
 
-  // 3. Cancel Linked Payment Vouchers in mockPaymentsList
-  for (const pmt of mockPaymentsList) {
+  // 3. Cancel Linked Payment Vouchers in store.payments
+  for (const pmt of store.payments) {
     const pRef = String(pmt.reference_no || (pmt as any).referenceNo || pmt.reference_id || (pmt as any).referenceId || '').trim();
     if (pRef === invNo || (pmt as any).purchase_invoice_id === purchase.id || pRef === purchase.id) {
       pmt.status = 'CANCELLED';
@@ -2850,9 +2899,6 @@ export function reversePurchaseInvoiceAtomic(
   // 4. Reverse Purchase Accounting Journal Entry
   const taxVal = roundMoney(purchase.tax ?? (purchase as any).taxAmount ?? 0);
   const netInventoryVal = roundMoney(Math.max(0, totalVal - taxVal));
-  const rawMethod = String(purchase.payment_method || (purchase as any).paymentMethod || '').toUpperCase();
-  const isWallet = ['WALLET', 'MOBILE', 'E_WALLET', 'KURIMI', 'JAWALI', 'FLOUSK', 'ONE_CASH', 'JIB'].includes(rawMethod);
-  const isBank = !isWallet && ['BANK', 'CARD', 'TRANSFER', 'CHECK'].includes(rawMethod);
   const cashOrBankCode = isWallet ? '1107' : isBank ? '1102' : '1101';
   const cashOrBankName = isWallet
     ? 'المحافظ الإلكترونية والشبكات'
@@ -2915,7 +2961,7 @@ export function reversePurchaseInvoiceAtomic(
   // 5. Update Status or Delete
   purchase.status = 'CANCELLED';
   if (isPermanentDelete) {
-    mockPurchaseInvoicesList.splice(idx, 1);
+    store.purchaseInvoices.splice(idx, 1);
   }
 
   persistAllToDisk();
@@ -2938,9 +2984,10 @@ export function reverseVoucherAtomic(
   isPermanentDelete = false
 ) {
   const cid = companyId || getCurrentTenantId() || 'comp_001';
+  const store = getTenantCollections(cid);
   const targetId = String(paymentIdOrNumber || '').trim();
 
-  const idx = mockPaymentsList.findIndex(
+  const idx = store.payments.findIndex(
     (p) =>
       (p.id === targetId ||
         p.voucher_number === targetId ||
@@ -2956,7 +3003,7 @@ export function reverseVoucherAtomic(
     throw err;
   }
 
-  const pmt = mockPaymentsList[idx];
+  const pmt = store.payments[idx];
 
   if (pmt.status === 'CANCELLED') {
     const err: any = new Error('السند ملغى مسبقاً');
@@ -2967,10 +3014,15 @@ export function reverseVoucherAtomic(
   const vNum = pmt.voucher_number || (pmt as any).payment_number || pmt.id;
   const roundAmt = roundMoney(pmt.amount || 0);
   const todayStr = new Date().toISOString().split('T')[0];
-  const rawMethod = String((pmt as any).payment_method || 'CASH').toUpperCase();
-  const isBank = ['BANK', 'WALLET', 'CHECK', 'CARD', 'TRANSFER'].includes(rawMethod);
-  const cashOrBankCode = isBank ? '1102' : '1101';
-  const cashOrBankName = isBank ? 'البنك / الحسابات المصرفية والمحافظ' : 'الصندوق / النقدية';
+  const rawMethod = String((pmt as any).payment_method || (pmt as any).paymentMethod || 'CASH').toUpperCase();
+  const isWallet = ['WALLET', 'MOBILE', 'E_WALLET', 'KURIMI', 'JAWALI', 'FLOUSK', 'ONE_CASH', 'JIB'].includes(rawMethod);
+  const isBank = !isWallet && ['BANK', 'CHECK', 'CARD', 'TRANSFER'].includes(rawMethod);
+  const cashOrBankCode = isWallet ? '1107' : isBank ? '1102' : '1101';
+  const cashOrBankName = isWallet
+    ? 'المحافظ الإلكترونية والشبكات'
+    : isBank
+    ? 'البنك / الحسابات البنكية'
+    : 'الصندوق / النقدية';
 
   const isReceipt = pmt.type === 'CUSTOMER_PAYMENT' || (pmt as any).voucher_type === 'RECEIPT' || (pmt as any).payment_type === 'IN';
   const lines: JournalLine[] = [];
@@ -2979,7 +3031,7 @@ export function reverseVoucherAtomic(
     // When Receipt was created: Dr Cash/Bank, Cr AR 1103 & reduced customer debt
     // On Cancel/Delete: Restore customer debt, Dr AR 1103, Cr Cash/Bank
     const custId = pmt.customer_id || (pmt as any).party_id;
-    const cust = mockCustomersList.find((c) => String(c.id) === String(custId));
+    const cust = store.customers.find((c) => String(c.id) === String(custId));
     if (cust) {
       cust.current_balance = roundMoney((cust.current_balance || 0) + roundAmt);
       cust.balance = cust.current_balance;
@@ -3005,7 +3057,7 @@ export function reverseVoucherAtomic(
     // When Payment was created: Dr AP 2101, Cr Cash/Bank & reduced supplier debt
     // On Cancel/Delete: Restore supplier debt, Dr Cash/Bank, Cr AP 2101
     const suppId = (pmt as any).supplier_id || (pmt as any).party_id;
-    const supp = mockSuppliersList.find((s) => String(s.id) === String(suppId));
+    const supp = store.suppliers.find((s) => String(s.id) === String(suppId));
     if (supp) {
       supp.current_balance = roundMoney((supp.current_balance || 0) + roundAmt);
       supp.balance = supp.current_balance;
@@ -3036,7 +3088,7 @@ export function reverseVoucherAtomic(
       const allocAmt = Number(alloc.allocated_amount ?? (alloc as any).amount ?? 0);
       if (invId && allocAmt > 0) {
         if (isReceipt) {
-          const inv = mockInvoicesList.find(
+          const inv = store.invoices.find(
             (i) => String(i.id) === String(invId) || String(i.invoice_number) === String(invId) || String((i as any).invoiceNumber) === String(invId)
           );
           if (inv) {
@@ -3049,7 +3101,7 @@ export function reverseVoucherAtomic(
             inv.status = (newPaid <= 0.01 ? 'PENDING' : 'partial') as any;
           }
         } else {
-          const pur = mockPurchaseInvoicesList.find(
+          const pur = store.purchaseInvoices.find(
             (p) => String(p.id) === String(invId) || String(p.invoice_number) === String(invId) || String((p as any).invoiceNumber) === String(invId)
           );
           if (pur) {
@@ -3080,7 +3132,7 @@ export function reverseVoucherAtomic(
 
   pmt.status = 'CANCELLED';
   if (isPermanentDelete) {
-    mockPaymentsList.splice(idx, 1);
+    store.payments.splice(idx, 1);
   }
 
   persistAllToDisk();
@@ -3103,9 +3155,10 @@ export function reverseExpenseAtomic(
   isPermanentDelete = false
 ) {
   const cid = companyId || getCurrentTenantId() || 'comp_001';
+  const store = getTenantCollections(cid);
   const targetId = String(expenseIdOrNumber || '').trim();
 
-  const idx = mockExpensesList.findIndex(
+  const idx = store.expenses.findIndex(
     (e) =>
       (e.id === targetId ||
         e.expense_number === targetId ||
@@ -3119,7 +3172,7 @@ export function reverseExpenseAtomic(
     throw err;
   }
 
-  const exp = mockExpensesList[idx];
+  const exp = store.expenses[idx];
 
   if (exp.status === 'CANCELLED') {
     const err: any = new Error('المصروف ملغى مسبقاً');
@@ -3210,7 +3263,7 @@ export function reverseExpenseAtomic(
 
   exp.status = 'CANCELLED';
   if (isPermanentDelete) {
-    mockExpensesList.splice(idx, 1);
+    store.expenses.splice(idx, 1);
   }
 
   persistAllToDisk();

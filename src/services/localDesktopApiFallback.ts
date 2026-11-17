@@ -354,7 +354,35 @@ export const TENANT_ISOLATED_KEYS = new Set<string>([
   'erp_accounts_v1',
   'erp_journal_entries_v1',
   'erp_employees_expenses_v1',
+  'erp_expenses_v1',
+  'erp_pos_held_orders_v1',
 ]);
+
+/**
+ * Helper to unify reading and writing of expenses between 'erp_expenses_v1' and 'erp_employees_expenses_v1'
+ * without duplication.
+ */
+export function getUnifiedLocalExpenses(companyId?: string): any[] {
+  const listA = getLocalItem<any[]>('erp_employees_expenses_v1', [], companyId);
+  const listB = getLocalItem<any[]>('erp_expenses_v1', [], companyId);
+  const seen = new Set<string>();
+  const unified: any[] = [];
+  for (const item of [...(Array.isArray(listA) ? listA : []), ...(Array.isArray(listB) ? listB : [])]) {
+    if (!item || typeof item !== 'object') continue;
+    const key = String(item.id || item.voucher_number || item.voucherNumber || item.expenseNumber || JSON.stringify(item));
+    if (!seen.has(key)) {
+      seen.add(key);
+      unified.push(item);
+    }
+  }
+  return unified;
+}
+
+export function saveUnifiedLocalExpenses(expenses: any[], companyId?: string): void {
+  const safeList = Array.isArray(expenses) ? expenses : [];
+  setLocalItem('erp_employees_expenses_v1', safeList, companyId);
+  setLocalItem('erp_expenses_v1', safeList, companyId);
+}
 
 /**
  * Standard rounding to 2 decimal places for financial calculations
@@ -776,7 +804,7 @@ export function computeLocalUnifiedFinancialMetrics(companyId: string) {
   const custs = getLocalItem<any[]>('erp_customers_v1', []);
   const supps = getLocalItem<any[]>('erp_suppliers_v1', []);
   const payments = getLocalItem<any[]>('erp_payments_v1', []);
-  const expenses = getLocalItem<any[]>('erp_employees_expenses_v1', []);
+  const expenses = getUnifiedLocalExpenses(companyId);
   const returns = getLocalItem<any[]>('erp_sales_returns_v1', []);
   const journalEntries = getLocalItem<any[]>('erp_journal_entries_v1', []);
   const accounts = getLocalAccounts(companyId);
@@ -1281,28 +1309,10 @@ export function autoCleanDuplicateAccountingRecords(): void {
     const payments = getLocalItem<any[]>('erp_payments_v1', []);
     let customersChanged = false;
 
-    const SAMPLE_BASELINE_OPENING_BALANCES: Record<string, number> = {
-      '1': 8200,
-      '2': 5400,
-      '3': 4600,
-      'cst-01': 145000,
-      'cst-03': 32000,
-      'cst-05': 64000,
-    };
-
     const updatedCustomers = customers.map((c) => {
       const cId = String(c.id);
       const cName = String(c.name || '').trim().toLowerCase();
-      let opBal = Number(c.opening_balance !== undefined ? c.opening_balance : (c.openingBalance !== undefined ? c.openingBalance : NaN));
-      if (isNaN(opBal) || opBal === 0) {
-        if (SAMPLE_BASELINE_OPENING_BALANCES[cId] !== undefined) {
-          opBal = SAMPLE_BASELINE_OPENING_BALANCES[cId];
-        } else if (c.balance !== undefined && Number(c.balance) > 0) {
-          opBal = Number(c.balance);
-        } else {
-          opBal = 0;
-        }
-      }
+      const opBal = Number(c.opening_balance ?? c.openingBalance ?? 0);
 
       const custInvs = invoices.filter(
         (inv) =>
@@ -2091,6 +2101,7 @@ export async function executeLocalWipeDemoData(): Promise<LocalApiResponse> {
     'erp_customers_v1',
     'erp_suppliers_v1',
     'erp_employees_expenses_v1',
+    'erp_expenses_v1',
     'erp_fuel_station_v1',
     'erp_journal_entries_v1',
     'erp_audit_logs_v1',
@@ -2098,6 +2109,8 @@ export async function executeLocalWipeDemoData(): Promise<LocalApiResponse> {
     'erp_sales_reps',
     'erp_battery_warranty_records',
     'erp_tire_dot_records',
+    'erp_pos_held_orders_v1',
+    'erp_pos_held_sales_v1',
     'erp_pos_held_sales',
     'erp_pos_held_v1',
     'erp_pos_shift_history',
@@ -2308,6 +2321,24 @@ async function internalHandleLocalDesktopApiFallback(
     return await executeLocalWipeDemoData();
   }
 
+  const hashDesktopPassword = async (plain: string): Promise<string> => {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(plain);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+  };
+
+  // Precomputed SHA-256 hashes for approved built-in accounts ('AdminPass123!' & 'admin123')
+  const APPROVED_ACCOUNT_HASHES: Record<string, string> = {
+    'hameedwahas332@gmail.com': '7b85aa4a0fe33c18c6eb04d34ab699a2bc29224fbcb585c09523989882f96370',
+    'admin@alamal-trade.com': '7b85aa4a0fe33c18c6eb04d34ab699a2bc29224fbcb585c09523989882f96370',
+    'admin@albaraka-store.com': '7b85aa4a0fe33c18c6eb04d34ab699a2bc29224fbcb585c09523989882f96370',
+    'admin@alsahabi.com': '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9',
+    'admin@enterprise.sa': '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9',
+  };
+
   // 3. User Authentication & Session Management (Login)
   if (cleanUrl.includes('/auth/login') || cleanUrl.endsWith('/login')) {
     let bodyData: any = {};
@@ -2317,16 +2348,27 @@ async function internalHandleLocalDesktopApiFallback(
     const email = (bodyData.email || '').trim().toLowerCase();
     const password = (bodyData.password || '').trim();
 
+    if (!email || !password) {
+      return {
+        ok: false,
+        success: false,
+        status: 400,
+        error: 'البريد الإلكتروني وكلمة المرور مطلوبان',
+        message: 'البريد الإلكتروني وكلمة المرور مطلوبان',
+        data: null,
+      };
+    }
+
     const vault = getVaultAccounts();
     const vaultUser = vault[email];
     const registeredUsers = getLocalItem<any[]>('erp_users_v1', []);
     const foundUser = registeredUsers.find((u: any) => (u.email || '').trim().toLowerCase() === email);
 
-    const isWahas = email === 'hameedwahas332@gmail.com' || email.includes('wahas');
+    const isWahas = email === 'hameedwahas332@gmail.com';
     const isAlamal = email === 'admin@alamal-trade.com';
     const isAlbaraka = email === 'admin@albaraka-store.com';
 
-    let userObj: any = vaultUser?.user || foundUser;
+    let userObj: any = foundUser || vaultUser?.user;
     let compObj: any = vaultUser?.company;
 
     if (!userObj) {
@@ -2390,27 +2432,6 @@ async function internalHandleLocalDesktopApiFallback(
           status: 'active',
           created_at: '2026-01-01T00:00:00Z',
         };
-      } else if (email) {
-        // Auto-provision local session for entered email to never block the desktop user
-        const newCompId = `comp_${email.replace(/[^a-zA-Z0-9]/g, '_')}`;
-        userObj = {
-          id: `usr_${Date.now()}`,
-          username: email.split('@')[0],
-          full_name: email.split('@')[0],
-          email: email,
-          role: 'super_admin',
-          company_id: newCompId,
-          is_active: true,
-          created_at: new Date().toISOString(),
-        };
-        compObj = {
-          id: newCompId,
-          name: 'منشأة التاجر المستقل',
-          currency: 'YER',
-          email: email,
-          status: 'active',
-          created_at: new Date().toISOString(),
-        };
       }
     }
 
@@ -2425,6 +2446,27 @@ async function internalHandleLocalDesktopApiFallback(
       };
     }
 
+    // Verify password against stored hash (SHA-256)
+    const candidateHash = await hashDesktopPassword(password);
+    const storedHash =
+      foundUser?.passwordHash ||
+      foundUser?.password_hash ||
+      userObj?.passwordHash ||
+      userObj?.password_hash ||
+      APPROVED_ACCOUNT_HASHES[email] ||
+      '';
+
+    if (!storedHash || candidateHash !== storedHash) {
+      return {
+        ok: false,
+        success: false,
+        status: 401,
+        error: 'كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى',
+        message: 'كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى',
+        data: null,
+      };
+    }
+
     if (!compObj) {
       compObj = {
         id: userObj.company_id || 'comp_hameed_wahas_2735',
@@ -2435,16 +2477,18 @@ async function internalHandleLocalDesktopApiFallback(
       };
     }
 
-    const token = `jwt_session_${userObj.id}_${Date.now()}`;
+    const { passwordHash: _ph, password_hash: _ph2, password: _pw, ...safeUserObj } = userObj;
+
+    const token = `jwt_session_${safeUserObj.id}_${Date.now()}`;
     try {
       localStorage.setItem('erp_auth_token', token);
       localStorage.setItem('erp_token', token);
-      localStorage.setItem('erp_auth_user', JSON.stringify(userObj));
-      localStorage.setItem('erp_current_user', JSON.stringify(userObj));
+      localStorage.setItem('erp_auth_user', JSON.stringify(safeUserObj));
+      localStorage.setItem('erp_current_user', JSON.stringify(safeUserObj));
       localStorage.setItem('erp_auth_company', JSON.stringify(compObj));
       localStorage.setItem('erp_current_company', JSON.stringify(compObj));
       localStorage.setItem('erp_company_id', compObj.id);
-      localStorage.setItem('erp_active_user_email', userObj.email);
+      localStorage.setItem('erp_active_user_email', safeUserObj.email);
       localStorage.setItem('erp_active_session_v1', 'true');
     } catch {}
 
@@ -2455,7 +2499,7 @@ async function internalHandleLocalDesktopApiFallback(
       data: {
         success: true,
         token,
-        user: userObj,
+        user: safeUserObj,
         company: compObj,
         message: 'تم تسجيل الدخول بنجاح!',
       },
@@ -2477,7 +2521,20 @@ async function internalHandleLocalDesktopApiFallback(
     const companyName = bodyData.companyName || 'محلات وهاس للتجارة العامة';
     const currency = bodyData.currency || 'YER';
     const phone = bodyData.phone || '';
-    const password = bodyData.password || 'admin123';
+    const password = (bodyData.password || '').trim();
+
+    if (!email || !password) {
+      return {
+        ok: false,
+        success: false,
+        status: 400,
+        error: 'البريد الإلكتروني وكلمة المرور مطلوبان',
+        message: 'البريد الإلكتروني وكلمة المرور مطلوبان',
+        data: null,
+      };
+    }
+
+    const passwordHash = await hashDesktopPassword(password);
 
     const cleanPrefix = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '_');
     const compId = `comp_${cleanPrefix}_${Date.now().toString().slice(-4)}`;
@@ -2508,6 +2565,11 @@ async function internalHandleLocalDesktopApiFallback(
       created_at: new Date().toISOString(),
     };
 
+    const storedUserRecord = {
+      ...newUser,
+      passwordHash,
+    };
+
     try {
       localStorage.setItem('erp_auth_token', token);
       localStorage.setItem('erp_token', token);
@@ -2520,10 +2582,13 @@ async function internalHandleLocalDesktopApiFallback(
       localStorage.setItem('erp_active_session_v1', 'true');
 
       const users = getLocalItem<any[]>('erp_users_v1', []);
-      if (!users.some((u: any) => (u.email || '').toLowerCase() === email)) {
-        users.push(newUser);
-        setLocalItem('erp_users_v1', users, compId);
+      const existingIdx = users.findIndex((u: any) => (u.email || '').toLowerCase() === email);
+      if (existingIdx === -1) {
+        users.push(storedUserRecord);
+      } else {
+        users[existingIdx] = storedUserRecord;
       }
+      setLocalItem('erp_users_v1', users, compId);
 
       const comps = getLocalItem<any[]>('erp_companies_v1', []);
       if (!comps.some((c: any) => c.id === compId)) {
@@ -2535,7 +2600,6 @@ async function internalHandleLocalDesktopApiFallback(
       vault[email] = {
         user: newUser,
         company: newCompany,
-        passwordVerifier: password,
         token,
         lastActive: new Date().toISOString(),
       };
@@ -3472,7 +3536,7 @@ async function internalHandleLocalDesktopApiFallback(
     const posSales = getLocalItem<any[]>('erp_pos_sales_log_v1', [], companyId);
     const purchases = getLocalItem<any[]>('erp_purchase_invoices_v1', [], companyId);
     const payments = getLocalItem<any[]>('erp_payments_v1', [], companyId);
-    const expenses = getLocalItem<any[]>('erp_expenses_v1', [], companyId);
+    const expenses = getUnifiedLocalExpenses(companyId);
 
     const isDateMatch = (item: any) => {
       const rawDate =
@@ -4113,7 +4177,7 @@ async function internalHandleLocalDesktopApiFallback(
       const posSales = getLocalItem<any[]>('erp_pos_sales_log_v1', [], companyId);
       const purchases = getLocalItem<any[]>('erp_purchase_invoices_v1', [], companyId);
       const payments = getLocalItem<any[]>('erp_payments_v1', [], companyId);
-      const expenses = getLocalItem<any[]>('erp_employees_expenses_v1', [], companyId);
+      const expenses = getUnifiedLocalExpenses(companyId);
       const products = getLocalItem<any[]>('erp_products_v1', [], companyId);
       const customers = getLocalItem<any[]>('erp_customers_v1', [], companyId);
       const suppliers = getLocalItem<any[]>('erp_suppliers_v1', [], companyId);
@@ -4883,7 +4947,7 @@ async function internalHandleLocalDesktopApiFallback(
 
     // 9C-7. Operational Expenses
     if (cleanUrl.endsWith('/business/expenses')) {
-      const expenses = getLocalItem<any[]>('erp_employees_expenses_v1', [], companyId);
+      const expenses = getUnifiedLocalExpenses(companyId);
 
       if (method === 'POST') {
         const baseAmt = roundMoney(bodyData.amount || 0);
@@ -4952,7 +5016,7 @@ async function internalHandleLocalDesktopApiFallback(
           created_at: new Date().toISOString(),
         };
         expenses.unshift(newExpense);
-        setLocalItem('erp_employees_expenses_v1', expenses, companyId);
+        saveUnifiedLocalExpenses(expenses, companyId);
 
         const payments = getLocalItem<any[]>('erp_payments_v1', [], companyId);
         payments.unshift({
@@ -5835,7 +5899,7 @@ async function internalHandleLocalDesktopApiFallback(
       const employees = getLocalItem('erp_employees_v1', [], companyId);
       const employeeMovements = getLocalItem('erp_employee_movements_v1', [], companyId);
       const payrollRecords = getLocalItem('erp_payroll_records_v1', getLocalItem('erp_payroll_v1', [], companyId), companyId);
-      const expenses = getLocalItem('erp_employees_expenses_v1', getLocalItem('erp_expenses_v1', [], companyId), companyId);
+      const expenses = getUnifiedLocalExpenses(companyId);
       const accounts = getLocalItem('erp_local_accounts_v1', [], companyId);
       const journalEntries = getLocalItem('erp_journal_entries_v1', getLocalItem('erp_local_journal_entries_v1', [], companyId), companyId);
 
@@ -6330,26 +6394,36 @@ async function internalHandleLocalDesktopApiFallback(
   // POS Held Orders (Normal & Credit) - Persistent Unified Storage
   if (cleanUrl.includes('/pos/held-sales') || cleanUrl.includes('/pos/held') || cleanUrl.includes('/held_orders')) {
     const HELD_ORDERS_KEY = 'erp_pos_held_orders_v1';
-    const LEGACY_HELD_KEY = 'erp_pos_held_sales_v1';
+    const LEGACY_HELD_V1_KEY = 'erp_pos_held_v1';
+    const LEGACY_HELD_SALES_KEY = 'erp_pos_held_sales_v1';
 
     const getUnifiedHeldOrders = (): any[] => {
       try {
-        const raw = localStorage.getItem(HELD_ORDERS_KEY) || localStorage.getItem(LEGACY_HELD_KEY);
+        const raw =
+          localStorage.getItem(HELD_ORDERS_KEY) ||
+          localStorage.getItem(LEGACY_HELD_V1_KEY) ||
+          localStorage.getItem(LEGACY_HELD_SALES_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
           if (Array.isArray(parsed)) return parsed;
         }
       } catch {}
-      return getLocalItem(HELD_ORDERS_KEY, getLocalItem(LEGACY_HELD_KEY, []));
+      return getLocalItem(
+        HELD_ORDERS_KEY,
+        getLocalItem(LEGACY_HELD_V1_KEY, getLocalItem(LEGACY_HELD_SALES_KEY, [], companyId), companyId),
+        companyId
+      );
     };
 
     const saveUnifiedHeldOrders = (list: any[]) => {
       try {
         localStorage.setItem(HELD_ORDERS_KEY, JSON.stringify(list));
-        localStorage.setItem(LEGACY_HELD_KEY, JSON.stringify(list));
+        localStorage.setItem(LEGACY_HELD_V1_KEY, JSON.stringify(list));
+        localStorage.setItem(LEGACY_HELD_SALES_KEY, JSON.stringify(list));
       } catch {}
       setLocalItem(HELD_ORDERS_KEY, list, companyId);
-      setLocalItem(LEGACY_HELD_KEY, list, companyId);
+      setLocalItem(LEGACY_HELD_V1_KEY, list, companyId);
+      setLocalItem(LEGACY_HELD_SALES_KEY, list, companyId);
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('erp-pos-held-updated'));
         window.dispatchEvent(new Event('storage'));
@@ -7408,10 +7482,9 @@ async function internalHandleLocalDesktopApiFallback(
       voucherNumber: refVoucher,
       created_at: new Date().toISOString(),
     };
-    const expenses = getLocalItem<any[]>('erp_employees_expenses_v1', [], companyId);
+    const expenses = getUnifiedLocalExpenses(companyId);
     expenses.unshift(expenseRecord);
-    setLocalItem('erp_employees_expenses_v1', expenses, companyId);
-    setLocalItem('erp_expenses_v1', expenses, companyId);
+    saveUnifiedLocalExpenses(expenses, companyId);
 
     // Record payment voucher in erp_payments_v1
     const payments = getLocalItem<any[]>('erp_payments_v1', [], companyId);
@@ -8589,7 +8662,7 @@ async function internalHandleLocalDesktopApiFallback(
       if (matchedEntityKey === 'customers') {
         autoCleanCorruptedPhantomCustomers();
       }
-      const items = getLocalItem<any[]>(storeKey, []);
+      const items = matchedEntityKey === 'expenses' ? getUnifiedLocalExpenses(companyId) : getLocalItem<any[]>(storeKey, []);
       if (idParam && idParam !== 'current' && idParam !== 'categories' && idParam !== 'aging' && idParam !== 'stats') {
         const targetIdLower = String(rawIdParam || idParam).toLowerCase();
         let found = items.find(
@@ -8931,7 +9004,7 @@ async function internalHandleLocalDesktopApiFallback(
         }
       }
 
-      const items = getLocalItem<any[]>(storeKey, []);
+      const items = matchedEntityKey === 'expenses' ? getUnifiedLocalExpenses(companyId) : getLocalItem<any[]>(storeKey, []);
       const existingIdx = items.findIndex((i) => String(i.id) === String(id));
       if (existingIdx !== -1) {
         items[existingIdx] = { ...items[existingIdx], ...sanitized };
@@ -8940,7 +9013,11 @@ async function internalHandleLocalDesktopApiFallback(
         items.unshift(sanitized);
       }
 
-      setLocalItem(storeKey, items, companyId);
+      if (matchedEntityKey === 'expenses') {
+        saveUnifiedLocalExpenses(items, companyId);
+      } else {
+        setLocalItem(storeKey, items, companyId);
+      }
       await saveRecord(storeKey, sanitized);
 
       // If sales invoice created: deduct stock, update customer balance if remaining > 0, and post journals
@@ -9657,7 +9734,7 @@ async function internalHandleLocalDesktopApiFallback(
 
       const targetId = rawIdParam || idParam || bodyData.id;
       const targetIdLower = String(targetId || '').toLowerCase();
-      const items = getLocalItem<any[]>(storeKey, []);
+      const items = matchedEntityKey === 'expenses' ? getUnifiedLocalExpenses(companyId) : getLocalItem<any[]>(storeKey, []);
       const idx = items.findIndex(
         (i) =>
           String(i.id || '').toLowerCase() === targetIdLower ||
@@ -9685,7 +9762,11 @@ async function internalHandleLocalDesktopApiFallback(
         items.unshift(updatedRecord);
       }
 
-      setLocalItem(storeKey, items, companyId);
+      if (matchedEntityKey === 'expenses') {
+        saveUnifiedLocalExpenses(items, companyId);
+      } else {
+        setLocalItem(storeKey, items, companyId);
+      }
       await saveRecord(storeKey, updatedRecord);
 
       if (
@@ -9727,7 +9808,7 @@ async function internalHandleLocalDesktopApiFallback(
     if (method === 'DELETE') {
       const targetId = rawIdParam || idParam;
       const targetIdLower = String(targetId || '').toLowerCase();
-      const items = getLocalItem<any[]>(storeKey, []);
+      const items = matchedEntityKey === 'expenses' ? getUnifiedLocalExpenses(companyId) : getLocalItem<any[]>(storeKey, []);
       const foundToDelete = items.find(
         (i) =>
           String(i.id || '').toLowerCase() === targetIdLower ||
@@ -9961,7 +10042,11 @@ async function internalHandleLocalDesktopApiFallback(
           String(i.id || '').toLowerCase() !== targetIdLower &&
           String(i.invoice_number || i.invoiceNumber || '').toLowerCase() !== actualInvNoLower
       );
-      setLocalItem(storeKey, filtered, companyId);
+      if (matchedEntityKey === 'expenses') {
+        saveUnifiedLocalExpenses(filtered, companyId);
+      } else {
+        setLocalItem(storeKey, filtered, companyId);
+      }
 
       if (actualId) {
         await deleteRecord(storeKey, String(actualId)).catch(() => {});

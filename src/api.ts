@@ -5,7 +5,8 @@
 import { escapeHtml, renderAndPrintDocument } from './lib/exportUtils';
 import { handleLocalDesktopApiFallback, isTauriOrDesktopEnvironment } from './services/localDesktopApiFallback';
 
-const API_BASE = '/api/v1';
+const isDesktop = typeof window !== 'undefined' && ((window as any).__TAURI_INTERNALS__ || window.location?.protocol === 'tauri:');
+const API_BASE = isDesktop ? (localStorage.getItem('erp_cloud_api_base') || 'https://ai-business-system-hameed-714088927909.us-central1.run.app/api/v1') : '/api/v1';
 
 type UnauthorizedHandler = () => void;
 
@@ -145,17 +146,32 @@ class ApiClient {
     return null;
   }
 
+  public setCloudApiBase(url: string) {
+    const cleanUrl = (url || '').trim().replace(/\/+$/, '');
+    if (!cleanUrl) {
+      this.removeStorageItem('erp_cloud_api_base');
+      return;
+    }
+    const normalized = cleanUrl.endsWith('/api/v1') ? cleanUrl : `${cleanUrl}/api/v1`;
+    this.setStorageItem('erp_cloud_api_base', normalized);
+  }
+
+  public getCloudApiBase(): string {
+    return this.getStorageItem('erp_cloud_api_base') || API_BASE;
+  }
+
   public async request<T = any>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
+    const activeBase = isDesktop ? (this.getStorageItem('erp_cloud_api_base') || API_BASE) : API_BASE;
     const url = endpoint.startsWith('http')
       ? endpoint
       : endpoint.startsWith('/api/v1')
-      ? endpoint
+      ? `${activeBase}${endpoint.slice(7)}`
       : endpoint.startsWith('/api/')
-      ? `/api/v1${endpoint.slice(4)}`
-      : `${API_BASE}${endpoint}`;
+      ? `${activeBase}${endpoint.slice(4)}`
+      : `${activeBase}${endpoint}`;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(options.headers as Record<string, string>),

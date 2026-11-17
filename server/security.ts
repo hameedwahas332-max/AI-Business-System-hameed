@@ -139,7 +139,7 @@ export function resetLoginRateLimit(ip: string): void {
 const JWT_SECRET =
   process.env.JWT_SECRET ||
   process.env.ERP_JWT_SECRET ||
-  'ai-biz-enterprise-production-sec-key-2025-x99-enterprise-grade';
+  crypto.randomBytes(64).toString('hex');
 
 const revokedTokens = new Set<string>();
 
@@ -326,8 +326,10 @@ export const ROLE_PERMISSIONS: Record<UserRole, Set<string>> = {
   ACCOUNTANT: new Set([
     'financial:read',
     'financial:write',
+    'financial:delete',
     'invoices:read',
     'invoices:write',
+    'invoices:delete',
     'customers:read',
     'customers:write',
     'suppliers:read',
@@ -443,6 +445,8 @@ export function resolveRequiredPermissionForRoute(urlPath: string, method: strin
     return null;
   }
 
+  const trimmedPath = cleanPath.replace(/\/+$/, '');
+
   // System Administration & Sensitive Operations (ADMIN ONLY)
   if (
     cleanPath.includes('/backup') ||
@@ -453,10 +457,38 @@ export function resolveRequiredPermissionForRoute(urlPath: string, method: strin
     cleanPath.includes('/admin') ||
     cleanPath.includes('/audit') ||
     cleanPath.includes('/system') ||
-    cleanPath.includes('/settings')
+    cleanPath.includes('/settings') ||
+    cleanPath.includes('/wipe') ||
+    cleanPath.includes('/purge') ||
+    cleanPath.includes('/cleanup') ||
+    cleanPath.includes('/seed') ||
+    cleanPath.includes('/reset') ||
+    cleanPath.includes('/control-center') ||
+    cleanPath.includes('/governance') ||
+    cleanPath.includes('/production-onboarding') ||
+    cleanPath.includes('/roles')
   ) {
     if (upperMethod === 'GET') return 'system:read';
     return 'system:write';
+  }
+
+  // Financial Destructive Operations (Delete / Cancel on purchase-invoices, payments, expenses)
+  if (
+    (trimmedPath.includes('/purchase-invoices') ||
+      trimmedPath.includes('/payments') ||
+      trimmedPath.includes('/expenses')) &&
+    (upperMethod === 'DELETE' || trimmedPath.endsWith('/cancel'))
+  ) {
+    return 'financial:delete';
+  }
+
+  // Invoices Destructive Operations (Delete / Cancel)
+  if (
+    trimmedPath.includes('/invoices') &&
+    !trimmedPath.includes('/purchase-invoices') &&
+    (upperMethod === 'DELETE' || (upperMethod === 'POST' && /\/invoices\/[^/]+\/cancel$/.test(trimmedPath)))
+  ) {
+    return 'invoices:delete';
   }
 
   // Financial & Accounting & Payroll

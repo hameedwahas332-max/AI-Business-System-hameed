@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api';
 import { AppIcon } from '../Common/AppIcon';
-import { Building2, User, Lock, Mail, Phone, Globe, ShieldAlert, CheckCircle2, Sparkles, X, KeyRound } from 'lucide-react';
+import { Building2, User, Lock, Mail, Phone, ShieldAlert, CheckCircle2, X, KeyRound } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -55,58 +55,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   }, [isOpen, isAuthenticated, user]);
 
   if (!isOpen) return null;
-
-  const handleQuickDemoFill = (type: 'wahas' | 'tenantA' | 'tenantB') => {
-    setError(null);
-    setDuplicateEmailError(false);
-    if (type === 'wahas') {
-      setEmail('hameedwahas332@gmail.com');
-      setPassword('AdminPass123!');
-      setFullName('حميد وهاس (المدير العام)');
-      setCompanyName('محلات وهاس للتجارة العامة');
-      setCompanyCode('wahas-general');
-      setCurrency('YER');
-      setCountry('YE');
-    } else if (type === 'tenantA') {
-      setEmail('admin@alamal-trade.com');
-      setPassword('AdminPass123!');
-      setFullName('محمد أحمد العبسي');
-      setCompanyName('شركة الأمل الوطنية للتجارة');
-      setCompanyCode('alamal-trade');
-      setCurrency('YER');
-      setCountry('YE');
-    } else {
-      setEmail('admin@albaraka-store.com');
-      setPassword('AdminPass123!');
-      setFullName('عبدالله صالح البركة');
-      setCompanyName('مؤسسة البركة للمستلزمات');
-      setCompanyCode('albaraka-store');
-      setCurrency('YER');
-      setCountry('YE');
-    }
-  };
-
-  const handleQuickLogin = async (type: 'wahas' | 'tenantA' | 'tenantB') => {
-    setError(null);
-    setSuccess(null);
-    setDuplicateEmailError(false);
-    setIsSubmitting(true);
-    try {
-      if (type === 'wahas') {
-        await login('hameedwahas332@gmail.com', 'AdminPass123!');
-      } else if (type === 'tenantA') {
-        await login('admin@alamal-trade.com', 'AdminPass123!');
-      } else {
-        await login('admin@albaraka-store.com', 'AdminPass123!');
-      }
-      setSuccess('تم تسجيل الدخول واستعادة متجرك وبياناتك بنجاح!');
-      setTimeout(() => onClose(), 600);
-    } catch (err: any) {
-      setError(err?.message || 'تعذر تسجيل الدخول السريع');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const handleSwitchToLoginWithEmail = () => {
     setMode('login');
@@ -241,48 +189,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <X className="w-5 h-5" />
           </button>
         </div>
-
-        {/* Quick Demo Pre-fill & 1-Click Login Banner */}
-        {mode !== 'forgot' && mode !== 'reset' && mode !== 'account' && (
-          <div className="px-6 py-3 bg-slate-950/80 border-b border-slate-800 space-y-2 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-amber-400 font-bold flex items-center gap-1.5 text-[11px]">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                دخول فوري بنقرة واحدة (1-Click Login):
-              </span>
-              <span className="text-[10px] text-slate-400">بدون إدخال يدوي</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                disabled={isSubmitting}
-                onClick={() => handleQuickLogin('wahas')}
-                className="px-2 py-1.5 rounded-lg bg-gradient-to-r from-amber-950/70 to-amber-900/60 hover:from-amber-900/90 hover:to-amber-800/80 text-amber-200 border border-amber-600/60 font-semibold text-[11px] shadow-sm transition-all text-center flex flex-col items-center justify-center leading-tight active:scale-95"
-              >
-                <span className="font-bold text-amber-300">محلات وهاس</span>
-                <span className="text-[9px] text-amber-400/80">المالك الرئيسي</span>
-              </button>
-              <button
-                type="button"
-                disabled={isSubmitting}
-                onClick={() => handleQuickLogin('tenantA')}
-                className="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-800/60 font-semibold text-[11px] shadow-sm transition-all text-center flex flex-col items-center justify-center leading-tight active:scale-95"
-              >
-                <span className="font-bold text-emerald-300">شركة الأمل</span>
-                <span className="text-[9px] text-slate-400">متجر (A)</span>
-              </button>
-              <button
-                type="button"
-                disabled={isSubmitting}
-                onClick={() => handleQuickLogin('tenantB')}
-                className="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-800/60 font-semibold text-[11px] shadow-sm transition-all text-center flex flex-col items-center justify-center leading-tight active:scale-95"
-              >
-                <span className="font-bold text-cyan-300">مؤسسة البركة</span>
-                <span className="text-[9px] text-slate-400">متجر (B)</span>
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Mode Selector Tabs */}
         {mode !== 'account' ? (
@@ -489,7 +395,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="admin@alamal-trade.com"
+                    placeholder="name@company.com"
                     className="w-full pr-10 pl-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
                   />
                 </div>
@@ -673,7 +579,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="admin@alamal-trade.com"
+                    placeholder="name@company.com"
                     className="w-full pr-10 pl-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
                   />
                 </div>

@@ -7,6 +7,7 @@ import {
   wipeAllJournalEntriesAndResetAccounts,
   serializeAccountingMaps,
   hydrateAccountingMaps,
+  recalculateTenantAccountBalances,
 } from './accountingEngine.js';
 
 export let activeDbPool: any = null;
@@ -1134,56 +1135,12 @@ export async function cleanupAllSampleData(companyId?: string, pool?: any): Prom
   tenantStore.payrollRecords.length = 0;
   tenantStore.expenses.length = 0;
 
-  // If companyId is not comp_001, clear comp_001 collections as well to avoid sample data leakage
-  if (cid !== 'comp_001') {
-    const defaultStore = getTenantCollections('comp_001');
-    defaultStore.products.length = 0;
-    defaultStore.movements.length = 0;
-    defaultStore.customers.length = 0;
-    defaultStore.suppliers.length = 0;
-    defaultStore.accountTransactions.length = 0;
-    defaultStore.invoices.length = 0;
-    defaultStore.purchaseInvoices.length = 0;
-    defaultStore.payments.length = 0;
-    defaultStore.auditLogs.length = 0;
-    defaultStore.employees.length = 0;
-    defaultStore.employeeMovements.length = 0;
-    defaultStore.payrollRecords.length = 0;
-    defaultStore.expenses.length = 0;
-  }
-
-  // Clear global proxy arrays directly
-  mockProducts.length = 0;
-  mockCustomersList.length = 0;
-  mockSuppliersList.length = 0;
-  mockInvoicesList.length = 0;
-  mockPurchaseInvoicesList.length = 0;
-  mockPaymentsList.length = 0;
-  mockInventoryMovements.length = 0;
-  mockAccountTransactions.length = 0;
-  mockExpensesList.length = 0;
-  mockEmployeesList.length = 0;
-  mockEmployeeMovementsList.length = 0;
-  mockPayrollRecordsList.length = 0;
-  mockAuditLogsList.length = 0;
-
-  // Clear journal entries and reset account balances
+  // Clear journal entries and reset account balances for this tenant only
   wipeAllJournalEntriesAndResetAccounts(cid);
   tenantJournalEntriesMap.set(cid, []);
-  tenantJournalEntriesMap.clear();
-
-  for (const [_, accs] of tenantAccountsMap.entries()) {
-    if (Array.isArray(accs)) {
-      for (const a of accs) {
-        a.balance = 0;
-        a.updated_at = new Date().toISOString();
-      }
-    }
-  }
 
   isSampleDataSeeded = false;
   tenantCleanProductionModeMap.set(cid, true);
-  tenantCleanProductionModeMap.set('comp_001', true);
 
   // Reset tenant WhatsApp conversations/messages/logs (preserving gateway/API config)
   const existingWsState = mockWhatsAppStateMap.get(cid);
@@ -1448,10 +1405,10 @@ export function getDefaultWhatsAppConfig(companyId: string) {
     senderPhoneNumber: '+967 770 000 000',
     phoneNumberId: '',
     businessAccountId: '',
-    accessToken: '',
+    accessToken: process.env.WHATSAPP_ACCESS_TOKEN || '',
     gatewayUrl: '',
     instanceId: '',
-    apiToken: '',
+    apiToken: process.env.WHATSAPP_API_TOKEN || '',
     openExternalWhatsAppApp: false,
     isConnected: true,
     status: 'CONNECTED',
@@ -1460,23 +1417,68 @@ export function getDefaultWhatsAppConfig(companyId: string) {
   };
 }
 
+function sanitizeWhatsAppConfigForDisk(config: any): any {
+  if (!config || typeof config !== 'object') return config;
+  const envAccessToken = process.env.WHATSAPP_ACCESS_TOKEN || '';
+  const envApiToken = process.env.WHATSAPP_API_TOKEN || '';
+  const sanitized = { ...config };
+
+  if (envAccessToken && (!sanitized.accessToken || sanitized.accessToken === envAccessToken || sanitized._accessTokenFromEnv)) {
+    sanitized.accessToken = '';
+  }
+  if (envApiToken && (!sanitized.apiToken || sanitized.apiToken === envApiToken || sanitized._apiTokenFromEnv)) {
+    sanitized.apiToken = '';
+  }
+  delete sanitized._accessTokenFromEnv;
+  delete sanitized._apiTokenFromEnv;
+  return sanitized;
+}
+
 export function getTenantWhatsAppConfig(companyId: string): any {
   if (!mockWhatsAppConfigsMap.has(companyId)) {
     mockWhatsAppConfigsMap.set(companyId, getDefaultWhatsAppConfig(companyId));
   }
-  return mockWhatsAppConfigsMap.get(companyId);
+  const cfg = mockWhatsAppConfigsMap.get(companyId);
+  const envAccessToken = process.env.WHATSAPP_ACCESS_TOKEN || '';
+  const envApiToken = process.env.WHATSAPP_API_TOKEN || '';
+  if ((!cfg.accessToken && envAccessToken) || (!cfg.apiToken && envApiToken)) {
+    return {
+      ...cfg,
+      accessToken: cfg.accessToken || envAccessToken,
+      apiToken: cfg.apiToken || envApiToken,
+    };
+  }
+  return cfg;
 }
 
 export async function saveTenantWhatsAppConfig(companyId: string, config: any, pool?: any): Promise<any> {
   const existing = getTenantWhatsAppConfig(companyId);
+  const envAccessToken = process.env.WHATSAPP_ACCESS_TOKEN || '';
+  const envApiToken = process.env.WHATSAPP_API_TOKEN || '';
+
   const updated = {
     ...existing,
     ...config,
     company_id: companyId,
     updated_at: new Date().toISOString(),
   };
-  mockWhatsAppConfigsMap.set(companyId, updated);
+
+  // Do not persist sensitive tokens to disk if they come from environment variables
+  const forDisk = sanitizeWhatsAppConfigForDisk({
+    ...updated,
+    _accessTokenFromEnv: Boolean(envAccessToken && (!config?.accessToken || config.accessToken === envAccessToken)),
+    _apiTokenFromEnv: Boolean(envApiToken && (!config?.apiToken || config.apiToken === envApiToken)),
+  });
+
+  mockWhatsAppConfigsMap.set(companyId, forDisk);
   persistAllToDisk();
+
+  const runtimeResult = {
+    ...forDisk,
+    accessToken: forDisk.accessToken || envAccessToken,
+    apiToken: forDisk.apiToken || envApiToken,
+  };
+  mockWhatsAppConfigsMap.set(companyId, runtimeResult);
 
   if (pool) {
     try {
@@ -1485,13 +1487,13 @@ export async function saveTenantWhatsAppConfig(companyId: string, config: any, p
          VALUES ($1, 'whatsapp_config', $2, CURRENT_TIMESTAMP)
          ON CONFLICT (company_id, data_type)
          DO UPDATE SET payload = EXCLUDED.payload, updated_at = CURRENT_TIMESTAMP`,
-        [companyId, JSON.stringify(updated)]
+        [companyId, JSON.stringify(forDisk)]
       );
     } catch (err: any) {
       console.warn('[PG_WHATSAPP_CONFIG_PERSIST_WARN]', err?.message);
     }
   }
-  return updated;
+  return runtimeResult;
 }
 
 export function getTenantWhatsAppState(companyId: string): any {
@@ -1661,6 +1663,111 @@ export function recordSentWhatsAppMessage(companyId: string, payload: {
   return newMsg;
 }
 
+export function recordIncomingWhatsAppMessage(
+  companyId: string,
+  payload: {
+    metaMessageId: string;
+    fromPhone: string;
+    senderName?: string;
+    messageText: string;
+    timestamp?: string;
+  }
+): any {
+  const state = getTenantWhatsAppState(companyId);
+  if (!Array.isArray(state.messages)) state.messages = [];
+
+  const metaId = String(payload.metaMessageId || '').trim();
+  if (metaId) {
+    const existing = state.messages.find((m: any) => m.meta_message_id === metaId || m.id === metaId);
+    if (existing) {
+      return existing;
+    }
+  }
+
+  const cleanPhone = String(payload.fromPhone || '').replace(/[^0-9+]/g, '');
+  const nowIso = payload.timestamp
+    ? !isNaN(Number(payload.timestamp))
+      ? new Date(Number(payload.timestamp) * 1000).toISOString()
+      : new Date(payload.timestamp).toISOString()
+    : new Date().toISOString();
+  const messageId = metaId || `in_msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+  const inboundMsg = {
+    id: messageId,
+    company_id: companyId,
+    direction: 'INBOUND',
+    phone_number: cleanPhone,
+    message_body: payload.messageText || '',
+    status: 'RECEIVED',
+    meta_message_id: metaId || messageId,
+    customer_id: null,
+    supplier_id: null,
+    customer_name: payload.senderName || null,
+    message_type: 'INBOUND_TEXT',
+    error_details: null,
+    metadata: {},
+    created_at: nowIso,
+  };
+
+  state.messages.unshift(inboundMsg);
+
+  if (!Array.isArray(state.conversations)) state.conversations = [];
+  const convIndex = state.conversations.findIndex((c: any) => c.phone_number === cleanPhone);
+  if (convIndex >= 0) {
+    state.conversations[convIndex].last_message = inboundMsg.message_body;
+    state.conversations[convIndex].last_direction = 'INBOUND';
+    state.conversations[convIndex].last_status = 'RECEIVED';
+    state.conversations[convIndex].last_message_time = nowIso;
+    state.conversations[convIndex].last_message_id = messageId;
+    state.conversations[convIndex].unread_count = Number(state.conversations[convIndex].unread_count || 0) + 1;
+    if (payload.senderName && !state.conversations[convIndex].customer_name) {
+      state.conversations[convIndex].customer_name = payload.senderName;
+    }
+  } else {
+    state.conversations.unshift({
+      phone_number: cleanPhone,
+      last_message_id: messageId,
+      last_message: inboundMsg.message_body,
+      last_direction: 'INBOUND',
+      last_status: 'RECEIVED',
+      last_message_time: nowIso,
+      customer_id: null,
+      supplier_id: null,
+      customer_name: payload.senderName || cleanPhone || 'عميل واتساب',
+      unread_count: 1,
+    });
+  }
+
+  if (!state.kpi) {
+    state.kpi = {
+      totalConversations: 0,
+      unreadCount: 0,
+      sentToday: 0,
+      deliveredCount: 0,
+      readCount: 0,
+      failedCount: 0,
+      scheduledCount: 0,
+      deliveryRate: 100,
+    };
+  }
+  state.kpi.totalConversations = state.conversations.length;
+  state.kpi.unreadCount = state.conversations.reduce((sum: number, c: any) => sum + Number(c.unread_count || 0), 0);
+
+  if (!Array.isArray(state.logs)) state.logs = [];
+  state.logs.unshift({
+    id: `log_in_${Date.now()}`,
+    type: 'INBOUND_MESSAGE',
+    phone: cleanPhone,
+    recipient: payload.senderName || cleanPhone,
+    status: 'RECEIVED',
+    timestamp: nowIso,
+    details: `استلام رسالة واردة: ${(inboundMsg.message_body || '').slice(0, 60)}`,
+  });
+
+  persistAllToDisk();
+  return inboundMsg;
+}
+
 export const tenantSnapshotsMap: Map<string, any> = new Map();
 
 export function persistAllToDisk(): void {
@@ -1698,7 +1805,9 @@ export function persistAllToDisk(): void {
       employeeMovements: getTenantCollections('comp_001').employeeMovements,
       payrollRecords: getTenantCollections('comp_001').payrollRecords,
       expenses: getTenantCollections('comp_001').expenses,
-      whatsappConfigs: Object.fromEntries(mockWhatsAppConfigsMap),
+      whatsappConfigs: Object.fromEntries(
+        Array.from(mockWhatsAppConfigsMap.entries()).map(([k, v]) => [k, sanitizeWhatsAppConfigForDisk(v)])
+      ),
       whatsappStates: Object.fromEntries(mockWhatsAppStateMap),
       tenantSnapshots: Object.fromEntries(tenantSnapshotsMap),
     };
@@ -1759,11 +1868,16 @@ export function initPermanentDiskStore(): void {
         if (typeof data.isSampleDataSeeded === 'boolean') {
           isSampleDataSeeded = data.isSampleDataSeeded;
         }
+        let needsPasswordMigrationPersist = false;
         if (Array.isArray(data.users)) {
           data.users.forEach((u: PermanentUserRecord) => {
             if (u && u.email) {
               const normalized = u.email.trim().toLowerCase();
-              const safeHash = isPasswordHashed(u.password_hash) ? u.password_hash : hashPassword(u.password_hash || 'admin123');
+              const alreadyHashed = typeof u.password_hash === 'string' && u.password_hash.startsWith('scrypt$');
+              if (!alreadyHashed) {
+                needsPasswordMigrationPersist = true;
+              }
+              const safeHash = alreadyHashed ? u.password_hash : hashPassword(u.password_hash || 'admin123');
               permanentUsersMap.set(normalized, {
                 ...u,
                 email: normalized,
@@ -1780,23 +1894,31 @@ export function initPermanentDiskStore(): void {
           });
         }
 
-        // Restore multi-tenant collections
+        // Restore multi-tenant collections with strict company_id isolation
+        const filterAndTagForTenant = <T extends Record<string, any>>(arr: any, tenantId: string): T[] => {
+          if (!Array.isArray(arr)) return [];
+          return arr
+            .filter((item) => item && typeof item === 'object' && (!item.company_id || item.company_id === tenantId))
+            .map((item) => ({ ...item, company_id: tenantId }));
+        };
+
         if (data.tenantDataStores && typeof data.tenantDataStores === 'object') {
           Object.entries(data.tenantDataStores).forEach(([cid, store]: [string, any]) => {
+            if (!store || typeof store !== 'object') return;
             tenantDataStoresMap.set(cid, {
-              products: Array.isArray(store.products) ? store.products : [],
-              movements: Array.isArray(store.movements) ? store.movements : [],
-              customers: Array.isArray(store.customers) ? store.customers : [],
-              suppliers: Array.isArray(store.suppliers) ? store.suppliers : [],
-              accountTransactions: Array.isArray(store.accountTransactions) ? store.accountTransactions : [],
-              invoices: Array.isArray(store.invoices) ? store.invoices : [],
-              purchaseInvoices: Array.isArray(store.purchaseInvoices) ? store.purchaseInvoices : [],
-              payments: Array.isArray(store.payments) ? store.payments : [],
-              auditLogs: Array.isArray(store.auditLogs) ? store.auditLogs : [],
-              employees: Array.isArray(store.employees) ? store.employees : [],
-              employeeMovements: Array.isArray(store.employeeMovements) ? store.employeeMovements : [],
-              payrollRecords: Array.isArray(store.payrollRecords) ? store.payrollRecords : [],
-              expenses: Array.isArray(store.expenses) ? store.expenses : [],
+              products: filterAndTagForTenant(store.products, cid),
+              movements: filterAndTagForTenant(store.movements, cid),
+              customers: filterAndTagForTenant(store.customers, cid),
+              suppliers: filterAndTagForTenant(store.suppliers, cid),
+              accountTransactions: filterAndTagForTenant(store.accountTransactions, cid),
+              invoices: filterAndTagForTenant(store.invoices, cid),
+              purchaseInvoices: filterAndTagForTenant(store.purchaseInvoices, cid),
+              payments: filterAndTagForTenant(store.payments, cid),
+              auditLogs: filterAndTagForTenant(store.auditLogs, cid),
+              employees: filterAndTagForTenant(store.employees, cid),
+              employeeMovements: filterAndTagForTenant(store.employeeMovements, cid),
+              payrollRecords: filterAndTagForTenant(store.payrollRecords, cid),
+              expenses: filterAndTagForTenant(store.expenses, cid),
             });
           });
         }
@@ -1804,43 +1926,43 @@ export function initPermanentDiskStore(): void {
         // Backward compatibility for legacy flat arrays targeting comp_001
         const comp001Store = getTenantCollections('comp_001');
         if (Array.isArray(data.customers) && comp001Store.customers.length === 0) {
-          comp001Store.customers.push(...data.customers);
+          comp001Store.customers.push(...filterAndTagForTenant<CustomerItem>(data.customers, 'comp_001'));
         }
         if (Array.isArray(data.suppliers) && comp001Store.suppliers.length === 0) {
-          comp001Store.suppliers.push(...data.suppliers);
+          comp001Store.suppliers.push(...filterAndTagForTenant<SupplierItem>(data.suppliers, 'comp_001'));
         }
         if (Array.isArray(data.products) && comp001Store.products.length === 0) {
-          comp001Store.products.push(...data.products);
+          comp001Store.products.push(...filterAndTagForTenant<ProductItem>(data.products, 'comp_001'));
         }
         if (Array.isArray(data.inventoryMovements) && comp001Store.movements.length === 0) {
-          comp001Store.movements.push(...data.inventoryMovements);
+          comp001Store.movements.push(...filterAndTagForTenant<InventoryMovementItem>(data.inventoryMovements, 'comp_001'));
         }
         if (Array.isArray(data.accountTransactions) && comp001Store.accountTransactions.length === 0) {
-          comp001Store.accountTransactions.push(...data.accountTransactions);
+          comp001Store.accountTransactions.push(...filterAndTagForTenant<AccountTransactionItem>(data.accountTransactions, 'comp_001'));
         }
         if (Array.isArray(data.invoices) && comp001Store.invoices.length === 0) {
-          comp001Store.invoices.push(...data.invoices);
+          comp001Store.invoices.push(...filterAndTagForTenant<InvoiceItem>(data.invoices, 'comp_001'));
         }
         if (Array.isArray(data.purchaseInvoices) && comp001Store.purchaseInvoices.length === 0) {
-          comp001Store.purchaseInvoices.push(...data.purchaseInvoices);
+          comp001Store.purchaseInvoices.push(...filterAndTagForTenant<PurchaseInvoiceItem>(data.purchaseInvoices, 'comp_001'));
         }
         if (Array.isArray(data.payments) && comp001Store.payments.length === 0) {
-          comp001Store.payments.push(...data.payments);
+          comp001Store.payments.push(...filterAndTagForTenant<PaymentItem>(data.payments, 'comp_001'));
         }
         if (Array.isArray(data.auditLogs) && comp001Store.auditLogs.length === 0) {
-          comp001Store.auditLogs.push(...data.auditLogs);
+          comp001Store.auditLogs.push(...filterAndTagForTenant<AuditLogItem>(data.auditLogs, 'comp_001'));
         }
         if (Array.isArray(data.employees) && comp001Store.employees.length === 0) {
-          comp001Store.employees.push(...data.employees);
+          comp001Store.employees.push(...filterAndTagForTenant<EmployeeItem>(data.employees, 'comp_001'));
         }
         if (Array.isArray(data.employeeMovements) && comp001Store.employeeMovements.length === 0) {
-          comp001Store.employeeMovements.push(...data.employeeMovements);
+          comp001Store.employeeMovements.push(...filterAndTagForTenant<EmployeeMovementItem>(data.employeeMovements, 'comp_001'));
         }
         if (Array.isArray(data.payrollRecords) && comp001Store.payrollRecords.length === 0) {
-          comp001Store.payrollRecords.push(...data.payrollRecords);
+          comp001Store.payrollRecords.push(...filterAndTagForTenant<PayrollRecordItem>(data.payrollRecords, 'comp_001'));
         }
         if (Array.isArray(data.expenses) && comp001Store.expenses.length === 0) {
-          comp001Store.expenses.push(...data.expenses);
+          comp001Store.expenses.push(...filterAndTagForTenant<ExpenseItem>(data.expenses, 'comp_001'));
         }
 
         if (data.whatsappConfigs && typeof data.whatsappConfigs === 'object') {
@@ -1863,6 +1985,12 @@ export function initPermanentDiskStore(): void {
             tenantAccounts: data.tenantAccounts,
             tenantJournalEntries: data.tenantJournalEntries,
           });
+          for (const compId of tenantAccountsMap.keys()) {
+            recalculateTenantAccountBalances(compId);
+          }
+        }
+        if (needsPasswordMigrationPersist) {
+          persistAllToDisk();
         }
         console.log('[PERMANENT_STORE_RESTORED] Loaded from disk successfully.');
       }
@@ -1943,6 +2071,31 @@ export async function initPermanentPostgresTables(pool: any): Promise<void> {
         } else if (row.data_type === 'tenant_snapshot' && row.company_id && row.payload) {
           tenantSnapshotsMap.set(row.company_id, row.payload);
           const snap = row.payload;
+          if (snap.tenantStore && typeof snap.tenantStore === 'object') {
+            const ts = snap.tenantStore;
+            const cid = row.company_id;
+            const filterAndTag = <T extends Record<string, any>>(arr: any): T[] => {
+              if (!Array.isArray(arr)) return [];
+              return arr
+                .filter((item) => item && typeof item === 'object' && (!item.company_id || item.company_id === cid))
+                .map((item) => ({ ...item, company_id: cid }));
+            };
+            tenantDataStoresMap.set(cid, {
+              products: filterAndTag(ts.products),
+              movements: filterAndTag(ts.movements),
+              customers: filterAndTag(ts.customers),
+              suppliers: filterAndTag(ts.suppliers),
+              accountTransactions: filterAndTag(ts.accountTransactions),
+              invoices: filterAndTag(ts.invoices),
+              purchaseInvoices: filterAndTag(ts.purchaseInvoices),
+              payments: filterAndTag(ts.payments),
+              auditLogs: filterAndTag(ts.auditLogs),
+              employees: filterAndTag(ts.employees),
+              employeeMovements: filterAndTag(ts.employeeMovements),
+              payrollRecords: filterAndTag(ts.payrollRecords),
+              expenses: filterAndTag(ts.expenses),
+            });
+          }
           if (snap.tenantAccounts && Array.isArray(snap.tenantAccounts) && typeof tenantAccountsMap !== 'undefined') {
             tenantAccountsMap.set(row.company_id, snap.tenantAccounts);
           }
@@ -1977,7 +2130,6 @@ export async function saveUserToPermanentStore(user: PermanentUserRecord, pool?:
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
          ON CONFLICT (email)
          DO UPDATE SET 
-           password_hash = EXCLUDED.password_hash,
            name = EXCLUDED.name,
            company_name = EXCLUDED.company_name,
            phone = EXCLUDED.phone,
@@ -2070,19 +2222,23 @@ export async function rehydrateTenantData(payload: any, pool?: any): Promise<{ s
 
   // 1. Rehydrate user
   if (payload.user && payload.user.email) {
+    const normalizedEmail = payload.user.email.trim().toLowerCase();
+    const existingUser = permanentUsersMap.get(normalizedEmail);
     const rawPass = payload.password || payload.user.password_hash || payload.password_hash || 'admin123';
-    const safeHash = isPasswordHashed(rawPass) ? rawPass : hashPassword(rawPass);
+    const safeHash = existingUser
+      ? existingUser.password_hash
+      : (isPasswordHashed(rawPass) ? rawPass : hashPassword(rawPass));
     const userRec: PermanentUserRecord = {
-      id: payload.user.id || `usr_${Date.now()}`,
-      email: payload.user.email.trim().toLowerCase(),
+      id: existingUser?.id || payload.user.id || `usr_${Date.now()}`,
+      email: normalizedEmail,
       password_hash: safeHash,
-      name: payload.user.full_name || payload.user.name || 'المدير العام',
-      role: payload.user.role || 'ADMIN',
-      company_id: payload.company?.id || payload.user.company_id || 'comp_001',
-      company_name: payload.company?.name || payload.companyName || payload.user.company_name || 'المؤسسة التجارية',
-      phone: payload.user.phone || payload.phone,
-      business_mode: payload.business_mode || payload.user.business_mode,
-      created_at: payload.user.created_at || new Date().toISOString(),
+      name: payload.user.full_name || payload.user.name || existingUser?.name || 'المدير العام',
+      role: existingUser?.role || payload.user.role || 'ADMIN',
+      company_id: existingUser?.company_id || payload.company?.id || payload.user.company_id || 'comp_001',
+      company_name: payload.company?.name || payload.companyName || payload.user.company_name || existingUser?.company_name || 'المؤسسة التجارية',
+      phone: payload.user.phone || payload.phone || existingUser?.phone,
+      business_mode: payload.business_mode || payload.user.business_mode || existingUser?.business_mode,
+      created_at: existingUser?.created_at || payload.user.created_at || new Date().toISOString(),
     };
     await saveUserToPermanentStore(userRec, pool);
   }

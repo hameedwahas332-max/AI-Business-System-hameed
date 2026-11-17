@@ -95,6 +95,7 @@ export function renderAndPrintDocument(
 <head>
   <meta charset="utf-8">
   <title>${escapeHtml(documentTitle)}</title>
+  <link rel="stylesheet" href="/assets/print.css">
   <style>
     ${pageCss}
     * {
@@ -207,27 +208,28 @@ export function renderAndPrintDocument(
     }
   };
 
-  // 4. Standalone Window / Blob Print Opener (100% reliable bypass for iframe sandbox constraints)
+  // 4. Standalone Window / Blob Print Opener (100% reliable & CSP Level 3 compliant)
   const openStandalonePrintWindow = () => {
     try {
-      const htmlWithAutoPrint = fullHtml.replace(
-        '</body>',
-        `<script>
-          window.addEventListener('load', function() {
-            setTimeout(function() {
-              window.focus();
-              window.print();
-            }, 300);
-          });
-        </script></body>`
-      );
-      const blob = new Blob([htmlWithAutoPrint], { type: 'text/html;charset=utf-8' });
+      const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
       const blobUrl = URL.createObjectURL(blob);
       const newWin = window.open(blobUrl, '_blank');
       if (!newWin || newWin.closed || typeof newWin.closed === 'undefined') {
+        URL.revokeObjectURL(blobUrl);
         // Popup was blocked by browser, trigger direct download
         downloadHtmlDocument();
+        return;
       }
+      newWin.addEventListener('load', () => {
+        setTimeout(() => {
+          try {
+            newWin.focus();
+            newWin.print();
+          } finally {
+            URL.revokeObjectURL(blobUrl);
+          }
+        }, 300);
+      });
     } catch {
       downloadHtmlDocument();
     }
@@ -297,7 +299,7 @@ export function renderAndPrintDocument(
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${documentTitle.replace(/\s+/g, '_')}_${Date.now()}.html`;
+    a.download = `${escapeHtml(documentTitle).replace(/\s+/g, '_')}_${Date.now()}.html`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

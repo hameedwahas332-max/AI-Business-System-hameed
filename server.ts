@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import pg from 'pg';
 import { S3Client, HeadBucketCommand, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
@@ -44,7 +45,10 @@ import {
   getTenantWhatsAppState,
   saveTenantWhatsAppState,
   recordSentWhatsAppMessage,
+  recordIncomingWhatsAppMessage,
+  mockWhatsAppConfigsMap,
   persistAllToDisk,
+  getTenantCollections,
 } from './server/dataStore';
 import {
   generateSignedToken,
@@ -94,7 +98,14 @@ if (process.env.K_SERVICE || process.env.NODE_ENV === 'production') {
 
 // Basic Middleware
 app.use(cors({ origin: '*' }));
-app.use(express.json({ limit: '50mb' }));
+app.use(
+  express.json({
+    limit: '50mb',
+    verify: (req: any, _res, buf) => {
+      req.rawBody = buf;
+    },
+  })
+);
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Database Pool Setup (Neon PostgreSQL)
@@ -489,71 +500,16 @@ app.post('/api/v1/auth/login', async (req: Request, res: Response) => {
   const { email, password } = req.body || {};
   const normalizedEmail = (email || '').trim().toLowerCase();
 
-  if (!normalizedEmail) {
-    return res.status(400).json({ success: false, message: 'البريد الإلكتروني مطلوب' });
+  if (!normalizedEmail || !password) {
+    return res.status(400).json({
+      success: false,
+      message: 'البريد الإلكتروني وكلمة المرور مطلوبان',
+    });
   }
 
-  // Check permanent storage or memory
-  let permUser = permanentUsersMap.get(normalizedEmail);
-  let tenantUser = tenantUsersByEmail.get(normalizedEmail);
-
-  // Verify password using scrypt
-  if (permUser) {
-    if (!password) {
-      recordFailedLogin(clientIp);
-      return res.status(400).json({ success: false, message: 'كلمة المرور مطلوبة' });
-    }
-    if (!verifyPassword(password, permUser.password_hash)) {
-      recordFailedLogin(clientIp);
-      return res.status(401).json({
-        success: false,
-        message: 'كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى',
-      });
-    }
-  }
-
-  let user: PersistentTenantUser;
-  let company: PersistentTenantCompany;
-
-  if (permUser) {
-    const compId = permUser.company_id || 'comp_001';
-    const existingComp = permanentCompaniesMap.get(compId) || tenantCompaniesById.get(compId);
-    const storeName = permUser.company_name || existingComp?.name || 'المؤسسة التجارية';
-
-    company = {
-      id: compId,
-      name: storeName,
-      currency: existingComp?.currency || 'SAR',
-      phone: existingComp?.phone || permUser.phone || '',
-      email: normalizedEmail,
-      status: 'ACTIVE',
-      created_at: existingComp?.created_at || permUser.created_at || new Date().toISOString(),
-    };
-    tenantCompaniesById.set(compId, company);
-    permanentCompaniesMap.set(compId, company);
-
-    user = {
-      id: permUser.id,
-      username: normalizedEmail.split('@')[0] || 'admin',
-      full_name: permUser.name || 'المدير العام',
-      email: normalizedEmail,
-      role: permUser.role || 'ADMIN',
-      company_id: compId,
-      is_active: true,
-      created_at: permUser.created_at,
-    };
-    tenantUsersByEmail.set(normalizedEmail, user);
-  } else if (tenantUser) {
-    user = tenantUser;
-    company = tenantCompaniesById.get(user.company_id) || {
-      id: user.company_id,
-      name: 'مؤسسة السحابي للتجارة والتقنية',
-      currency: 'SAR',
-      status: 'ACTIVE',
-      created_at: new Date().toISOString(),
-    };
-  } else {
-    // Record failed attempt and return 404
+  // Authenticate strictly via permanentUsersMap and verifyPassword
+  const permUser = permanentUsersMap.get(normalizedEmail);
+  if (!permUser) {
     recordFailedLogin(clientIp);
     return res.status(404).json({
       success: false,
@@ -561,6 +517,42 @@ app.post('/api/v1/auth/login', async (req: Request, res: Response) => {
       message: 'هذا الحساب غير مسجل في النظام، يرجى إنشاء حساب جديد أولاً',
     });
   }
+
+  if (!permUser.password_hash || !verifyPassword(password, permUser.password_hash)) {
+    recordFailedLogin(clientIp);
+    return res.status(401).json({
+      success: false,
+      message: 'كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى',
+    });
+  }
+
+  const compId = permUser.company_id || 'comp_001';
+  const existingComp = permanentCompaniesMap.get(compId) || tenantCompaniesById.get(compId);
+  const storeName = permUser.company_name || existingComp?.name || 'المؤسسة التجارية';
+
+  const company: PersistentTenantCompany = {
+    id: compId,
+    name: storeName,
+    currency: existingComp?.currency || 'SAR',
+    phone: existingComp?.phone || permUser.phone || '',
+    email: normalizedEmail,
+    status: 'ACTIVE',
+    created_at: existingComp?.created_at || permUser.created_at || new Date().toISOString(),
+  };
+  tenantCompaniesById.set(compId, company);
+  permanentCompaniesMap.set(compId, company);
+
+  const user: PersistentTenantUser = {
+    id: permUser.id,
+    username: normalizedEmail.split('@')[0] || 'admin',
+    full_name: permUser.name || 'المدير العام',
+    email: normalizedEmail,
+    role: permUser.role || 'ADMIN',
+    company_id: compId,
+    is_active: true,
+    created_at: permUser.created_at,
+  };
+  tenantUsersByEmail.set(normalizedEmail, user);
 
   // Reset failed login counter on successful authentication
   resetLoginRateLimit(clientIp);
@@ -586,9 +578,10 @@ app.post('/api/v1/auth/rehydrate-account', async (req: Request, res: Response) =
     const email = (payload.user?.email || payload.email || '').trim().toLowerCase();
     const companyId = payload.company?.id || payload.user?.company_id || payload.companyId;
 
-    // 1. Check for token in payload or headers
+    // 1. Strictly require a valid signed JWT token matching email and companyId (never allow unauthenticated updates)
     const authHeader = req.headers['authorization'] || '';
-    const rawToken = payload.token || extractBearerToken(authHeader) || (req.headers['x-auth-token'] as string) || '';
+    const rawToken = extractBearerToken(authHeader) || payload.token || (req.headers['x-auth-token'] as string) || '';
+    const existingPermUser = email ? permanentUsersMap.get(email) : undefined;
     let isAuthorized = false;
 
     if (rawToken) {
@@ -596,18 +589,15 @@ app.post('/api/v1/auth/rehydrate-account', async (req: Request, res: Response) =
       if (verified.valid && verified.payload) {
         const tokenEmail = verified.payload.email?.trim().toLowerCase();
         const tokenCid = verified.payload.cid;
-        if ((!email || !tokenEmail || tokenEmail === email) && (!companyId || !tokenCid || tokenCid === companyId)) {
-          isAuthorized = true;
-        }
-      }
-    }
-
-    // 2. Check password against permanentUsersMap
-    if (!isAuthorized) {
-      const permUser = email ? permanentUsersMap.get(email) : undefined;
-      const candidatePassword = payload.password || payload.user?.password || '';
-      if (permUser && candidatePassword && permUser.password_hash) {
-        if (verifyPassword(candidatePassword, permUser.password_hash)) {
+        const expectedCid = companyId || existingPermUser?.company_id;
+        if (
+          email &&
+          tokenEmail &&
+          tokenEmail === email &&
+          tokenCid &&
+          (!expectedCid || tokenCid === expectedCid) &&
+          (!existingPermUser || existingPermUser.company_id === tokenCid)
+        ) {
           isAuthorized = true;
         }
       }
@@ -616,7 +606,7 @@ app.post('/api/v1/auth/rehydrate-account', async (req: Request, res: Response) =
     if (!isAuthorized) {
       return res.status(401).json({
         success: false,
-        message: 'غير مصرح به: يتطلب رمز مصادقة صالح أو كلمة مرور صحيحة للاستعادة',
+        message: 'غير مصرح به: يتطلب رمز مصادقة JWT موقّع وصالح يطابق البريد الإلكتروني ومعرّف الشركة',
       });
     }
 
@@ -1091,8 +1081,10 @@ app.get('/api/v1/pos/ai-insights', (_req: Request, res: Response) => {
 });
 
 app.get('/api/v1/customers', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const q = String(req.query.q || req.query.search || '').trim().toLowerCase();
-  let list = [...mockCustomersList];
+  let list = [...store.customers];
   if (q) {
     list = list.filter((c) => c.name.toLowerCase().includes(q) || (c.phone && c.phone.includes(q)));
   }
@@ -1105,8 +1097,10 @@ app.get('/api/v1/customers', (req: Request, res: Response) => {
 });
 
 app.get('/api/v1/suppliers', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const q = String(req.query.q || req.query.search || '').trim().toLowerCase();
-  let list = [...mockSuppliersList];
+  let list = [...store.suppliers];
   if (q) {
     list = list.filter((s) => s.name.toLowerCase().includes(q) || (s.category && s.category.toLowerCase().includes(q)));
   }
@@ -1121,8 +1115,10 @@ app.get('/api/v1/suppliers', (req: Request, res: Response) => {
 
 
 app.get('/api/v1/products', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const { search, category, lowStock, activityType } = req.query as any;
-  let result = [...mockProducts];
+  let result = [...store.products];
 
   if (search) {
     const q = String(search).toLowerCase();
@@ -1150,9 +1146,12 @@ app.get('/api/v1/products', (req: Request, res: Response) => {
 });
 
 app.post('/api/v1/products', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const body = req.body || {};
   const newProduct = {
     id: `prod-${Date.now()}`,
+    company_id: companyId,
     sku: body.sku || `SKU-${Date.now()}`,
     barcode: body.barcode || '',
     name: body.name || 'منتج جديد',
@@ -1194,42 +1193,54 @@ app.post('/api/v1/products', (req: Request, res: Response) => {
     created_at: new Date().toISOString(),
   };
 
-  mockProducts.unshift(newProduct);
+  store.products.unshift(newProduct);
+  persistAllToDisk();
   res.status(201).json({ success: true, data: newProduct });
 });
 
 app.put('/api/v1/products/:id', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const { id } = req.params;
-  const idx = mockProducts.findIndex((p) => p.id === id);
+  const idx = store.products.findIndex((p) => p.id === id);
   if (idx === -1) {
     return res.status(404).json({ success: false, error: 'Product not found' });
   }
 
   const body = req.body || {};
-  mockProducts[idx] = {
-    ...mockProducts[idx],
+  store.products[idx] = {
+    ...store.products[idx],
     ...body,
-    selling_price: body.sellingPrice !== undefined ? Number(body.sellingPrice) : mockProducts[idx].selling_price,
-    purchase_price: body.purchasePrice !== undefined ? Number(body.purchasePrice) : mockProducts[idx].purchase_price,
-    current_stock: body.currentStock !== undefined ? Number(body.currentStock) : mockProducts[idx].current_stock,
-    min_stock_level: body.minStockLevel !== undefined ? Number(body.minStockLevel) : mockProducts[idx].min_stock_level,
-    price: body.sellingPrice !== undefined ? Number(body.sellingPrice) : mockProducts[idx].price,
+    company_id: companyId,
+    selling_price: body.sellingPrice !== undefined ? Number(body.sellingPrice) : store.products[idx].selling_price,
+    purchase_price: body.purchasePrice !== undefined ? Number(body.purchasePrice) : store.products[idx].purchase_price,
+    current_stock: body.currentStock !== undefined ? Number(body.currentStock) : store.products[idx].current_stock,
+    min_stock_level: body.minStockLevel !== undefined ? Number(body.minStockLevel) : store.products[idx].min_stock_level,
+    price: body.sellingPrice !== undefined ? Number(body.sellingPrice) : store.products[idx].price,
   };
+  persistAllToDisk();
 
-  res.json({ success: true, data: mockProducts[idx] });
+  res.json({ success: true, data: store.products[idx] });
 });
 
 app.delete('/api/v1/products/:id', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const { id } = req.params;
-  const idx = mockProducts.findIndex((p) => p.id === id);
-  if (idx !== -1) mockProducts.splice(idx, 1);
+  const idx = store.products.findIndex((p) => p.id === id);
+  if (idx !== -1) {
+    store.products.splice(idx, 1);
+    persistAllToDisk();
+  }
   res.json({ success: true, message: 'Product deleted' });
 });
 
 app.post(['/api/v1/inventory/adjustments', '/api/v1/inventory-adjustments'], (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const body = req.body || {};
   const productId = body.productId || body.product_id || body.id;
-  const product = mockProducts.find((p) => p.id === productId || (p.sku && p.sku === body.sku) || (p.barcode && p.barcode === body.barcode));
+  const product = store.products.find((p) => p.id === productId || (p.sku && p.sku === body.sku) || (p.barcode && p.barcode === body.barcode));
 
   if (!product) {
     return res.status(404).json({ success: false, error: 'Product not found', message: 'الصنف غير موجود' });
@@ -1250,21 +1261,24 @@ app.post(['/api/v1/inventory/adjustments', '/api/v1/inventory-adjustments'], (re
   product.current_stock = newStock;
   product.qty = newStock;
   product.stock = newStock;
+  product.status = newStock <= 0 ? 'نفد' : newStock <= (product.min_stock_level || 5) ? 'قريب من النفاذ' : 'متوفر';
 
   const adjId = `ADJ-${Date.now()}`;
   const mov = {
     id: `mov-${Date.now()}`,
+    company_id: companyId,
     product_id: product.id,
     product_name: product.name,
     type: diffQty >= 0 ? 'IN' : 'ADJUSTMENT',
-    quantity: Math.abs(diffQty),
+    quantity: diffQty,
     remaining_stock: newStock,
     reference_type: 'STOCK_ADJUSTMENT',
     reference_id: adjId,
     date: new Date().toISOString(),
     notes: body.reason || body.notes || 'تسوية جردية للمخزون',
   };
-  mockInventoryMovements.unshift(mov);
+  store.movements.unshift(mov);
+  persistAllToDisk();
 
   // BUG-09: Post balanced double-entry journal between 1104 and 5209
   const unitCost = Number(body.unitCost || body.costPrice || body.cost_price || product.cost_price || product.purchase_price || 0);
@@ -1272,7 +1286,6 @@ app.post(['/api/v1/inventory/adjustments', '/api/v1/inventory-adjustments'], (re
   let journalEntry = null;
 
   if (diffCost > 0) {
-    const companyId = resolveCompanyId(req);
     journalEntry = postDoubleEntryJournal({
       companyId,
       reference_type: 'STOCK_ADJUSTMENT',
@@ -1330,9 +1343,11 @@ app.post(['/api/v1/inventory/adjustments', '/api/v1/inventory-adjustments'], (re
 });
 
 app.post('/api/v1/products/:productId/adjust-stock', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const { productId } = req.params;
   const { quantity, reason, type } = req.body || {};
-  const product = mockProducts.find((p) => p.id === productId);
+  const product = store.products.find((p) => p.id === productId);
 
   if (!product) {
     return res.status(404).json({ success: false, error: 'Product not found' });
@@ -1344,21 +1359,24 @@ app.post('/api/v1/products/:productId/adjust-stock', (req: Request, res: Respons
   product.current_stock = newStock;
   product.qty = newStock;
   product.stock = newStock;
+  product.status = newStock <= 0 ? 'نفد' : newStock <= (product.min_stock_level || 5) ? 'قريب من النفاذ' : 'متوفر';
 
   const adjId = `ADJ-${Date.now()}`;
   const mov = {
     id: `mov-${Date.now()}`,
+    company_id: companyId,
     product_id: product.id,
     product_name: product.name,
     type: type || (diffQty >= 0 ? 'IN' : 'ADJUSTMENT'),
-    quantity: Math.abs(diffQty),
+    quantity: diffQty,
     remaining_stock: newStock,
     reference_type: 'STOCK_ADJUSTMENT',
     reference_id: adjId,
     date: new Date().toISOString(),
     notes: reason || 'تسوية يدوية للمخزون',
   };
-  mockInventoryMovements.unshift(mov);
+  store.movements.unshift(mov);
+  persistAllToDisk();
 
   // BUG-09: Post balanced double-entry journal between 1104 and 5209
   const unitCost = Number(req.body.unitCost || req.body.costPrice || req.body.cost_price || product.cost_price || product.purchase_price || 0);
@@ -1366,7 +1384,6 @@ app.post('/api/v1/products/:productId/adjust-stock', (req: Request, res: Respons
   let journalEntry = null;
 
   if (diffCost > 0) {
-    const companyId = resolveCompanyId(req);
     journalEntry = postDoubleEntryJournal({
       companyId,
       reference_type: 'STOCK_ADJUSTMENT',
@@ -1412,8 +1429,10 @@ app.post('/api/v1/products/:productId/adjust-stock', (req: Request, res: Respons
 });
 
 app.get('/api/v1/inventory', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const { search, type } = req.query as any;
-  let result = [...mockInventoryMovements];
+  let result = [...store.movements];
 
   if (search) {
     const q = String(search).toLowerCase();
@@ -1431,12 +1450,14 @@ app.get('/api/v1/inventory', (req: Request, res: Response) => {
   res.json({ success: true, data: result });
 });
 
-app.get('/api/v1/invoices', (_req: Request, res: Response) => {
+app.get('/api/v1/invoices', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   res.json({
     success: true,
-    data: mockInvoicesList,
-    invoices: mockInvoicesList,
-    total: mockInvoicesList.length,
+    data: store.invoices,
+    invoices: store.invoices,
+    total: store.invoices.length,
   });
 });
 
@@ -1477,49 +1498,15 @@ app.post(['/api/v1/invoices', '/api/invoices'], (req: Request, res: Response) =>
   }
 });
 
-app.delete('/api/v1/invoices/:id', (req: Request, res: Response) => {
-  try {
-    const companyId = resolveCompanyId(req);
-    const result = reverseSalesInvoiceAtomic(companyId, req.params.id, true);
-    res.json(result);
-  } catch (err: any) {
-    res.status(err.status || 400).json({
-      success: false,
-      message: err.message || 'فشل حذف فاتورة المبيعات',
-      error: err.message,
-    });
-  }
-});
-
-app.post(['/api/v1/invoices/:id/cancel', '/api/invoices/:id/cancel'], (req: Request, res: Response) => {
-  try {
-    const companyId = resolveCompanyId(req);
-    const result = reverseSalesInvoiceAtomic(companyId, req.params.id, false);
-    res.json(result);
-  } catch (err: any) {
-    res.status(err.status || 400).json({
-      success: false,
-      message: err.message || 'فشل إلغاء فاتورة المبيعات',
-      error: err.message,
-    });
-  }
-});
-
-app.get('/api/v1/purchase-invoices', (_req: Request, res: Response) => {
+app.get('/api/v1/purchase-invoices', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   res.json({
     success: true,
-    data: mockPurchaseInvoicesList,
-    invoices: mockPurchaseInvoicesList,
-    total: mockPurchaseInvoicesList.length,
+    data: store.purchaseInvoices,
+    invoices: store.purchaseInvoices,
+    total: store.purchaseInvoices.length,
   });
-});
-
-app.get('/api/v1/purchase-invoices/:id', (req: Request, res: Response) => {
-  const inv = mockPurchaseInvoicesList.find((p) => p.id === req.params.id || p.invoice_number === req.params.id);
-  if (inv) {
-    return res.json({ success: true, data: inv });
-  }
-  res.status(404).json({ success: false, error: 'Purchase invoice not found' });
 });
 
 app.post(['/api/v1/purchase-invoices', '/api/purchase-invoices'], (req: Request, res: Response) => {
@@ -1591,40 +1578,14 @@ app.post(['/api/v1/sales-returns', '/api/v1/invoices/returns', '/api/sales-retur
   }
 });
 
-app.delete('/api/v1/purchase-invoices/:id', (req: Request, res: Response) => {
-  try {
-    const companyId = resolveCompanyId(req);
-    const result = reversePurchaseInvoiceAtomic(companyId, req.params.id, true);
-    res.json(result);
-  } catch (err: any) {
-    res.status(err.status || 400).json({
-      success: false,
-      message: err.message || 'فشل حذف فاتورة المشتريات',
-      error: err.message,
-    });
-  }
-});
-
-app.post(['/api/v1/purchase-invoices/:id/cancel', '/api/purchase-invoices/:id/cancel'], (req: Request, res: Response) => {
-  try {
-    const companyId = resolveCompanyId(req);
-    const result = reversePurchaseInvoiceAtomic(companyId, req.params.id, false);
-    res.json(result);
-  } catch (err: any) {
-    res.status(err.status || 400).json({
-      success: false,
-      message: err.message || 'فشل إلغاء فاتورة المشتريات',
-      error: err.message,
-    });
-  }
-});
-
-app.get('/api/v1/payments', (_req: Request, res: Response) => {
+app.get('/api/v1/payments', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   res.json({
     success: true,
-    data: mockPaymentsList,
-    payments: mockPaymentsList,
-    total: mockPaymentsList.length,
+    data: store.payments,
+    payments: store.payments,
+    total: store.payments.length,
   });
 });
 
@@ -1733,34 +1694,6 @@ app.post(['/api/v1/expenses', '/api/expenses'], (req: Request, res: Response) =>
   }
 });
 
-app.delete(['/api/v1/expenses/:id', '/api/expenses/:id'], (req: Request, res: Response) => {
-  try {
-    const companyId = resolveCompanyId(req);
-    const result = reverseExpenseAtomic(companyId, req.params.id, true);
-    res.json(result);
-  } catch (err: any) {
-    res.status(err.status || 400).json({
-      success: false,
-      message: err.message || 'فشل حذف المصروف',
-      error: err.message,
-    });
-  }
-});
-
-app.post(['/api/v1/expenses/:id/cancel', '/api/expenses/:id/cancel'], (req: Request, res: Response) => {
-  try {
-    const companyId = resolveCompanyId(req);
-    const result = reverseExpenseAtomic(companyId, req.params.id, false);
-    res.json(result);
-  } catch (err: any) {
-    res.status(err.status || 400).json({
-      success: false,
-      message: err.message || 'فشل إلغاء المصروف',
-      error: err.message,
-    });
-  }
-});
-
 app.post(['/api/v1/hr/payroll/run', '/api/v1/payroll/run', '/api/payroll/run'], (req: Request, res: Response) => {
   try {
     const companyId = resolveCompanyId(req);
@@ -1792,110 +1725,16 @@ app.post(['/api/v1/hr/payroll/run', '/api/v1/payroll/run', '/api/payroll/run'], 
   }
 });
 
-app.get(['/api/v1/journal-entries', '/api/journal-entries'], (req: Request, res: Response) => {
-  const companyId = resolveCompanyId(req);
-  const entries = getTenantJournalEntries(companyId);
-  res.json({
-    success: true,
-    data: entries,
-    entries,
-    total: entries.length,
-  });
-});
-
-app.post(['/api/v1/journal-entries', '/api/journal-entries'], (req: Request, res: Response) => {
-  try {
-    const companyId = resolveCompanyId(req);
-    const body = req.body || {};
-    const lines = Array.isArray(body.lines) ? body.lines : [];
-
-    // Strictly validate balanced lines
-    const balanceCheck = validateBalancedJournalLines(lines);
-    if (!balanceCheck.valid) {
-      return res.status(400).json({
-        success: false,
-        code: 'UNBALANCED_JOURNAL_ENTRY',
-        error: balanceCheck.error || 'القيد المحاسبي غير متوازن: إجمالي المدين يجب أن يساوي إجمالي الدائن تماماً',
-        message: balanceCheck.error || 'القيد المحاسبي غير متوازن: إجمالي المدين يجب أن يساوي إجمالي الدائن تماماً',
-      });
-    }
-
-    const journal = postDoubleEntryJournal({
-      companyId,
-      reference_type: body.reference_type || 'MANUAL_JOURNAL',
-      reference_id: body.reference_id,
-      description: body.description || 'قيد تسوية يدوي',
-      currency: body.currency || 'YER',
-      date: body.date,
-      lines,
-      created_by: body.created_by || 'حميد وهاس',
-    });
-
-    res.status(201).json({
-      success: true,
-      data: journal,
-      entry: journal,
-      message: 'تم ترحيل القيد المزدوج بنجاح وتحديث أرصدة الحسابات',
-    });
-  } catch (err: any) {
-    const status = err.statusCode || err.status || 400;
-    res.status(status).json({
-      success: false,
-      code: err.code || 'JOURNAL_POSTING_FAILED',
-      error: err.message || 'فشل ترحيل القيد المحاسبي',
-      message: err.message || 'فشل ترحيل القيد المحاسبي',
-    });
-  }
-});
-
-app.get(['/api/v1/accounts', '/api/accounts'], (req: Request, res: Response) => {
-  const companyId = resolveCompanyId(req);
-  const accounts = getTenantAccounts(companyId);
-  res.json({
-    success: true,
-    data: accounts,
-    accounts,
-    total: accounts.length,
-  });
-});
-
-app.delete('/api/v1/payments/:id', (req: Request, res: Response) => {
-  try {
-    const companyId = resolveCompanyId(req);
-    const result = reverseVoucherAtomic(companyId, req.params.id, true);
-    res.json(result);
-  } catch (err: any) {
-    res.status(err.status || 400).json({
-      success: false,
-      message: err.message || 'فشل حذف سند القبض/الصرف',
-      error: err.message,
-    });
-  }
-});
-
-app.post(['/api/v1/payments/:id/cancel', '/api/payments/:id/cancel'], (req: Request, res: Response) => {
-  try {
-    const companyId = resolveCompanyId(req);
-    const result = reverseVoucherAtomic(companyId, req.params.id, false);
-    res.json(result);
-  } catch (err: any) {
-    res.status(err.status || 400).json({
-      success: false,
-      message: err.message || 'فشل إلغاء سند القبض/الصرف',
-      error: err.message,
-    });
-  }
-});
-
 app.get(['/api/v1/financial-health', '/api/financial-health'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const metrics = computeUnifiedFinancialMetrics(companyId);
 
   res.json({
     success: true,
     data: {
       totalSales: metrics.revenue || metrics.netRevenue,
-      totalPurchases: mockPurchaseInvoicesList.reduce((s, p) => s + Number(p.total || 0), 0),
+      totalPurchases: store.purchaseInvoices.reduce((s, p) => s + Number(p.total || 0), 0),
       totalReceivables: metrics.accountsReceivable,
       totalPayables: metrics.accountsPayable,
       cashBalance: metrics.cashBalance,
@@ -1923,7 +1762,8 @@ app.get(['/api/v1/financial-health', '/api/financial-health'], (req: Request, re
 
 app.get(['/api/v1/payment-stats', '/api/payment-stats'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
-  const payments = mockPaymentsList.filter(
+  const store = getTenantCollections(companyId);
+  const payments = store.payments.filter(
     (p) => (!p.company_id || p.company_id === companyId) && p.status !== 'CANCELLED'
   );
 
@@ -1994,9 +1834,11 @@ app.get(['/api/v1/payment-stats', '/api/payment-stats'], (req: Request, res: Res
   });
 });
 
-app.get('/api/v1/reports', (_req: Request, res: Response) => {
-  const salesTotal = mockInvoicesList.reduce((s, i) => s + Number(i.total || i.amount || 0), 0);
-  const purchasesTotal = mockPurchaseInvoicesList.reduce((s, p) => s + Number(p.total || 0), 0);
+app.get('/api/v1/reports', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const salesTotal = store.invoices.reduce((s, i) => s + Number(i.total || i.amount || 0), 0);
+  const purchasesTotal = store.purchaseInvoices.reduce((s, p) => s + Number(p.total || 0), 0);
   const netProfit = Math.max(0, salesTotal - purchasesTotal);
   const vatPayable = Math.max(0, salesTotal * 0.15 - purchasesTotal * 0.15);
 
@@ -2011,46 +1853,16 @@ app.get('/api/v1/reports', (_req: Request, res: Response) => {
   });
 });
 
-app.post(['/api/v1/saas/sample-data/cleanup', '/api/v1/production-onboarding/purge-sample-data'], async (req: Request, res: Response) => {
-  const authHeader = req.headers['authorization'] || '';
-  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-  const session = token ? activeSessions.get(token) : undefined;
-  const companyId = session?.company?.id || (req.headers['x-company-id'] as string) || 'comp_001';
-
-  const result = await cleanupAllSampleData(companyId, dbPool);
-  res.json({
-    success: true,
-    isSeeded: false,
-    message: result.message,
-    clearedCounts: result.clearedCounts,
-  });
-});
-
-app.post('/api/v1/saas/sample-data/seed', (_req: Request, res: Response) => {
-  const result = seedAllSampleData();
-  res.json({
-    success: true,
-    isSeeded: true,
-    message: result.message,
-    counts: {
-      products: mockProducts.length,
-      customers: mockCustomersList.length,
-      suppliers: mockSuppliersList.length,
-      invoices: mockInvoicesList.length,
-      movements: mockInventoryMovements.length,
-    },
-  });
-});
-
 app.get(['/api/v1/reports/sales', '/api/reports/sales'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const isClean = isTenantCleanProductionMode(companyId);
 
   const startDate = (req.query.start_date || req.query.startDate || '') as string;
   const endDate = (req.query.end_date || req.query.endDate || '') as string;
   const groupBy = (req.query.group_by || req.query.groupBy || 'by_month') as string;
 
-  const validInvoices = mockInvoicesList.filter((inv) => {
+  const validInvoices = store.invoices.filter((inv) => {
     if (!inv || inv.status === 'CANCELLED' || inv.status === 'VOID') return false;
     const rawDate = inv.date || inv.issue_date || inv.created_at || '';
     const dateStr = typeof rawDate === 'string' ? rawDate.split('T')[0] : '';
@@ -2168,13 +1980,14 @@ app.get(['/api/v1/reports/sales', '/api/reports/sales'], (req: Request, res: Res
 
 app.get(['/api/v1/reports/purchases', '/api/reports/purchases'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const isClean = isTenantCleanProductionMode(companyId);
 
   const startDate = (req.query.start_date || req.query.startDate || '') as string;
   const endDate = (req.query.end_date || req.query.endDate || '') as string;
   const groupBy = (req.query.group_by || req.query.groupBy || 'by_month') as string;
 
-  const validPurchases = mockPurchaseInvoicesList.filter((pi) => {
+  const validPurchases = store.purchaseInvoices.filter((pi) => {
     if (!pi || pi.status === 'CANCELLED' || pi.status === 'VOID') return false;
     const rawDate = pi.date || pi.issue_date || pi.invoiceDate || pi.created_at || '';
     const dateStr = typeof rawDate === 'string' ? rawDate.split('T')[0] : '';
@@ -2308,14 +2121,15 @@ app.get(['/api/v1/reports/profit-loss', '/api/reports/profit-loss'], (req: Reque
 
 app.get(['/api/v1/reports/receivables', '/api/reports/receivables'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const isClean = isTenantCleanProductionMode(companyId);
 
   const now = Date.now();
-  const validInvoices = mockInvoicesList.filter(
+  const validInvoices = store.invoices.filter(
     (inv) => inv && inv.status !== 'CANCELLED' && inv.status !== 'VOID'
   );
 
-  const customerAging = mockCustomersList
+  const customerAging = store.customers
     .map((c) => {
       const custId = String(c.id || '');
       const custName = c.name || 'عميل';
@@ -2382,22 +2196,23 @@ app.get(['/api/v1/reports/receivables', '/api/reports/receivables'], (req: Reque
   res.json({
     success: true,
     data: {
-      totalReceivables: isClean && mockCustomersList.length === 0 ? 0 : totalReceivables,
-      customerAging: isClean && mockCustomersList.length === 0 ? [] : customerAging,
+      totalReceivables: isClean && store.customers.length === 0 ? 0 : totalReceivables,
+      customerAging: isClean && store.customers.length === 0 ? [] : customerAging,
     },
   });
 });
 
 app.get(['/api/v1/reports/payables', '/api/reports/payables'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const isClean = isTenantCleanProductionMode(companyId);
 
   const now = Date.now();
-  const validPurchases = mockPurchaseInvoicesList.filter(
+  const validPurchases = store.purchaseInvoices.filter(
     (pi) => pi && pi.status !== 'CANCELLED' && pi.status !== 'VOID'
   );
 
-  const supplierAging = mockSuppliersList
+  const supplierAging = store.suppliers
     .map((s) => {
       const suppId = String(s.id || '');
       const suppName = s.name || 'مورد';
@@ -2465,8 +2280,8 @@ app.get(['/api/v1/reports/payables', '/api/reports/payables'], (req: Request, re
   res.json({
     success: true,
     data: {
-      totalPayables: isClean && mockSuppliersList.length === 0 ? 0 : totalPayables,
-      supplierAging: isClean && mockSuppliersList.length === 0 ? [] : supplierAging,
+      totalPayables: isClean && store.suppliers.length === 0 ? 0 : totalPayables,
+      supplierAging: isClean && store.suppliers.length === 0 ? [] : supplierAging,
     },
   });
 });
@@ -2506,21 +2321,22 @@ app.post(['/api/v1/system/wipe-demo-data', '/api/v1/production/initialize-clean'
   }
 });
 
-app.post(['/api/v1/sandbox/seed-demo-data', '/api/v1/saas/sample-data/seed'], (req: Request, res: Response) => {
+app.post('/api/v1/sandbox/seed-demo-data', (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   setTenantCleanProductionMode(companyId, false, dbPool);
   const result = seedAllSampleData();
+  const store = getTenantCollections(companyId);
   res.json({
     success: true,
     isSeeded: true,
     cleanProductionMode: false,
     message: result.message,
     counts: {
-      products: mockProducts.length,
-      customers: mockCustomersList.length,
-      suppliers: mockSuppliersList.length,
-      invoices: mockInvoicesList.length,
-      movements: mockInventoryMovements.length,
+      products: store.products.length,
+      customers: store.customers.length,
+      suppliers: store.suppliers.length,
+      invoices: store.invoices.length,
+      movements: store.movements.length,
     },
   });
 });
@@ -2528,11 +2344,13 @@ app.post(['/api/v1/sandbox/seed-demo-data', '/api/v1/saas/sample-data/seed'], (r
 app.get(['/api/v1/reports/cash-flow', '/api/reports/cash-flow'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   const metrics = computeUnifiedFinancialMetrics(companyId);
+  const outflows = roundMoney(metrics.cogs + metrics.operatingExpenses);
+  const inflows = roundMoney(metrics.totalCashAndBank + outflows);
   res.json({
     success: true,
     data: {
-      inflows: metrics.netRevenue,
-      outflows: roundMoney(metrics.cogs + metrics.operatingExpenses),
+      inflows,
+      outflows,
       netCashFlow: metrics.netProfit,
       cashOnHand: metrics.cashBalance,
       bankBalance: metrics.bankBalance,
@@ -2543,15 +2361,16 @@ app.get(['/api/v1/reports/cash-flow', '/api/reports/cash-flow'], (req: Request, 
 
 app.get(['/api/v1/reports/inventory', '/api/reports/inventory'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const isClean = isTenantCleanProductionMode(companyId);
-  const valuation = mockProducts.reduce((sum, p) => sum + Number((p.cost_price || p.purchase_price || p.price || 0) * (p.current_stock || 0)), 0);
-  const lowStock = mockProducts.filter((p) => (p.current_stock || 0) <= (p.min_stock_level || 5)).length;
+  const valuation = store.products.reduce((sum, p) => sum + Number((p.cost_price || p.purchase_price || p.price || 0) * (p.current_stock || 0)), 0);
+  const lowStock = store.products.filter((p) => (p.current_stock || 0) <= (p.min_stock_level || 5)).length;
 
   res.json({
     success: true,
     data: {
-      totalProductsCount: mockProducts.length,
-      totalValuation: roundMoney(valuation || (isClean ? 0 : (mockProducts.length > 0 ? valuation : 0))),
+      totalProductsCount: store.products.length,
+      totalValuation: roundMoney(valuation || (isClean ? 0 : (store.products.length > 0 ? valuation : 0))),
       lowStockCount: lowStock,
     },
   });
@@ -2634,6 +2453,7 @@ app.get(['/api/v1/reports/income-statement', '/api/reports/income-statement'], (
 
 app.get(['/api/v1/reports/tax', '/api/reports/tax'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const metrics = computeUnifiedFinancialMetrics(companyId);
 
   const startDate = (req.query.start_date || req.query.startDate || '') as string;
@@ -2647,11 +2467,11 @@ app.get(['/api/v1/reports/tax', '/api/reports/tax'], (req: Request, res: Respons
     return true;
   };
 
-  const validInvoices = mockInvoicesList.filter(
+  const validInvoices = store.invoices.filter(
     (inv) => inv && inv.status !== 'CANCELLED' && inv.status !== 'VOID' && isDateMatch(inv)
   );
 
-  const validPurchases = mockPurchaseInvoicesList.filter(
+  const validPurchases = store.purchaseInvoices.filter(
     (pi) => pi && pi.status !== 'CANCELLED' && pi.status !== 'VOID' && isDateMatch(pi)
   );
 
@@ -2671,13 +2491,6 @@ app.get(['/api/v1/reports/tax', '/api/reports/tax'], (req: Request, res: Respons
     const tx = Number(pi.taxAmount || pi.tax || 0);
     inputVat += tx;
     taxablePurchases += tot - tx;
-  }
-
-  if (outputVat === 0 && (taxableSales > 0 || metrics.salesRevenue > 0)) {
-    outputVat = roundMoney((taxableSales || metrics.salesRevenue) * 0.15);
-  }
-  if (inputVat === 0 && (taxablePurchases > 0 || metrics.cogs > 0)) {
-    inputVat = roundMoney((taxablePurchases || metrics.cogs) * 0.15);
   }
 
   taxableSales = roundMoney(taxableSales || metrics.salesRevenue);
@@ -2716,10 +2529,11 @@ app.get(['/api/v1/reports/tax', '/api/reports/tax'], (req: Request, res: Respons
 
 app.get(['/api/v1/reports/executive-summary', '/api/reports/executive-summary'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const isClean = isTenantCleanProductionMode(companyId);
   const metrics = computeUnifiedFinancialMetrics(companyId);
 
-  if (isClean && mockInvoicesList.length === 0) {
+  if (isClean && store.invoices.length === 0) {
     return res.json({
       success: true,
       data: {
@@ -2739,7 +2553,7 @@ app.get(['/api/v1/reports/executive-summary', '/api/reports/executive-summary'],
       revenue: metrics.netRevenue,
       netProfit: metrics.netProfit,
       grossMargin: `${metrics.marginPercentage}%`,
-      activeCustomers: mockCustomersList.length,
+      activeCustomers: store.customers.length,
       inventoryTurnover: 4.2,
       liquidityRatio: metrics.accountsPayable > 0 ? roundMoney(metrics.totalCashAndBank / metrics.accountsPayable) : 3.4,
     },
@@ -2748,10 +2562,11 @@ app.get(['/api/v1/reports/executive-summary', '/api/reports/executive-summary'],
 
 app.get(['/api/v1/reports/dashboard', '/api/reports/dashboard', '/api/v1/dashboard'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const isClean = isTenantCleanProductionMode(companyId);
   const metrics = computeUnifiedFinancialMetrics(companyId);
 
-  if (isClean && mockInvoicesList.length === 0 && mockProducts.length === 0) {
+  if (isClean && store.invoices.length === 0 && store.products.length === 0) {
     return res.json({
       success: true,
       data: {
@@ -2814,10 +2629,11 @@ app.get(['/api/v1/financial/overview', '/api/financial/overview', '/api/v1/repor
 
 app.get('/api/v1/reports/top-performance', (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const isClean = isTenantCleanProductionMode(companyId);
   const limit = parseInt((req.query.limit as string) || '5', 10);
 
-  if (isClean && mockInvoicesList.length === 0 && mockProducts.length === 0) {
+  if (isClean && store.invoices.length === 0 && store.products.length === 0) {
     return res.json({
       success: true,
       data: {
@@ -2830,12 +2646,12 @@ app.get('/api/v1/reports/top-performance', (req: Request, res: Response) => {
   res.json({
     success: true,
     data: {
-      topSellingProducts: mockProducts.slice(0, limit).map((p) => ({
+      topSellingProducts: store.products.slice(0, limit).map((p) => ({
         name: p.name,
         salesAmount: Number(p.price || 0) * 10,
         units: 10,
       })),
-      topCustomers: mockCustomersList.slice(0, limit).map((c) => ({
+      topCustomers: store.customers.slice(0, limit).map((c) => ({
         name: c.name,
         totalPurchases: Number(c.balance || 0),
       })),
@@ -3115,37 +2931,153 @@ app.get('/api/v1/whatsapp/webhook', (req: Request, res: Response) => {
 });
 
 app.post('/api/v1/whatsapp/webhook', (req: Request, res: Response) => {
-  res.status(200).json({ status: 'EVENT_RECEIVED' });
+  const appSecret = (process.env.WHATSAPP_APP_SECRET || process.env.META_APP_SECRET || '').trim();
+  if (appSecret) {
+    const sigHeader = String(req.headers['x-hub-signature-256'] || '').trim();
+    const rawBody: Buffer | undefined = (req as any).rawBody;
+    if (!sigHeader || !sigHeader.startsWith('sha256=') || !rawBody) {
+      return res.status(401).json({ success: false, error: 'Missing or invalid webhook signature' });
+    }
+    const expectedSig = 'sha256=' + crypto.createHmac('sha256', appSecret).update(rawBody).digest('hex');
+    const expectedBuf = Buffer.from(expectedSig, 'utf8');
+    const actualBuf = Buffer.from(sigHeader, 'utf8');
+    if (expectedBuf.length !== actualBuf.length || !crypto.timingSafeEqual(expectedBuf, actualBuf)) {
+      return res.status(401).json({ success: false, error: 'Webhook signature verification failed' });
+    }
+  }
+
+  try {
+    const body = req.body || {};
+    const entries = Array.isArray(body.entry) ? body.entry : [];
+
+    for (const entry of entries) {
+      const changes = Array.isArray(entry?.changes) ? entry.changes : [];
+      for (const change of changes) {
+        const value = change?.value;
+        if (!value || typeof value !== 'object') continue;
+
+        const phoneNumberId = String(value?.metadata?.phone_number_id || '').trim();
+        let targetCompanyId = 'comp_001';
+        if (phoneNumberId) {
+          for (const [cid, cfg] of mockWhatsAppConfigsMap.entries()) {
+            if (cfg && String(cfg.phoneNumberId || '').trim() === phoneNumberId) {
+              targetCompanyId = cid;
+              break;
+            }
+          }
+        }
+
+        const contacts = Array.isArray(value.contacts) ? value.contacts : [];
+        const contactNameMap = new Map<string, string>();
+        for (const c of contacts) {
+          const waId = String(c?.wa_id || '').replace(/[^0-9+]/g, '');
+          const name = String(c?.profile?.name || '').trim();
+          if (waId && name) {
+            contactNameMap.set(waId, name);
+          }
+        }
+
+        // 1. Process incoming messages without creating any automatic financial or invoice entries
+        const messages = Array.isArray(value.messages) ? value.messages : [];
+        for (const msg of messages) {
+          const metaMessageId = String(msg?.id || '').trim();
+          const fromPhone = String(msg?.from || '').replace(/[^0-9+]/g, '');
+          if (!metaMessageId || !fromPhone) continue;
+
+          const messageText =
+            msg?.text?.body ||
+            msg?.button?.text ||
+            msg?.interactive?.button_reply?.title ||
+            msg?.interactive?.list_reply?.title ||
+            msg?.caption ||
+            `[${String(msg?.type || 'message').toUpperCase()}]`;
+
+          const senderName = contactNameMap.get(fromPhone) || undefined;
+          recordIncomingWhatsAppMessage(targetCompanyId, {
+            metaMessageId,
+            fromPhone,
+            senderName,
+            messageText: String(messageText),
+            timestamp: msg?.timestamp ? String(msg.timestamp) : undefined,
+          });
+        }
+
+        // 2. Process outbound message delivery/read/failed statuses
+        const statuses = Array.isArray(value.statuses) ? value.statuses : [];
+        if (statuses.length > 0) {
+          const state = getTenantWhatsAppState(targetCompanyId);
+          let stateUpdated = false;
+
+          for (const st of statuses) {
+            const metaMsgId = String(st?.id || '').trim();
+            const rawStatus = String(st?.status || '').toUpperCase();
+            if (!metaMsgId || !rawStatus) continue;
+
+            const normalizedStatus =
+              rawStatus === 'DELIVERED'
+                ? 'DELIVERED'
+                : rawStatus === 'READ'
+                ? 'READ'
+                : rawStatus === 'FAILED'
+                ? 'FAILED'
+                : 'SENT';
+
+            if (Array.isArray(state.messages)) {
+              const targetMsg = state.messages.find(
+                (m: any) => m.meta_message_id === metaMsgId || m.id === metaMsgId
+              );
+              if (targetMsg && targetMsg.status !== normalizedStatus) {
+                targetMsg.status = normalizedStatus;
+                stateUpdated = true;
+
+                if (Array.isArray(state.conversations)) {
+                  const conv = state.conversations.find(
+                    (c: any) =>
+                      c.last_message_id === targetMsg.id || c.phone_number === targetMsg.phone_number
+                  );
+                  if (conv) {
+                    conv.last_status = normalizedStatus;
+                  }
+                }
+              }
+            }
+          }
+
+          if (stateUpdated) {
+            if (state.kpi && Array.isArray(state.messages)) {
+              state.kpi.deliveredCount = state.messages.filter(
+                (m: any) => m.direction === 'OUTBOUND' && (m.status === 'DELIVERED' || m.status === 'READ' || m.status === 'SENT')
+              ).length;
+              state.kpi.readCount = state.messages.filter(
+                (m: any) => m.direction === 'OUTBOUND' && m.status === 'READ'
+              ).length;
+              state.kpi.failedCount = state.messages.filter(
+                (m: any) => m.direction === 'OUTBOUND' && m.status === 'FAILED'
+              ).length;
+            }
+            persistAllToDisk();
+          }
+        }
+      }
+    }
+  } catch (err: any) {
+    console.warn('[WHATSAPP_WEBHOOK_PROCESS_WARN]', err?.message);
+  }
+
+  return res.status(200).json({ status: 'EVENT_RECEIVED' });
 });
 
 // Enterprise ERP Modules & RBAC Routes (Registered AFTER WhatsApp priority routes)
 app.use('/api/v1', enterpriseRouter);
 
-app.get('/api/v1/audit-logs', (_req: Request, res: Response) => {
-  res.json({
-    success: true,
-    data: mockAuditLogsList,
-    auditLogs: mockAuditLogsList,
-    total: mockAuditLogsList.length,
-  });
-});
-
-app.get('/api/v1/backups', async (req: Request, res: Response) => {
+app.get('/api/v1/audit-logs', (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
-  const tenantBackups = mockBackupsDatabase.filter(
-    (b: any) => b.company_id === companyId || (!b.company_id && companyId === 'comp_001')
-  );
-
+  const store = getTenantCollections(companyId);
   res.json({
     success: true,
-    provider: 'b2',
-    bucket: b2Bucket,
-    region: b2Region,
-    configured: Boolean(s3Client),
-    lastBackup: tenantBackups.length > 0 ? tenantBackups[0].created_at : new Date().toISOString(),
-    data: tenantBackups,
-    backups: tenantBackups,
-    total: tenantBackups.length,
+    data: store.auditLogs,
+    auditLogs: store.auditLogs,
+    total: store.auditLogs.length,
   });
 });
 

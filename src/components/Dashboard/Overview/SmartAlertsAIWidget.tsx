@@ -29,11 +29,11 @@ export const SmartAlertsAIWidget: React.FC<SmartAlertsAIWidgetProps> = ({
   currency = 'SAR',
   onNavigate,
 }) => {
-  const totalSales = Number(stats?.totalSales ?? 142500);
-  const totalReceivables = Number(stats?.balances?.totalReceivables ?? stats?.totalReceivables ?? 24500);
-  const lowStockCount = Number(stats?.counts?.lowStockCount ?? stats?.lowStockCount ?? 3);
-  const overdueCount = Number(stats?.counts?.overdueInvoicesCount ?? stats?.overdueInvoicesCount ?? 2);
-  const cashBalance = Number(stats?.balances?.cashAndBankBalance ?? stats?.cashBankBalance ?? 62400);
+  const totalSales = Number(stats?.totalSales ?? 0);
+  const totalReceivables = Number(stats?.balances?.totalReceivables ?? stats?.totalReceivables ?? 0);
+  const lowStockCount = Number(stats?.counts?.lowStockCount ?? stats?.lowStockCount ?? 0);
+  const overdueCount = Number(stats?.counts?.overdueInvoicesCount ?? stats?.overdueInvoicesCount ?? 0);
+  const cashBalance = Number(stats?.balances?.cashAndBankBalance ?? stats?.cashBankBalance ?? 0);
 
   let repsList: any[] = [];
   try {
@@ -61,8 +61,11 @@ export const SmartAlertsAIWidget: React.FC<SmartAlertsAIWidgetProps> = ({
     {
       id: 'ai-debt',
       tag: 'تحصيل ديون ذكي',
-      title: 'فرصة تحصيل سيولة عاجلة من العملاء المدينين',
-      description: `تم رصد ${overdueCount} فواتير بيع متأخرة بإجمالي ${formatAmount(totalReceivables)} ${currency}. تشغيل حملة تذكير تلقائية عبر WhatsApp يرفع معدل التحصيل إلى 92% خلال 48 ساعة.`,
+      title: totalReceivables > 0 || overdueCount > 0 ? 'فرصة تحصيل سيولة عاجلة من العملاء المدينين' : 'سجل مديونيات العملاء نظيف ومستقر',
+      description:
+        totalReceivables > 0 || overdueCount > 0
+          ? `تم رصد ${overdueCount} فواتير بيع متأخرة بإجمالي ${formatAmount(totalReceivables)} ${currency}. تشغيل حملة تذكير تلقائية عبر WhatsApp يرفع معدل التحصيل إلى 92% خلال 48 ساعة.`
+          : 'لا توجد فواتير بيع متأخرة أو مديونيات معلقة حالياً (0). جميع حسابات العملاء مسددة بالكامل.',
       icon: MessageSquare,
       color: 'from-amber-500/20 to-emerald-500/10 border-amber-500/30 text-amber-400',
       actionLabel: 'إطلاق تذكيرات WhatsApp الآن',
@@ -71,8 +74,11 @@ export const SmartAlertsAIWidget: React.FC<SmartAlertsAIWidgetProps> = ({
     {
       id: 'ai-inventory',
       tag: 'استباق نفاذ المخزون',
-      title: 'تنبيه إعادة طلب وتفادي فقدان مبيعات',
-      description: `يوجد ${lowStockCount} أصناف استراتيجية أوشكت على النفاد في المستودع الرئيسي. استهلاكها المتوقع خلال الأسبوع الحالي يتطلب إنشاء أوامر شراء للموردين فوراً.`,
+      title: lowStockCount > 0 ? 'تنبيه إعادة طلب وتفادي فقدان مبيعات' : 'مستويات المخزون متوازنة وآمنة',
+      description:
+        lowStockCount > 0
+          ? `يوجد ${lowStockCount} أصناف استراتيجية أوشكت على النفاد في المستودع الرئيسي. استهلاكها المتوقع خلال الأسبوع الحالي يتطلب إنشاء أوامر شراء للموردين فوراً.`
+          : 'لا توجد نواقص مخزنية مسجلة حالياً (0 أصناف منخفضة). مستويات التوفر في المستودع مستقرة.',
       icon: Package,
       color: 'from-rose-500/20 to-amber-500/10 border-rose-500/30 text-rose-400',
       actionLabel: 'مراجعة النواقص وإصدار أمر شراء',
@@ -82,7 +88,10 @@ export const SmartAlertsAIWidget: React.FC<SmartAlertsAIWidgetProps> = ({
       id: 'ai-liquidity',
       tag: 'التنبؤ المالي والسيولة',
       title: 'مؤشر كفاية السيولة النقدية للأيام الـ 30 القادمة',
-      description: `الرصيد النقدي والبنكي الحالي (${formatAmount(cashBalance)} ${currency}) يغطي الالتزامات التشغيلية والرواتب القادمة بنسبة أمان 135%، مع تدفق إيجابي مستمر.`,
+      description:
+        cashBalance > 0
+          ? `الرصيد النقدي والبنكي الحالي (${formatAmount(cashBalance)} ${currency}) يغطي الالتزامات التشغيلية والرواتب القادمة، مع إجمالي مبيعات مسجلة (${formatAmount(totalSales)} ${currency}).`
+          : `الرصيد النقدي والبنكي الحالي (0 ${currency}). سيبدأ احتساب مؤشر التغطية والتدفقات النقدية فور تسجيل المبيعات أو سندات القبض.`,
       icon: TrendingUp,
       color: 'from-emerald-500/20 to-teal-500/10 border-emerald-500/30 text-emerald-400',
       actionLabel: 'استعراض التنبؤ التفاعلي بالسيولة',
