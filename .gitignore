@@ -24,6 +24,7 @@ yarn-error.log*
 data/permanent_erp_store.json
 *.sqlite
 *.db
+*.patch
 
 # Ensure governance baseline, migrations, and automated tests remain tracked
 !SYSTEM_BASELINE.md
