@@ -158,21 +158,21 @@ export const RecentOperationsFeed: React.FC<RecentOperationsFeedProps> = ({
   });
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 text-right flex flex-col justify-between h-full">
+    <div className="m3-card p-5 sm:p-6 space-y-4 text-right flex flex-col justify-between h-full">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--md-outline-variant)] pb-3">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] flex items-center justify-center shrink-0">
             <Clock className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white">آخر العمليات والحركات المالية الحية</h3>
-            <p className="text-[11px] text-slate-400">التدفق اللحظي للفواتير والسندات وأوامر الشراء</p>
+            <h3 className="text-sm font-bold text-[var(--md-on-surface)]">آخر العمليات والحركات المالية الحية</h3>
+            <p className="text-[11px] text-[var(--md-on-surface-variant)]">التدفق اللحظي للفواتير والسندات وأوامر الشراء</p>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700">
+        <div className="flex items-center bg-[var(--md-surface-container)] p-1 rounded-xl border border-[var(--md-outline-variant)]">
           {[
             { id: 'ALL', label: 'الكل' },
             { id: 'SALES', label: 'مبيعات' },
@@ -182,10 +182,10 @@ export const RecentOperationsFeed: React.FC<RecentOperationsFeedProps> = ({
             <button
               key={f.id}
               onClick={() => setFilterType(f.id as any)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 filterType === f.id
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] shadow-sm'
+                  : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
               }`}
             >
               {f.label}
@@ -195,29 +195,29 @@ export const RecentOperationsFeed: React.FC<RecentOperationsFeedProps> = ({
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto custom-scrollbar flex-1">
-        <table className="w-full text-right text-xs">
-          <thead>
-            <tr className="border-b border-slate-800 text-slate-400 font-semibold">
-              <th className="pb-2.5 pr-2">رقم المرجع</th>
-              <th className="pb-2.5 px-3">البيان / الطرف</th>
-              <th className="pb-2.5 px-3">النوع</th>
-              <th className="pb-2.5 px-3">المبلغ</th>
-              <th className="pb-2.5 px-3">التاريخ</th>
-              <th className="pb-2.5 px-3">الحالة</th>
-              <th className="pb-2.5 pl-2 text-center">إجراء</th>
+      <div className="overflow-x-auto custom-scrollbar flex-1 rounded-xl border border-[var(--md-outline-variant)]">
+        <table className="m3-table text-right text-xs">
+          <thead className="m3-thead">
+            <tr>
+              <th className="m3-th">رقم المرجع</th>
+              <th className="m3-th">البيان / الطرف</th>
+              <th className="m3-th">النوع</th>
+              <th className="m3-th">المبلغ</th>
+              <th className="m3-th">التاريخ</th>
+              <th className="m3-th">الحالة</th>
+              <th className="m3-th text-center">إجراء</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800/60">
+          <tbody>
             {filteredOps.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-8 text-center text-slate-400">
+                <td colSpan={7} className="py-8 text-center text-[var(--md-on-surface-variant)]">
                   <div className="flex flex-col items-center justify-center gap-2">
-                    <Clock className="w-7 h-7 text-slate-600" />
-                    <p className="text-xs font-semibold text-slate-300">
+                    <Clock className="w-7 h-7 opacity-45" />
+                    <p className="text-xs font-semibold text-[var(--md-on-surface)]">
                       {isClean ? 'لا توجد حركات أو فواتير مسجلة حتى الآن' : 'لا توجد حركات مطابقة للفلتر المحدد'}
                     </p>
-                    <p className="text-[11px] text-slate-500">
+                    <p className="text-[11px] text-[var(--md-on-surface-variant)]">
                       ابدأ بإصدار أول فاتورة مبيعات، مشتريات أو سند مالي لتظهر هنا لحظياً
                     </p>
                   </div>
@@ -225,56 +225,56 @@ export const RecentOperationsFeed: React.FC<RecentOperationsFeedProps> = ({
               </tr>
             ) : (
               filteredOps.slice(0, 6).map((op, idx) => (
-                <tr key={op.id || idx} className="hover:bg-slate-800/40 transition-colors group">
+                <tr key={op.id || idx} className="group">
                   {/* Ref */}
-                  <td className="py-2.5 pr-2 font-mono font-bold text-slate-200 whitespace-nowrap">
+                  <td className="font-mono font-bold text-[var(--md-on-surface)] whitespace-nowrap">
                     {op.id}
                   </td>
 
                   {/* Entity */}
-                  <td className="py-2.5 px-3 font-semibold text-slate-200 whitespace-nowrap">
+                  <td className="font-semibold text-[var(--md-on-surface)] whitespace-nowrap">
                     {op.entity}
                   </td>
 
                   {/* Type */}
-                  <td className="py-2.5 px-3 whitespace-nowrap">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  <td className="whitespace-nowrap">
+                    <span className={`m3-badge ${
                       op.type === 'SALES'
-                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                        ? 'm3-badge-success'
                         : op.type === 'PURCHASE'
-                        ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                        : 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
+                        ? 'm3-badge-warning'
+                        : 'm3-badge-info'
                     }`}>
                       {op.type === 'SALES' ? 'مبيعات' : op.type === 'PURCHASE' ? 'مشتريات' : 'سند'}
                     </span>
                   </td>
 
                   {/* Amount */}
-                  <td className="py-2.5 px-3 font-mono font-black tabular-nums text-white whitespace-nowrap">
+                  <td className="font-mono font-black tabular-nums text-[var(--md-on-surface)] whitespace-nowrap">
                     {formatAmount(op.amount)} {currency}
                   </td>
 
                   {/* Date */}
-                  <td className="py-2.5 px-3 font-mono text-slate-400 whitespace-nowrap">
+                  <td className="font-mono text-[var(--md-on-surface-variant)] whitespace-nowrap tabular-nums">
                     {op.date}
                   </td>
 
                   {/* Status */}
-                  <td className="py-2.5 px-3 whitespace-nowrap">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                  <td className="whitespace-nowrap">
+                    <span className={`m3-badge ${
                       op.status === 'مدفوعة' || op.status === 'مسدد'
-                        ? 'bg-emerald-500/10 text-emerald-400'
-                        : 'bg-amber-500/10 text-amber-400'
+                        ? 'm3-badge-success'
+                        : 'm3-badge-warning'
                     }`}>
                       {op.status}
                     </span>
                   </td>
 
                   {/* Action */}
-                  <td className="py-2.5 pl-2 text-center whitespace-nowrap">
+                  <td className="text-center whitespace-nowrap">
                     <button
                       onClick={() => onNavigate && onNavigate(op.targetTab)}
-                      className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer inline-flex items-center gap-1"
+                      className="p-1.5 rounded-lg bg-[var(--md-surface-container)] hover:bg-[var(--md-surface-container-high)] text-[var(--md-on-surface)] border border-[var(--md-outline-variant)] transition-colors cursor-pointer inline-flex items-center gap-1"
                       title="معاينة السجل"
                     >
                       <Eye className="w-3.5 h-3.5" />
@@ -288,13 +288,13 @@ export const RecentOperationsFeed: React.FC<RecentOperationsFeedProps> = ({
       </div>
 
       {/* Footer */}
-      <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
-        <span className="text-[11px] text-slate-500 font-mono">
+      <div className="pt-2 border-t border-[var(--md-outline-variant)] flex items-center justify-between">
+        <span className="text-[11px] text-[var(--md-on-surface-variant)] font-mono tabular-nums">
           إجمالي الحركات المعروضة: {filteredOps.length}
         </span>
         <button
           onClick={() => onNavigate && onNavigate('invoices')}
-          className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
+          className="text-xs font-bold text-[var(--md-primary-text)] hover:underline flex items-center gap-1 cursor-pointer"
         >
           <span>سجل كافة القيود والعمليات المالية</span>
           <ArrowUpRight className="w-3.5 h-3.5" />

@@ -80,7 +80,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       label: 'نقطة البيع (POS)',
       sublabel: 'الكاشير السريع',
       icon: ShoppingCart,
-      color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25',
+      iconTone: 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)]',
       badge: 'سريع',
       tab: 'pos' as TabType,
     },
@@ -89,7 +89,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       label: 'فاتورة مبيعات',
       sublabel: 'إصدار ضريبي',
       icon: FileText,
-      color: 'bg-teal-500/15 text-teal-400 border-teal-500/30 hover:bg-teal-500/25',
+      iconTone: 'bg-[var(--md-success-container)] text-[var(--md-on-success-container)]',
       badge: 'ZATCA',
       tab: 'invoices' as TabType,
     },
@@ -98,7 +98,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       label: 'سند قبض / صرف',
       sublabel: 'توريد وصرف الخزينة',
       icon: CreditCard,
-      color: 'bg-blue-500/15 text-blue-400 border-blue-500/30 hover:bg-blue-500/25',
+      iconTone: 'bg-[var(--md-info-container)] text-[var(--md-on-info-container)]',
       tab: 'payments' as TabType,
     },
     {
@@ -106,7 +106,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       label: 'فحص ضمان بطارية',
       sublabel: 'سيريال ومطابقة باركود',
       icon: ShieldCheck,
-      color: 'bg-amber-500/15 text-amber-300 border-amber-500/30 hover:bg-amber-500/25',
+      iconTone: 'bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)]',
       badge: 'ضمان',
       tab: 'real_business' as TabType,
     },
@@ -115,7 +115,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       label: 'تحويل مخزني',
       sublabel: 'بين الـ 4 مستودعات',
       icon: Layers,
-      color: 'bg-purple-500/15 text-purple-400 border-purple-500/30 hover:bg-purple-500/25',
+      iconTone: 'bg-[var(--md-surface-container-high)] text-[var(--md-on-surface)]',
       tab: 'inventory' as TabType,
     },
     {
@@ -123,7 +123,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       label: 'تذكير واتساب',
       sublabel: 'مطالبات مالية آلية',
       icon: MessageSquare,
-      color: 'bg-emerald-600/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-600/30',
+      iconTone: 'bg-[var(--md-success-container)] text-[var(--md-on-success-container)]',
       badge: 'آلي',
       tab: 'whatsapp' as TabType,
     },
@@ -131,35 +131,31 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
   return (
     <>
-      <div className="relative overflow-hidden rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl p-5 sm:p-6 transition-all duration-300">
-        {/* Subtle Background Glows */}
-        <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/4" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-amber-500/5 rounded-full blur-3xl pointer-events-none translate-y-1/2 -translate-x-1/4" />
-
+      <div className="m3-card relative overflow-hidden p-5 sm:p-6 transition-colors duration-200">
         {/* Live Multi-Currency Ticker & Business Preset Bar */}
-        <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 mb-4 p-2.5 rounded-2xl bg-slate-950/70 border border-slate-800/80">
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 mb-4 p-2.5 rounded-xl bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)]">
           {/* Ticker Badges */}
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="px-2.5 py-1 rounded-xl bg-slate-800 text-slate-300 font-bold flex items-center gap-1.5 border border-slate-700">
-              <Coins className="w-3.5 h-3.5 text-amber-400" />
+            <span className="px-2.5 py-1 rounded-lg bg-[var(--md-surface-container-low)] text-[var(--md-on-surface)] font-bold flex items-center gap-1.5 border border-[var(--md-outline-variant)]">
+              <Coins className="w-3.5 h-3.5 text-[var(--md-secondary)]" />
               <span>أسعار الصرف اليومية:</span>
             </span>
 
-            <span className="px-3 py-1 rounded-xl bg-emerald-500/10 text-emerald-300 border border-emerald-500/25 font-mono font-bold flex items-center gap-1">
+            <span className="m3-badge m3-badge-primary font-mono px-2.5 py-1 text-xs">
               <span>🇸🇦 1 SAR =</span>
-              <span className="text-white font-extrabold">{sarRate}</span>
-              <span className="text-emerald-400">YER</span>
+              <span className="font-extrabold">{sarRate}</span>
+              <span>YER</span>
             </span>
 
-            <span className="px-3 py-1 rounded-xl bg-blue-500/10 text-blue-300 border border-blue-500/25 font-mono font-bold flex items-center gap-1">
+            <span className="m3-badge m3-badge-info font-mono px-2.5 py-1 text-xs">
               <span>🇺🇸 1 USD =</span>
-              <span className="text-white font-extrabold">{usdRate}</span>
-              <span className="text-blue-400">YER</span>
+              <span className="font-extrabold">{usdRate}</span>
+              <span>YER</span>
             </span>
 
             <button
               onClick={() => setIsExchangeModalOpen(true)}
-              className="px-2.5 py-1 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+              className="px-2.5 py-1 rounded-lg bg-[var(--md-secondary-container)] hover:opacity-90 text-[var(--md-on-secondary-container)] border border-[color-mix(in_srgb,var(--md-secondary)_35%,transparent)] text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
               title="تعديل وتثبيت أسعار الصرف لليوم"
             >
               <ArrowRightLeft className="w-3 h-3" />
@@ -169,72 +165,72 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
           {/* Active Business Profile Badge */}
           <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5 shadow-sm">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="m3-badge m3-badge-primary px-2.5 py-1 text-xs">
+              <CheckCircle2 className="w-3.5 h-3.5" />
               <span>
                 {currentPresetInfo?.name || 'نشاط شامل: غذائية + بطاريات + زيوت'}
               </span>
             </span>
-            <span className="hidden sm:inline-block px-2 py-0.5 rounded-lg text-[10px] font-bold font-mono bg-slate-800 text-slate-400 border border-slate-700">
+            <span className="hidden sm:inline-flex m3-badge font-mono text-[10px]">
               {currentPresetInfo?.badge || 'شامل • افتراضي'}
             </span>
           </div>
         </div>
 
         {/* Top Meta Bar */}
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-slate-800/80 pb-5">
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-[var(--md-outline-variant)] pb-5">
           {/* Left / Title section */}
           <div className="space-y-1.5 text-right">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5 shadow-sm">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span className="m3-badge m3-badge-primary px-2.5 py-1 text-xs">
+                <Sparkles className="w-3.5 h-3.5 text-[var(--md-secondary)]" />
                 <span>مركز القيادة والذكاء المالي التنفيذي</span>
               </span>
 
               {/* Live Infrastructure Badges */}
               <div className="hidden sm:flex items-center gap-2">
-                <span className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 text-slate-300 border border-slate-700/80 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="m3-badge text-[11px] font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--md-success)]" />
                   <span>PostgreSQL سحابية</span>
                 </span>
-                <span className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 text-slate-300 border border-slate-700/80 flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="m3-badge text-[11px] font-semibold">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
                   <span>عزل المنشأة نشط</span>
                 </span>
-                <span className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 text-slate-300 border border-slate-700/80 flex items-center gap-1.5 font-mono">
-                  <Database className="w-3.5 h-3.5 text-indigo-400" />
+                <span className="m3-badge text-[11px] font-semibold font-mono">
+                  <Database className="w-3.5 h-3.5 text-[var(--md-info)]" />
                   <span>B2 DR محمي</span>
                 </span>
               </div>
             </div>
 
             <div className="flex items-center gap-3 pt-1">
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-black text-[var(--md-on-surface)] tracking-tight">
                 {company?.name || 'المؤسسة التجارية'}
               </h1>
-              <span className="text-xs font-bold font-mono px-2 py-0.5 rounded bg-slate-800 text-emerald-400 border border-slate-700">
+              <span className="m3-badge m3-badge-primary font-mono text-xs">
                 {currency}
               </span>
             </div>
 
-            <p className="text-xs sm:text-sm text-slate-400">
-              مرحباً بك، <span className="font-bold text-slate-200">{user?.full_name || user?.username || 'المدير العام'}</span> • المراقبة اللحظية للسيولة والمبيعات والذمم والمخزون
+            <p className="text-xs sm:text-sm text-[var(--md-on-surface-variant)]">
+              مرحباً بك، <span className="font-bold text-[var(--md-on-surface)]">{user?.full_name || user?.username || 'المدير العام'}</span> • المراقبة اللحظية للسيولة والمبيعات والذمم والمخزون
             </p>
           </div>
 
           {/* Right / Controls: Period Filters + Refresh */}
           <div className="flex flex-wrap items-center gap-2 self-start lg:self-center">
-            <div className="flex items-center bg-slate-800/90 p-1 rounded-xl border border-slate-700/80">
+            <div className="flex items-center bg-[var(--md-surface-container)] p-1 rounded-xl border border-[var(--md-outline-variant)]">
               {periods.map((p) => {
                 const active = selectedPeriod === p.id;
                 return (
                   <button
                     key={p.id}
                     onClick={() => setSelectedPeriod(p.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                       active
-                        ? 'bg-emerald-600 text-white shadow-md'
-                        : 'text-slate-400 hover:text-slate-200'
+                        ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] shadow-sm'
+                        : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
                     }`}
                   >
                     {p.label}
@@ -246,10 +242,10 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             <button
               onClick={onRefresh}
               disabled={isActionLoading}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+              className="m3-btn-outlined text-xs"
               title="تحديث البيانات الفوري"
             >
-              <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isActionLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 text-[var(--md-primary-text)] ${isActionLoading ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">تحديث</span>
             </button>
           </div>
@@ -258,10 +254,10 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         {/* 1-Click Executive Action Bar */}
         <div className="relative z-10 pt-4">
           <div className="flex items-center justify-between mb-2.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            <span className="text-xs font-bold text-[var(--md-on-surface-variant)]">
               شريط الإجراءات والعمليات السريعة (1-Click Actions)
             </span>
-            <span className="text-[10px] text-slate-500 font-medium">الوصول المباشر لكافة الوحدات التشغيلية</span>
+            <span className="text-[11px] text-[var(--md-on-surface-variant)] font-medium">الوصول المباشر لكافة الوحدات التشغيلية</span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
@@ -271,21 +267,21 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 <button
                   key={action.id}
                   onClick={() => onNavigate && onNavigate(action.tab)}
-                  className={`flex items-center gap-2.5 p-2.5 rounded-2xl border transition-all text-right group cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] ${action.color}`}
+                  className="flex items-center gap-2.5 p-2.5 rounded-xl bg-[var(--md-surface-container)] hover:bg-[var(--md-surface-container-high)] border border-[var(--md-outline-variant)] hover:border-[var(--md-primary)] transition-all text-right group cursor-pointer"
                 >
-                  <div className="w-8 h-8 rounded-xl bg-slate-900/80 flex items-center justify-center flex-shrink-0 shadow-inner">
-                    <Icon className="w-4 h-4 transition-transform group-hover:scale-110" />
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${action.iconTone}`}>
+                    <Icon className="w-4 h-4 transition-transform group-hover:scale-105" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-white truncate">{action.label}</span>
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-xs font-bold text-[var(--md-on-surface)] truncate">{action.label}</span>
                       {action.badge && (
-                        <span className="text-[9px] font-extrabold px-1 rounded bg-black/40 text-emerald-300 font-mono">
+                        <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] font-mono shrink-0">
                           {action.badge}
                         </span>
                       )}
                     </div>
-                    <span className="text-[10px] text-slate-400 block truncate">{action.sublabel}</span>
+                    <span className="text-[10px] text-[var(--md-on-surface-variant)] block truncate">{action.sublabel}</span>
                   </div>
                 </button>
               );

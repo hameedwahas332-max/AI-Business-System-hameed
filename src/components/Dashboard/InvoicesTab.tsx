@@ -570,15 +570,15 @@ export const InvoicesTab: React.FC = () => {
   return (
     <div className="space-y-6 animate-fadeIn pb-12" id="invoices-tab-container">
       {/* Top Level Module Switcher: POS vs Sales Invoices */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-emerald-900/50 rounded-2xl p-3 sm:p-4 shadow-xl">
-        <div className="flex items-center gap-2">
+      <div className="m3-card flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3 sm:p-4">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
             onClick={() => setActiveSubView('invoices')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
               activeSubView === 'invoices'
-                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-950/50'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                ? 'm3-btn-primary'
+                : 'm3-btn-outlined'
             }`}
           >
             <FileText className="w-4 h-4" />
@@ -590,8 +590,8 @@ export const InvoicesTab: React.FC = () => {
             onClick={() => setActiveSubView('pos')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
               activeSubView === 'pos'
-                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-950/50'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                ? 'm3-btn-primary'
+                : 'm3-btn-outlined'
             }`}
           >
             <ShoppingBag className="w-4 h-4" />
@@ -605,7 +605,7 @@ export const InvoicesTab: React.FC = () => {
               type="button"
               onClick={fetchData}
               disabled={loading}
-              className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-colors cursor-pointer"
+              className="m3-btn-outlined p-2.5"
               title="تحديث البيانات"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -616,7 +616,7 @@ export const InvoicesTab: React.FC = () => {
             <button
               type="button"
               onClick={() => setInvoiceSubView('create')}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-950/50 transition-all cursor-pointer"
+              className="m3-btn-primary flex items-center gap-2 px-4 py-2 text-sm font-bold"
             >
               <Plus className="w-4 h-4" />
               إنشاء فاتورة جديدة
@@ -627,7 +627,7 @@ export const InvoicesTab: React.FC = () => {
 
       {/* POS Sub-module Render */}
       {activeSubView === 'pos' && (
-        <div className="bg-slate-900 border border-emerald-900/50 rounded-2xl p-4 shadow-xl">
+        <div className="m3-card p-4">
           <POSMain />
         </div>
       )}
@@ -637,15 +637,15 @@ export const InvoicesTab: React.FC = () => {
         <>
           {/* Notifications */}
           {error && (
-            <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-rose-400 text-sm flex items-center justify-between gap-3">
+            <div className="p-4 bg-[var(--md-error-container)] border border-[var(--md-error)]/30 rounded-2xl text-[var(--md-on-error-container)] text-sm flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                <AlertCircle className="w-5 h-5 flex-shrink-0 text-[var(--md-error)]" />
                 <span>{error}</span>
               </div>
               <button
                 type="button"
                 onClick={() => setError(null)}
-                className="text-slate-400 hover:text-white text-xs"
+                className="text-[var(--md-on-error-container)] hover:underline text-xs font-semibold cursor-pointer"
               >
                 إغلاق
               </button>
@@ -653,15 +653,15 @@ export const InvoicesTab: React.FC = () => {
           )}
 
           {success && (
-            <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-emerald-400 text-sm flex items-center justify-between gap-3">
+            <div className="p-4 bg-[var(--md-success-container)] border border-[var(--md-success)]/30 rounded-2xl text-[var(--md-on-success-container)] text-sm flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+                <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-[var(--md-success)]" />
                 <span>{success}</span>
               </div>
               <button
                 type="button"
                 onClick={() => setSuccess(null)}
-                className="text-slate-400 hover:text-white text-xs"
+                className="text-[var(--md-on-success-container)] hover:underline text-xs font-semibold cursor-pointer"
               >
                 إغلاق
               </button>

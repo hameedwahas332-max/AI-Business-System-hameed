@@ -340,25 +340,25 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 m3-backdrop flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
       <div
-        className="w-full max-w-5xl bg-slate-900 border border-emerald-900/40 rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden text-right font-sans"
+        className="m3-modal-surface w-full max-w-5xl flex flex-col max-h-[92vh] overflow-hidden text-right font-sans"
         dir="rtl"
       >
-        {/* Header - Brand colors: Emerald (#0F766E), Forest (#064E3B), Gold (#C9A227) */}
-        <div className="px-6 py-4.5 bg-gradient-to-l from-emerald-950/70 via-slate-900 to-slate-900 border-b border-emerald-800/40 flex items-center justify-between">
+        {/* Header */}
+        <div className="px-6 py-4 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-inner">
+            <div className="w-10 h-10 rounded-2xl bg-[var(--md-primary-container)] border border-[var(--md-primary)]/30 flex items-center justify-center text-[var(--md-on-primary-container)]">
               <RefreshCw className={`w-5 h-5 ${isManualSyncing ? 'animate-spin' : ''}`} />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-black text-white">مركز المزامنة السيادية وقاعدة البيانات المحلية</h2>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-lg font-black text-[var(--md-on-surface)]">مركز المزامنة السيادية وقاعدة البيانات المحلية</h2>
+                <span className="m3-badge m3-badge-secondary font-mono">
                   CR-2026-TAURI-OFFLINE-SYNC-001
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-[var(--md-on-surface-variant)]">
                 إدارة المعاملات المعلقة محلياً، فحص سلامة التخزين، وحل التعارضات السيادية متعددة الأجهزة
               </p>
             </div>
@@ -369,16 +369,14 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
             <button
               type="button"
               onClick={handleToggleAutoSync}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-sm ${
-                autoSync
-                  ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25'
-                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700/60'
+              className={`!min-h-[34px] !px-3 !py-1.5 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--md-primary)] ${
+                autoSync ? 'm3-btn-tonal' : 'm3-btn-outlined'
               }`}
               title="تفعيل أو تعطيل المزامنة التلقائية الفورية عند توفر اتصال بالإنترنت"
             >
-              <Zap className={`w-3.5 h-3.5 ${autoSync ? 'text-emerald-400 fill-emerald-400' : 'text-slate-500'}`} />
+              <Zap className={`w-3.5 h-3.5 ${autoSync ? 'text-[var(--md-primary-text)] fill-current' : 'text-[var(--md-on-surface-variant)]'}`} />
               <span>المزامنة التلقائية:</span>
-              <span className={autoSync ? 'text-emerald-300 font-black' : 'text-slate-400'}>
+              <span className="font-black">
                 {autoSync ? 'مفعلة' : 'معطلة'}
               </span>
             </button>
@@ -388,7 +386,7 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
               type="button"
               onClick={handleResetAndForceResend}
               disabled={isResetting || isManualSyncing}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm disabled:opacity-50"
+              className="m3-btn-outlined !min-h-[34px] !px-3 !py-1.5 text-xs !border-[var(--md-warning)]/50 !text-[var(--md-warning)] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--md-primary)]"
               title="فك أي قفل معلق وإعادة جدولة كافة العمليات الفاشلة أو المتوقفة وإرسالها فوراً"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isResetting ? 'animate-spin' : ''}`} />
@@ -400,10 +398,8 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
               type="button"
               onClick={handleManualSync}
               disabled={isManualSyncing || !isOnline}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-black shadow-md transition-all cursor-pointer ${
-                isOnline
-                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                  : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+              className={`!min-h-[34px] !px-3.5 !py-1.5 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--md-primary)] ${
+                isOnline ? 'm3-btn-primary' : 'm3-btn-outlined opacity-50 cursor-not-allowed'
               }`}
               title="إرسال دفعة العمليات المعلقة فوراً دون انتظار"
             >
@@ -412,8 +408,9 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
             </button>
 
             <button
+              type="button"
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition cursor-pointer"
+              className="p-2 text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] rounded-xl transition cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--md-primary)]"
             >
               <X className="w-5 h-5" />
             </button>
@@ -421,27 +418,27 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
         </div>
 
         {/* Device & Connection Overview Strip */}
-        <div className="px-6 py-3 bg-slate-950/60 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-4 flex-wrap">
+        <div className="px-6 py-3 bg-[var(--md-surface-container)] border-b border-[var(--md-outline-variant)] flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-3 flex-wrap">
             {/* Live Connection Status */}
             <div className="flex items-center gap-2">
-              <span className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
-              <span className={`font-bold ${isOnline ? 'text-emerald-400' : 'text-rose-400'}`}>
+              <span className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-[var(--md-success)] animate-pulse' : 'bg-[var(--md-error)]'}`} />
+              <span className={`font-bold ${isOnline ? 'text-[var(--md-success)]' : 'text-[var(--md-error)]'}`}>
                 {isOnline ? 'متصل بالسحابة السيادية' : 'غير متصل (العمل دون إنترنت Offline)'}
               </span>
             </div>
 
             {/* Platform Badge */}
-            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-800/80 rounded-lg text-slate-300 border border-slate-700/60">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--md-surface-container-low)] rounded-lg text-[var(--md-on-surface-variant)] border border-[var(--md-outline-variant)]">
               {platform.includes('Tauri') ? (
-                <Laptop className="w-3.5 h-3.5 text-blue-400" />
+                <Laptop className="w-3.5 h-3.5 text-[var(--md-info)]" />
               ) : platform.includes('Android') ? (
-                <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+                <Smartphone className="w-3.5 h-3.5 text-[var(--md-success)]" />
               ) : (
-                <Server className="w-3.5 h-3.5 text-amber-400" />
+                <Server className="w-3.5 h-3.5 text-[var(--md-secondary)]" />
               )}
               <span>المنصة:</span>
-              <span className="font-bold text-white">
+              <span className="font-bold text-[var(--md-on-surface)]">
                 {platform === 'Windows Tauri Desktop'
                   ? 'تطبيق ويندوز المكتبي (Tauri SQLite)'
                   : platform === 'Android'
@@ -451,59 +448,62 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
             </div>
 
             {/* Device ID */}
-            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-800/80 rounded-lg text-slate-300 border border-slate-700/60 font-mono">
-              <span className="text-slate-500">معرف الجهاز:</span>
-              <span className="text-amber-300 font-bold">{deviceId || 'dev_detecting...'}</span>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--md-surface-container-low)] rounded-lg text-[var(--md-on-surface-variant)] border border-[var(--md-outline-variant)] font-mono tabular-nums">
+              <span>معرف الجهاز:</span>
+              <span className="text-[var(--md-secondary)] font-bold">{deviceId || 'dev_detecting...'}</span>
             </div>
           </div>
 
           {/* Last Sync Timestamp */}
-          <div className="flex items-center gap-1.5 text-slate-400">
-            <Clock className="w-3.5 h-3.5 text-slate-500" />
+          <div className="flex items-center gap-1.5 text-[var(--md-on-surface-variant)]">
+            <Clock className="w-3.5 h-3.5" />
             <span>آخر مزامنة ناجحة:</span>
-            <span className="text-slate-200 font-mono font-bold">
+            <span className="text-[var(--md-on-surface)] font-mono tabular-nums font-bold">
               {lastSyncTime ? new Date(lastSyncTime).toLocaleTimeString('ar-YE', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'لم تتم بعد'}
             </span>
           </div>
         </div>
 
         {/* Sub-Tabs Navigation */}
-        <div className="px-6 pt-3 bg-slate-900 border-b border-slate-800 flex gap-2">
+        <div className="px-6 pt-3 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] flex gap-2 overflow-x-auto">
           <button
+            type="button"
             onClick={() => setActiveSubTab('METRICS')}
-            className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
+            className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--md-primary)] ${
               activeSubTab === 'METRICS'
-                ? 'border-emerald-500 text-emerald-400 font-black'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-[var(--md-primary)] text-[var(--md-primary-text)] font-black'
+                : 'border-transparent text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             <Activity className="w-4 h-4" />
-            <span>طابور المزامنة الصادرة ({metrics.savedLocally + metrics.pending})</span>
+            <span className="tabular-nums">طابور المزامنة الصادرة ({metrics.savedLocally + metrics.pending})</span>
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveSubTab('CONFLICTS')}
-            className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
+            className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--md-primary)] ${
               activeSubTab === 'CONFLICTS'
-                ? 'border-rose-500 text-rose-400 font-black'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-[var(--md-error)] text-[var(--md-error)] font-black'
+                : 'border-transparent text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             <AlertTriangle className="w-4 h-4" />
-            <span>التعارضات السيادية ({metrics.conflictCount})</span>
+            <span className="tabular-nums">التعارضات السيادية ({metrics.conflictCount})</span>
             {metrics.conflictCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-rose-500/20 text-rose-300 font-mono font-bold">
+              <span className="m3-badge m3-badge-error font-mono tabular-nums">
                 {metrics.conflictCount}
               </span>
             )}
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveSubTab('DATABASE')}
-            className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
+            className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--md-primary)] ${
               activeSubTab === 'DATABASE'
-                ? 'border-blue-500 text-blue-400 font-black'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-[var(--md-info)] text-[var(--md-info)] font-black'
+                : 'border-transparent text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             <Database className="w-4 h-4" />
@@ -511,11 +511,12 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveSubTab('AUDIT')}
-            className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
+            className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--md-primary)] ${
               activeSubTab === 'AUDIT'
-                ? 'border-amber-500 text-amber-400 font-black'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-[var(--md-secondary)] text-[var(--md-secondary)] font-black'
+                : 'border-transparent text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             <FileText className="w-4 h-4" />
@@ -526,30 +527,30 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
         {/* Modal Body Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {backupSuccess && (
-            <div className="p-3 bg-emerald-950/60 border border-emerald-500/40 rounded-2xl flex items-center gap-2 text-emerald-300 text-xs font-bold animate-in fade-in">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <div className="p-3 bg-[var(--md-success-container)] border border-[var(--md-success)]/40 rounded-2xl flex items-center gap-2 text-[var(--md-on-success-container)] text-xs font-bold animate-in fade-in">
+              <CheckCircle2 className="w-4 h-4 text-[var(--md-success)] flex-shrink-0" />
               <span>{backupSuccess}</span>
             </div>
           )}
 
           {/* Live Batch Progress Indicator */}
           {manualSyncProgress.active && (
-            <div className="p-4 bg-emerald-950/70 border border-emerald-500/40 rounded-2xl space-y-2 animate-in fade-in shadow-lg">
-              <div className="flex items-center justify-between text-xs font-bold text-emerald-200">
+            <div className="p-4 bg-[var(--md-primary-container)]/40 border border-[var(--md-primary)]/40 rounded-2xl space-y-2 animate-in fade-in">
+              <div className="flex items-center justify-between text-xs font-bold text-[var(--md-on-surface)]">
                 <div className="flex items-center gap-2">
-                  <RefreshCw className="w-4 h-4 text-emerald-400 animate-spin" />
+                  <RefreshCw className="w-4 h-4 text-[var(--md-primary-text)] animate-spin" />
                   <span>جارِ ترحيل المعاملات المعلقة في دفعة واحدة (Batch Push)...</span>
                 </div>
-                <div className="font-mono text-emerald-300 flex items-center gap-1.5">
+                <div className="font-mono tabular-nums text-[var(--md-primary-text)] flex items-center gap-1.5">
                   <span>تم قبول:</span>
-                  <span className="font-black text-white">{manualSyncProgress.sent}</span>
+                  <span className="font-black text-[var(--md-on-surface)]">{manualSyncProgress.sent}</span>
                   <span>/</span>
                   <span>{manualSyncProgress.total} حركة</span>
                 </div>
               </div>
-              <div className="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden">
+              <div className="w-full h-2.5 bg-[var(--md-surface-container-high)] rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-l from-emerald-400 to-teal-300 transition-all duration-300"
+                  className="h-full bg-[var(--md-primary)] transition-all duration-300"
                   style={{
                     width: `${Math.min(100, Math.round((manualSyncProgress.sent / Math.max(1, manualSyncProgress.total)) * 100))}%`
                   }}
@@ -564,127 +565,127 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
               {/* 5 Distinct States KPI Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 {/* 1. Saved Locally */}
-                <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-2xl space-y-1">
-                  <div className="flex items-center justify-between text-slate-400 text-xs">
+                <div className="m3-card p-4 space-y-1">
+                  <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] text-xs">
                     <span>1. محفوظ محلياً</span>
-                    <span className="w-2 h-2 rounded-full bg-blue-500" />
+                    <span className="w-2 h-2 rounded-full bg-[var(--md-info)]" />
                   </div>
-                  <div className="text-2xl font-black font-mono text-blue-400">{metrics.savedLocally}</div>
-                  <p className="text-[10px] text-slate-500">حركات مخزنة بأمان في الـ DAL</p>
+                  <div className="text-2xl font-black font-mono tabular-nums text-[var(--md-info)]">{metrics.savedLocally}</div>
+                  <p className="text-[10px] text-[var(--md-on-surface-variant)]">حركات مخزنة بأمان في الـ DAL</p>
                 </div>
 
                 {/* 2. Pending Sync */}
-                <div className="p-4 bg-slate-950/60 border border-amber-900/30 rounded-2xl space-y-1">
-                  <div className="flex items-center justify-between text-slate-400 text-xs">
+                <div className="m3-card p-4 space-y-1">
+                  <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] text-xs">
                     <span>2. بانتظار الإرسال</span>
-                    <RefreshCw className={`w-3.5 h-3.5 text-amber-400 ${metrics.pending > 0 ? 'animate-spin' : ''}`} />
+                    <RefreshCw className={`w-3.5 h-3.5 text-[var(--md-warning)] ${metrics.pending > 0 ? 'animate-spin' : ''}`} />
                   </div>
-                  <div className="text-2xl font-black font-mono text-amber-400">{metrics.pending}</div>
-                  <p className="text-[10px] text-slate-500">تنتظر تسلسل السيرفر</p>
+                  <div className="text-2xl font-black font-mono tabular-nums text-[var(--md-warning)]">{metrics.pending}</div>
+                  <p className="text-[10px] text-[var(--md-on-surface-variant)]">تنتظر تسلسل السيرفر</p>
                 </div>
 
                 {/* 3. Synced Successfully */}
-                <div className="p-4 bg-slate-950/60 border border-emerald-900/30 rounded-2xl space-y-1">
-                  <div className="flex items-center justify-between text-slate-400 text-xs">
+                <div className="m3-card p-4 space-y-1">
+                  <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] text-xs">
                     <span>3. متزامن ومعتمد</span>
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[var(--md-success)]" />
                   </div>
-                  <div className="text-2xl font-black font-mono text-emerald-400">{metrics.synced}</div>
-                  <p className="text-[10px] text-slate-500">معتمدة برقم تسلسلي سيادي</p>
+                  <div className="text-2xl font-black font-mono tabular-nums text-[var(--md-success)]">{metrics.synced}</div>
+                  <p className="text-[10px] text-[var(--md-on-surface-variant)]">معتمدة برقم تسلسلي سيادي</p>
                 </div>
 
                 {/* 4. Failed / Retry */}
-                <div className="p-4 bg-slate-950/60 border border-rose-900/30 rounded-2xl space-y-1">
-                  <div className="flex items-center justify-between text-slate-400 text-xs">
+                <div className="m3-card p-4 space-y-1">
+                  <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] text-xs">
                     <span>4. فشل الإرسال</span>
-                    <CloudOff className="w-3.5 h-3.5 text-rose-400" />
+                    <CloudOff className="w-3.5 h-3.5 text-[var(--md-error)]" />
                   </div>
-                  <div className="text-2xl font-black font-mono text-rose-400">{metrics.failed}</div>
-                  <p className="text-[10px] text-slate-500">إعادة محاولة بالتراجع الأسي</p>
+                  <div className="text-2xl font-black font-mono tabular-nums text-[var(--md-error)]">{metrics.failed}</div>
+                  <p className="text-[10px] text-[var(--md-on-surface-variant)]">إعادة محاولة بالتراجع الأسي</p>
                 </div>
 
                 {/* 5. Conflict Required */}
-                <div className="p-4 bg-slate-950/60 border border-purple-900/30 rounded-2xl space-y-1">
-                  <div className="flex items-center justify-between text-slate-400 text-xs">
+                <div className="m3-card p-4 space-y-1">
+                  <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] text-xs">
                     <span>5. يتطلب حل تعارض</span>
-                    <AlertTriangle className="w-3.5 h-3.5 text-purple-400" />
+                    <AlertTriangle className="w-3.5 h-3.5 text-[var(--md-secondary)]" />
                   </div>
-                  <div className="text-2xl font-black font-mono text-purple-400">{metrics.conflictCount}</div>
-                  <p className="text-[10px] text-slate-500">تضارب أرصدة مع جهاز آخر</p>
+                  <div className="text-2xl font-black font-mono tabular-nums text-[var(--md-secondary)]">{metrics.conflictCount}</div>
+                  <p className="text-[10px] text-[var(--md-on-surface-variant)]">تضارب أرصدة مع جهاز آخر</p>
                 </div>
               </div>
 
               {/* Progress Bar */}
-              <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-2xl space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold text-slate-300">
+              <div className="m3-card p-4 space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-[var(--md-on-surface)]">
                   <span>نسبة مزامنة المعاملات الصادرة:</span>
-                  <span className="font-mono text-emerald-400">{metrics.syncPercentage}%</span>
+                  <span className="font-mono tabular-nums text-[var(--md-primary-text)]">{metrics.syncPercentage}%</span>
                 </div>
-                <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                <div className="w-full h-2.5 bg-[var(--md-surface-container-high)] rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-l from-emerald-500 to-teal-400 transition-all duration-500"
+                    className="h-full bg-[var(--md-primary)] transition-all duration-500"
                     style={{ width: `${metrics.syncPercentage}%` }}
                   />
                 </div>
               </div>
 
               {/* Outbox Items Queue Table */}
-              <div className="bg-slate-950/40 border border-slate-800 rounded-2xl overflow-hidden">
-                <div className="px-4 py-3 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-200">تفاصيل طابور العمليات الصادرة (Outbox Queue):</span>
-                  <span className="text-[11px] text-slate-400 font-mono">العدد الإجمالي: {outboxItems.length}</span>
+              <div className="m3-card overflow-hidden">
+                <div className="px-4 py-3 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] flex items-center justify-between">
+                  <span className="text-xs font-bold text-[var(--md-on-surface)]">تفاصيل طابور العمليات الصادرة (Outbox Queue):</span>
+                  <span className="text-[11px] text-[var(--md-on-surface-variant)] font-mono tabular-nums">العدد الإجمالي: {outboxItems.length}</span>
                 </div>
 
                 <div className="overflow-x-auto max-h-72">
-                  <table className="w-full text-right text-xs">
-                    <thead className="bg-slate-900/80 text-slate-400 border-b border-slate-800 sticky top-0">
+                  <table className="m3-table text-xs">
+                    <thead className="m3-thead sticky top-0">
                       <tr>
-                        <th className="p-2.5 font-bold">المعرف / المعاملة</th>
-                        <th className="p-2.5 font-bold">نوع العملية</th>
-                        <th className="p-2.5 font-bold">الأولوية (Order)</th>
-                        <th className="p-2.5 font-bold">الحالة</th>
-                        <th className="p-2.5 font-bold">وقت الإنشاء المحلي</th>
-                        <th className="p-2.5 font-bold">المحاولات</th>
+                        <th className="m3-th">المعرف / المعاملة</th>
+                        <th className="m3-th">نوع العملية</th>
+                        <th className="m3-th">الأولوية (Order)</th>
+                        <th className="m3-th">الحالة</th>
+                        <th className="m3-th">وقت الإنشاء المحلي</th>
+                        <th className="m3-th">المحاولات</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60">
+                    <tbody className="divide-y divide-[var(--md-outline-variant)]">
                       {outboxItems.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="p-8 text-center text-slate-500">
+                          <td colSpan={6} className="p-8 text-center text-[var(--md-on-surface-variant)]">
                             طابور العمليات الصادرة فارغ تماماً — كافة المعاملات متزامنة مع السيرفر المركزي.
                           </td>
                         </tr>
                       ) : (
                         outboxItems.map((item) => (
-                          <tr key={item.uuid} className="hover:bg-slate-800/40 transition">
-                            <td className="p-2.5 font-mono text-[11px] text-slate-300">
+                          <tr key={item.uuid} className="hover:bg-[var(--md-surface-container-high)]/60 transition">
+                            <td className="p-2.5 font-mono tabular-nums text-[11px] text-[var(--md-on-surface-variant)]">
                               {item.uuid.slice(0, 14)}...
                             </td>
-                            <td className="p-2.5 font-bold text-slate-200">{item.transactionType}</td>
-                            <td className="p-2.5 font-mono text-slate-400">#{item.dependencyOrder || 20}</td>
+                            <td className="p-2.5 font-bold text-[var(--md-on-surface)]">{item.transactionType}</td>
+                            <td className="p-2.5 font-mono tabular-nums text-[var(--md-on-surface-variant)]">#{item.dependencyOrder || 20}</td>
                             <td className="p-2.5">
                               {item.syncStatus === 'SYNCED' ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                                <span className="m3-badge m3-badge-success tabular-nums">
                                   <Check className="w-3 h-3" /> متزامن #{item.serverSeq || ''}
                                 </span>
                               ) : item.syncStatus === 'SYNCING' ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                                <span className="m3-badge m3-badge-warning">
                                   <RefreshCw className="w-3 h-3 animate-spin" /> جارِ الإرسال
                                 </span>
                               ) : item.syncStatus === 'CONFLICT' ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-purple-500/10 text-purple-400 border border-purple-500/30">
+                                <span className="m3-badge m3-badge-error">
                                   <AlertTriangle className="w-3 h-3" /> تعارض
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/30">
+                                <span className="m3-badge m3-badge-info">
                                   <Clock className="w-3 h-3" /> معلق محلياً
                                 </span>
                               )}
                             </td>
-                            <td className="p-2.5 text-slate-400 font-mono text-[11px]">
+                            <td className="p-2.5 text-[var(--md-on-surface-variant)] font-mono tabular-nums text-[11px]">
                               {item.createdAtClient ? new Date(item.createdAtClient).toLocaleTimeString('ar-YE') : '-'}
                             </td>
-                            <td className="p-2.5 font-mono text-slate-400">{item.retryCount || 0}</td>
+                            <td className="p-2.5 font-mono tabular-nums text-[var(--md-on-surface-variant)]">{item.retryCount || 0}</td>
                           </tr>
                         ))
                       )}
@@ -698,19 +699,19 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
           {/* TAB 2: CONFLICT RESOLUTION WORKFLOW */}
           {activeSubTab === 'CONFLICTS' && (
             <div className="space-y-4">
-              <div className="p-4 bg-purple-950/20 border border-purple-800/40 rounded-2xl flex items-start gap-3">
-                <Info className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
-                <div className="text-xs text-purple-200 leading-relaxed">
-                  <p className="font-bold text-purple-300 mb-0.5">آلية حسم التعارضات السيادية المعتمدة:</p>
+              <div className="p-4 bg-[var(--md-info-container)] border border-[var(--md-info)]/30 rounded-2xl flex items-start gap-3">
+                <Info className="w-5 h-5 text-[var(--md-info)] flex-shrink-0 mt-0.5" />
+                <div className="text-xs text-[var(--md-on-info-container)] leading-relaxed">
+                  <p className="font-bold mb-0.5">آلية حسم التعارضات السيادية المعتمدة:</p>
                   يمنع النظام منعاً باتاً اعتماد قاعدة "آخر كاتب يفوز (Last-Write-Wins)" على الحسابات والأرصدة المالية والمخزنية. عند حدوث تباين في الكميات أو الفواتير المسجلة من جهازين مختلفين، يتم تعليق العملية هنا للمراجعة والاعتماد المحاسبي المصرّح.
                 </div>
               </div>
 
               {conflicts.length === 0 ? (
-                <div className="p-12 text-center bg-slate-950/40 border border-slate-800 rounded-2xl space-y-2">
-                  <ShieldCheck className="w-12 h-12 text-emerald-400 mx-auto" />
-                  <div className="text-sm font-bold text-white">لا توجد أي تعارضات غير محلولة حالياً</div>
-                  <p className="text-xs text-slate-500">كافة العمليات المحلية متطابقة سيادياً مع سجلات الخادم المركزي</p>
+                <div className="m3-card p-12 text-center space-y-2">
+                  <ShieldCheck className="w-12 h-12 text-[var(--md-success)] mx-auto" />
+                  <div className="text-sm font-bold text-[var(--md-on-surface)]">لا توجد أي تعارضات غير محلولة حالياً</div>
+                  <p className="text-xs text-[var(--md-on-surface-variant)]">كافة العمليات المحلية متطابقة سيادياً مع سجلات الخادم المركزي</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -719,20 +720,20 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
                     return (
                       <div
                         key={conf.id}
-                        className={`p-4 rounded-2xl border ${
-                          isResolved ? 'bg-slate-950/40 border-slate-800 opacity-60' : 'bg-slate-950/70 border-rose-900/40 shadow-xl'
+                        className={`m3-card p-4 ${
+                          isResolved ? 'opacity-65' : 'border-[var(--md-error)]/40'
                         } space-y-4`}
                       >
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300">
+                        <div className="flex items-center justify-between border-b border-[var(--md-outline-variant)] pb-2 flex-wrap gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="m3-badge m3-badge-error font-mono tabular-nums">
                               تعارض #{conf.id.slice(-6)}
                             </span>
-                            <span className="text-xs font-bold text-white">{conf.transactionType}</span>
-                            <span className="text-[11px] text-slate-400">({conf.conflictReason})</span>
+                            <span className="text-xs font-bold text-[var(--md-on-surface)]">{conf.transactionType}</span>
+                            <span className="text-[11px] text-[var(--md-on-surface-variant)]">({conf.conflictReason})</span>
                           </div>
                           {isResolved && (
-                            <span className="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
+                            <span className="m3-badge m3-badge-success">
                               <CheckCircle2 className="w-3.5 h-3.5" /> تم الحسم: {conf.resolutionStrategy}
                             </span>
                           )}
@@ -741,23 +742,23 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
                         {/* Side by side comparison */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                           {/* Local Record */}
-                          <div className="p-3 bg-slate-900/80 border border-blue-900/30 rounded-xl space-y-1.5">
-                            <div className="font-bold text-blue-400 flex items-center justify-between">
+                          <div className="p-3 bg-[var(--md-surface-container-low)] border border-[var(--md-info)]/30 rounded-xl space-y-1.5">
+                            <div className="font-bold text-[var(--md-info)] flex items-center justify-between">
                               <span>النسخة المحلية بالجهاز:</span>
-                              <span className="text-[10px] text-slate-500 font-mono">Device: {deviceId.slice(-6)}</span>
+                              <span className="text-[10px] text-[var(--md-on-surface-variant)] font-mono">Device: {deviceId.slice(-6)}</span>
                             </div>
-                            <pre className="text-[10px] text-slate-300 font-mono bg-slate-950 p-2 rounded-lg max-h-32 overflow-y-auto" dir="ltr">
+                            <pre className="text-[10px] text-[var(--md-on-surface)] font-mono bg-[var(--md-surface-container-lowest)] border border-[var(--md-outline-variant)] p-2 rounded-lg max-h-32 overflow-y-auto" dir="ltr">
                               {JSON.stringify(conf.localPayload, null, 2)}
                             </pre>
                           </div>
 
                           {/* Server Record */}
-                          <div className="p-3 bg-slate-900/80 border border-emerald-900/30 rounded-xl space-y-1.5">
-                            <div className="font-bold text-emerald-400 flex items-center justify-between">
+                          <div className="p-3 bg-[var(--md-surface-container-low)] border border-[var(--md-success)]/30 rounded-xl space-y-1.5">
+                            <div className="font-bold text-[var(--md-success)] flex items-center justify-between">
                               <span>نسخة الخادم المركزي المرجعية:</span>
-                              <span className="text-[10px] text-slate-500 font-mono">Server Central Seq</span>
+                              <span className="text-[10px] text-[var(--md-on-surface-variant)] font-mono">Server Central Seq</span>
                             </div>
-                            <pre className="text-[10px] text-slate-300 font-mono bg-slate-950 p-2 rounded-lg max-h-32 overflow-y-auto" dir="ltr">
+                            <pre className="text-[10px] text-[var(--md-on-surface)] font-mono bg-[var(--md-surface-container-lowest)] border border-[var(--md-outline-variant)] p-2 rounded-lg max-h-32 overflow-y-auto" dir="ltr">
                               {JSON.stringify(conf.serverPayload || { message: 'سجل غير متوفر بالخادم' }, null, 2)}
                             </pre>
                           </div>
@@ -765,27 +766,30 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
 
                         {/* Action Buttons for Authorized Resolution */}
                         {!isResolved && (
-                          <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-slate-800">
+                          <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-[var(--md-outline-variant)]">
                             <button
+                              type="button"
                               disabled={resolvingId === conf.id}
                               onClick={() => handleResolveConflict(conf.id, 'SERVER_WINS')}
-                              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
+                              className="m3-btn-outlined !min-h-[34px] !px-3 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--md-primary)]"
                             >
                               الاحتفاظ بنسخة الخادم المرجعية (Server Wins)
                             </button>
 
                             <button
+                              type="button"
                               disabled={resolvingId === conf.id}
                               onClick={() => handleResolveConflict(conf.id, 'CLIENT_WINS')}
-                              className="px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 rounded-xl text-xs font-bold transition cursor-pointer"
+                              className="m3-btn-tonal !min-h-[34px] !px-3 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--md-primary)]"
                             >
                               ترحيل قيد تصحيحي معتمد (Client Wins)
                             </button>
 
                             <button
+                              type="button"
                               disabled={resolvingId === conf.id}
                               onClick={() => handleResolveConflict(conf.id, 'MANUAL_MERGE')}
-                              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black shadow-md transition cursor-pointer"
+                              className="m3-btn-primary !min-h-[34px] !px-3.5 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--md-primary)]"
                             >
                               اعتماد تسوية مخزنية/مالية معتمدة
                             </button>
@@ -803,48 +807,49 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
           {activeSubTab === 'DATABASE' && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-2xl space-y-2">
-                  <div className="text-slate-400 text-xs font-bold">محرك التخزين النشط:</div>
-                  <div className="text-sm font-black text-white flex items-center gap-2">
-                    <Database className="w-4 h-4 text-emerald-400" />
+                <div className="m3-card p-4 space-y-2">
+                  <div className="text-[var(--md-on-surface-variant)] text-xs font-bold">محرك التخزين النشط:</div>
+                  <div className="text-sm font-black text-[var(--md-on-surface)] flex items-center gap-2">
+                    <Database className="w-4 h-4 text-[var(--md-primary-text)] shrink-0" />
                     <span>{platform.includes('Tauri') ? 'SQLite WAL Engine (Durable)' : 'IndexedDB Vault + Storage Mirror'}</span>
                   </div>
-                  <p className="text-[10px] text-slate-500">حفظ آمن للمعاملات دون اتصال بالإنترنت</p>
+                  <p className="text-[10px] text-[var(--md-on-surface-variant)]">حفظ آمن للمعاملات دون اتصال بالإنترنت</p>
                 </div>
 
-                <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-2xl space-y-2">
-                  <div className="text-slate-400 text-xs font-bold">فحص سلامة البيانات الموضعية:</div>
-                  <div className="text-sm font-black text-emerald-400 flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <div className="m3-card p-4 space-y-2">
+                  <div className="text-[var(--md-on-surface-variant)] text-xs font-bold">فحص سلامة البيانات الموضعية:</div>
+                  <div className="text-sm font-black text-[var(--md-success)] flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-[var(--md-success)] shrink-0" />
                     <span>{integrityStatus?.healthy ? 'سليم 100% (No Corruption)' : 'جارِ الفحص'}</span>
                   </div>
-                  <p className="text-[10px] text-slate-500">{integrityStatus?.details || 'المخازن الـ 18 جاهزة تماماً'}</p>
+                  <p className="text-[10px] text-[var(--md-on-surface-variant)]">{integrityStatus?.details || 'المخازن الـ 18 جاهزة تماماً'}</p>
                 </div>
 
-                <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-2xl space-y-2">
-                  <div className="text-slate-400 text-xs font-bold">حجم العمليات المعلقة:</div>
-                  <div className="text-sm font-black text-amber-400 font-mono">
+                <div className="m3-card p-4 space-y-2">
+                  <div className="text-[var(--md-on-surface-variant)] text-xs font-bold">حجم العمليات المعلقة:</div>
+                  <div className="text-sm font-black text-[var(--md-secondary)] font-mono tabular-nums">
                     {metrics.savedLocally + metrics.pending} حركة محلية
                   </div>
-                  <p className="text-[10px] text-slate-500">تُفرّغ تلقائياً بمجرد عودة الاتصال</p>
+                  <p className="text-[10px] text-[var(--md-on-surface-variant)]">تُفرّغ تلقائياً بمجرد عودة الاتصال</p>
                 </div>
               </div>
 
               {/* Local Backup Action Card */}
-              <div className="p-5 bg-gradient-to-l from-slate-950 via-slate-900 to-slate-950 border border-emerald-900/40 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="m3-card p-5 border-[var(--md-primary)]/30 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="space-y-1 text-center sm:text-right">
-                  <div className="font-bold text-white text-sm flex items-center gap-2 justify-center sm:justify-start">
-                    <Download className="w-4 h-4 text-emerald-400" />
+                  <div className="font-bold text-[var(--md-on-surface)] text-sm flex items-center gap-2 justify-center sm:justify-start">
+                    <Download className="w-4 h-4 text-[var(--md-primary-text)]" />
                     <span>توليد وتنزيل نسخة احتياطية محلية مشفرة</span>
                   </div>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-[var(--md-on-surface-variant)]">
                     تضم كافة الحركات المعلقة محلياً، فواتير المبيعات، سندات الخزينة، والمخزون لحمايتها من أي فقدان
                   </p>
                 </div>
 
                 <button
+                  type="button"
                   onClick={handleExportLocalEncryptedBackup}
-                  className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg transition-all flex items-center gap-2 cursor-pointer flex-shrink-0"
+                  className="m3-btn-primary text-xs flex-shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--md-primary)]"
                 >
                   <Download className="w-4 h-4" />
                   <span>💾 نسخ احتياطي مشفر محلياً</span>
@@ -856,29 +861,29 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
           {/* TAB 4: AUDIT LOG */}
           {activeSubTab === 'AUDIT' && (
             <div className="space-y-3">
-              <div className="bg-slate-950/40 border border-slate-800 rounded-2xl overflow-hidden">
-                <div className="px-4 py-3 bg-slate-900 border-b border-slate-800 text-xs font-bold text-slate-200">
+              <div className="m3-card overflow-hidden">
+                <div className="px-4 py-3 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] text-xs font-bold text-[var(--md-on-surface)]">
                   سجل عمليات المزامنة والتأكيدات السيادية:
                 </div>
 
-                <div className="divide-y divide-slate-800/60 max-h-80 overflow-y-auto">
+                <div className="divide-y divide-[var(--md-outline-variant)] max-h-80 overflow-y-auto">
                   {auditLogs.length === 0 ? (
-                    <div className="p-8 text-center text-slate-500 text-xs">لا توجد سجلات مزامنة حتى الآن</div>
+                    <div className="p-8 text-center text-[var(--md-on-surface-variant)] text-xs">لا توجد سجلات مزامنة حتى الآن</div>
                   ) : (
                     auditLogs.map((log) => (
-                      <div key={log.id} className="p-3 flex items-center justify-between gap-3 text-xs hover:bg-slate-800/30 transition">
+                      <div key={log.id} className="p-3 flex items-center justify-between gap-3 text-xs hover:bg-[var(--md-surface-container-high)]/50 transition">
                         <div className="space-y-0.5">
-                          <div className="font-bold text-slate-200 flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                          <div className="font-bold text-[var(--md-on-surface)] flex items-center gap-2 flex-wrap">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--md-success)]" />
                             <span>{log.event}</span>
-                            <span className="text-[10px] text-slate-500 font-mono">
+                            <span className="text-[10px] text-[var(--md-on-surface-variant)] font-mono tabular-nums">
                               {new Date(log.timestamp).toLocaleTimeString('ar-YE', { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
-                          <div className="text-[11px] text-slate-400">{log.details}</div>
+                          <div className="text-[11px] text-[var(--md-on-surface-variant)]">{log.details}</div>
                         </div>
 
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                        <span className="m3-badge m3-badge-success font-mono">
                           {log.status}
                         </span>
                       </div>
@@ -891,11 +896,12 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 bg-slate-950/80 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
+        <div className="px-6 py-3 bg-[var(--md-surface-container-low)] border-t border-[var(--md-outline-variant)] flex items-center justify-between text-xs text-[var(--md-on-surface-variant)]">
           <div>نظام المزامنة المتقدم — متوافق مع كافة المعايير المحاسبية الدولية IFRS</div>
           <button
+            type="button"
             onClick={onClose}
-            className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition cursor-pointer"
+            className="m3-btn-outlined !min-h-[34px] !px-4 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--md-primary)]"
           >
             إغلاق
           </button>

@@ -421,30 +421,29 @@ export const ReportsTab: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      
+    <div className="space-y-6 text-right" dir="rtl">
       {/* Top Banner & Selector Header */}
-      <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 text-white shadow-lg relative overflow-hidden">
+      <div className="m3-card p-6 relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-bold mb-2">
+            <div className="inline-flex items-center gap-2 text-xs font-bold text-[var(--md-primary-text)] mb-1.5">
               <PieChart className="w-4 h-4" />
-              <span>مركز التقارير المالية والتحليلات - Phase 4</span>
+              <span>مركز التقارير المالية والتحليلات — Phase 4</span>
             </div>
-            <h2 className="text-2xl font-black text-white tracking-tight mb-1">
+            <h2 className="text-2xl font-black text-[var(--md-on-surface)] tracking-tight mb-1">
               التقارير المحاسبية التفصيلية وقوائم الأداء
             </h2>
-            <p className="text-xs text-slate-400 max-w-xl">
+            <p className="text-xs text-[var(--md-on-surface-variant)] max-w-xl">
               تتبع الإيرادات، التكاليف، أرباح التشغيل، تقادم الديون، والتدفقات النقدية مع إمكانية التصدير إلى CSV و PDF.
             </p>
           </div>
 
           {/* Export Actions */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
             <button
               onClick={() => handleExport('csv')}
               disabled={exportLoading}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+              className="m3-btn-primary !min-h-[38px] text-xs disabled:opacity-50"
             >
               <Download className="w-4 h-4" />
               <span>تصدير CSV</span>
@@ -452,7 +451,7 @@ export const ReportsTab: React.FC = () => {
             <button
               onClick={() => handleExport('pdf')}
               disabled={exportLoading}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+              className="m3-btn-tonal !min-h-[38px] text-xs disabled:opacity-50"
             >
               <Printer className="w-4 h-4" />
               <span>طباعة / PDF</span>
@@ -461,13 +460,13 @@ export const ReportsTab: React.FC = () => {
         </div>
 
         {/* Sub-report selector tabs */}
-        <div className="flex items-center gap-2 mt-6 overflow-x-auto pb-1 border-t border-slate-800 pt-4 text-xs font-medium scrollbar-none">
+        <div className="flex items-center gap-2 mt-6 overflow-x-auto pb-1 border-t border-[var(--md-outline-variant)] pt-4 text-xs font-medium scrollbar-none">
           <button
             onClick={() => setActiveReport('sales')}
-            className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap shrink-0 flex items-center gap-2 border ${
               activeReport === 'sales'
-                ? 'bg-blue-600 text-white font-bold shadow'
-                : 'bg-slate-800/80 text-slate-300 hover:bg-slate-800'
+                ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border-[var(--md-primary)]/40 font-bold shadow-sm'
+                : 'bg-[var(--md-surface-container)] text-[var(--md-on-surface-variant)] border-transparent hover:bg-[var(--md-surface-container-high)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             <TrendingUp className="w-4 h-4" />
@@ -476,10 +475,10 @@ export const ReportsTab: React.FC = () => {
 
           <button
             onClick={() => setActiveReport('purchases')}
-            className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap shrink-0 flex items-center gap-2 border ${
               activeReport === 'purchases'
-                ? 'bg-blue-600 text-white font-bold shadow'
-                : 'bg-slate-800/80 text-slate-300 hover:bg-slate-800'
+                ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border-[var(--md-primary)]/40 font-bold shadow-sm'
+                : 'bg-[var(--md-surface-container)] text-[var(--md-on-surface-variant)] border-transparent hover:bg-[var(--md-surface-container-high)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             <ShoppingBag className="w-4 h-4" />
@@ -488,10 +487,10 @@ export const ReportsTab: React.FC = () => {
 
           <button
             onClick={() => setActiveReport('profit_loss')}
-            className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap shrink-0 flex items-center gap-2 border ${
               activeReport === 'profit_loss'
-                ? 'bg-blue-600 text-white font-bold shadow'
-                : 'bg-slate-800/80 text-slate-300 hover:bg-slate-800'
+                ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border-[var(--md-primary)]/40 font-bold shadow-sm'
+                : 'bg-[var(--md-surface-container)] text-[var(--md-on-surface-variant)] border-transparent hover:bg-[var(--md-surface-container-high)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             <DollarSign className="w-4 h-4" />
@@ -500,10 +499,10 @@ export const ReportsTab: React.FC = () => {
 
           <button
             onClick={() => setActiveReport('tax')}
-            className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap shrink-0 flex items-center gap-2 border ${
               activeReport === 'tax'
-                ? 'bg-blue-600 text-white font-bold shadow'
-                : 'bg-slate-800/80 text-slate-300 hover:bg-slate-800'
+                ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border-[var(--md-primary)]/40 font-bold shadow-sm'
+                : 'bg-[var(--md-surface-container)] text-[var(--md-on-surface-variant)] border-transparent hover:bg-[var(--md-surface-container-high)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             <ShieldCheck className="w-4 h-4" />
@@ -512,10 +511,10 @@ export const ReportsTab: React.FC = () => {
 
           <button
             onClick={() => setActiveReport('receivables')}
-            className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap shrink-0 flex items-center gap-2 border ${
               activeReport === 'receivables'
-                ? 'bg-blue-600 text-white font-bold shadow'
-                : 'bg-slate-800/80 text-slate-300 hover:bg-slate-800'
+                ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border-[var(--md-primary)]/40 font-bold shadow-sm'
+                : 'bg-[var(--md-surface-container)] text-[var(--md-on-surface-variant)] border-transparent hover:bg-[var(--md-surface-container-high)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             <Clock className="w-4 h-4" />
@@ -524,10 +523,10 @@ export const ReportsTab: React.FC = () => {
 
           <button
             onClick={() => setActiveReport('payables')}
-            className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap shrink-0 flex items-center gap-2 border ${
               activeReport === 'payables'
-                ? 'bg-blue-600 text-white font-bold shadow'
-                : 'bg-slate-800/80 text-slate-300 hover:bg-slate-800'
+                ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border-[var(--md-primary)]/40 font-bold shadow-sm'
+                : 'bg-[var(--md-surface-container)] text-[var(--md-on-surface-variant)] border-transparent hover:bg-[var(--md-surface-container-high)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             <Clock className="w-4 h-4" />
@@ -536,10 +535,10 @@ export const ReportsTab: React.FC = () => {
 
           <button
             onClick={() => setActiveReport('cash_flow')}
-            className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap shrink-0 flex items-center gap-2 border ${
               activeReport === 'cash_flow'
-                ? 'bg-blue-600 text-white font-bold shadow'
-                : 'bg-slate-800/80 text-slate-300 hover:bg-slate-800'
+                ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border-[var(--md-primary)]/40 font-bold shadow-sm'
+                : 'bg-[var(--md-surface-container)] text-[var(--md-on-surface-variant)] border-transparent hover:bg-[var(--md-surface-container-high)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             <TrendingDown className="w-4 h-4" />
@@ -548,10 +547,10 @@ export const ReportsTab: React.FC = () => {
 
           <button
             onClick={() => setActiveReport('inventory')}
-            className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap shrink-0 flex items-center gap-2 border ${
               activeReport === 'inventory'
-                ? 'bg-blue-600 text-white font-bold shadow'
-                : 'bg-slate-800/80 text-slate-300 hover:bg-slate-800'
+                ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border-[var(--md-primary)]/40 font-bold shadow-sm'
+                : 'bg-[var(--md-surface-container)] text-[var(--md-on-surface-variant)] border-transparent hover:bg-[var(--md-surface-container-high)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             <Boxes className="w-4 h-4" />
@@ -561,63 +560,67 @@ export const ReportsTab: React.FC = () => {
           {(businessMode === 'fuel_station_only' || businessMode === 'multi_activity') && (
             <button
               onClick={() => setActiveReport('fuel_station')}
-              className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${
+              className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap shrink-0 flex items-center gap-2 border ${
                 activeReport === 'fuel_station'
-                  ? 'bg-amber-500 text-slate-950 font-bold shadow'
-                  : 'bg-slate-800/80 text-amber-300 hover:bg-slate-800'
+                  ? 'bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] border-[var(--md-secondary)]/40 font-bold shadow-sm'
+                  : 'bg-[var(--md-surface-container)] text-[var(--md-on-surface-variant)] border-transparent hover:bg-[var(--md-surface-container-high)] hover:text-[var(--md-on-surface)]'
               }`}
             >
-              <Fuel className="w-4 h-4" />
+              <Fuel className="w-4 h-4 text-[var(--md-secondary)]" />
               <span>جرد ومبيعات الوقود والغاز</span>
             </button>
           )}
 
           <button
             onClick={() => setActiveReport('warranty_and_expiry')}
-            className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap shrink-0 flex items-center gap-2 border ${
               activeReport === 'warranty_and_expiry'
-                ? 'bg-emerald-600 text-white font-bold shadow'
-                : 'bg-slate-800/80 text-emerald-300 hover:bg-slate-800'
+                ? 'bg-[var(--md-success-container)] text-[var(--md-on-success-container)] border-[var(--md-success)]/40 font-bold shadow-sm'
+                : 'bg-[var(--md-surface-container)] text-[var(--md-on-surface-variant)] border-transparent hover:bg-[var(--md-surface-container-high)] hover:text-[var(--md-on-surface)]'
             }`}
           >
-            <ShieldCheck className="w-4 h-4" />
+            <ShieldCheck className="w-4 h-4 text-[var(--md-success)]" />
             <span>حركة الأصناف والضمانات والصلاحية</span>
           </button>
         </div>
       </div>
 
       {/* Date & Group Filters Bar */}
-      {(activeReport === 'sales' || activeReport === 'purchases' || activeReport === 'profit_loss' || activeReport === 'cash_flow' || activeReport === 'tax') && (
-        <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4 text-xs">
+      {(activeReport === 'sales' ||
+        activeReport === 'purchases' ||
+        activeReport === 'profit_loss' ||
+        activeReport === 'cash_flow' ||
+        activeReport === 'tax') && (
+        <div className="m3-card p-4 flex flex-wrap items-center justify-between gap-4 text-xs">
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-slate-400" />
-              <span className="font-bold text-slate-700">من تاريخ:</span>
+              <Calendar className="w-4 h-4 text-[var(--md-on-surface-variant)]" />
+              <span className="font-bold text-[var(--md-on-surface)]">من تاريخ:</span>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="px-3 py-1.5 border border-slate-300 rounded-lg text-xs"
+                className="m3-input !h-9 !w-auto text-xs tabular-nums"
               />
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-bold text-slate-700">إلى تاريخ:</span>
+              <span className="font-bold text-[var(--md-on-surface)]">إلى تاريخ:</span>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="px-3 py-1.5 border border-slate-300 rounded-lg text-xs"
+                className="m3-input !h-9 !w-auto text-xs tabular-nums"
               />
             </div>
 
             {(activeReport === 'sales' || activeReport === 'purchases') && (
               <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-slate-400" />
-                <span className="font-bold text-slate-700">تجميع حسب:</span>
+                <Filter className="w-4 h-4 text-[var(--md-on-surface-variant)]" />
+                <span className="font-bold text-[var(--md-on-surface)]">تجميع حسب:</span>
                 <select
                   value={groupBy}
                   onChange={(e) => setGroupBy(e.target.value)}
-                  className="px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-medium"
+                  className="m3-select !h-9 !w-auto text-xs font-medium"
                 >
                   <option value="by_month">الشهر</option>
                   <option value="by_day">اليوم</option>
@@ -628,10 +631,7 @@ export const ReportsTab: React.FC = () => {
             )}
           </div>
 
-          <button
-            onClick={fetchReport}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold"
-          >
+          <button onClick={fetchReport} className="m3-btn-outlined !min-h-[36px] text-xs">
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>إعادة تحميل</span>
           </button>
@@ -640,15 +640,12 @@ export const ReportsTab: React.FC = () => {
 
       {/* Error Alert Banner */}
       {errorMessage && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-between gap-4 text-red-800 text-xs">
+        <div className="p-4 bg-[var(--md-error-container)] border border-[var(--md-error)]/40 rounded-2xl flex items-center justify-between gap-4 text-[var(--md-on-error-container)] text-xs">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 animate-ping" />
+            <AlertTriangle className="w-4 h-4 text-[var(--md-error)] shrink-0" />
             <span className="font-bold">{errorMessage}</span>
           </div>
-          <button
-            onClick={fetchReport}
-            className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shrink-0 cursor-pointer transition-colors"
-          >
+          <button onClick={fetchReport} className="m3-btn-danger !min-h-[34px] text-xs shrink-0">
             إعادة المحاولة
           </button>
         </div>
@@ -656,48 +653,63 @@ export const ReportsTab: React.FC = () => {
 
       {/* Report Content Body */}
       {loading ? (
-        <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 text-slate-500 space-y-2">
-          <RefreshCw className="w-8 h-8 animate-spin mx-auto text-blue-600" />
-          <div className="text-sm font-bold">جاري تجميع التقرير المحاسبي من قاعدة البيانات...</div>
+        <div className="m3-card p-12 text-center text-[var(--md-on-surface-variant)] space-y-2">
+          <RefreshCw className="w-8 h-8 animate-spin mx-auto text-[var(--md-primary-text)]" />
+          <div className="text-sm font-bold text-[var(--md-on-surface)]">
+            جاري تجميع التقرير المحاسبي من قاعدة البيانات...
+          </div>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-6 space-y-6">
-          
+        <div className="m3-card overflow-hidden p-6 space-y-6">
           {/* Sales / Purchases Table Report */}
           {(activeReport === 'sales' || activeReport === 'purchases') && (
             <div className="space-y-4">
-              <h3 className="text-base font-bold text-slate-900">
+              <h3 className="text-base font-bold text-[var(--md-on-surface)]">
                 {activeReport === 'sales' ? 'تفاصيل المبيعات المجمعة' : 'تفاصيل المشتريات والتوريد'}
               </h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs text-right border-collapse">
-                  <thead>
-                    <tr className="bg-slate-100 border-b border-slate-200 text-slate-700 font-bold">
-                      <th className="p-3">الفئة / البند</th>
-                      <th className="p-3">الإجمالي الخام</th>
-                      <th className="p-3">الخصم</th>
-                      <th className="p-3">الضريبة</th>
-                      <th className="p-3">الإجمالي الصافي</th>
-                      <th className="p-3">المبلغ المدفوع</th>
-                      <th className="p-3">المتبقي</th>
+              <div className="overflow-x-auto rounded-xl border border-[var(--md-outline-variant)]">
+                <table className="m3-table text-xs text-right">
+                  <thead className="m3-thead">
+                    <tr>
+                      <th className="m3-th">الفئة / البند</th>
+                      <th className="m3-th">الإجمالي الخام</th>
+                      <th className="m3-th">الخصم</th>
+                      <th className="m3-th">الضريبة</th>
+                      <th className="m3-th">الإجمالي الصافي</th>
+                      <th className="m3-th">المبلغ المدفوع</th>
+                      <th className="m3-th">المتبقي</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-[var(--md-outline-variant)]">
                     {Array.isArray(reportData) && reportData.length > 0 ? (
                       reportData.map((row: any, idx: number) => (
-                        <tr key={idx} className="hover:bg-slate-50">
-                          <td className="p-3 font-bold text-slate-900">{row.groupName}</td>
-                          <td className="p-3">{formatAmount(row.subtotal)} {currency}</td>
-                          <td className="p-3 text-red-600">{formatAmount(row.discount)} {currency}</td>
-                          <td className="p-3 text-blue-600">{formatAmount(row.tax)} {currency}</td>
-                          <td className="p-3 font-bold text-slate-900">{formatAmount(row.total)} {currency}</td>
-                          <td className="p-3 text-green-600 font-medium">{formatAmount(row.paid)} {currency}</td>
-                          <td className="p-3 text-orange-600 font-bold">{formatAmount(row.outstanding)} {currency}</td>
+                        <tr key={idx}>
+                          <td className="font-bold text-[var(--md-on-surface)]">{row.groupName}</td>
+                          <td className="font-mono tabular-nums">
+                            {formatAmount(row.subtotal)} {currency}
+                          </td>
+                          <td className="font-mono text-[var(--md-error)] tabular-nums">
+                            {formatAmount(row.discount)} {currency}
+                          </td>
+                          <td className="font-mono text-[var(--md-info)] tabular-nums">
+                            {formatAmount(row.tax)} {currency}
+                          </td>
+                          <td className="font-mono font-bold text-[var(--md-on-surface)] tabular-nums">
+                            {formatAmount(row.total)} {currency}
+                          </td>
+                          <td className="font-mono text-[var(--md-success)] font-semibold tabular-nums">
+                            {formatAmount(row.paid)} {currency}
+                          </td>
+                          <td className="font-mono text-[var(--md-warning)] font-bold tabular-nums">
+                            {formatAmount(row.outstanding)} {currency}
+                          </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={7} className="p-6 text-center text-slate-400">لا توجد حركات مسجلة خلال الفترة المحددة</td>
+                        <td colSpan={7} className="p-8 text-center text-[var(--md-on-surface-variant)]">
+                          لا توجد حركات مسجلة خلال الفترة المحددة
+                        </td>
                       </tr>
                     )}
                   </tbody>
@@ -709,72 +721,92 @@ export const ReportsTab: React.FC = () => {
           {/* Profit & Loss Report */}
           {activeReport === 'profit_loss' && reportData && (
             <div className="space-y-6 max-w-3xl mx-auto">
-              <div className="text-center border-b border-slate-200 pb-4">
-                <h3 className="text-xl font-bold text-slate-900">قائمة الأرباح والخسائر الشاملة (Profit & Loss)</h3>
-                <p className="text-xs text-slate-500 mt-1">توضح إجمالي الإيرادات، تكلفة البضاعة المباعة (COGS)، والمصاريف التشغيلية</p>
+              <div className="text-center border-b border-[var(--md-outline-variant)] pb-4">
+                <h3 className="text-xl font-bold text-[var(--md-on-surface)]">
+                  قائمة الأرباح والخسائر الشاملة (Profit & Loss)
+                </h3>
+                <p className="text-xs text-[var(--md-on-surface-variant)] mt-1">
+                  توضح إجمالي الإيرادات، تكلفة البضاعة المباعة (COGS)، والمصاريف التشغيلية
+                </p>
               </div>
 
               <div className="space-y-3 text-sm">
-                <div className="flex justify-between items-center p-3.5 bg-slate-50 rounded-xl font-bold text-slate-800">
+                <div className="flex justify-between items-center p-3.5 bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-xl font-bold text-[var(--md-on-surface)]">
                   <span>إجمالي إيرادات المبيعات (Revenue)</span>
-                  <span className="text-emerald-600 text-base">{formatAmount(reportData.revenue)} {currency}</span>
+                  <span className="font-mono text-[var(--md-success)] text-base tabular-nums">
+                    {formatAmount(reportData.revenue)} {currency}
+                  </span>
                 </div>
 
-                <div className="flex justify-between items-center p-3.5 bg-slate-50 rounded-xl font-medium text-slate-700">
+                <div className="flex justify-between items-center p-3.5 bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-xl font-medium text-[var(--md-on-surface)]">
                   <span>(-) تكلفة البضاعة المباعة (Cost of Goods Sold - COGS)</span>
-                  <span className="text-red-600">({formatAmount(reportData.cogs)}) {currency}</span>
+                  <span className="font-mono text-[var(--md-error)] tabular-nums">
+                    ({formatAmount(reportData.cogs)}) {currency}
+                  </span>
                 </div>
 
-                <div className="flex justify-between items-center p-4 bg-blue-50 border border-blue-200 rounded-xl font-bold text-blue-900 text-base">
+                <div className="flex justify-between items-center p-4 bg-[var(--md-info-container)] border border-[var(--md-info)]/35 rounded-xl font-bold text-[var(--md-on-info-container)] text-base">
                   <span>مجمل الربح (Gross Profit)</span>
-                  <span>{formatAmount(reportData.grossProfit)} {currency}</span>
+                  <span className="font-mono tabular-nums">
+                    {formatAmount(reportData.grossProfit)} {currency}
+                  </span>
                 </div>
 
-                <div className="flex justify-between items-center p-3.5 bg-slate-50 rounded-xl font-medium text-slate-700">
+                <div className="flex justify-between items-center p-3.5 bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-xl font-medium text-[var(--md-on-surface)]">
                   <span>(-) المصاريف التشغيلية (Operating Expenses)</span>
-                  <span className="text-red-600">({formatAmount(reportData.operatingExpenses)}) {currency}</span>
+                  <span className="font-mono text-[var(--md-error)] tabular-nums">
+                    ({formatAmount(reportData.operatingExpenses)}) {currency}
+                  </span>
                 </div>
 
-                <div className={`flex justify-between items-center p-5 rounded-2xl font-black text-xl border ${
-                  Number(reportData.netProfit) >= 0
-                    ? 'bg-emerald-500 text-white border-emerald-600 shadow-md'
-                    : 'bg-red-500 text-white border-red-600 shadow-md'
-                }`}>
+                <div
+                  className={`flex justify-between items-center p-5 rounded-2xl font-black text-xl border ${
+                    Number(reportData.netProfit) >= 0
+                      ? 'bg-[var(--md-success-container)] text-[var(--md-on-success-container)] border-[var(--md-success)]/45'
+                      : 'bg-[var(--md-error-container)] text-[var(--md-on-error-container)] border-[var(--md-error)]/45'
+                  }`}
+                >
                   <span>صافي الربح النهائي (Net Profit)</span>
-                  <span>{formatAmount(reportData.netProfit)} {currency}</span>
+                  <span className="font-mono tabular-nums">
+                    {formatAmount(reportData.netProfit)} {currency}
+                  </span>
                 </div>
               </div>
 
               {/* Detailed Daily & Operational Expenses Breakdown Table */}
-              <div className="pt-4 border-t border-slate-200 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                    <TrendingDown className="w-4 h-4 text-rose-500" />
+              <div className="pt-4 border-t border-[var(--md-outline-variant)] space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <h4 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                    <TrendingDown className="w-4 h-4 text-[var(--md-error)]" />
                     <span>بيان المصروفات اليومية والتشغيلية (Daily Expenses Breakdown)</span>
                   </h4>
-                  <span className="text-xs font-mono font-bold text-rose-600 bg-rose-50 px-2.5 py-0.5 rounded-lg border border-rose-200">
+                  <span className="m3-badge m3-badge-error font-mono tabular-nums">
                     الإجمالي: {formatAmount(reportData.operatingExpenses)} {currency}
                   </span>
                 </div>
 
-                <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                  <table className="w-full text-xs text-right border-collapse">
-                    <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                <div className="overflow-x-auto border border-[var(--md-outline-variant)] rounded-xl">
+                  <table className="m3-table text-xs text-right">
+                    <thead className="m3-thead">
                       <tr>
-                        <th className="p-2.5">البند / التصنيف</th>
-                        <th className="p-2.5">البيان والتفاصيل</th>
-                        <th className="p-2.5">التكرار</th>
-                        <th className="p-2.5 text-left">المبلغ بالعملة ({currency})</th>
-                        <th className="p-2.5 text-center">النسبة من المصاريف</th>
+                        <th className="m3-th !py-2.5">البند / التصنيف</th>
+                        <th className="m3-th !py-2.5">البيان والتفاصيل</th>
+                        <th className="m3-th !py-2.5">التكرار</th>
+                        <th className="m3-th !py-2.5 text-left">المبلغ بالعملة ({currency})</th>
+                        <th className="m3-th !py-2.5 text-center">النسبة من المصاريف</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-[var(--md-outline-variant)]">
                       {(() => {
-                        const hasRealExpenses = Array.isArray(reportData.expensesList) && reportData.expensesList.length > 0;
+                        const hasRealExpenses =
+                          Array.isArray(reportData.expensesList) && reportData.expensesList.length > 0;
                         let breakdownRows: Array<{ title: string; desc: string; freq: string; amount: number }> = [];
 
                         if (hasRealExpenses) {
-                          const categoryMap: Record<string, { title: string; desc: string; amount: number; count: number }> = {};
+                          const categoryMap: Record<
+                            string,
+                            { title: string; desc: string; amount: number; count: number }
+                          > = {};
                           reportData.expensesList.forEach((e: any) => {
                             const cat = e.category || 'نثريات ومصاريف عامة';
                             if (!categoryMap[cat]) {
@@ -797,12 +829,42 @@ export const ReportsTab: React.FC = () => {
                         } else {
                           // Fallback only if no itemized expenses exist
                           breakdownRows = [
-                            { title: 'إيجار المقرات والمعارض', desc: 'إيجار المحل / المعرض والمستودعات المركزية', freq: 'شهري / مقسط', amount: Math.round(Number(reportData.operatingExpenses) * 0.35) },
-                            { title: 'رواتب وأجور الموظفين والكاشير', desc: 'مستحقات فريق المبيعات والمحاسبة والمستودعات', freq: 'شهري', amount: Math.round(Number(reportData.operatingExpenses) * 0.30) },
-                            { title: 'فواتير الطاقة والمياه والإنترنت', desc: 'كهرباء، ديزل المولدات، شبكة اتصالات ونقاط بيع', freq: 'يومي / أسبوعي', amount: Math.round(Number(reportData.operatingExpenses) * 0.15) },
-                            { title: 'مصاريف نقل وشحن وتوصيل', desc: 'أجور سيارات النقل الداخلي وتوزيع البضائع', freq: 'يومي', amount: Math.round(Number(reportData.operatingExpenses) * 0.10) },
-                            { title: 'صيانة ومعدات ومستلزمات', desc: 'أوراق فواتير، صيانة رافعات ومعدات الطرمبات', freq: 'دوري', amount: Math.round(Number(reportData.operatingExpenses) * 0.06) },
-                            { title: 'نثريات وضيافة يومية', desc: 'مصاريف إعاشة وضيافة العملاء ونثريات نقدية', freq: 'يومي', amount: Math.round(Number(reportData.operatingExpenses) * 0.04) },
+                            {
+                              title: 'إيجار المقرات والمعارض',
+                              desc: 'إيجار المحل / المعرض والمستودعات المركزية',
+                              freq: 'شهري / مقسط',
+                              amount: Math.round(Number(reportData.operatingExpenses) * 0.35),
+                            },
+                            {
+                              title: 'رواتب وأجور الموظفين والكاشير',
+                              desc: 'مستحقات فريق المبيعات والمحاسبة والمستودعات',
+                              freq: 'شهري',
+                              amount: Math.round(Number(reportData.operatingExpenses) * 0.3),
+                            },
+                            {
+                              title: 'فواتير الطاقة والمياه والإنترنت',
+                              desc: 'كهرباء، ديزل المولدات، شبكة اتصالات ونقاط بيع',
+                              freq: 'يومي / أسبوعي',
+                              amount: Math.round(Number(reportData.operatingExpenses) * 0.15),
+                            },
+                            {
+                              title: 'مصاريف نقل وشحن وتوصيل',
+                              desc: 'أجور سيارات النقل الداخلي وتوزيع البضائع',
+                              freq: 'يومي',
+                              amount: Math.round(Number(reportData.operatingExpenses) * 0.1),
+                            },
+                            {
+                              title: 'صيانة ومعدات ومستلزمات',
+                              desc: 'أوراق فواتير، صيانة رافعات ومعدات الطرمبات',
+                              freq: 'دوري',
+                              amount: Math.round(Number(reportData.operatingExpenses) * 0.06),
+                            },
+                            {
+                              title: 'نثريات وضيافة يومية',
+                              desc: 'مصاريف إعاشة وضيافة العملاء ونثريات نقدية',
+                              freq: 'يومي',
+                              amount: Math.round(Number(reportData.operatingExpenses) * 0.04),
+                            },
                           ];
                         }
 
@@ -811,17 +873,18 @@ export const ReportsTab: React.FC = () => {
                         return breakdownRows.map((exp, i) => {
                           const pct = totalExp > 0 ? Math.round((exp.amount / totalExp) * 100) : 0;
                           return (
-                            <tr key={i} className="hover:bg-slate-50">
-                              <td className="p-2.5 font-bold text-slate-800">{exp.title}</td>
-                              <td className="p-2.5 text-slate-500">{exp.desc}</td>
-                              <td className="p-2.5 text-slate-600 font-medium">{exp.freq}</td>
-                              <td className="p-2.5 text-left font-mono font-bold text-rose-600" dir="ltr">
+                            <tr key={i}>
+                              <td className="!py-2.5 font-bold text-[var(--md-on-surface)]">{exp.title}</td>
+                              <td className="!py-2.5 text-[var(--md-on-surface-variant)]">{exp.desc}</td>
+                              <td className="!py-2.5 text-[var(--md-on-surface-variant)] font-medium">{exp.freq}</td>
+                              <td
+                                className="!py-2.5 text-left font-mono font-bold text-[var(--md-error)] tabular-nums"
+                                dir="ltr"
+                              >
                                 {formatAmount(exp.amount)} {currency}
                               </td>
-                              <td className="p-2.5 text-center font-mono">
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
-                                  {pct}%
-                                </span>
+                              <td className="!py-2.5 text-center font-mono tabular-nums">
+                                <span className="m3-badge">{pct}%</span>
                               </td>
                             </tr>
                           );
@@ -837,22 +900,22 @@ export const ReportsTab: React.FC = () => {
           {/* Tax & VAT Report View */}
           {activeReport === 'tax' && reportData && (
             <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--md-outline-variant)] pb-3">
                 <div>
-                  <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <ShieldCheck className="w-5 h-5 text-blue-600" />
+                  <h3 className="text-base font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-[var(--md-primary-text)]" />
                     <span>تقرير الإقرار الضريبي وضريبة القيمة المضافة (VAT Return & Tax Report)</span>
                   </h3>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-[var(--md-on-surface-variant)]">
                     ملخص شامل لضريبة المخرجات والمدخلات وصافي المستحق سداده أو استرداده لهيئة الزكاة والضريبة
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`px-3 py-1 rounded-lg text-xs font-bold border ${
-                    Number(reportData.netVatPayable || 0) >= 0
-                      ? 'bg-amber-50 text-amber-800 border-amber-200'
-                      : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                  }`}>
+                  <span
+                    className={`m3-badge !px-3 !py-1 !text-xs ${
+                      Number(reportData.netVatPayable || 0) >= 0 ? 'm3-badge-warning' : 'm3-badge-success'
+                    }`}
+                  >
                     {Number(reportData.netVatPayable || 0) >= 0 ? 'ضريبة مستحقة السداد' : 'رصيد ضريبي مسترد'}
                   </span>
                 </div>
@@ -860,43 +923,60 @@ export const ReportsTab: React.FC = () => {
 
               {/* 4 Tax Analytical KPI Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="p-4 bg-blue-50/50 border border-blue-200 rounded-2xl space-y-1">
-                  <span className="text-xs text-blue-800 font-semibold">المبيعات الخاضعة للضريبة</span>
-                  <div className="text-xl font-black text-blue-700 font-mono" dir="ltr">
+                <div className="p-4 bg-[var(--md-info-container)]/50 border border-[var(--md-info)]/30 rounded-2xl space-y-1">
+                  <span className="text-xs text-[var(--md-on-surface-variant)] font-semibold">
+                    المبيعات الخاضعة للضريبة
+                  </span>
+                  <div className="text-xl font-black text-[var(--md-info)] font-mono tabular-nums" dir="ltr">
                     {formatAmount(reportData.taxableSales || 0)} {currency}
                   </div>
-                  <span className="text-[10px] text-blue-600">القيمة قبل احتساب الضريبة</span>
+                  <span className="text-[10px] text-[var(--md-on-surface-variant)]">القيمة قبل احتساب الضريبة</span>
                 </div>
 
-                <div className="p-4 bg-emerald-50/50 border border-emerald-200 rounded-2xl space-y-1">
-                  <span className="text-xs text-emerald-800 font-semibold">ضريبة المخرجات المحصلة</span>
-                  <div className="text-xl font-black text-emerald-700 font-mono" dir="ltr">
+                <div className="p-4 bg-[var(--md-success-container)]/50 border border-[var(--md-success)]/30 rounded-2xl space-y-1">
+                  <span className="text-xs text-[var(--md-on-surface-variant)] font-semibold">
+                    ضريبة المخرجات المحصلة
+                  </span>
+                  <div className="text-xl font-black text-[var(--md-success)] font-mono tabular-nums" dir="ltr">
                     {formatAmount(reportData.outputVat || 0)} {currency}
                   </div>
-                  <span className="text-[10px] text-emerald-600">ضريبة فواتير المبيعات (Output VAT)</span>
+                  <span className="text-[10px] text-[var(--md-on-surface-variant)]">
+                    ضريبة فواتير المبيعات (Output VAT)
+                  </span>
                 </div>
 
-                <div className="p-4 bg-purple-50/50 border border-purple-200 rounded-2xl space-y-1">
-                  <span className="text-xs text-purple-800 font-semibold">المشتريات الخاضعة للضريبة</span>
-                  <div className="text-xl font-black text-purple-700 font-mono" dir="ltr">
+                <div className="p-4 bg-[var(--md-primary-container)]/50 border border-[var(--md-primary)]/30 rounded-2xl space-y-1">
+                  <span className="text-xs text-[var(--md-on-surface-variant)] font-semibold">
+                    المشتريات الخاضعة للضريبة
+                  </span>
+                  <div className="text-xl font-black text-[var(--md-primary-text)] font-mono tabular-nums" dir="ltr">
                     {formatAmount(reportData.taxablePurchases || 0)} {currency}
                   </div>
-                  <span className="text-[10px] text-purple-600">إجمالي التوريدات والمصروفات الخاضعة</span>
+                  <span className="text-[10px] text-[var(--md-on-surface-variant)]">
+                    إجمالي التوريدات والمصروفات الخاضعة
+                  </span>
                 </div>
 
-                <div className="p-4 bg-amber-50/50 border border-amber-200 rounded-2xl space-y-1">
+                <div className="p-4 bg-[var(--md-warning-container)]/55 border border-[var(--md-warning)]/35 rounded-2xl space-y-1">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-amber-800 font-semibold">صافي الضريبة المستحقة</span>
-                    <span className="text-[10px] font-mono text-slate-500">
+                    <span className="text-xs text-[var(--md-on-surface-variant)] font-semibold">
+                      صافي الضريبة المستحقة
+                    </span>
+                    <span className="text-[10px] font-mono text-[var(--md-on-surface-variant)] tabular-nums">
                       مدخلات: {formatAmount(reportData.inputVat || 0)}
                     </span>
                   </div>
-                  <div className={`text-xl font-black font-mono ${
-                    Number(reportData.netVatPayable || 0) >= 0 ? 'text-rose-700' : 'text-emerald-700'
-                  }`} dir="ltr">
+                  <div
+                    className={`text-xl font-black font-mono tabular-nums ${
+                      Number(reportData.netVatPayable || 0) >= 0
+                        ? 'text-[var(--md-error)]'
+                        : 'text-[var(--md-success)]'
+                    }`}
+                    dir="ltr"
+                  >
                     {formatAmount(reportData.netVatPayable || 0)} {currency}
                   </div>
-                  <span className="text-[10px] text-amber-700">
+                  <span className="text-[10px] text-[var(--md-on-surface-variant)]">
                     {Number(reportData.netVatPayable || 0) >= 0 ? 'مستحق للسداد' : 'رصيد دائن للمنشأة'}
                   </span>
                 </div>
@@ -904,58 +984,56 @@ export const ReportsTab: React.FC = () => {
 
               {/* Taxable Invoices Table */}
               <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-blue-600" />
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <h4 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-[var(--md-primary-text)]" />
                     <span>سجل الفواتير الضريبية (Taxable Invoices Register)</span>
                   </h4>
-                  <span className="text-xs text-slate-500 font-mono">
+                  <span className="text-xs text-[var(--md-on-surface-variant)] font-mono tabular-nums">
                     {Array.isArray(reportData.taxableInvoices) ? reportData.taxableInvoices.length : 0} فاتورة مسجلة
                   </span>
                 </div>
 
-                <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                  <table className="w-full text-xs text-right border-collapse">
-                    <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                <div className="overflow-x-auto border border-[var(--md-outline-variant)] rounded-xl">
+                  <table className="m3-table text-xs text-right">
+                    <thead className="m3-thead">
                       <tr>
-                        <th className="p-3">رقم الفاتورة</th>
-                        <th className="p-3">نوع الحركة</th>
-                        <th className="p-3">الطرف (العميل / المورد)</th>
-                        <th className="p-3">التاريخ</th>
-                        <th className="p-3">المبلغ قبل الضريبة</th>
-                        <th className="p-3">مبلغ الضريبة</th>
-                        <th className="p-3">الإجمالي الصافي</th>
+                        <th className="m3-th">رقم الفاتورة</th>
+                        <th className="m3-th">نوع الحركة</th>
+                        <th className="m3-th">الطرف (العميل / المورد)</th>
+                        <th className="m3-th">التاريخ</th>
+                        <th className="m3-th">المبلغ قبل الضريبة</th>
+                        <th className="m3-th">مبلغ الضريبة</th>
+                        <th className="m3-th">الإجمالي الصافي</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-[var(--md-outline-variant)]">
                       {Array.isArray(reportData.taxableInvoices) && reportData.taxableInvoices.length > 0 ? (
                         reportData.taxableInvoices.map((inv: any, idx: number) => {
                           const isSale = inv.type === 'SALE' || !inv.type;
                           return (
-                            <tr key={idx} className="hover:bg-slate-50">
-                              <td className="p-3 font-mono font-bold text-blue-700">
+                            <tr key={idx}>
+                              <td className="font-mono font-bold text-[var(--md-primary-text)] tabular-nums">
                                 {inv.invoice_number || inv.invoiceNumber || inv.id || `-`}
                               </td>
-                              <td className="p-3">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                  isSale ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'
-                                }`}>
+                              <td>
+                                <span className={`m3-badge ${isSale ? 'm3-badge-success' : 'm3-badge-info'}`}>
                                   {isSale ? 'مبيعات (مخرجات)' : 'مشتريات (مدخلات)'}
                                 </span>
                               </td>
-                              <td className="p-3 font-bold text-slate-800">
+                              <td className="font-bold text-[var(--md-on-surface)]">
                                 {inv.party_name || inv.customer_name || inv.supplier_name || 'طرف عام'}
                               </td>
-                              <td className="p-3 font-mono text-slate-600">
+                              <td className="font-mono text-[var(--md-on-surface-variant)] tabular-nums">
                                 {inv.date ? new Date(inv.date).toLocaleDateString('ar-EG') : '-'}
                               </td>
-                              <td className="p-3 font-mono font-medium text-slate-700">
+                              <td className="font-mono font-medium text-[var(--md-on-surface)] tabular-nums">
                                 {formatAmount(inv.subtotal || inv.taxable_amount || 0)} {currency}
                               </td>
-                              <td className="p-3 font-mono font-bold text-blue-600">
+                              <td className="font-mono font-bold text-[var(--md-info)] tabular-nums">
                                 {formatAmount(inv.tax || inv.tax_amount || 0)} {currency}
                               </td>
-                              <td className="p-3 font-mono font-bold text-slate-900">
+                              <td className="font-mono font-bold text-[var(--md-on-surface)] tabular-nums">
                                 {formatAmount(inv.total || inv.total_amount || 0)} {currency}
                               </td>
                             </tr>
@@ -963,7 +1041,7 @@ export const ReportsTab: React.FC = () => {
                         })
                       ) : (
                         <tr>
-                          <td colSpan={7} className="p-6 text-center text-slate-400">
+                          <td colSpan={7} className="p-8 text-center text-[var(--md-on-surface-variant)]">
                             لا توجد فواتير خاضعة للضريبة مسجلة خلال الفترة المحددة
                           </td>
                         </tr>
@@ -978,36 +1056,50 @@ export const ReportsTab: React.FC = () => {
           {/* Receivables Aging Report */}
           {activeReport === 'receivables' && reportData && (
             <div className="space-y-6">
-              <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                <h3 className="text-base font-bold text-slate-900">تقرير أعمار ديون العملاء (Customer Aging)</h3>
-                <span className="text-xs font-black text-blue-700 bg-blue-50 px-3 py-1 rounded-lg">
+              <div className="flex justify-between items-center border-b border-[var(--md-outline-variant)] pb-3 flex-wrap gap-2">
+                <h3 className="text-base font-bold text-[var(--md-on-surface)]">
+                  تقرير أعمار ديون العملاء (Customer Aging)
+                </h3>
+                <span className="m3-badge m3-badge-info !px-3 !py-1 !text-xs font-mono font-black tabular-nums">
                   إجمالي المستحقات: {formatAmount(reportData.totalReceivables)} {currency}
                 </span>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs text-right border-collapse">
-                  <thead>
-                    <tr className="bg-slate-100 border-b border-slate-200 text-slate-700 font-bold">
-                      <th className="p-3">اسم العميل</th>
-                      <th className="p-3">الهاتف</th>
-                      <th className="p-3">الرصيد القائم</th>
-                      <th className="p-3 text-emerald-700">0 - 30 يوم</th>
-                      <th className="p-3 text-yellow-700">31 - 60 يوم</th>
-                      <th className="p-3 text-orange-700">61 - 90 يوم</th>
-                      <th className="p-3 text-red-700">أكثر من 90 يوم</th>
+              <div className="overflow-x-auto rounded-xl border border-[var(--md-outline-variant)]">
+                <table className="m3-table text-xs text-right">
+                  <thead className="m3-thead">
+                    <tr>
+                      <th className="m3-th">اسم العميل</th>
+                      <th className="m3-th">الهاتف</th>
+                      <th className="m3-th">الرصيد القائم</th>
+                      <th className="m3-th !text-[var(--md-success)]">0 - 30 يوم</th>
+                      <th className="m3-th !text-[var(--md-secondary)]">31 - 60 يوم</th>
+                      <th className="m3-th !text-[var(--md-warning)]">61 - 90 يوم</th>
+                      <th className="m3-th !text-[var(--md-error)]">أكثر من 90 يوم</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-[var(--md-outline-variant)]">
                     {reportData.customerAging?.map((c: any, idx: number) => (
-                      <tr key={idx} className="hover:bg-slate-50">
-                        <td className="p-3 font-bold text-slate-900">{c.name}</td>
-                        <td className="p-3 text-slate-500 font-mono">{c.phone || 'غير مدخل'}</td>
-                        <td className="p-3 font-bold">{formatAmount(c.currentBalance)} {currency}</td>
-                        <td className="p-3 text-emerald-700 font-medium">{formatAmount(c.b0_30)}</td>
-                        <td className="p-3 text-yellow-700 font-medium">{formatAmount(c.b31_60)}</td>
-                        <td className="p-3 text-orange-700 font-medium">{formatAmount(c.b61_90)}</td>
-                        <td className="p-3 text-red-700 font-bold">{formatAmount(c.b90_plus)}</td>
+                      <tr key={idx}>
+                        <td className="font-bold text-[var(--md-on-surface)]">{c.name}</td>
+                        <td className="text-[var(--md-on-surface-variant)] font-mono tabular-nums">
+                          {c.phone || 'غير مدخل'}
+                        </td>
+                        <td className="font-mono font-bold text-[var(--md-on-surface)] tabular-nums">
+                          {formatAmount(c.currentBalance)} {currency}
+                        </td>
+                        <td className="font-mono text-[var(--md-success)] font-medium tabular-nums">
+                          {formatAmount(c.b0_30)}
+                        </td>
+                        <td className="font-mono text-[var(--md-secondary)] font-medium tabular-nums">
+                          {formatAmount(c.b31_60)}
+                        </td>
+                        <td className="font-mono text-[var(--md-warning)] font-medium tabular-nums">
+                          {formatAmount(c.b61_90)}
+                        </td>
+                        <td className="font-mono text-[var(--md-error)] font-bold tabular-nums">
+                          {formatAmount(c.b90_plus)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1019,36 +1111,50 @@ export const ReportsTab: React.FC = () => {
           {/* Payables Aging Report */}
           {activeReport === 'payables' && reportData && (
             <div className="space-y-6">
-              <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                <h3 className="text-base font-bold text-slate-900">تقرير مستحقات وأعمار الموردين (Supplier Aging)</h3>
-                <span className="text-xs font-black text-amber-700 bg-amber-50 px-3 py-1 rounded-lg">
+              <div className="flex justify-between items-center border-b border-[var(--md-outline-variant)] pb-3 flex-wrap gap-2">
+                <h3 className="text-base font-bold text-[var(--md-on-surface)]">
+                  تقرير مستحقات وأعمار الموردين (Supplier Aging)
+                </h3>
+                <span className="m3-badge m3-badge-warning !px-3 !py-1 !text-xs font-mono font-black tabular-nums">
                   إجمالي الالتزامات: {formatAmount(reportData.totalPayables)} {currency}
                 </span>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs text-right border-collapse">
-                  <thead>
-                    <tr className="bg-slate-100 border-b border-slate-200 text-slate-700 font-bold">
-                      <th className="p-3">اسم المورد</th>
-                      <th className="p-3">الهاتف</th>
-                      <th className="p-3">الرصيد المستحق</th>
-                      <th className="p-3 text-emerald-700">0 - 30 يوم</th>
-                      <th className="p-3 text-yellow-700">31 - 60 يوم</th>
-                      <th className="p-3 text-orange-700">61 - 90 يوم</th>
-                      <th className="p-3 text-red-700">أكثر من 90 يوم</th>
+              <div className="overflow-x-auto rounded-xl border border-[var(--md-outline-variant)]">
+                <table className="m3-table text-xs text-right">
+                  <thead className="m3-thead">
+                    <tr>
+                      <th className="m3-th">اسم المورد</th>
+                      <th className="m3-th">الهاتف</th>
+                      <th className="m3-th">الرصيد المستحق</th>
+                      <th className="m3-th !text-[var(--md-success)]">0 - 30 يوم</th>
+                      <th className="m3-th !text-[var(--md-secondary)]">31 - 60 يوم</th>
+                      <th className="m3-th !text-[var(--md-warning)]">61 - 90 يوم</th>
+                      <th className="m3-th !text-[var(--md-error)]">أكثر من 90 يوم</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-[var(--md-outline-variant)]">
                     {reportData.supplierAging?.map((s: any, idx: number) => (
-                      <tr key={idx} className="hover:bg-slate-50">
-                        <td className="p-3 font-bold text-slate-900">{s.name}</td>
-                        <td className="p-3 text-slate-500 font-mono">{s.phone || 'غير مدخل'}</td>
-                        <td className="p-3 font-bold">{formatAmount(s.currentBalance)} {currency}</td>
-                        <td className="p-3 text-emerald-700 font-medium">{formatAmount(s.b0_30)}</td>
-                        <td className="p-3 text-yellow-700 font-medium">{formatAmount(s.b31_60)}</td>
-                        <td className="p-3 text-orange-700 font-medium">{formatAmount(s.b61_90)}</td>
-                        <td className="p-3 text-red-700 font-bold">{formatAmount(s.b90_plus)}</td>
+                      <tr key={idx}>
+                        <td className="font-bold text-[var(--md-on-surface)]">{s.name}</td>
+                        <td className="text-[var(--md-on-surface-variant)] font-mono tabular-nums">
+                          {s.phone || 'غير مدخل'}
+                        </td>
+                        <td className="font-mono font-bold text-[var(--md-on-surface)] tabular-nums">
+                          {formatAmount(s.currentBalance)} {currency}
+                        </td>
+                        <td className="font-mono text-[var(--md-success)] font-medium tabular-nums">
+                          {formatAmount(s.b0_30)}
+                        </td>
+                        <td className="font-mono text-[var(--md-secondary)] font-medium tabular-nums">
+                          {formatAmount(s.b31_60)}
+                        </td>
+                        <td className="font-mono text-[var(--md-warning)] font-medium tabular-nums">
+                          {formatAmount(s.b61_90)}
+                        </td>
+                        <td className="font-mono text-[var(--md-error)] font-bold tabular-nums">
+                          {formatAmount(s.b90_plus)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1060,21 +1166,33 @@ export const ReportsTab: React.FC = () => {
           {/* Cash Flow Statement */}
           {activeReport === 'cash_flow' && reportData && (
             <div className="space-y-6 max-w-2xl mx-auto">
-              <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">تقرير التدفقات النقدية (Cash Flow)</h3>
+              <h3 className="text-base font-bold text-[var(--md-on-surface)] border-b border-[var(--md-outline-variant)] pb-3">
+                تقرير التدفقات النقدية (Cash Flow)
+              </h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                <div className="p-4 bg-green-50 border border-green-200 rounded-xl space-y-1">
-                  <div className="text-xs font-bold text-green-800">التدفقات الداخلة (Inflows)</div>
-                  <div className="text-lg font-black text-green-700">{formatAmount(reportData.inflows)} {currency}</div>
+                <div className="p-4 bg-[var(--md-success-container)]/55 border border-[var(--md-success)]/35 rounded-xl space-y-1">
+                  <div className="text-xs font-bold text-[var(--md-on-success-container)]">
+                    التدفقات الداخلة (Inflows)
+                  </div>
+                  <div className="text-lg font-black font-mono text-[var(--md-success)] tabular-nums">
+                    {formatAmount(reportData.inflows)} {currency}
+                  </div>
                 </div>
 
-                <div className="p-4 bg-red-50 border border-red-200 rounded-xl space-y-1">
-                  <div className="text-xs font-bold text-red-800">التدفقات الخارجة (Outflows)</div>
-                  <div className="text-lg font-black text-red-700">{formatAmount(reportData.outflows)} {currency}</div>
+                <div className="p-4 bg-[var(--md-error-container)]/55 border border-[var(--md-error)]/35 rounded-xl space-y-1">
+                  <div className="text-xs font-bold text-[var(--md-on-error-container)]">
+                    التدفقات الخارجة (Outflows)
+                  </div>
+                  <div className="text-lg font-black font-mono text-[var(--md-error)] tabular-nums">
+                    {formatAmount(reportData.outflows)} {currency}
+                  </div>
                 </div>
 
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl space-y-1">
-                  <div className="text-xs font-bold text-blue-800">صافي التدفق النقدي</div>
-                  <div className="text-lg font-black text-blue-700">{formatAmount(reportData.netCashFlow)} {currency}</div>
+                <div className="p-4 bg-[var(--md-info-container)]/55 border border-[var(--md-info)]/35 rounded-xl space-y-1">
+                  <div className="text-xs font-bold text-[var(--md-on-info-container)]">صافي التدفق النقدي</div>
+                  <div className="text-lg font-black font-mono text-[var(--md-info)] tabular-nums">
+                    {formatAmount(reportData.netCashFlow)} {currency}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1083,21 +1201,29 @@ export const ReportsTab: React.FC = () => {
           {/* Inventory Analytics Report */}
           {activeReport === 'inventory' && reportData && (
             <div className="space-y-6">
-              <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">ملخص وقيمة المخزون</h3>
+              <h3 className="text-base font-bold text-[var(--md-on-surface)] border-b border-[var(--md-outline-variant)] pb-3">
+                ملخص وقيمة المخزون
+              </h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-                  <div className="text-xs text-slate-500">إجمالي الأصناف</div>
-                  <div className="text-xl font-bold text-slate-900">{formatNumber(reportData.totalProductsCount)} منتج</div>
+                <div className="p-4 bg-[var(--md-surface-container)] rounded-xl border border-[var(--md-outline-variant)] space-y-1">
+                  <div className="text-xs text-[var(--md-on-surface-variant)]">إجمالي الأصناف</div>
+                  <div className="text-xl font-bold font-mono text-[var(--md-on-surface)] tabular-nums">
+                    {formatNumber(reportData.totalProductsCount)} منتج
+                  </div>
                 </div>
 
-                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-                  <div className="text-xs text-slate-500">إجمالي قيمة المخزون التقديرية</div>
-                  <div className="text-xl font-bold text-blue-600">{formatAmount(reportData.totalValuation)} {currency}</div>
+                <div className="p-4 bg-[var(--md-surface-container)] rounded-xl border border-[var(--md-outline-variant)] space-y-1">
+                  <div className="text-xs text-[var(--md-on-surface-variant)]">إجمالي قيمة المخزون التقديرية</div>
+                  <div className="text-xl font-bold font-mono text-[var(--md-primary-text)] tabular-nums">
+                    {formatAmount(reportData.totalValuation)} {currency}
+                  </div>
                 </div>
 
-                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-                  <div className="text-xs text-slate-500">الأصناف بحد النفاذ</div>
-                  <div className="text-xl font-bold text-red-600">{formatNumber(reportData.lowStockCount)} أصناف</div>
+                <div className="p-4 bg-[var(--md-surface-container)] rounded-xl border border-[var(--md-outline-variant)] space-y-1">
+                  <div className="text-xs text-[var(--md-on-surface-variant)]">الأصناف بحد النفاذ</div>
+                  <div className="text-xl font-bold font-mono text-[var(--md-error)] tabular-nums">
+                    {formatNumber(reportData.lowStockCount)} أصناف
+                  </div>
                 </div>
               </div>
             </div>
@@ -1106,37 +1232,51 @@ export const ReportsTab: React.FC = () => {
           {/* Fuel Station Report */}
           {activeReport === 'fuel_station' && reportData && (
             <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--md-outline-variant)] pb-3">
                 <div>
-                  <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <Fuel className="w-5 h-5 text-amber-500" />
+                  <h3 className="text-base font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                    <Fuel className="w-5 h-5 text-[var(--md-secondary)]" />
                     <span>تقرير مبيعات وجرد محطة الوقود والغاز (العدادات والخزانات)</span>
                   </h3>
-                  <p className="text-xs text-slate-500">قراءات العدادات اليومية، اللترات المعبأة، والفوارق المالية لحسابات الوردية</p>
+                  <p className="text-xs text-[var(--md-on-surface-variant)]">
+                    قراءات العدادات اليومية، اللترات المعبأة، والفوارق المالية لحسابات الوردية
+                  </p>
                 </div>
-                <span className="px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-xs font-bold font-mono">
+                <span className="m3-badge m3-badge-secondary !px-3 !py-1 !text-xs font-mono tabular-nums">
                   {reportData.meters?.length || 0} قيد جرد مسجل
                 </span>
               </div>
 
               {/* Station KPI Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="p-4 bg-amber-50/50 border border-amber-200/80 rounded-2xl space-y-1">
-                  <span className="text-xs text-amber-800 font-semibold">إجمالي اللترات المباعة</span>
-                  <div className="text-xl font-black text-amber-700 font-mono" dir="ltr">
+                <div className="p-4 bg-[var(--md-secondary-container)]/55 border border-[var(--md-secondary)]/30 rounded-2xl space-y-1">
+                  <span className="text-xs text-[var(--md-on-surface-variant)] font-semibold">
+                    إجمالي اللترات المباعة
+                  </span>
+                  <div className="text-xl font-black text-[var(--md-secondary)] font-mono tabular-nums" dir="ltr">
                     {Number(reportData.totalDispensedLiters || 0).toLocaleString('en-US')} لتر
                   </div>
                 </div>
-                <div className="p-4 bg-emerald-50/50 border border-emerald-200/80 rounded-2xl space-y-1">
-                  <span className="text-xs text-emerald-800 font-semibold">الإيراد الدفتري المطلوب</span>
-                  <div className="text-xl font-black text-emerald-700 font-mono" dir="ltr">
-                    {Number(reportData.totalExpectedRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} {currency}
+                <div className="p-4 bg-[var(--md-success-container)]/55 border border-[var(--md-success)]/30 rounded-2xl space-y-1">
+                  <span className="text-xs text-[var(--md-on-surface-variant)] font-semibold">
+                    الإيراد الدفتري المطلوب
+                  </span>
+                  <div className="text-xl font-black text-[var(--md-success)] font-mono tabular-nums" dir="ltr">
+                    {Number(reportData.totalExpectedRevenue || 0).toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                    })}{' '}
+                    {currency}
                   </div>
                 </div>
-                <div className="p-4 bg-blue-50/50 border border-blue-200/80 rounded-2xl space-y-1">
-                  <span className="text-xs text-blue-800 font-semibold">المبالغ المستلمة فعلياً</span>
-                  <div className="text-xl font-black text-blue-700 font-mono" dir="ltr">
-                    {Number(reportData.totalActualReceived || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} {currency}
+                <div className="p-4 bg-[var(--md-info-container)]/55 border border-[var(--md-info)]/30 rounded-2xl space-y-1">
+                  <span className="text-xs text-[var(--md-on-surface-variant)] font-semibold">
+                    المبالغ المستلمة فعلياً
+                  </span>
+                  <div className="text-xl font-black text-[var(--md-info)] font-mono tabular-nums" dir="ltr">
+                    {Number(reportData.totalActualReceived || 0).toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                    })}{' '}
+                    {currency}
                   </div>
                 </div>
               </div>
@@ -1144,40 +1284,48 @@ export const ReportsTab: React.FC = () => {
               {/* Tanks Stock Table */}
               {Array.isArray(reportData.tanks) && reportData.tanks.length > 0 && (
                 <div className="space-y-3 pt-2">
-                  <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                    <Droplets className="w-4 h-4 text-teal-600" />
+                  <h4 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-1.5">
+                    <Droplets className="w-4 h-4 text-[var(--md-primary-text)]" />
                     <span>أرصدة الخزانات الأرضية والغاز</span>
                   </h4>
-                  <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                    <table className="w-full text-xs text-right border-collapse">
-                      <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                  <div className="overflow-x-auto border border-[var(--md-outline-variant)] rounded-xl">
+                    <table className="m3-table text-xs text-right">
+                      <thead className="m3-thead">
                         <tr>
-                          <th className="p-3">الخزان</th>
-                          <th className="p-3">نوع الوقود</th>
-                          <th className="p-3">السعة الإجمالية</th>
-                          <th className="p-3">الرصيد الفعلي (لتر)</th>
-                          <th className="p-3">نسبة الامتلاء</th>
-                          <th className="p-3">سعر اللتر</th>
-                          <th className="p-3">قيمة مخزون الخزان</th>
+                          <th className="m3-th">الخزان</th>
+                          <th className="m3-th">نوع الوقود</th>
+                          <th className="m3-th">السعة الإجمالية</th>
+                          <th className="m3-th">الرصيد الفعلي (لتر)</th>
+                          <th className="m3-th">نسبة الامتلاء</th>
+                          <th className="m3-th">سعر اللتر</th>
+                          <th className="m3-th">قيمة مخزون الخزان</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-[var(--md-outline-variant)]">
                         {reportData.tanks.map((tank: any) => {
                           const pct = Math.round(((tank.currentStockLiters || 0) / (tank.capacityLiters || 1)) * 100);
                           const val = (tank.currentStockLiters || 0) * (tank.unitPrice || 0);
                           return (
-                            <tr key={tank.id} className="hover:bg-slate-50">
-                              <td className="p-3 font-bold text-slate-900">{tank.name}</td>
-                              <td className="p-3 font-mono">{tank.fuelType}</td>
-                              <td className="p-3 font-mono">{Number(tank.capacityLiters || 0).toLocaleString('en-US')} لتر</td>
-                              <td className="p-3 font-mono font-bold text-teal-700">{Number(tank.currentStockLiters || 0).toLocaleString('en-US')} لتر</td>
-                              <td className="p-3 font-mono">
-                                <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${pct < 20 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                            <tr key={tank.id}>
+                              <td className="font-bold text-[var(--md-on-surface)]">{tank.name}</td>
+                              <td className="font-mono">{tank.fuelType}</td>
+                              <td className="font-mono tabular-nums">
+                                {Number(tank.capacityLiters || 0).toLocaleString('en-US')} لتر
+                              </td>
+                              <td className="font-mono font-bold text-[var(--md-primary-text)] tabular-nums">
+                                {Number(tank.currentStockLiters || 0).toLocaleString('en-US')} لتر
+                              </td>
+                              <td className="font-mono tabular-nums">
+                                <span className={`m3-badge ${pct < 20 ? 'm3-badge-error' : 'm3-badge-success'}`}>
                                   %{pct}
                                 </span>
                               </td>
-                              <td className="p-3 font-mono">{tank.unitPrice} {currency}</td>
-                              <td className="p-3 font-mono font-bold text-slate-900">{Number(val).toLocaleString('en-US')} {currency}</td>
+                              <td className="font-mono tabular-nums">
+                                {tank.unitPrice} {currency}
+                              </td>
+                              <td className="font-mono font-bold text-[var(--md-on-surface)] tabular-nums">
+                                {Number(val).toLocaleString('en-US')} {currency}
+                              </td>
                             </tr>
                           );
                         })}
@@ -1188,50 +1336,74 @@ export const ReportsTab: React.FC = () => {
               )}
 
               {/* Daily Meter Readings & Shift Sales Table */}
-              <div className="space-y-3 pt-3 border-t border-slate-200">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                    <Fuel className="w-4 h-4 text-amber-600" />
+              <div className="space-y-3 pt-3 border-t border-[var(--md-outline-variant)]">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <h4 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-1.5">
+                    <Fuel className="w-4 h-4 text-[var(--md-secondary)]" />
                     <span>سجل عدادات الطرمبات اليومية ومبيعات الوردية (Pump Meters & Sales)</span>
                   </h4>
-                  <span className="text-xs text-slate-500 font-mono">
+                  <span className="text-xs text-[var(--md-on-surface-variant)]">
                     مطابقة العداد السابق والحالي والمعايرة
                   </span>
                 </div>
 
-                <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                  <table className="w-full text-xs text-right border-collapse">
-                    <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                <div className="overflow-x-auto border border-[var(--md-outline-variant)] rounded-xl">
+                  <table className="m3-table text-xs text-right">
+                    <thead className="m3-thead">
                       <tr>
-                        <th className="p-3">الطرمبة / المسدس</th>
-                        <th className="p-3">نوع الوقود</th>
-                        <th className="p-3">العداد السابق</th>
-                        <th className="p-3">العداد الحالي</th>
-                        <th className="p-3">المنصرف (لتر)</th>
-                        <th className="p-3">المعايرة</th>
-                        <th className="p-3">سعر اللتر</th>
-                        <th className="p-3">الإيراد المتوقع</th>
-                        <th className="p-3">المحصل الفعلي</th>
-                        <th className="p-3">الفارق</th>
+                        <th className="m3-th">الطرمبة / المسدس</th>
+                        <th className="m3-th">نوع الوقود</th>
+                        <th className="m3-th">العداد السابق</th>
+                        <th className="m3-th">العداد الحالي</th>
+                        <th className="m3-th">المنصرف (لتر)</th>
+                        <th className="m3-th">المعايرة</th>
+                        <th className="m3-th">سعر اللتر</th>
+                        <th className="m3-th">الإيراد المتوقع</th>
+                        <th className="m3-th">المحصل الفعلي</th>
+                        <th className="m3-th">الفارق</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-[var(--md-outline-variant)]">
                       {Array.isArray(reportData.meters) && reportData.meters.length > 0 ? (
                         reportData.meters.map((m: any, idx: number) => {
                           const variance = Number(m.varianceAmount || 0);
                           return (
-                            <tr key={idx} className="hover:bg-slate-50">
-                              <td className="p-3 font-bold text-slate-900">{m.pumpNumber} ({m.nozzleLabel || 'مسدس'})</td>
-                              <td className="p-3 font-medium text-slate-700">{m.fuelType}</td>
-                              <td className="p-3 font-mono text-slate-600">{Number(m.previousMeter).toLocaleString()}</td>
-                              <td className="p-3 font-mono font-bold text-slate-800">{Number(m.currentMeter).toLocaleString()}</td>
-                              <td className="p-3 font-mono font-bold text-amber-700">{Number(m.dispensedLiters).toLocaleString()} لتر</td>
-                              <td className="p-3 font-mono text-slate-500">{m.calibrationLiters || 0} لتر</td>
-                              <td className="p-3 font-mono">{m.pricePerLiter} {currency}</td>
-                              <td className="p-3 font-mono font-bold text-emerald-700">{Number(m.expectedRevenue).toLocaleString()} {currency}</td>
-                              <td className="p-3 font-mono font-bold text-blue-700">{Number(m.actualCashReceived || m.expectedRevenue).toLocaleString()} {currency}</td>
-                              <td className="p-3 font-mono">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${variance === 0 ? 'bg-emerald-100 text-emerald-700' : variance > 0 ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                            <tr key={idx}>
+                              <td className="font-bold text-[var(--md-on-surface)]">
+                                {m.pumpNumber} ({m.nozzleLabel || 'مسدس'})
+                              </td>
+                              <td className="font-medium text-[var(--md-on-surface-variant)]">{m.fuelType}</td>
+                              <td className="font-mono text-[var(--md-on-surface-variant)] tabular-nums">
+                                {Number(m.previousMeter).toLocaleString()}
+                              </td>
+                              <td className="font-mono font-bold text-[var(--md-on-surface)] tabular-nums">
+                                {Number(m.currentMeter).toLocaleString()}
+                              </td>
+                              <td className="font-mono font-bold text-[var(--md-secondary)] tabular-nums">
+                                {Number(m.dispensedLiters).toLocaleString()} لتر
+                              </td>
+                              <td className="font-mono text-[var(--md-on-surface-variant)] tabular-nums">
+                                {m.calibrationLiters || 0} لتر
+                              </td>
+                              <td className="font-mono tabular-nums">
+                                {m.pricePerLiter} {currency}
+                              </td>
+                              <td className="font-mono font-bold text-[var(--md-success)] tabular-nums">
+                                {Number(m.expectedRevenue).toLocaleString()} {currency}
+                              </td>
+                              <td className="font-mono font-bold text-[var(--md-info)] tabular-nums">
+                                {Number(m.actualCashReceived || m.expectedRevenue).toLocaleString()} {currency}
+                              </td>
+                              <td className="font-mono tabular-nums">
+                                <span
+                                  className={`m3-badge ${
+                                    variance === 0
+                                      ? 'm3-badge-success'
+                                      : variance > 0
+                                      ? 'm3-badge-info'
+                                      : 'm3-badge-error'
+                                  }`}
+                                >
                                   {variance === 0 ? 'مطابق 100%' : `${variance > 0 ? '+' : ''}${variance}`}
                                 </span>
                               </td>
@@ -1240,7 +1412,9 @@ export const ReportsTab: React.FC = () => {
                         })
                       ) : (
                         <tr>
-                          <td colSpan={10} className="p-6 text-center text-slate-400">لا توجد قراءات عدادات مسجلة</td>
+                          <td colSpan={10} className="p-8 text-center text-[var(--md-on-surface-variant)]">
+                            لا توجد قراءات عدادات مسجلة
+                          </td>
                         </tr>
                       )}
                     </tbody>
@@ -1253,38 +1427,42 @@ export const ReportsTab: React.FC = () => {
           {/* Warranty & Expiry Radar Report */}
           {activeReport === 'warranty_and_expiry' && reportData && (
             <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--md-outline-variant)] pb-3">
                 <div>
-                  <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                  <h3 className="text-base font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-[var(--md-success)]" />
                     <span>تقرير حركة الأصناف والضمانات والصلاحية (FEFO & Warranty Audit)</span>
                   </h3>
-                  <p className="text-xs text-slate-500">متابعة المنتجات الغذائية حسب تواريخ الانتهاء وضمانات الإطارات والبطاريات المعتمدة</p>
+                  <p className="text-xs text-[var(--md-on-surface-variant)]">
+                    متابعة المنتجات الغذائية حسب تواريخ الانتهاء وضمانات الإطارات والبطاريات المعتمدة
+                  </p>
                 </div>
               </div>
 
               {/* Food Expiry Section */}
               <div className="space-y-3">
-                <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-emerald-600" />
+                <h4 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-[var(--md-success)]" />
                   <span>أصناف المواد الغذائية وتواريخ الصلاحية (FEFO):</span>
                 </h4>
-                <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                  <table className="w-full text-xs text-right border-collapse">
-                    <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                <div className="overflow-x-auto border border-[var(--md-outline-variant)] rounded-xl">
+                  <table className="m3-table text-xs text-right">
+                    <thead className="m3-thead">
                       <tr>
-                        <th className="p-3">اسم الصنف الغذائي</th>
-                        <th className="p-3">رقم الصنف / الكود</th>
-                        <th className="p-3">الرصيد الدفتري</th>
-                        <th className="p-3">تاريخ الانتهاء</th>
-                        <th className="p-3">الأيام المتبقية</th>
-                        <th className="p-3">الحالة الرقابية</th>
+                        <th className="m3-th">اسم الصنف الغذائي</th>
+                        <th className="m3-th">رقم الصنف / الكود</th>
+                        <th className="m3-th">الرصيد الدفتري</th>
+                        <th className="m3-th">تاريخ الانتهاء</th>
+                        <th className="m3-th">الأيام المتبقية</th>
+                        <th className="m3-th">الحالة الرقابية</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-[var(--md-outline-variant)]">
                       {reportData.foodItems?.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="p-6 text-center text-slate-400">لا توجد أصناف غذائية مسجلة بتواريخ صلاحية</td>
+                          <td colSpan={6} className="p-8 text-center text-[var(--md-on-surface-variant)]">
+                            لا توجد أصناف غذائية مسجلة بتواريخ صلاحية
+                          </td>
                         </tr>
                       ) : (
                         reportData.foodItems?.map((food: any, idx: number) => {
@@ -1292,25 +1470,39 @@ export const ReportsTab: React.FC = () => {
                           const exp = food.expiryDate ? new Date(food.expiryDate) : null;
                           const daysLeft = exp ? Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null;
                           return (
-                            <tr key={idx} className="hover:bg-slate-50">
-                              <td className="p-3 font-bold text-slate-900">{food.name}</td>
-                              <td className="p-3 font-mono text-slate-500">{food.sku || food.itemCode || '-'}</td>
-                              <td className="p-3 font-mono font-bold text-slate-800">{food.current_stock ?? food.qty ?? 0} {food.unit || 'حبة'}</td>
-                              <td className="p-3 font-mono">{food.expiryDate || '-'}</td>
-                              <td className="p-3 font-mono font-bold">
+                            <tr key={idx}>
+                              <td className="font-bold text-[var(--md-on-surface)]">{food.name}</td>
+                              <td className="font-mono text-[var(--md-on-surface-variant)] tabular-nums">
+                                {food.sku || food.itemCode || '-'}
+                              </td>
+                              <td className="font-mono font-bold text-[var(--md-on-surface)] tabular-nums">
+                                {food.current_stock ?? food.qty ?? 0} {food.unit || 'حبة'}
+                              </td>
+                              <td className="font-mono tabular-nums">{food.expiryDate || '-'}</td>
+                              <td className="font-mono font-bold tabular-nums">
                                 {daysLeft !== null ? (
-                                  <span className={daysLeft <= 30 ? 'text-rose-600' : daysLeft <= 90 ? 'text-amber-600' : 'text-emerald-600'}>
+                                  <span
+                                    className={
+                                      daysLeft <= 30
+                                        ? 'text-[var(--md-error)]'
+                                        : daysLeft <= 90
+                                        ? 'text-[var(--md-warning)]'
+                                        : 'text-[var(--md-success)]'
+                                    }
+                                  >
                                     {daysLeft} يوم
                                   </span>
-                                ) : '-'}
-                              </td>
-                              <td className="p-3">
-                                {daysLeft !== null && daysLeft <= 30 ? (
-                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">تنبيه انتهاء وشيك</span>
-                                ) : daysLeft !== null && daysLeft <= 90 ? (
-                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">قريب الانتهاء</span>
                                 ) : (
-                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">صالح ومطابق</span>
+                                  '-'
+                                )}
+                              </td>
+                              <td>
+                                {daysLeft !== null && daysLeft <= 30 ? (
+                                  <span className="m3-badge m3-badge-error">تنبيه انتهاء وشيك</span>
+                                ) : daysLeft !== null && daysLeft <= 90 ? (
+                                  <span className="m3-badge m3-badge-warning">قريب الانتهاء</span>
+                                ) : (
+                                  <span className="m3-badge m3-badge-success">صالح ومطابق</span>
                                 )}
                               </td>
                             </tr>
@@ -1324,44 +1516,52 @@ export const ReportsTab: React.FC = () => {
 
               {/* Batteries and Tires Warranty Section */}
               <div className="space-y-3 pt-2">
-                <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-cyan-600" />
+                <h4 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-[var(--md-primary-text)]" />
                   <span>ضمانات البطاريات والإطارات وقطع الغيار:</span>
                 </h4>
-                <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                  <table className="w-full text-xs text-right border-collapse">
-                    <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                <div className="overflow-x-auto border border-[var(--md-outline-variant)] rounded-xl">
+                  <table className="m3-table text-xs text-right">
+                    <thead className="m3-thead">
                       <tr>
-                        <th className="p-3">اسم المنتج</th>
-                        <th className="p-3">رقم الصنف / البارت</th>
-                        <th className="p-3">نوع النشاط</th>
-                        <th className="p-3">المواصفة / المقاس</th>
-                        <th className="p-3">فترة الضمان</th>
-                        <th className="p-3">الرصيد المتاح</th>
+                        <th className="m3-th">اسم المنتج</th>
+                        <th className="m3-th">رقم الصنف / البارت</th>
+                        <th className="m3-th">نوع النشاط</th>
+                        <th className="m3-th">المواصفة / المقاس</th>
+                        <th className="m3-th">فترة الضمان</th>
+                        <th className="m3-th">الرصيد المتاح</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-[var(--md-outline-variant)]">
                       {reportData.warrantyItems?.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="p-6 text-center text-slate-400">لا توجد أصناف ضمان مسجلة</td>
+                          <td colSpan={6} className="p-8 text-center text-[var(--md-on-surface-variant)]">
+                            لا توجد أصناف ضمان مسجلة
+                          </td>
                         </tr>
                       ) : (
                         reportData.warrantyItems?.map((w: any, idx: number) => (
-                          <tr key={idx} className="hover:bg-slate-50">
-                            <td className="p-3 font-bold text-slate-900">{w.name}</td>
-                            <td className="p-3 font-mono text-slate-500">{w.sku || w.itemCode || w.partNumber || '-'}</td>
-                            <td className="p-3">
-                              <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-[10px] font-bold">
-                                {w.activityType === 'battery' ? 'بطاريات' : w.activityType === 'tire' ? 'إطارات' : 'قطع غيار'}
+                          <tr key={idx}>
+                            <td className="font-bold text-[var(--md-on-surface)]">{w.name}</td>
+                            <td className="font-mono text-[var(--md-on-surface-variant)] tabular-nums">
+                              {w.sku || w.itemCode || w.partNumber || '-'}
+                            </td>
+                            <td>
+                              <span className="m3-badge m3-badge-info">
+                                {w.activityType === 'battery'
+                                  ? 'بطاريات'
+                                  : w.activityType === 'tire'
+                                  ? 'إطارات'
+                                  : 'قطع غيار'}
                               </span>
                             </td>
-                            <td className="p-3 font-mono text-slate-600">
+                            <td className="font-mono text-[var(--md-on-surface-variant)] tabular-nums">
                               {w.batterySpec || w.tireSize || w.viscosityGrade || '-'}
                             </td>
-                            <td className="p-3 font-mono font-bold text-emerald-700">
+                            <td className="font-mono font-bold text-[var(--md-success)] tabular-nums">
                               {w.warrantyMonths || 12} شهر
                             </td>
-                            <td className="p-3 font-mono font-bold text-slate-800">
+                            <td className="font-mono font-bold text-[var(--md-on-surface)] tabular-nums">
                               {w.current_stock ?? w.qty ?? 0} {w.unit || 'حبة'}
                             </td>
                           </tr>
@@ -1373,57 +1573,89 @@ export const ReportsTab: React.FC = () => {
               </div>
 
               {/* Item Code / Part Number & Warranty Movement Log Table */}
-              <div className="space-y-3 pt-3 border-t border-slate-200">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-purple-600" />
+              <div className="space-y-3 pt-3 border-t border-[var(--md-outline-variant)]">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <h4 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-[var(--md-primary-text)]" />
                     <span>سجل حركة أرقام الأصناف والقطع والضمان (Item Code / Part No & Warranty Movement Log)</span>
                   </h4>
-                  <span className="text-xs bg-purple-50 text-purple-700 font-bold px-2.5 py-0.5 rounded-lg border border-purple-200">
-                    تتبع السيريال والـ DOT
-                  </span>
+                  <span className="m3-badge m3-badge-primary">تتبع السيريال والـ DOT</span>
                 </div>
 
-                <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                  <table className="w-full text-xs text-right border-collapse">
-                    <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                <div className="overflow-x-auto border border-[var(--md-outline-variant)] rounded-xl">
+                  <table className="m3-table text-xs text-right">
+                    <thead className="m3-thead">
                       <tr>
-                        <th className="p-3">رقم الصنف / البارت</th>
-                        <th className="p-3">بيان الصنف</th>
-                        <th className="p-3">السيريال / DOT</th>
-                        <th className="p-3">الوحدة المباعة</th>
-                        <th className="p-3">تاريخ البيع / الحركة</th>
-                        <th className="p-3">العميل</th>
-                        <th className="p-3 text-center">حالة الضمان</th>
+                        <th className="m3-th">رقم الصنف / البارت</th>
+                        <th className="m3-th">بيان الصنف</th>
+                        <th className="m3-th">السيريال / DOT</th>
+                        <th className="m3-th">الوحدة المباعة</th>
+                        <th className="m3-th">تاريخ البيع / الحركة</th>
+                        <th className="m3-th">العميل</th>
+                        <th className="m3-th text-center">حالة الضمان</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-[var(--md-outline-variant)]">
                       {[
-                        { code: 'BAT-70AH-HK', name: 'بطارية هانكوك 70 أمبير جافة', serial: 'HK-2026-9921', unit: 'حبة', date: '2026-10-20', customer: 'مؤسسة النصر للتجارة', status: 'active', expiry: '2027-10-20' },
-                        { code: 'TIRE-265-65-17', name: 'إطار يوكوهاما جبلي 265/65R17', serial: 'DOT-2425', unit: 'حبة', date: '2026-10-18', customer: 'شركة اليمامة للمقاولات', status: 'active', expiry: '2028-10-18' },
-                        { code: 'OIL-20W50-TY', name: 'زيت تويوتا أصلي 20W-50 برميل', serial: 'BR-8831', unit: 'برميل', date: '2026-10-15', customer: 'مركز صيانة الرواد', status: 'active', expiry: '2027-04-15' },
-                        { code: 'BAT-55AH-GS', name: 'بطارية جي إس 55 أمبير', serial: 'GS-2025-1102', unit: 'حبة', date: '2025-08-10', customer: 'عميل نقدي', status: 'expired', expiry: '2026-08-10' },
+                        {
+                          code: 'BAT-70AH-HK',
+                          name: 'بطارية هانكوك 70 أمبير جافة',
+                          serial: 'HK-2026-9921',
+                          unit: 'حبة',
+                          date: '2026-10-20',
+                          customer: 'مؤسسة النصر للتجارة',
+                          status: 'active',
+                          expiry: '2027-10-20',
+                        },
+                        {
+                          code: 'TIRE-265-65-17',
+                          name: 'إطار يوكوهاما جبلي 265/65R17',
+                          serial: 'DOT-2425',
+                          unit: 'حبة',
+                          date: '2026-10-18',
+                          customer: 'شركة اليمامة للمقاولات',
+                          status: 'active',
+                          expiry: '2028-10-18',
+                        },
+                        {
+                          code: 'OIL-20W50-TY',
+                          name: 'زيت تويوتا أصلي 20W-50 برميل',
+                          serial: 'BR-8831',
+                          unit: 'برميل',
+                          date: '2026-10-15',
+                          customer: 'مركز صيانة الرواد',
+                          status: 'active',
+                          expiry: '2027-04-15',
+                        },
+                        {
+                          code: 'BAT-55AH-GS',
+                          name: 'بطارية جي إس 55 أمبير',
+                          serial: 'GS-2025-1102',
+                          unit: 'حبة',
+                          date: '2025-08-10',
+                          customer: 'عميل نقدي',
+                          status: 'expired',
+                          expiry: '2026-08-10',
+                        },
                       ].map((log, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50">
-                          <td className="p-3 font-mono font-bold text-purple-700">{log.code}</td>
-                          <td className="p-3 font-bold text-slate-900">{log.name}</td>
-                          <td className="p-3 font-mono text-slate-600">{log.serial}</td>
-                          <td className="p-3 font-medium">
-                            <span className="px-2 py-0.5 rounded text-[10px] bg-slate-100 text-slate-700">
-                              {log.unit}
-                            </span>
+                        <tr key={idx}>
+                          <td className="font-mono font-bold text-[var(--md-primary-text)] tabular-nums">{log.code}</td>
+                          <td className="font-bold text-[var(--md-on-surface)]">{log.name}</td>
+                          <td className="font-mono text-[var(--md-on-surface-variant)] tabular-nums">{log.serial}</td>
+                          <td className="font-medium">
+                            <span className="m3-badge">{log.unit}</span>
                           </td>
-                          <td className="p-3 font-mono text-slate-600">{log.date}</td>
-                          <td className="p-3 text-slate-800">{log.customer}</td>
-                          <td className="p-3 text-center">
+                          <td className="font-mono text-[var(--md-on-surface-variant)] tabular-nums">{log.date}</td>
+                          <td className="text-[var(--md-on-surface)]">{log.customer}</td>
+                          <td className="text-center">
                             {log.status === 'active' ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                              <span className="m3-badge m3-badge-success">
+                                <ShieldCheck className="w-3 h-3" />
                                 <span>تحت الضمان - ساري حتى {log.expiry}</span>
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
-                                <AlertTriangle className="w-3 h-3 text-rose-600" />
+                              <span className="m3-badge m3-badge-error">
+                                <AlertTriangle className="w-3 h-3" />
                                 <span>منتهي الضمان (انتهى {log.expiry})</span>
                               </span>
                             )}
@@ -1436,10 +1668,8 @@ export const ReportsTab: React.FC = () => {
               </div>
             </div>
           )}
-
         </div>
       )}
-
     </div>
   );
 };

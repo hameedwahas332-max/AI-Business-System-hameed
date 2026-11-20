@@ -320,7 +320,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
   }, [company?.id]);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto p-2 sm:p-4 pb-20 text-slate-100">
+    <div className="space-y-6 max-w-7xl mx-auto p-2 sm:p-4 pb-20 text-[var(--md-on-surface)]">
       {/* =========================================================================
           ZONE A: Executive Command Header & Quick Action Ribbon
           ========================================================================= */}
@@ -338,14 +338,14 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
 
       {/* Error Alert Banner if any */}
       {error && (
-        <div className="p-4 bg-rose-500/10 border border-rose-500/25 rounded-2xl flex items-center justify-between text-xs text-rose-400">
+        <div className="p-4 rounded-2xl flex items-center justify-between text-xs border bg-[var(--md-error-container)] text-[var(--md-on-error-container)] border-[color-mix(in_srgb,var(--md-error)_35%,transparent)]">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span>{error}</span>
+            <span className="font-semibold">{error}</span>
           </div>
           <button
             onClick={fetchOverviewData}
-            className="flex items-center gap-1 font-bold underline hover:text-white cursor-pointer"
+            className="flex items-center gap-1 font-bold underline hover:opacity-80 cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>إعادة المحاولة</span>
@@ -359,29 +359,29 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
       
       {/* 1. Live Fuel & Gas Station Summary Banner (When Fuel Station Only or Multi Activity is Active) */}
       {(businessMode === 'fuel_station_only' || businessMode === 'multi_activity') && (
-        <div className="bg-gradient-to-r from-slate-900 via-amber-950/20 to-slate-900 border border-amber-500/30 rounded-2xl p-4 sm:p-5 shadow-xl relative overflow-hidden">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-amber-500/20 pb-3 mb-4">
+        <div className="m3-card p-4 sm:p-5 relative overflow-hidden">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[var(--md-outline-variant)] pb-3 mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center shadow-lg">
+              <div className="w-10 h-10 rounded-xl bg-[var(--md-secondary-container)] border border-[color-mix(in_srgb,var(--md-secondary)_35%,transparent)] text-[var(--md-secondary)] flex items-center justify-center">
                 <Fuel className="w-5 h-5" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-white text-base">محطة تعبئة الوقود والغاز المركزية</h3>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono animate-pulse">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-bold text-[var(--md-on-surface)] text-base">محطة تعبئة الوقود والغاز المركزية</h3>
+                  <span className="m3-badge m3-badge-secondary font-mono">
                     LIVE METERING
                   </span>
                 </div>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-[var(--md-on-surface-variant)]">
                   مستوى مخزون الخزانات الأرضية، جرد العدادات اليومي، وفروقات المعايرة والتبخر اللحظية
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="bg-slate-950/70 border border-slate-800 px-3 py-1.5 rounded-xl text-right">
-                <div className="text-[10px] text-slate-400">إجمالي المنصرف اليوم:</div>
-                <div className="text-sm font-black text-amber-300 font-mono" dir="ltr">
+              <div className="bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] px-3 py-1.5 rounded-xl text-right">
+                <div className="text-[10px] text-[var(--md-on-surface-variant)]">إجمالي المنصرف اليوم:</div>
+                <div className="text-sm font-black text-[var(--md-secondary)] font-mono tabular-nums" dir="ltr">
                   {dispensedTodayLiters.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} L
                 </div>
               </div>
@@ -390,7 +390,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
                 <button
                   type="button"
                   onClick={() => onNavigate('fuel_station')}
-                  className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-amber-950/50 transition-all cursor-pointer"
+                  className="m3-btn-primary text-xs"
                 >
                   <Gauge className="w-4 h-4" />
                   <span>فتح جرد المحطة</span>
@@ -406,23 +406,23 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
               const current = Number(tank.currentVolume ?? tank.current_volume ?? 0);
               const capacity = Math.max(1, Number(tank.capacity ?? tank.max_capacity ?? 10000));
               const pct = Math.min(100, Math.max(0, (current / capacity) * 100)).toFixed(1);
-              const dotColor = tank.color || (idx === 0 ? 'bg-emerald-400' : idx === 1 ? 'bg-rose-400' : idx === 2 ? 'bg-amber-400' : 'bg-blue-400');
+              const dotColor = tank.color || (idx === 0 ? 'bg-emerald-500' : idx === 1 ? 'bg-rose-500' : idx === 2 ? 'bg-amber-500' : 'bg-blue-500');
               const barColor = tank.barColor || (idx === 0 ? 'bg-emerald-500' : idx === 1 ? 'bg-rose-500' : idx === 2 ? 'bg-amber-500' : 'bg-blue-500');
 
               return (
-                <div key={tank.id || idx} className="bg-slate-950/80 border border-slate-800/80 hover:border-amber-500/30 rounded-xl p-3 space-y-1.5 transition-all">
+                <div key={tank.id || idx} className="bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] hover:border-[var(--md-outline)] rounded-xl p-3 space-y-1.5 transition-colors">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-200 flex items-center gap-1.5">
+                    <span className="font-bold text-[var(--md-on-surface)] flex items-center gap-1.5">
                       <span className={`w-2 h-2 rounded-full ${dotColor}`} />
                       {tank.name || `خزان ${idx + 1}`}
                     </span>
-                    <span className="font-mono text-emerald-400 font-bold">{pct}%</span>
+                    <span className="font-mono tabular-nums text-[var(--md-primary-text)] font-bold">{pct}%</span>
                   </div>
-                  <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                  <div className="w-full bg-[var(--md-surface-container-high)] rounded-full h-2 overflow-hidden">
                     <div className={`${barColor} h-2 rounded-full transition-all duration-500`} style={{ width: `${pct}%` }} />
                   </div>
-                  <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono" dir="ltr">
-                    <span className="text-white font-bold">{current.toLocaleString('en-US')} L</span>
+                  <div className="flex items-center justify-between text-[11px] text-[var(--md-on-surface-variant)] font-mono tabular-nums" dir="ltr">
+                    <span className="text-[var(--md-on-surface)] font-bold">{current.toLocaleString('en-US')} L</span>
                     <span>/ {capacity.toLocaleString('en-US')} L</span>
                   </div>
                 </div>
@@ -434,38 +434,38 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
 
       {/* 2. Grocery & Food Supermarket Mode Priority Banner */}
       {(businessMode === 'grocery_only' || businessMode === 'food_supermarket') && (
-        <div className="bg-gradient-to-r from-emerald-950/40 via-slate-900 to-emerald-950/30 border border-emerald-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="m3-card p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] flex items-center justify-center shrink-0">
               <ShoppingBag className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-white text-sm">وضع البقالة والتموينات الغذائية (FEFO Priority)</h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-bold text-[var(--md-on-surface)] text-sm">وضع البقالة والتموينات الغذائية (FEFO Priority)</h3>
+                <span className="m3-badge m3-badge-primary">
                   صلاحيات وتعدد وحدات
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-[var(--md-on-surface-variant)]">
                 متابعة حركة الأغذية السريعة، تنبيهات تواريخ الصلاحية، باركود الميزان الإلكتروني، والبيع بالكرتون والحبة
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {onNavigate && (
               <>
                 <button
                   type="button"
                   onClick={() => onNavigate('inventory')}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 cursor-pointer"
+                  className="m3-btn-outlined text-xs"
                 >
                   رادار الصلاحية FEFO
                 </button>
                 <button
                   type="button"
                   onClick={() => onNavigate('pos')}
-                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md"
+                  className="m3-btn-primary text-xs"
                 >
                   نقطة البيع السريعة
                 </button>
@@ -477,30 +477,30 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
 
       {/* 3. Tires & Batteries Mode Priority Banner */}
       {(businessMode === 'tires_batteries_only' || businessMode === 'batteries_electronics') && (
-        <div className="bg-gradient-to-r from-indigo-950/40 via-slate-900 to-indigo-950/30 border border-indigo-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="m3-card p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-[var(--md-info-container)] text-[var(--md-on-info-container)] flex items-center justify-center shrink-0">
               <Zap className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-white text-sm">وضع الإطارات والبطاريات (Serials & DOT Warranty)</h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-bold text-[var(--md-on-surface)] text-sm">وضع الإطارات والبطاريات (Serials & DOT Warranty)</h3>
+                <span className="m3-badge m3-badge-info">
                   ضمان وسيريال نمبر
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-[var(--md-on-surface-variant)]">
                 تتبع شهادات الضمان، كود DOT وسنة صنع الإطارات، فحص السيريال الفوري، وخصومات استبدال البطاريات القديمة (الرجيع)
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {onNavigate && (
               <button
                 type="button"
                 onClick={() => onNavigate('inventory')}
-                className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md flex items-center gap-1.5"
+                className="m3-btn-primary text-xs"
               >
                 <ShieldCheck className="w-3.5 h-3.5" />
                 فاحص الضمان والسيريال
@@ -512,30 +512,30 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ onNavigate }) => {
 
       {/* 4. Auto Parts & Lubricants Oils Mode Priority Banner */}
       {(businessMode === 'autoparts_oils_only' || businessMode === 'oils_autoparts') && (
-        <div className="bg-gradient-to-r from-amber-950/40 via-slate-900 to-amber-950/30 border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="m3-card p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] flex items-center justify-center shrink-0">
               <Wrench className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-white text-sm">وضع قطع الغيار والزيوت والشحوم (OEM & Viscosity)</h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-bold text-[var(--md-on-surface)] text-sm">وضع قطع الغيار والزيوت والشحوم (OEM & Viscosity)</h3>
+                <span className="m3-badge m3-badge-secondary">
                   Part Number & Viscosity
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-[var(--md-on-surface-variant)]">
                 بحث برقم القطعة المصنعي (OEM)، تصنيف درجات لزوجة الزيوت (20W-50، 10W-40)، والبيع باللتر والبراميل والكراتين
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {onNavigate && (
               <button
                 type="button"
                 onClick={() => onNavigate('inventory')}
-                className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md"
+                className="m3-btn-primary text-xs"
               >
                 جرد ومواصفات الزيوت
               </button>

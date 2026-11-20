@@ -149,33 +149,33 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50 animate-fade-in text-right">
-      <div className="bg-[#091511] rounded-2xl border border-emerald-500/30 shadow-2xl max-w-lg w-full overflow-hidden flex flex-col max-h-[92vh]">
+    <div dir="rtl" className="fixed inset-0 z-50 m3-backdrop flex items-center justify-center p-3 sm:p-4 animate-fade-in text-right">
+      <div className="m3-modal-surface max-w-lg w-full overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
-        <div className="p-4 bg-gradient-to-r from-[#061a14] to-[#0c2e1f] border-b border-emerald-500/20 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <MessageSquare className="w-4 h-4 text-emerald-400" />
+        <div className="p-4 bg-[var(--md-surface-container-high)] border-b border-[var(--md-outline-variant)] flex items-center justify-between">
+          <h3 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+            <MessageSquare className="w-4 h-4 text-[var(--md-primary-text)]" />
             <span>إرسال رسالة WhatsApp من داخل النظام</span>
           </h3>
           <button
             onClick={onClose}
             disabled={isSending}
-            className="text-slate-400 hover:text-white p-1 rounded-lg bg-[#06120d] border border-emerald-500/20 cursor-pointer"
+            className="m3-btn-text !min-h-[30px] !p-1.5 cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {error && (
-          <div className="mx-4 mt-3 p-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-xl text-xs font-semibold flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+          <div className="mx-4 mt-3 p-3 bg-[var(--md-error-container)] border border-[var(--md-error)]/30 text-[var(--md-on-error-container)] rounded-xl text-xs font-semibold flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-[var(--md-error)]" />
             <span>{error}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-4 overflow-y-auto text-xs flex-1">
           {/* Recipient Type Tabs */}
-          <div className="grid grid-cols-3 gap-2 bg-[#06120d] p-1.5 rounded-xl text-xs font-bold border border-emerald-500/20">
+          <div className="grid grid-cols-3 gap-2 bg-[var(--md-surface-container-low)] p-1.5 rounded-xl text-xs font-bold border border-[var(--md-outline-variant)]">
             <button
               type="button"
               onClick={() => {
@@ -185,10 +185,8 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
                 setManualName('');
                 setSearchQuery('');
               }}
-              className={`py-2 rounded-lg transition-all cursor-pointer ${
-                recipientType === 'CUSTOMER'
-                  ? 'bg-emerald-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
+              className={`!min-h-[34px] !rounded-lg text-xs cursor-pointer ${
+                recipientType === 'CUSTOMER' ? 'm3-btn-primary' : 'm3-btn-text'
               }`}
             >
               عميل مسجل
@@ -202,10 +200,8 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
                 setManualName('');
                 setSearchQuery('');
               }}
-              className={`py-2 rounded-lg transition-all cursor-pointer ${
-                recipientType === 'SUPPLIER'
-                  ? 'bg-emerald-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
+              className={`!min-h-[34px] !rounded-lg text-xs cursor-pointer ${
+                recipientType === 'SUPPLIER' ? 'm3-btn-primary' : 'm3-btn-text'
               }`}
             >
               مورد مسجل
@@ -216,10 +212,8 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
                 setRecipientType('MANUAL');
                 setSelectedEntityId('');
               }}
-              className={`py-2 rounded-lg transition-all cursor-pointer ${
-                recipientType === 'MANUAL'
-                  ? 'bg-emerald-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
+              className={`!min-h-[34px] !rounded-lg text-xs cursor-pointer ${
+                recipientType === 'MANUAL' ? 'm3-btn-primary' : 'm3-btn-text'
               }`}
             >
               رقم يدوي
@@ -229,23 +223,23 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
           {/* Customer / Supplier Quick Selector with Search */}
           {recipientType !== 'MANUAL' && (
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-slate-200">
+              <label className="block text-xs font-bold text-[var(--md-on-surface)]">
                 ابحث واختر {recipientType === 'CUSTOMER' ? 'العميل' : 'المورد'} *
               </label>
               <div className="relative">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-3.5 h-3.5 text-[var(--md-on-surface-variant)] absolute right-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="بحث بالاسم أو الهاتف..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-3 pr-8 py-2 bg-[#06120d] border border-emerald-500/20 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-400 placeholder:text-slate-600"
+                  className="m3-input !h-9 !pr-8 !pl-3 text-xs"
                 />
               </div>
 
-              <div className="max-h-36 overflow-y-auto space-y-1 p-1 bg-[#06120d] rounded-xl border border-emerald-500/20">
+              <div className="max-h-36 overflow-y-auto space-y-1 p-1 bg-[var(--md-surface-container-low)] rounded-xl border border-[var(--md-outline-variant)]">
                 {filteredEntities.length === 0 ? (
-                  <div className="p-3 text-center text-slate-500 text-[11px]">
+                  <div className="p-3 text-center text-[var(--md-on-surface-variant)] text-[11px]">
                     لا توجد حسابات مطابقة للبحث
                   </div>
                 ) : (
@@ -258,17 +252,17 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
                         onClick={() => handleEntitySelect(item)}
                         className={`p-2 rounded-lg cursor-pointer flex items-center justify-between text-xs transition-colors ${
                           isSelected
-                            ? 'bg-emerald-950/60 border border-emerald-500 text-emerald-300 font-bold'
-                            : 'hover:bg-[#0c2419] text-slate-300'
+                            ? 'bg-[var(--md-primary-container)] border border-[var(--md-primary)] text-[var(--md-on-primary-container)] font-bold'
+                            : 'hover:bg-[var(--md-surface-container-high)] text-[var(--md-on-surface)]'
                         }`}
                       >
                         <div className="truncate">
                           <span className="font-semibold">{item.name}</span>
-                          <span className="text-[10px] text-slate-500 mr-2 font-mono" dir="ltr">
+                          <span className="text-[10px] text-[var(--md-on-surface-variant)] mr-2 font-mono tabular-nums" dir="ltr">
                             {item.phone || 'بدون هاتف'}
                           </span>
                         </div>
-                        <div className="text-[10px] font-mono text-slate-400 shrink-0">
+                        <div className="text-[10px] font-mono tabular-nums text-[var(--md-on-surface-variant)] shrink-0">
                           رصيد: {bal.toLocaleString('en-US')} {item.currency || 'YER'}
                         </div>
                       </div>
@@ -282,8 +276,8 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
           {/* Recipient Phone & Name Inputs */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1">
-                رقم الهاتف (WhatsApp) <span className="text-emerald-400">*</span>
+              <label className="block text-xs font-bold text-[var(--md-on-surface)] mb-1">
+                رقم الهاتف (WhatsApp) <span className="text-[var(--md-primary-text)]">*</span>
               </label>
               <input
                 type="text"
@@ -292,12 +286,12 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
                 placeholder="+967 770 000 000"
                 value={manualPhone}
                 onChange={(e) => setManualPhone(e.target.value)}
-                className="w-full px-3 py-2 bg-[#06120d] border border-emerald-500/20 rounded-xl text-xs font-mono text-emerald-300 focus:outline-none focus:ring-1 focus:ring-emerald-400 placeholder:text-slate-600"
+                className="m3-input !h-10 text-xs font-mono tabular-nums"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1">
+              <label className="block text-xs font-bold text-[var(--md-on-surface)] mb-1">
                 اسم المستلم
               </label>
               <input
@@ -305,7 +299,7 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
                 placeholder="اسم العميل أو الجهة"
                 value={manualName}
                 onChange={(e) => setManualName(e.target.value)}
-                className="w-full px-3 py-2 bg-[#06120d] border border-emerald-500/20 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-400 placeholder:text-slate-600"
+                className="m3-input !h-10 text-xs"
               />
             </div>
           </div>
@@ -313,12 +307,12 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
           {/* Quick Template Picker */}
           {templates && templates.length > 0 && (
             <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1">
+              <label className="block text-xs font-bold text-[var(--md-on-surface)] mb-1">
                 استخدام قالب جاهز (اختياري)
               </label>
               <select
                 onChange={(e) => handleApplyTemplate(e.target.value)}
-                className="w-full px-3 py-2 bg-[#06120d] border border-emerald-500/20 rounded-xl text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                className="m3-select !h-10 text-xs"
               >
                 <option value="">-- اختر قالباً لتعبئة النص تلقائياً --</option>
                 {templates.map((t) => (
@@ -332,8 +326,8 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
 
           {/* Message Textarea */}
           <div>
-            <label className="block text-xs font-bold text-slate-200 mb-1">
-              نص الرسالة <span className="text-emerald-400">*</span>
+            <label className="block text-xs font-bold text-[var(--md-on-surface)] mb-1">
+              نص الرسالة <span className="text-[var(--md-primary-text)]">*</span>
             </label>
             <textarea
               rows={4}
@@ -341,24 +335,24 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
               placeholder="اكتب نص الرسالة هنا..."
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
-              className="w-full p-3 bg-[#06120d] border border-emerald-500/20 rounded-xl text-xs text-white leading-relaxed focus:outline-none focus:ring-1 focus:ring-emerald-400 placeholder:text-slate-600 font-sans"
+              className="m3-input !h-auto py-2.5 text-xs leading-relaxed font-sans"
             />
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-emerald-500/20">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--md-outline-variant)]">
             <button
               type="button"
               onClick={onClose}
               disabled={isSending}
-              className="px-4 py-2 rounded-xl border border-slate-700 text-slate-300 text-xs font-bold hover:bg-slate-800 cursor-pointer"
+              className="m3-btn-outlined text-xs cursor-pointer"
             >
               إلغاء
             </button>
             <button
               type="submit"
               disabled={isSending || !manualPhone.trim() || !messageText.trim()}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs transition-all shadow-lg shadow-emerald-950 cursor-pointer disabled:opacity-50"
+              className="m3-btn-primary text-xs cursor-pointer disabled:opacity-50"
             >
               {isSending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               <span>إرسال من داخل النظام 💬</span>

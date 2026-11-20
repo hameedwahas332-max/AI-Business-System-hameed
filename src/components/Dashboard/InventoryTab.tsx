@@ -766,26 +766,24 @@ export const InventoryTab: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 text-right text-slate-100 font-sans" dir="rtl">
-      
-      {/* Header */}
-      <div className="bg-slate-900 border border-emerald-900/40 rounded-2xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-transparent rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
+    <div className="space-y-6 text-right text-[var(--md-on-surface)] font-sans" dir="rtl">
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+      {/* Header */}
+      <div className="m3-card p-5 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center shadow-lg shadow-emerald-950/50 shrink-0">
+              <div className="w-11 h-11 rounded-[var(--md-radius-md)] bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-outline-variant)] flex items-center justify-center shrink-0">
                 <Boxes className="w-5 h-5" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black text-[var(--md-on-surface)] tracking-tight flex items-center gap-2 flex-wrap">
                   <span>إدارة المستودع والجرد الذكي</span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
+                  <span className="m3-badge m3-badge-primary text-[10px] font-mono">
                     Warehouse & Inventory Suite
                   </span>
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-400 font-medium">
+                <p className="text-xs sm:text-sm text-[var(--md-on-surface-variant)] font-medium mt-0.5">
                   متابعة الأرصدة بالكرتون والقطعة، الجرد الفعلي وتسوية العجز والفائض، ورادار تواريخ الصلاحية وفحص ضمان وسيريال البطاريات
                 </p>
               </div>
@@ -802,19 +800,19 @@ export const InventoryTab: React.FC = () => {
       {/* ========================================================================= */}
       {/* MULTI-WAREHOUSE & BRANCH BAR (إدارة المستودعات والفروع وسندات التحويل)   */}
       {/* ========================================================================= */}
-      <div className="bg-[#0b1b16] border border-emerald-500/30 rounded-2xl p-4 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="m3-card p-4 border-[var(--md-primary)]/30 bg-[var(--md-primary-container)]/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-white shadow-md">
+          <div className="w-10 h-10 rounded-[var(--md-radius-md)] bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] flex items-center justify-center shrink-0">
             <Building2 className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-white">إدارة المستودعات والفروع وتوزيع المخزون</h3>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-sm font-bold text-[var(--md-on-surface)]">إدارة المستودعات والفروع وتوزيع المخزون</h3>
+              <span className="m3-badge m3-badge-primary text-[10px] font-mono tabular-nums">
                 {warehouses.length} مستودعات وفروع
               </span>
             </div>
-            <p className="text-[11px] text-emerald-300/70">
+            <p className="text-[11px] text-[var(--md-on-surface-variant)] mt-0.5">
               {selectedWarehouseId === 'ALL'
                 ? 'عرض المخزون المجمّع لكافة المستودعات والفروع ومستودعات سيارات التوزيع'
                 : `المستودع المحدد: ${warehouses.find((w) => w.id === selectedWarehouseId)?.name} • المسؤول: ${warehouses.find((w) => w.id === selectedWarehouseId)?.manager}`}
@@ -824,13 +822,13 @@ export const InventoryTab: React.FC = () => {
 
         {/* Warehouse Selector & New Transfer Button */}
         <div className="flex items-center gap-2 flex-wrap w-full md:w-auto justify-between md:justify-end">
-          <div className="flex items-center gap-1 bg-[#06120e] p-1 rounded-xl border border-emerald-500/20 text-xs overflow-x-auto">
+          <div className="flex items-center gap-1 bg-[var(--md-surface-container-low)] p-1 rounded-[var(--md-radius-md)] border border-[var(--md-outline-variant)] text-xs overflow-x-auto">
             <button
               onClick={() => setSelectedWarehouseId('ALL')}
-              className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-[var(--md-radius-sm)] font-bold text-xs transition-all cursor-pointer whitespace-nowrap ${
                 selectedWarehouseId === 'ALL'
-                  ? 'bg-emerald-600 text-white shadow'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] shadow-sm'
+                  : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)]'
               }`}
             >
               كافة المستودعات
@@ -839,13 +837,17 @@ export const InventoryTab: React.FC = () => {
               <button
                 key={wh.id}
                 onClick={() => setSelectedWarehouseId(wh.id)}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+                className={`px-2.5 py-1.5 rounded-[var(--md-radius-sm)] text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
                   selectedWarehouseId === wh.id
-                    ? 'bg-emerald-600 text-white shadow'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] shadow-sm'
+                    : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)]'
                 }`}
               >
-                {wh.type === 'VAN' ? <Truck className="w-3.5 h-3.5 text-amber-400" /> : <Building2 className="w-3.5 h-3.5 text-emerald-400" />}
+                {wh.type === 'VAN' ? (
+                  <Truck className={`w-3.5 h-3.5 ${selectedWarehouseId === wh.id ? '' : 'text-[var(--md-warning)]'}`} />
+                ) : (
+                  <Building2 className={`w-3.5 h-3.5 ${selectedWarehouseId === wh.id ? '' : 'text-[var(--md-primary-text)]'}`} />
+                )}
                 <span className="max-w-[120px] truncate">{wh.name.split(' - ')[0]}</span>
               </button>
             ))}
@@ -853,7 +855,7 @@ export const InventoryTab: React.FC = () => {
 
           <button
             onClick={() => setIsTransferModalOpen(true)}
-            className="px-3.5 py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-1.5 cursor-pointer transition-all shrink-0"
+            className="m3-btn-tonal text-xs shrink-0"
           >
             <ArrowLeftRight className="w-4 h-4" />
             <span>+ سند تحويل مخزني</span>
@@ -862,19 +864,23 @@ export const InventoryTab: React.FC = () => {
       </div>
 
       {/* 4 Main Sub-Tabs Navigation Bar */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto">
+      <div className="flex items-center gap-2 border-b border-[var(--md-outline-variant)] pb-2.5 overflow-x-auto">
         <button
           type="button"
           onClick={() => setActiveSubTab('movements_balances')}
-          className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
+          className={`px-4 py-2.5 rounded-[var(--md-radius-md)] font-bold text-xs sm:text-sm flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer border ${
             activeSubTab === 'movements_balances'
-              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-950/60 border border-emerald-400/40'
-              : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
+              ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] border-[var(--md-primary)] shadow-sm'
+              : 'bg-[var(--md-surface-container)] border-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)]'
           }`}
         >
           <Layers className="w-4 h-4" />
           <span>حركة وأرصدة المستودع</span>
-          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-950/60 text-slate-300">
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono tabular-nums ${
+            activeSubTab === 'movements_balances'
+              ? 'bg-white/20 text-[var(--md-on-primary)]'
+              : 'bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)]'
+          }`}>
             {products.length}
           </span>
         </button>
@@ -882,15 +888,19 @@ export const InventoryTab: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveSubTab('physical_audit')}
-          className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
+          className={`px-4 py-2.5 rounded-[var(--md-radius-md)] font-bold text-xs sm:text-sm flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer border ${
             activeSubTab === 'physical_audit'
-              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-950/60 border border-blue-400/40'
-              : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
+              ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] border-[var(--md-primary)] shadow-sm'
+              : 'bg-[var(--md-surface-container)] border-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)]'
           }`}
         >
           <PackageCheck className="w-4 h-4" />
           <span>الجرد المخزني الفعلي وتسوية الفروقات</span>
-          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-blue-950/60 text-blue-300 border border-blue-800/40">
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+            activeSubTab === 'physical_audit'
+              ? 'bg-white/20 text-[var(--md-on-primary)]'
+              : 'bg-[var(--md-info-container)] text-[var(--md-on-info-container)]'
+          }`}>
             تسوية بنقرة واحدة
           </span>
         </button>
@@ -898,15 +908,19 @@ export const InventoryTab: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveSubTab('expiry_warranty_radar')}
-          className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
+          className={`px-4 py-2.5 rounded-[var(--md-radius-md)] font-bold text-xs sm:text-sm flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer border ${
             activeSubTab === 'expiry_warranty_radar'
-              ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg shadow-amber-950/60 border border-amber-400/40'
-              : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
+              ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] border-[var(--md-primary)] shadow-sm'
+              : 'bg-[var(--md-surface-container)] border-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)]'
           }`}
         >
           <ShieldCheck className="w-4 h-4" />
           <span>رادار الصلاحية وفاحص ضمان البطاريات والإطارات</span>
-          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-950/60 text-amber-300 border border-amber-800/40">
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+            activeSubTab === 'expiry_warranty_radar'
+              ? 'bg-white/20 text-[var(--md-on-primary)]'
+              : 'bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)]'
+          }`}>
             FEFO + كود DOT
           </span>
         </button>
@@ -914,15 +928,19 @@ export const InventoryTab: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveSubTab('stock_transfers')}
-          className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
+          className={`px-4 py-2.5 rounded-[var(--md-radius-md)] font-bold text-xs sm:text-sm flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer border ${
             activeSubTab === 'stock_transfers'
-              ? 'bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-lg shadow-teal-950/60 border border-teal-400/40'
-              : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
+              ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] border-[var(--md-primary)] shadow-sm'
+              : 'bg-[var(--md-surface-container)] border-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)]'
           }`}
         >
           <ArrowLeftRight className="w-4 h-4" />
           <span>سندات التحويل بين الفروع والمستودعات</span>
-          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-teal-950/60 text-teal-300 border border-teal-800/40 font-mono font-bold">
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold tabular-nums ${
+            activeSubTab === 'stock_transfers'
+              ? 'bg-white/20 text-[var(--md-on-primary)]'
+              : 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)]'
+          }`}>
             {transfers.length}
           </span>
         </button>
@@ -930,16 +948,16 @@ export const InventoryTab: React.FC = () => {
 
       {/* Notifications */}
       {error && (
-        <div className="p-4 bg-red-950/40 border border-red-800/60 rounded-xl text-red-300 text-xs sm:text-sm flex items-center gap-2.5 shadow-lg">
-          <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-          <span>{error}</span>
+        <div className="p-4 bg-[var(--md-error-container)] border border-[var(--md-error)]/30 rounded-[var(--md-radius-md)] text-[var(--md-on-error-container)] text-xs sm:text-sm flex items-center gap-2.5">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span className="font-semibold">{error}</span>
         </div>
       )}
 
       {success && (
-        <div className="p-4 bg-emerald-950/40 border border-emerald-800/60 rounded-xl text-emerald-300 text-xs sm:text-sm flex items-center gap-2.5 shadow-lg">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span>{success}</span>
+        <div className="p-4 bg-[var(--md-success-container)] border border-[var(--md-success)]/30 rounded-[var(--md-radius-md)] text-[var(--md-on-success-container)] text-xs sm:text-sm flex items-center gap-2.5">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <span className="font-semibold">{success}</span>
         </div>
       )}
 
@@ -949,62 +967,62 @@ export const InventoryTab: React.FC = () => {
       {activeSubTab === 'movements_balances' && (
         <div className="space-y-6">
           {/* Summary KPI Cards for Inventory */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between shadow-sm">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <div className="m3-card p-4 flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-semibold text-slate-400 block mb-0.5">إجمالي الأصناف المسجلة</span>
-                <span className="text-xl font-bold font-mono text-white">{products.length} صنف</span>
+                <span className="text-[11px] font-semibold text-[var(--md-on-surface-variant)] block mb-1">إجمالي الأصناف المسجلة</span>
+                <span className="text-xl font-bold font-mono text-[var(--md-on-surface)] tabular-nums">{products.length} صنف</span>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-blue-950/80 border border-blue-800/40 text-blue-400 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-[var(--md-radius-md)] bg-[var(--md-info-container)] text-[var(--md-on-info-container)] flex items-center justify-center shrink-0">
                 <Boxes className="w-5 h-5" />
               </div>
             </div>
 
-            <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between shadow-sm">
+            <div className="m3-card p-4 flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-semibold text-slate-400 block mb-0.5">مبيعات المخزون اليوم</span>
-                <span className="text-xl font-bold font-mono text-cyan-400">
+                <span className="text-[11px] font-semibold text-[var(--md-on-surface-variant)] block mb-1">مبيعات المخزون اليوم</span>
+                <span className="text-xl font-bold font-mono text-[var(--md-info)] tabular-nums">
                   {formatNumber(products.reduce((acc, p) => acc + Number(p.soldToday || 0), 0))} قطعة
                 </span>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-cyan-950/80 border border-cyan-800/40 text-cyan-400 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-[var(--md-radius-md)] bg-[var(--md-info-container)] text-[var(--md-on-info-container)] flex items-center justify-center shrink-0">
                 <ArrowUpLeft className="w-5 h-5" />
               </div>
             </div>
 
-            <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between shadow-sm">
+            <div className="m3-card p-4 flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-semibold text-slate-400 block mb-0.5">البضاعة المتبقية بالمستودع</span>
-                <span className="text-xl font-bold font-mono text-emerald-400">
+                <span className="text-[11px] font-semibold text-[var(--md-on-surface-variant)] block mb-1">البضاعة المتبقية بالمستودع</span>
+                <span className="text-xl font-bold font-mono text-[var(--md-success)] tabular-nums">
                   {formatNumber(products.reduce((acc, p) => acc + Number(p.current_stock ?? p.qty ?? 0), 0))} قطعة
                 </span>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-emerald-950/80 border border-emerald-800/40 text-emerald-400 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-[var(--md-radius-md)] bg-[var(--md-success-container)] text-[var(--md-on-success-container)] flex items-center justify-center shrink-0">
                 <PackageCheck className="w-5 h-5" />
               </div>
             </div>
 
-            <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between shadow-sm">
+            <div className="m3-card p-4 flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-semibold text-slate-400 block mb-0.5">حركات المخزون المسجلة</span>
-                <span className="text-xl font-bold font-mono text-amber-400">{movements.length} حركة</span>
+                <span className="text-[11px] font-semibold text-[var(--md-on-surface-variant)] block mb-1">حركات المخزون المسجلة</span>
+                <span className="text-xl font-bold font-mono text-[var(--md-warning)] tabular-nums">{movements.length} حركة</span>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-amber-950/80 border border-amber-800/40 text-amber-400 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-[var(--md-radius-md)] bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)] flex items-center justify-center shrink-0">
                 <History className="w-5 h-5" />
               </div>
             </div>
           </div>
 
           {/* Activity Filter & Search Bar */}
-          <div className="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-3 shadow-md">
+          <div className="m3-card p-4 flex flex-col md:flex-row items-center justify-between gap-3">
             <div className="relative flex-1 w-full max-w-md">
-              <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder="البحث باسم المنتج، SKU، أو الباركود..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-3 pr-9 py-2 text-xs bg-slate-950 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
+                className="m3-input !h-10 !pr-9 text-xs"
               />
             </div>
 
@@ -1021,10 +1039,10 @@ export const InventoryTab: React.FC = () => {
                   key={act.id}
                   type="button"
                   onClick={() => setActivityFilter(act.id as any)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-[var(--md-radius-md)] text-xs font-bold transition-all whitespace-nowrap cursor-pointer border ${
                     activityFilter === act.id
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                      ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] border-[var(--md-primary)]'
+                      : 'bg-[var(--md-surface-container-low)] hover:bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] border-[var(--md-outline-variant)]'
                   }`}
                 >
                   {act.label}
@@ -1034,42 +1052,42 @@ export const InventoryTab: React.FC = () => {
           </div>
 
           {/* Stock Balances Table with Carton + Piece breakdown */}
-          <div className="bg-slate-900 border border-slate-800/80 rounded-2xl overflow-hidden shadow-xl">
-            <div className="p-4 border-b border-slate-800 bg-slate-950/50 flex items-center justify-between">
-              <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                <Boxes className="w-4 h-4 text-emerald-400" />
+          <div className="m3-card overflow-hidden">
+            <div className="p-4 border-b border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] flex items-center justify-between">
+              <h3 className="font-bold text-[var(--md-on-surface)] text-sm flex items-center gap-2">
+                <Boxes className="w-4 h-4 text-[var(--md-primary-text)]" />
                 <span>أرصدة المستودع مع تفصيل الكراتين والقطع</span>
               </h3>
-              <span className="text-xs text-slate-400">
-                إجمالي الأصناف: <strong className="text-emerald-400 font-mono">{filteredProducts.length}</strong>
+              <span className="text-xs text-[var(--md-on-surface-variant)] tabular-nums">
+                إجمالي الأصناف: <strong className="text-[var(--md-primary-text)] font-mono">{filteredProducts.length}</strong>
               </span>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-right text-xs text-slate-300">
-                <thead className="bg-slate-950 text-slate-400 font-semibold border-b border-slate-800 text-[11px] uppercase tracking-wider">
+              <table className="m3-table text-right text-xs">
+                <thead className="m3-thead">
                   <tr>
-                    <th className="p-3.5">الصنف / النشاط</th>
-                    <th className="p-3.5">الرمز SKU</th>
-                    <th className="p-3.5">الوارد / الافتتاحي</th>
-                    <th className="p-3.5 text-cyan-400">المباع اليوم</th>
-                    <th className="p-3.5 text-purple-400">إجمالي المباع</th>
-                    <th className="p-3.5 text-emerald-400">الرصيد المتبقي الفعلي</th>
-                    <th className="p-3.5 text-emerald-400">التفصيل بالكرتون والوحدة</th>
-                    <th className="p-3.5">حد الأمان</th>
-                    <th className="p-3.5">حالة التوفر</th>
+                    <th className="m3-th">الصنف / النشاط</th>
+                    <th className="m3-th">الرمز SKU</th>
+                    <th className="m3-th">الوارد / الافتتاحي</th>
+                    <th className="m3-th !text-[var(--md-info)]">المباع اليوم</th>
+                    <th className="m3-th !text-[var(--md-secondary)]">إجمالي المباع</th>
+                    <th className="m3-th !text-[var(--md-success)]">الرصيد المتبقي الفعلي</th>
+                    <th className="m3-th !text-[var(--md-primary-text)]">التفصيل بالكرتون والوحدة</th>
+                    <th className="m3-th">حد الأمان</th>
+                    <th className="m3-th">حالة التوفر</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60 font-medium">
+                <tbody className="divide-y divide-[var(--md-outline-variant)] font-medium">
                   {loading ? (
                     <tr>
-                      <td colSpan={9} className="p-8 text-center text-slate-400">
-                        <Loader2 className="w-6 h-6 animate-spin text-emerald-500 mx-auto" />
+                      <td colSpan={9} className="p-8 text-center text-[var(--md-on-surface-variant)]">
+                        <Loader2 className="w-6 h-6 animate-spin text-[var(--md-primary-text)] mx-auto" />
                       </td>
                     </tr>
                   ) : filteredProducts.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="p-8 text-center text-slate-500">
+                      <td colSpan={9} className="p-8 text-center text-[var(--md-on-surface-variant)]">
                         لا توجد أصناف مطابقة للبحث أو الفلتر.
                       </td>
                     </tr>
@@ -1084,10 +1102,10 @@ export const InventoryTab: React.FC = () => {
                       const isLow = stock <= minStock;
 
                       return (
-                        <tr key={prod.id} className="hover:bg-slate-800/40 transition-colors">
-                          <td className="p-3.5 font-bold text-white">
+                        <tr key={prod.id} className="hover:bg-[var(--md-surface-container-low)] transition-colors">
+                          <td className="p-3.5 font-bold text-[var(--md-on-surface)]">
                             <div>{prod.name}</div>
-                            <div className="text-[10px] text-slate-400 font-normal mt-0.5">
+                            <div className="text-[10px] text-[var(--md-on-surface-variant)] font-normal mt-0.5">
                               {prod.activityType === 'food'
                                 ? '🍏 مواد غذائية'
                                 : prod.activityType === 'battery'
@@ -1098,33 +1116,33 @@ export const InventoryTab: React.FC = () => {
                               {prod.category ? ` • ${prod.category}` : ''}
                             </div>
                           </td>
-                          <td className="p-3.5 font-mono text-slate-300">{prod.sku || '-'}</td>
-                          <td className="p-3.5 font-mono font-bold text-slate-300" title={m.formattedIncoming}>
+                          <td className="p-3.5 font-mono text-[var(--md-on-surface-variant)] tabular-nums">{prod.sku || '-'}</td>
+                          <td className="p-3.5 font-mono font-bold text-[var(--md-on-surface)] tabular-nums" title={m.formattedIncoming}>
                             {formatNumber(incomingTotal)} {m.baseUnitName}
                           </td>
-                          <td className="p-3.5 font-mono font-bold text-cyan-400">
+                          <td className="p-3.5 font-mono font-bold text-[var(--md-info)] tabular-nums">
                             {formatNumber(soldToday)}
                           </td>
-                          <td className="p-3.5 font-mono font-bold text-purple-400">
+                          <td className="p-3.5 font-mono font-bold text-[var(--md-secondary)] tabular-nums">
                             {formatNumber(totalSold)}
                           </td>
-                          <td className="p-3.5 font-mono font-bold text-emerald-400" title={m.formattedRemaining}>
+                          <td className="p-3.5 font-mono font-bold text-[var(--md-success)] tabular-nums" title={m.formattedRemaining}>
                             {formatNumber(stock)} {m.baseUnitName}
                           </td>
-                          <td className="p-3.5 font-bold text-emerald-400">
-                            <span className="bg-emerald-950/80 px-2.5 py-1 rounded-lg border border-emerald-800/50 inline-block font-mono text-[11px]">
+                          <td className="p-3.5 font-bold">
+                            <span className="m3-badge m3-badge-primary font-mono text-[11px] tabular-nums">
                               {getStockBreakdown(prod)}
                             </span>
                           </td>
-                          <td className="p-3.5 font-mono text-slate-400">{minStock}</td>
+                          <td className="p-3.5 font-mono text-[var(--md-on-surface-variant)] tabular-nums">{minStock}</td>
                           <td className="p-3.5">
                             <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              className={`m3-badge text-[10px] ${
                                 stock <= 0
-                                  ? 'bg-rose-950 text-rose-300 border border-rose-800/60'
+                                  ? 'm3-badge-error'
                                   : isLow
-                                  ? 'bg-amber-950 text-amber-300 border border-amber-800/60'
-                                  : 'bg-emerald-950 text-emerald-300 border border-emerald-800/60'
+                                  ? 'm3-badge-warning'
+                                  : 'm3-badge-success'
                               }`}
                             >
                               {stock <= 0 ? 'نفد من المخزن' : isLow ? 'قريب من النفاذ' : 'متوفر بالمخزن'}
@@ -1140,17 +1158,17 @@ export const InventoryTab: React.FC = () => {
           </div>
 
           {/* Movements Log Table */}
-          <div className="bg-slate-900 border border-slate-800/80 rounded-2xl overflow-hidden shadow-xl">
-            <div className="p-4 border-b border-slate-800 bg-slate-950/50 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                <History className="w-4 h-4 text-emerald-400" />
+          <div className="m3-card overflow-hidden">
+            <div className="p-4 border-b border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] flex flex-col sm:flex-row items-center justify-between gap-3">
+              <h3 className="font-bold text-[var(--md-on-surface)] text-sm flex items-center gap-2">
+                <History className="w-4 h-4 text-[var(--md-primary-text)]" />
                 <span>سجل حركات المخزون والوارد والمنصرف (Audit Log)</span>
               </h3>
 
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="py-1.5 px-3 text-xs bg-slate-950 border border-slate-700/80 rounded-xl text-slate-200 focus:outline-none focus:border-emerald-500"
+                className="m3-select !h-9 !w-auto min-w-[180px] text-xs"
               >
                 <option value="">كافة أنواع الحركات</option>
                 <option value="IN">وارد للمخزن (IN)</option>
@@ -1160,22 +1178,22 @@ export const InventoryTab: React.FC = () => {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-right text-xs text-slate-300">
-                <thead className="bg-slate-950 text-slate-400 font-semibold border-b border-slate-800 text-[11px] uppercase tracking-wider">
+              <table className="m3-table text-right text-xs">
+                <thead className="m3-thead">
                   <tr>
-                    <th className="p-3.5">المنتج / الصنف</th>
-                    <th className="p-3.5">نوع الحركة</th>
-                    <th className="p-3.5">الكمية</th>
-                    <th className="p-3.5">الرصيد بعد الحركة</th>
-                    <th className="p-3.5">نوع المرجع</th>
-                    <th className="p-3.5">التاريخ والوقت</th>
-                    <th className="p-3.5">البيان والملاحظات</th>
+                    <th className="m3-th">المنتج / الصنف</th>
+                    <th className="m3-th">نوع الحركة</th>
+                    <th className="m3-th">الكمية</th>
+                    <th className="m3-th">الرصيد بعد الحركة</th>
+                    <th className="m3-th">نوع المرجع</th>
+                    <th className="m3-th">التاريخ والوقت</th>
+                    <th className="m3-th">البيان والملاحظات</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60 font-medium">
+                <tbody className="divide-y divide-[var(--md-outline-variant)] font-medium">
                   {movements.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="p-8 text-center text-slate-500">
+                      <td colSpan={7} className="p-8 text-center text-[var(--md-on-surface-variant)]">
                         لا توجد حركات مخزنية مسجلة حالياً.
                       </td>
                     </tr>
@@ -1191,33 +1209,33 @@ export const InventoryTab: React.FC = () => {
                         const movNotes = mov.notes || mov.reason || '-';
 
                         return (
-                          <tr key={mov.id} className="hover:bg-slate-800/40 transition-colors">
-                            <td className="p-3.5 font-bold text-white">{prodName}</td>
+                          <tr key={mov.id} className="hover:bg-[var(--md-surface-container-low)] transition-colors">
+                            <td className="p-3.5 font-bold text-[var(--md-on-surface)]">{prodName}</td>
                             <td className="p-3.5">
                               <span
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${
+                                className={`m3-badge text-[10px] ${
                                   isPositive
-                                    ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/60'
+                                    ? 'm3-badge-success'
                                     : isAdjustment
-                                    ? 'bg-amber-950 text-amber-300 border border-amber-800/60'
-                                    : 'bg-rose-950 text-rose-300 border border-rose-800/60'
+                                    ? 'm3-badge-warning'
+                                    : 'm3-badge-error'
                                 }`}
                               >
                                 {isPositive ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpLeft className="w-3 h-3" />}
                                 <span>{isPositive ? 'وارد (IN)' : isAdjustment ? 'تسوية (ADJ)' : 'صادر (OUT)'}</span>
                               </span>
                             </td>
-                            <td className="p-3.5 font-mono font-bold">
-                              <span className={isPositive ? 'text-emerald-400' : 'text-rose-400'}>
+                            <td className="p-3.5 font-mono font-bold tabular-nums">
+                              <span className={isPositive ? 'text-[var(--md-success)]' : 'text-[var(--md-error)]'}>
                                 {isPositive ? `+${mov.quantity}` : `-${Math.abs(mov.quantity)}`}
                               </span>
                             </td>
-                            <td className="p-3.5 font-mono text-slate-200 font-bold">{remaining}</td>
-                            <td className="p-3.5 text-slate-400 font-mono text-[11px]">{refInfo}</td>
-                            <td className="p-3.5 text-slate-400 font-mono text-[11px]">
+                            <td className="p-3.5 font-mono text-[var(--md-on-surface)] font-bold tabular-nums">{remaining}</td>
+                            <td className="p-3.5 text-[var(--md-on-surface-variant)] font-mono text-[11px]">{refInfo}</td>
+                            <td className="p-3.5 text-[var(--md-on-surface-variant)] font-mono text-[11px] tabular-nums">
                               {movDate ? new Date(movDate).toLocaleString('ar-SA') : '-'}
                             </td>
-                            <td className="p-3.5 text-slate-300 max-w-[200px] truncate">{movNotes}</td>
+                            <td className="p-3.5 text-[var(--md-on-surface-variant)] max-w-[200px] truncate">{movNotes}</td>
                           </tr>
                         );
                     })
@@ -1235,13 +1253,13 @@ export const InventoryTab: React.FC = () => {
       {activeSubTab === 'physical_audit' && (
         <div className="space-y-6">
           {/* Top Audit Instructions & Summary Banner */}
-          <div className="bg-gradient-to-r from-blue-950/40 via-slate-900 to-indigo-950/40 border border-blue-500/30 rounded-2xl p-5 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="m3-card p-5 border-[var(--md-info)]/30 bg-[var(--md-info-container)]/25 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="space-y-1">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <PackageCheck className="w-5 h-5 text-blue-400" />
+              <h3 className="text-base font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                <PackageCheck className="w-5 h-5 text-[var(--md-info)]" />
                 <span>منصة الجرد المخزني الفعلي ومطابقة الفروقات</span>
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-[var(--md-on-surface-variant)]">
                 أدخل الكميات الفعلية الموجودة على أرفف المستودع. يتم حساب الفارق المالي تلقائياً، وبنقرة واحدة يتم اعتماد الجرد وتوليد قيود التسوية.
               </p>
             </div>
@@ -1250,7 +1268,7 @@ export const InventoryTab: React.FC = () => {
               type="button"
               onClick={handleApplyInventoryAudit}
               disabled={isApplyingAudit}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white rounded-xl font-bold text-xs sm:text-sm shadow-xl shadow-blue-950/60 border border-blue-400/40 flex items-center gap-2 transition-all active:scale-95 cursor-pointer shrink-0"
+              className="m3-btn-primary text-xs sm:text-sm shrink-0 disabled:opacity-50"
             >
               {isApplyingAudit ? (
                 <>
@@ -1267,22 +1285,22 @@ export const InventoryTab: React.FC = () => {
           </div>
 
           {/* Interactive Physical Audit Table */}
-          <div className="bg-slate-900 border border-slate-800/80 rounded-2xl overflow-hidden shadow-xl">
+          <div className="m3-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-right text-xs text-slate-300">
-                <thead className="bg-slate-950 text-slate-400 font-semibold border-b border-slate-800 text-[11px] uppercase tracking-wider">
+              <table className="m3-table text-right text-xs">
+                <thead className="m3-thead">
                   <tr>
-                    <th className="p-3.5">اسم الصنف / الكود</th>
-                    <th className="p-3.5">الرصيد الدفتري المسجل</th>
-                    <th className="p-3.5 text-blue-400">الكمية الفعلية بالجرد (الواقع)</th>
-                    <th className="p-3.5">الفارق بالكمية</th>
-                    <th className="p-3.5">تكلفة الوحدة</th>
-                    <th className="p-3.5">قيمة الفارق المالي</th>
-                    <th className="p-3.5">حالة المطابقة</th>
-                    <th className="p-3.5">ملاحظات وسبب الفارق</th>
+                    <th className="m3-th">اسم الصنف / الكود</th>
+                    <th className="m3-th">الرصيد الدفتري المسجل</th>
+                    <th className="m3-th !text-[var(--md-info)]">الكمية الفعلية بالجرد (الواقع)</th>
+                    <th className="m3-th">الفارق بالكمية</th>
+                    <th className="m3-th">تكلفة الوحدة</th>
+                    <th className="m3-th">قيمة الفارق المالي</th>
+                    <th className="m3-th">حالة المطابقة</th>
+                    <th className="m3-th">ملاحظات وسبب الفارق</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60 font-medium">
+                <tbody className="divide-y divide-[var(--md-outline-variant)] font-medium">
                   {products.map((prod) => {
                     const bookStock = Number(prod.current_stock ?? prod.qty ?? 0);
                     const physicalCount =
@@ -1292,14 +1310,14 @@ export const InventoryTab: React.FC = () => {
                     const diffValue = diffQty * costPrice;
 
                     return (
-                      <tr key={prod.id} className="hover:bg-slate-800/40 transition-colors">
-                        <td className="p-3.5 font-bold text-white max-w-[200px]">
+                      <tr key={prod.id} className="hover:bg-[var(--md-surface-container-low)] transition-colors">
+                        <td className="p-3.5 font-bold text-[var(--md-on-surface)] max-w-[200px]">
                           <div className="truncate">{prod.name}</div>
-                          <div className="text-[10px] text-slate-400 font-mono mt-0.5">{prod.sku || '-'}</div>
+                          <div className="text-[10px] text-[var(--md-on-surface-variant)] font-mono mt-0.5">{prod.sku || '-'}</div>
                         </td>
 
                         {/* Book Stock */}
-                        <td className="p-3.5 font-mono font-bold text-slate-300">
+                        <td className="p-3.5 font-mono font-bold text-[var(--md-on-surface)] tabular-nums">
                           {formatNumber(bookStock)} {prod.baseUnitName || prod.unit || 'حبة'}
                         </td>
 
@@ -1313,19 +1331,19 @@ export const InventoryTab: React.FC = () => {
                             onChange={(e) =>
                               handlePhysicalCountChange(prod.id, parseFloat(e.target.value) || 0)
                             }
-                            className="w-24 p-2 bg-slate-950 border border-blue-500/50 rounded-xl text-white font-mono font-bold text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="m3-input !h-9 !w-24 font-mono font-bold text-center tabular-nums"
                           />
                         </td>
 
                         {/* Variance Qty */}
-                        <td className="p-3.5 font-mono font-bold">
+                        <td className="p-3.5 font-mono font-bold tabular-nums">
                           <span
                             className={
                               diffQty === 0
-                                ? 'text-slate-400'
+                                ? 'text-[var(--md-on-surface-variant)]'
                                 : diffQty > 0
-                                ? 'text-emerald-400'
-                                : 'text-rose-400'
+                                ? 'text-[var(--md-success)]'
+                                : 'text-[var(--md-error)]'
                             }
                           >
                             {diffQty > 0 ? `+${diffQty}` : diffQty}
@@ -1333,17 +1351,17 @@ export const InventoryTab: React.FC = () => {
                         </td>
 
                         {/* Cost Price */}
-                        <td className="p-3.5 font-mono text-slate-400">{formatAmount(costPrice)}</td>
+                        <td className="p-3.5 font-mono text-[var(--md-on-surface-variant)] tabular-nums">{formatAmount(costPrice)}</td>
 
                         {/* Variance Value */}
-                        <td className="p-3.5 font-mono font-bold">
+                        <td className="p-3.5 font-mono font-bold tabular-nums">
                           <span
                             className={
                               diffValue === 0
-                                ? 'text-slate-400'
+                                ? 'text-[var(--md-on-surface-variant)]'
                                 : diffValue > 0
-                                ? 'text-emerald-400'
-                                : 'text-rose-400'
+                                ? 'text-[var(--md-success)]'
+                                : 'text-[var(--md-error)]'
                             }
                           >
                             {formatAmount(diffValue)} YER
@@ -1353,18 +1371,18 @@ export const InventoryTab: React.FC = () => {
                         {/* Match Status Badge */}
                         <td className="p-3.5">
                           {diffQty === 0 ? (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800/60 flex items-center gap-1 w-max">
-                              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                            <span className="m3-badge m3-badge-success text-[10px] w-max">
+                              <CheckCircle2 className="w-3 h-3" />
                               مطابق تماماً
                             </span>
                           ) : diffQty > 0 ? (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-950 text-blue-300 border border-blue-800/60 flex items-center gap-1 w-max">
-                              <ArrowDownRight className="w-3 h-3 text-blue-400" />
+                            <span className="m3-badge m3-badge-info text-[10px] w-max tabular-nums">
+                              <ArrowDownRight className="w-3 h-3" />
                               فائض مخزني (+{diffQty})
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-800/60 flex items-center gap-1 w-max">
-                              <AlertTriangle className="w-3 h-3 text-rose-400" />
+                            <span className="m3-badge m3-badge-error text-[10px] w-max tabular-nums">
+                              <AlertTriangle className="w-3 h-3" />
                               عجز مخزني ({diffQty})
                             </span>
                           )}
@@ -1379,7 +1397,7 @@ export const InventoryTab: React.FC = () => {
                             onChange={(e) =>
                               setAuditNotes({ ...auditNotes, [prod.id]: e.target.value })
                             }
-                            className="w-full min-w-[130px] p-1.5 bg-slate-950 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-none"
+                            className="m3-input !h-9 min-w-[140px] text-xs"
                           />
                         </td>
                       </tr>
@@ -1397,27 +1415,27 @@ export const InventoryTab: React.FC = () => {
       {/* ========================================================================= */}
       {activeSubTab === 'expiry_warranty_radar' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
+
           {/* PANEL 1: رادار صلاحية المواد الغذائية (FEFO Radar) */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4 flex flex-col">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="m3-card p-5 space-y-4 flex flex-col">
+            <div className="flex items-center justify-between border-b border-[var(--md-outline-variant)] pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-950/80 text-amber-400 border border-amber-800/50 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-[var(--md-radius-md)] bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)] flex items-center justify-center shrink-0">
                   <Calendar className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-sm">رادار تواريخ الصلاحية (FEFO Radar)</h3>
-                  <p className="text-[11px] text-slate-400">تنبيهات استباقية للأصناف القريبة من الانتهاء</p>
+                  <h3 className="font-bold text-[var(--md-on-surface)] text-sm">رادار تواريخ الصلاحية (FEFO Radar)</h3>
+                  <p className="text-[11px] text-[var(--md-on-surface-variant)]">تنبيهات استباقية للأصناف القريبة من الانتهاء</p>
                 </div>
               </div>
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 font-bold">
+              <span className="m3-badge m3-badge-warning text-xs tabular-nums">
                 {expiringFoodItems.length} صنف غذائي
               </span>
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-2.5 max-h-[500px] custom-scrollbar">
               {expiringFoodItems.length === 0 ? (
-                <div className="text-center py-12 text-slate-500 text-xs">
+                <div className="text-center py-12 text-[var(--md-on-surface-variant)] text-xs">
                   لا توجد أصناف مسجلة بتاريخ صلاحية حالياً.
                 </div>
               ) : (
@@ -1429,32 +1447,32 @@ export const InventoryTab: React.FC = () => {
                   return (
                     <div
                       key={item.id}
-                      className={`p-3.5 rounded-xl border transition-all ${
+                      className={`p-3.5 rounded-[var(--md-radius-md)] border transition-all ${
                         isExpired
-                          ? 'bg-rose-950/30 border-rose-800/60'
+                          ? 'bg-[var(--md-error-container)]/40 border-[var(--md-error)]/40'
                           : isCritical
-                          ? 'bg-amber-950/30 border-amber-700/60'
+                          ? 'bg-[var(--md-warning-container)]/45 border-[var(--md-warning)]/45'
                           : isWarning
-                          ? 'bg-amber-950/15 border-amber-800/40'
-                          : 'bg-slate-950/60 border-slate-800'
+                          ? 'bg-[var(--md-warning-container)]/25 border-[var(--md-warning)]/30'
+                          : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)]'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <h4 className="font-bold text-white text-xs">{item.name}</h4>
-                          <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                          <h4 className="font-bold text-[var(--md-on-surface)] text-xs">{item.name}</h4>
+                          <div className="text-[10px] text-[var(--md-on-surface-variant)] font-mono mt-0.5 tabular-nums">
                             دفعة: {item.batchNumber || 'B-GEN'} • المخزون: {item.current_stock ?? item.qty ?? 0}{' '}
                             {item.baseUnitName || item.unit || 'حبة'}
                           </div>
                         </div>
 
                         <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          className={`m3-badge text-[10px] tabular-nums ${
                             isExpired
-                              ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                              ? 'm3-badge-error'
                               : isCritical
-                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                              : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'
+                              ? 'm3-badge-warning'
+                              : 'm3-badge-success'
                           }`}
                         >
                           {isExpired
@@ -1465,8 +1483,8 @@ export const InventoryTab: React.FC = () => {
                         </span>
                       </div>
 
-                      <div className="mt-2 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-400">
-                        <span>تاريخ الانتهاء: <strong className="text-white font-mono">{item.expiryDate || '-'}</strong></span>
+                      <div className="mt-2 pt-2 border-t border-[var(--md-outline-variant)] flex items-center justify-between text-[11px] text-[var(--md-on-surface-variant)] tabular-nums">
+                        <span>تاريخ الانتهاء: <strong className="text-[var(--md-on-surface)] font-mono">{item.expiryDate || '-'}</strong></span>
                         <span>الإنتاج: <span className="font-mono">{item.productionDate || '-'}</span></span>
                       </div>
                     </div>
@@ -1477,37 +1495,37 @@ export const InventoryTab: React.FC = () => {
           </div>
 
           {/* PANEL 2: فاحص ضمان البطاريات والسيريال الفوري */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4 flex flex-col">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="m3-card p-5 space-y-4 flex flex-col">
+            <div className="flex items-center justify-between border-b border-[var(--md-outline-variant)] pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-blue-950/80 text-blue-400 border border-blue-800/50 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-[var(--md-radius-md)] bg-[var(--md-info-container)] text-[var(--md-on-info-container)] flex items-center justify-center shrink-0">
                   <ShieldCheck className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-sm">فاحص ضمان وسيريال البطاريات والإطارات الفوري</h3>
-                  <p className="text-[11px] text-slate-400">التحقق بالرقم التسلسلي للبطارية (Serial No) أو كود DOT للإطار أو رقم الفاتورة</p>
+                  <h3 className="font-bold text-[var(--md-on-surface)] text-sm">فاحص ضمان وسيريال البطاريات والإطارات الفوري</h3>
+                  <p className="text-[11px] text-[var(--md-on-surface-variant)]">التحقق بالرقم التسلسلي للبطارية (Serial No) أو كود DOT للإطار أو رقم الفاتورة</p>
                 </div>
               </div>
             </div>
 
             {/* Search Input Bar */}
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               <div className="flex gap-2">
                 <div className="relative flex-1">
-                  <QrCode className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+                  <QrCode className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="text"
                     placeholder="اكتب السيريال أو كود DOT أو رقم الفاتورة... (مثال: DOT-TIRE-205-55-R16)"
                     value={warrantySearch}
                     onChange={(e) => setWarrantySearch(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleWarrantySearch()}
-                    className="w-full pl-3 pr-9 py-2.5 text-xs bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 font-mono"
+                    className="m3-input !pr-9 text-xs font-mono"
                   />
                 </div>
                 <button
                   type="button"
                   onClick={() => handleWarrantySearch()}
-                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  className="m3-btn-primary text-xs shrink-0"
                 >
                   فحص الضمان
                 </button>
@@ -1515,7 +1533,7 @@ export const InventoryTab: React.FC = () => {
 
               {/* Sample Quick Test Buttons */}
               <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
-                <span className="text-slate-400">نماذج سريعة:</span>
+                <span className="text-[var(--md-on-surface-variant)]">نماذج سريعة:</span>
                 {['SN-BAT-70-2026', 'DOT-TIRE-205-55-R16', 'DOT-TIRE-265-65-R17', 'INV-2026-0042'].map((sn) => (
                   <button
                     key={sn}
@@ -1524,7 +1542,7 @@ export const InventoryTab: React.FC = () => {
                       setWarrantySearch(sn);
                       handleWarrantySearch(sn);
                     }}
-                    className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-blue-300 rounded-md font-mono border border-slate-700 cursor-pointer"
+                    className="px-2 py-0.5 bg-[var(--md-surface-container-low)] hover:bg-[var(--md-surface-container-high)] text-[var(--md-info)] rounded-[var(--md-radius-sm)] font-mono border border-[var(--md-outline-variant)] cursor-pointer transition-colors"
                   >
                     {sn}
                   </button>
@@ -1536,43 +1554,43 @@ export const InventoryTab: React.FC = () => {
             {warrantyResult && (
               <div className="mt-2 flex-1">
                 {warrantyResult.notFound ? (
-                  <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 text-center space-y-2">
-                    <AlertCircle className="w-8 h-8 text-slate-500 mx-auto" />
-                    <p className="text-xs text-slate-300">
+                  <div className="p-4 bg-[var(--md-surface-container-low)] rounded-[var(--md-radius-md)] border border-[var(--md-outline-variant)] text-center space-y-2">
+                    <AlertCircle className="w-8 h-8 text-[var(--md-on-surface-variant)] mx-auto" />
+                    <p className="text-xs text-[var(--md-on-surface-variant)]">
                       لم يتم العثور على شهادة ضمان مسجلة لـ "{warrantyResult.query}".
                     </p>
                   </div>
                 ) : (
                   <div
-                    className={`p-5 rounded-2xl border space-y-4 shadow-lg ${
+                    className={`p-5 rounded-[var(--md-radius-lg)] border space-y-4 ${
                       warrantyResult.isUnderWarranty
-                        ? 'bg-emerald-950/20 border-emerald-700/60'
-                        : 'bg-rose-950/20 border-rose-700/60'
+                        ? 'bg-[var(--md-success-container)]/25 border-[var(--md-success)]/40'
+                        : 'bg-[var(--md-error-container)]/25 border-[var(--md-error)]/40'
                     }`}
                   >
                     {/* Status Badge */}
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
                       <span
-                        className={`px-3 py-1 rounded-xl text-xs font-black flex items-center gap-1.5 ${
+                        className={`m3-badge text-xs ${
                           warrantyResult.isUnderWarranty
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                            : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                            ? 'm3-badge-success'
+                            : 'm3-badge-error'
                         }`}
                       >
                         {warrantyResult.isUnderWarranty ? (
                           <>
-                            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                            <CheckCircle2 className="w-4 h-4" />
                             <span>تحت الضمان المعتمد ساري ✅</span>
                           </>
                         ) : (
                           <>
-                            <AlertCircle className="w-4 h-4 text-rose-400" />
+                            <AlertCircle className="w-4 h-4" />
                             <span>منتهي فترة الضمان ❌</span>
                           </>
                         )}
                       </span>
 
-                      <span className="text-xs font-mono font-bold text-slate-300">
+                      <span className="text-xs font-mono font-bold text-[var(--md-on-surface)] tabular-nums">
                         {warrantyResult.diffDays > 0
                           ? `متبقي ${warrantyResult.diffDays} يوم`
                           : `منتهي منذ ${Math.abs(warrantyResult.diffDays)} يوم`}
@@ -1581,30 +1599,30 @@ export const InventoryTab: React.FC = () => {
 
                     {/* Battery Details */}
                     <div className="space-y-2 text-xs">
-                      <div className="font-bold text-white text-sm">{warrantyResult.productName}</div>
-                      <div className="grid grid-cols-2 gap-2 text-slate-300">
+                      <div className="font-bold text-[var(--md-on-surface)] text-sm">{warrantyResult.productName}</div>
+                      <div className="grid grid-cols-2 gap-2 text-[var(--md-on-surface)]">
                         <div>
-                          <span className="text-slate-400">المواصفات:</span>{' '}
-                          <strong className="text-amber-300">{warrantyResult.batterySpec}</strong>
+                          <span className="text-[var(--md-on-surface-variant)]">المواصفات:</span>{' '}
+                          <strong className="text-[var(--md-warning)]">{warrantyResult.batterySpec}</strong>
                         </div>
                         <div>
-                          <span className="text-slate-400">السيريال:</span>{' '}
+                          <span className="text-[var(--md-on-surface-variant)]">السيريال:</span>{' '}
                           <strong className="font-mono">{warrantyResult.serialNumber}</strong>
                         </div>
                         <div>
-                          <span className="text-slate-400">العميل:</span> {warrantyResult.customerName}
+                          <span className="text-[var(--md-on-surface-variant)]">العميل:</span> {warrantyResult.customerName}
                         </div>
                         <div>
-                          <span className="text-slate-400">الهاتف:</span>{' '}
+                          <span className="text-[var(--md-on-surface-variant)]">الهاتف:</span>{' '}
                           <strong className="font-mono">{warrantyResult.customerPhone}</strong>
                         </div>
                         <div>
-                          <span className="text-slate-400">تاريخ الشراء:</span>{' '}
-                          <span className="font-mono">{warrantyResult.purchaseDate}</span>
+                          <span className="text-[var(--md-on-surface-variant)]">تاريخ الشراء:</span>{' '}
+                          <span className="font-mono tabular-nums">{warrantyResult.purchaseDate}</span>
                         </div>
                         <div>
-                          <span className="text-slate-400">نهاية الضمان:</span>{' '}
-                          <strong className="font-mono text-emerald-400">
+                          <span className="text-[var(--md-on-surface-variant)]">نهاية الضمان:</span>{' '}
+                          <strong className="font-mono text-[var(--md-success)] tabular-nums">
                             {warrantyResult.warrantyEndDate}
                           </strong>
                         </div>
@@ -1612,12 +1630,12 @@ export const InventoryTab: React.FC = () => {
                     </div>
 
                     {/* Scrap Trade-In Eligibility */}
-                    <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800 text-xs flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-slate-300">
-                        <Zap className="w-4 h-4 text-amber-400" />
+                    <div className="p-3 bg-[var(--md-surface-container-low)] rounded-[var(--md-radius-md)] border border-[var(--md-outline-variant)] text-xs flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2 text-[var(--md-on-surface)]">
+                        <Zap className="w-4 h-4 text-[var(--md-warning)]" />
                         <span>أهلية استبدال ورجيع البطارية التالفة:</span>
                       </div>
-                      <span className="font-bold text-emerald-400 font-mono">
+                      <span className="font-bold text-[var(--md-success)] font-mono tabular-nums">
                         مستحق خصم {warrantyResult.scrapDiscountValue} YER
                       </span>
                     </div>
@@ -1635,23 +1653,23 @@ export const InventoryTab: React.FC = () => {
       {activeSubTab === 'stock_transfers' && (
         <div className="space-y-6">
           {/* Top Control & KPI Header */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="m3-card p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <ArrowLeftRight className="w-5 h-5 text-teal-400" />
+              <h2 className="text-base font-bold text-[var(--md-on-surface)] flex items-center gap-2 flex-wrap">
+                <ArrowLeftRight className="w-5 h-5 text-[var(--md-primary-text)]" />
                 <span>سجل أذونات وسندات التحويل المخزني بين الفروع</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 font-mono">
+                <span className="m3-badge m3-badge-primary text-[10px] font-mono tabular-nums">
                   {transfers.length} سندات
                 </span>
               </h2>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-[var(--md-on-surface-variant)] mt-1">
                 نقل البضائع والمنتجات بين المستودع الرئيسي ومعارض التجزئة وفروع البطاريات وسيارات المناديب مع الترحيل الفوري للأرصدة
               </p>
             </div>
 
             <button
               onClick={() => setIsTransferModalOpen(true)}
-              className="px-4 py-2.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-teal-950/60 flex items-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
+              className="m3-btn-primary text-xs shrink-0"
             >
               <Plus className="w-4 h-4" />
               <span>+ إنشاء سند تحويل مخزني جديد</span>
@@ -1659,77 +1677,77 @@ export const InventoryTab: React.FC = () => {
           </div>
 
           {/* Transfers Table */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between gap-3 flex-wrap">
-              <span className="text-xs font-bold text-slate-300">سندات التحويل المعتمدة:</span>
-              <span className="text-[11px] text-slate-400">
+          <div className="m3-card overflow-hidden">
+            <div className="p-4 border-b border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] flex items-center justify-between gap-3 flex-wrap">
+              <span className="text-xs font-bold text-[var(--md-on-surface)]">سندات التحويل المعتمدة:</span>
+              <span className="text-[11px] text-[var(--md-on-surface-variant)] tabular-nums">
                 إجمالي القطع المحولة بالكامل:{' '}
-                <strong className="text-teal-400 font-mono">
+                <strong className="text-[var(--md-primary-text)] font-mono">
                   {formatNumber(transfers.reduce((s, t) => s + t.totalPieces, 0))} حبة
                 </strong>
               </span>
             </div>
 
             {transfers.length === 0 ? (
-              <div className="p-12 text-center text-slate-500 space-y-3">
-                <ArrowLeftRight className="w-12 h-12 mx-auto text-slate-600" />
+              <div className="p-12 text-center text-[var(--md-on-surface-variant)] space-y-3">
+                <ArrowLeftRight className="w-12 h-12 mx-auto opacity-50" />
                 <p className="text-sm font-semibold">لا توجد سندات تحويل مخزني مسجلة حتى الآن</p>
                 <button
                   onClick={() => setIsTransferModalOpen(true)}
-                  className="px-3.5 py-2 bg-teal-600 text-white rounded-xl text-xs font-bold"
+                  className="m3-btn-primary text-xs"
                 >
                   + إنشاء أول سند تحويل
                 </button>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-xs text-right">
-                  <thead>
-                    <tr className="bg-slate-950/80 text-slate-400 border-b border-slate-800 text-[11px]">
-                      <th className="py-3 px-4 font-bold">رقم السند</th>
-                      <th className="py-3 px-4 font-bold">التاريخ</th>
-                      <th className="py-3 px-4 font-bold">من مستودع (المصدر)</th>
-                      <th className="py-3 px-4 font-bold">إلى مستودع (الوجهة)</th>
-                      <th className="py-3 px-4 font-bold">السائق / المندوب الناقل</th>
-                      <th className="py-3 px-4 font-bold text-center">عدد الأصناف</th>
-                      <th className="py-3 px-4 font-bold text-center">إجمالي الحبات</th>
-                      <th className="py-3 px-4 font-bold text-center">الحالة</th>
-                      <th className="py-3 px-4 font-bold text-center">إجراءات</th>
+                <table className="m3-table text-xs text-right">
+                  <thead className="m3-thead">
+                    <tr>
+                      <th className="m3-th">رقم السند</th>
+                      <th className="m3-th">التاريخ</th>
+                      <th className="m3-th">من مستودع (المصدر)</th>
+                      <th className="m3-th">إلى مستودع (الوجهة)</th>
+                      <th className="m3-th">السائق / المندوب الناقل</th>
+                      <th className="m3-th text-center">عدد الأصناف</th>
+                      <th className="m3-th text-center">إجمالي الحبات</th>
+                      <th className="m3-th text-center">الحالة</th>
+                      <th className="m3-th text-center">إجراءات</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60 font-mono">
+                  <tbody className="divide-y divide-[var(--md-outline-variant)] font-mono">
                     {transfers.map((voucher) => (
-                      <tr key={voucher.id} className="hover:bg-slate-800/40 transition-colors">
-                        <td className="py-3.5 px-4 font-bold text-teal-300">
+                      <tr key={voucher.id} className="hover:bg-[var(--md-surface-container-low)] transition-colors">
+                        <td className="py-3.5 px-4 font-bold text-[var(--md-primary-text)]">
                           {voucher.voucherNumber}
                         </td>
-                        <td className="py-3.5 px-4 text-slate-300">
+                        <td className="py-3.5 px-4 text-[var(--md-on-surface-variant)] tabular-nums">
                           {voucher.date}
                         </td>
-                        <td className="py-3.5 px-4 font-sans font-medium text-red-300">
-                          <span className="inline-block bg-red-950/40 border border-red-800/40 px-2 py-0.5 rounded text-[11px]">
+                        <td className="py-3.5 px-4 font-sans font-medium">
+                          <span className="m3-badge m3-badge-error text-[11px]">
                             🔻 {voucher.fromWarehouseName}
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 font-sans font-medium text-emerald-300">
-                          <span className="inline-block bg-emerald-950/40 border border-emerald-800/40 px-2 py-0.5 rounded text-[11px]">
+                        <td className="py-3.5 px-4 font-sans font-medium">
+                          <span className="m3-badge m3-badge-success text-[11px]">
                             🟢 {voucher.toWarehouseName}
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 font-sans text-slate-300">
+                        <td className="py-3.5 px-4 font-sans text-[var(--md-on-surface)]">
                           <div>{voucher.driverName}</div>
                           {voucher.vehicleNumber && (
-                            <span className="text-[10px] text-slate-400 font-mono">{voucher.vehicleNumber}</span>
+                            <span className="text-[10px] text-[var(--md-on-surface-variant)] font-mono">{voucher.vehicleNumber}</span>
                           )}
                         </td>
-                        <td className="py-3.5 px-4 text-center text-slate-200">
+                        <td className="py-3.5 px-4 text-center text-[var(--md-on-surface)] tabular-nums">
                           {voucher.items.length} صنف
                         </td>
-                        <td className="py-3.5 px-4 text-center font-bold text-teal-400">
+                        <td className="py-3.5 px-4 text-center font-bold text-[var(--md-primary-text)] tabular-nums">
                           {formatNumber(voucher.totalPieces)}
                         </td>
                         <td className="py-3.5 px-4 text-center font-sans">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
+                          <span className="m3-badge m3-badge-success text-[10px]">
                             مرحل ومطابق ✅
                           </span>
                         </td>
@@ -1738,14 +1756,14 @@ export const InventoryTab: React.FC = () => {
                             <button
                               onClick={() => setSelectedTransferForView(voucher)}
                               title="عرض تفاصيل السند"
-                              className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
+                              className="m3-btn-outlined !min-h-[32px] !px-2 !py-1.5"
                             >
                               <Eye className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handlePrintTransferSlip(voucher)}
                               title="طباعة إذن التحويل المخزني الرسمي"
-                              className="p-1.5 bg-teal-900/60 hover:bg-teal-700 text-teal-300 hover:text-white rounded-lg border border-teal-700/50 transition-colors cursor-pointer"
+                              className="m3-btn-tonal !min-h-[32px] !px-2 !py-1.5"
                             >
                               <Printer className="w-3.5 h-3.5" />
                             </button>
@@ -1765,25 +1783,25 @@ export const InventoryTab: React.FC = () => {
       {/* MODAL 1: إنشاء سند تحويل مخزني جديد (Create Stock Transfer Modal)       */}
       {/* ========================================================================= */}
       {isTransferModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-teal-500/30 rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden my-6">
-            <div className="p-4 sm:p-5 bg-gradient-to-l from-slate-900 to-[#0c1f19] border-b border-teal-500/20 flex items-center justify-between">
+        <div className="m3-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto" dir="rtl">
+          <div className="m3-modal-surface w-full max-w-3xl overflow-hidden my-6 text-right text-[var(--md-on-surface)]">
+            <div className="p-4 sm:p-5 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-teal-500/20 text-teal-300 flex items-center justify-center border border-teal-500/30">
+                <div className="w-9 h-9 rounded-[var(--md-radius-md)] bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] flex items-center justify-center shrink-0">
                   <ArrowLeftRight className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm sm:text-base font-bold text-white">
+                  <h3 className="text-sm sm:text-base font-bold text-[var(--md-on-surface)]">
                     إنشاء سند تحويل مخزني بين المستودعات والفروع
                   </h3>
-                  <p className="text-[11px] text-teal-300/70">
+                  <p className="text-[11px] text-[var(--md-on-surface-variant)]">
                     نقل الأصناف والكميات بالكرتون أو الحبة مع خصم المصدر وتغذية الوجهة
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setIsTransferModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1.5 rounded-lg bg-slate-800"
+                className="text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] p-1.5 rounded-[var(--md-radius-sm)] hover:bg-[var(--md-surface-container-high)] cursor-pointer transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1791,15 +1809,15 @@ export const InventoryTab: React.FC = () => {
 
             <form onSubmit={handleSaveTransferVoucher} className="p-5 space-y-4 text-xs">
               {/* Routing: From -> To */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-slate-950 rounded-xl border border-slate-800">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-[var(--md-surface-container-low)] rounded-[var(--md-radius-md)] border border-[var(--md-outline-variant)]">
                 <div>
-                  <label className="block text-[11px] font-bold text-red-300 mb-1">
+                  <label className="block text-[11px] font-bold text-[var(--md-error)] mb-1">
                     🔻 من مستودع (المصدر الخارق/المخصوم منه):
                   </label>
                   <select
                     value={newTransfer.fromWarehouseId}
                     onChange={(e) => setNewTransfer({ ...newTransfer, fromWarehouseId: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-teal-500"
+                    className="m3-select !h-10 text-xs"
                   >
                     {warehouses.map((wh) => (
                       <option key={wh.id} value={wh.id}>
@@ -1810,13 +1828,13 @@ export const InventoryTab: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-emerald-300 mb-1">
+                  <label className="block text-[11px] font-bold text-[var(--md-success)] mb-1">
                     🟢 إلى مستودع (الوجهة / المستلم):
                   </label>
                   <select
                     value={newTransfer.toWarehouseId}
                     onChange={(e) => setNewTransfer({ ...newTransfer, toWarehouseId: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-teal-500"
+                    className="m3-select !h-10 text-xs"
                   >
                     {warehouses.map((wh) => (
                       <option key={wh.id} value={wh.id}>
@@ -1830,7 +1848,7 @@ export const InventoryTab: React.FC = () => {
               {/* Driver and Vehicle */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                  <label className="block text-[11px] font-semibold text-[var(--md-on-surface-variant)] mb-1">
                     اسم السائق / المندوب الناقل:
                   </label>
                   <input
@@ -1838,11 +1856,11 @@ export const InventoryTab: React.FC = () => {
                     placeholder="مثال: صادق المريسي"
                     value={newTransfer.driverName}
                     onChange={(e) => setNewTransfer({ ...newTransfer, driverName: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-teal-500"
+                    className="m3-input !h-10 text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                  <label className="block text-[11px] font-semibold text-[var(--md-on-surface-variant)] mb-1">
                     رقم السيارة / وسيلة النقل (اختياري):
                   </label>
                   <input
@@ -1850,7 +1868,7 @@ export const InventoryTab: React.FC = () => {
                     placeholder="مثال: سيارة جامبو #5421"
                     value={newTransfer.vehicleNumber}
                     onChange={(e) => setNewTransfer({ ...newTransfer, vehicleNumber: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-teal-500"
+                    className="m3-input !h-10 text-xs"
                   />
                 </div>
               </div>
@@ -1858,11 +1876,11 @@ export const InventoryTab: React.FC = () => {
               {/* Items Section */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-white text-xs">الأصناف المراد تحويلها:</span>
+                  <span className="font-bold text-[var(--md-on-surface)] text-xs">الأصناف المراد تحويلها:</span>
                   <button
                     type="button"
                     onClick={handleAddTransferItemRow}
-                    className="px-2.5 py-1 bg-teal-600/30 hover:bg-teal-600/50 text-teal-300 border border-teal-500/30 rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                    className="m3-btn-tonal !min-h-[32px] !px-2.5 text-[11px]"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>+ إضافة صنف</span>
@@ -1878,14 +1896,14 @@ export const InventoryTab: React.FC = () => {
                     return (
                       <div
                         key={idx}
-                        className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center gap-2"
+                        className="p-3 bg-[var(--md-surface-container-low)] rounded-[var(--md-radius-md)] border border-[var(--md-outline-variant)] flex flex-col sm:flex-row items-start sm:items-center gap-2"
                       >
                         {/* Product Select */}
                         <div className="flex-1 w-full">
                           <select
                             value={it.productId}
                             onChange={(e) => handleUpdateTransferItemRow(idx, 'productId', e.target.value)}
-                            className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-none"
+                            className="m3-select !h-9 text-xs"
                             required
                           >
                             <option value="">-- اختر الصنف --</option>
@@ -1898,11 +1916,11 @@ export const InventoryTab: React.FC = () => {
                         </div>
 
                         {/* Unit Toggle */}
-                        <div className="w-28">
+                        <div className="w-full sm:w-28">
                           <select
                             value={it.unit}
                             onChange={(e) => handleUpdateTransferItemRow(idx, 'unit', e.target.value)}
-                            className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-none"
+                            className="m3-select !h-9 text-xs"
                           >
                             <option value="CARTON">
                               كرتون {factor > 1 ? `(${factor})` : ''}
@@ -1912,7 +1930,7 @@ export const InventoryTab: React.FC = () => {
                         </div>
 
                         {/* Quantity */}
-                        <div className="w-24">
+                        <div className="w-full sm:w-24">
                           <input
                             type="number"
                             min="1"
@@ -1920,13 +1938,13 @@ export const InventoryTab: React.FC = () => {
                             placeholder="الكمية"
                             value={it.quantity}
                             onChange={(e) => handleUpdateTransferItemRow(idx, 'quantity', e.target.value)}
-                            className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-mono text-xs text-center focus:outline-none"
+                            className="m3-input !h-9 font-mono text-xs text-center tabular-nums"
                             required
                           />
                         </div>
 
                         {/* Pieces Equiv Badge */}
-                        <div className="w-24 text-center font-mono text-teal-400 font-bold text-[11px]">
+                        <div className="w-24 text-center font-mono text-[var(--md-primary-text)] font-bold text-[11px] tabular-nums">
                           = {pieces} حبة
                         </div>
 
@@ -1935,7 +1953,7 @@ export const InventoryTab: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleRemoveTransferItemRow(idx)}
-                            className="p-1.5 text-red-400 hover:text-white hover:bg-red-950 rounded-lg cursor-pointer"
+                            className="m3-btn-danger !min-h-[32px] !px-2 !py-1.5"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -1948,7 +1966,7 @@ export const InventoryTab: React.FC = () => {
 
               {/* Notes */}
               <div>
-                <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                <label className="block text-[11px] font-semibold text-[var(--md-on-surface-variant)] mb-1">
                   ملاحظات وبيان التحويل (سبب النقل):
                 </label>
                 <input
@@ -1956,22 +1974,22 @@ export const InventoryTab: React.FC = () => {
                   placeholder="مثال: تغذية يومية لمعرض التجزئة / شحنة مندوب المبيعات"
                   value={newTransfer.notes}
                   onChange={(e) => setNewTransfer({ ...newTransfer, notes: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs focus:outline-none"
+                  className="m3-input !h-10 text-xs"
                 />
               </div>
 
               {/* Submit Buttons */}
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--md-outline-variant)]">
                 <button
                   type="button"
                   onClick={() => setIsTransferModalOpen(false)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold cursor-pointer"
+                  className="m3-btn-outlined text-xs"
                 >
                   إلغاء
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-teal-950/60 cursor-pointer"
+                  className="m3-btn-primary text-xs"
                 >
                   اعتماد وترحيل سند التحويل المخزني ✅
                 </button>
@@ -1985,75 +2003,75 @@ export const InventoryTab: React.FC = () => {
       {/* MODAL 2: عرض تفاصيل سند التحويل (View Transfer Modal)                     */}
       {/* ========================================================================= */}
       {selectedTransferForView && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border border-teal-500/30 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden">
-            <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+        <div className="m3-backdrop fixed inset-0 z-50 flex items-center justify-center p-4" dir="rtl">
+          <div className="m3-modal-surface w-full max-w-2xl overflow-hidden text-right text-[var(--md-on-surface)]">
+            <div className="p-4 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <h3 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
                   <span>سند تحويل مخزني: {selectedTransferForView.voucherNumber}</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono">
+                  <span className="m3-badge m3-badge-success text-[10px]">
                     معتمد
                   </span>
                 </h3>
-                <p className="text-[11px] text-slate-400">التاريخ: {selectedTransferForView.date}</p>
+                <p className="text-[11px] text-[var(--md-on-surface-variant)] tabular-nums">التاريخ: {selectedTransferForView.date}</p>
               </div>
               <button
                 onClick={() => setSelectedTransferForView(null)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg"
+                className="text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] p-1.5 rounded-[var(--md-radius-sm)] hover:bg-[var(--md-surface-container-high)] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="p-5 space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-950 rounded-xl border border-slate-800 text-[11px]">
+              <div className="grid grid-cols-2 gap-3 p-3.5 bg-[var(--md-surface-container-low)] rounded-[var(--md-radius-md)] border border-[var(--md-outline-variant)] text-[11px]">
                 <div>
-                  <span className="text-red-400 font-bold block">🔻 من مستودع:</span>
-                  <strong className="text-white text-xs">{selectedTransferForView.fromWarehouseName}</strong>
+                  <span className="text-[var(--md-error)] font-bold block">🔻 من مستودع:</span>
+                  <strong className="text-[var(--md-on-surface)] text-xs">{selectedTransferForView.fromWarehouseName}</strong>
                 </div>
                 <div>
-                  <span className="text-emerald-400 font-bold block">🟢 إلى مستودع:</span>
-                  <strong className="text-white text-xs">{selectedTransferForView.toWarehouseName}</strong>
+                  <span className="text-[var(--md-success)] font-bold block">🟢 إلى مستودع:</span>
+                  <strong className="text-[var(--md-on-surface)] text-xs">{selectedTransferForView.toWarehouseName}</strong>
                 </div>
                 <div>
-                  <span className="text-slate-400 block">السائق / الناقل:</span>
-                  <span className="text-slate-200">{selectedTransferForView.driverName}</span>
+                  <span className="text-[var(--md-on-surface-variant)] block">السائق / الناقل:</span>
+                  <span className="text-[var(--md-on-surface)] font-medium">{selectedTransferForView.driverName}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block">بيان التحويل:</span>
-                  <span className="text-slate-200">{selectedTransferForView.notes || '-'}</span>
+                  <span className="text-[var(--md-on-surface-variant)] block">بيان التحويل:</span>
+                  <span className="text-[var(--md-on-surface)] font-medium">{selectedTransferForView.notes || '-'}</span>
                 </div>
               </div>
 
               {/* Items List */}
-              <div className="border border-slate-800 rounded-xl overflow-hidden">
-                <table className="w-full text-xs text-right">
-                  <thead>
-                    <tr className="bg-slate-950 text-slate-400 border-b border-slate-800 text-[11px]">
-                      <th className="py-2.5 px-3">الصنف</th>
-                      <th className="py-2.5 px-3 text-center">الوحدة المحولة</th>
-                      <th className="py-2.5 px-3 text-center">الكمية</th>
-                      <th className="py-2.5 px-3 text-center">إجمالي الحبات</th>
+              <div className="border border-[var(--md-outline-variant)] rounded-[var(--md-radius-md)] overflow-hidden">
+                <table className="m3-table text-xs text-right">
+                  <thead className="m3-thead">
+                    <tr>
+                      <th className="m3-th">الصنف</th>
+                      <th className="m3-th text-center">الوحدة المحولة</th>
+                      <th className="m3-th text-center">الكمية</th>
+                      <th className="m3-th text-center">إجمالي الحبات</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60 font-mono">
+                  <tbody className="divide-y divide-[var(--md-outline-variant)] font-mono">
                     {selectedTransferForView.items.map((it, i) => (
                       <tr key={i}>
-                        <td className="py-2 px-3 font-sans font-medium text-white">{it.productName}</td>
-                        <td className="py-2 px-3 text-center font-sans text-slate-300">
+                        <td className="py-2.5 px-3 font-sans font-semibold text-[var(--md-on-surface)]">{it.productName}</td>
+                        <td className="py-2.5 px-3 text-center font-sans text-[var(--md-on-surface-variant)]">
                           {it.unit === 'CARTON' ? 'كرتون' : 'حبة'}
                         </td>
-                        <td className="py-2 px-3 text-center font-bold text-slate-100">{it.quantity}</td>
-                        <td className="py-2 px-3 text-center font-bold text-teal-400">{it.totalPieces}</td>
+                        <td className="py-2.5 px-3 text-center font-bold text-[var(--md-on-surface)] tabular-nums">{it.quantity}</td>
+                        <td className="py-2.5 px-3 text-center font-bold text-[var(--md-primary-text)] tabular-nums">{it.totalPieces}</td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-slate-950/80 font-bold border-t border-slate-800">
-                      <td colSpan={3} className="py-2 px-3 text-right text-slate-300">
+                    <tr className="bg-[var(--md-surface-container-low)] font-bold border-t border-[var(--md-outline-variant)]">
+                      <td colSpan={3} className="py-2.5 px-3 text-right text-[var(--md-on-surface)]">
                         إجمالي الحبات:
                       </td>
-                      <td className="py-2 px-3 text-center text-teal-300 font-mono">
+                      <td className="py-2.5 px-3 text-center text-[var(--md-primary-text)] font-mono tabular-nums">
                         {selectedTransferForView.totalPieces} حبة
                       </td>
                     </tr>
@@ -2061,17 +2079,17 @@ export const InventoryTab: React.FC = () => {
                 </table>
               </div>
 
-              <div className="flex items-center justify-between pt-3 border-t border-slate-800">
+              <div className="flex items-center justify-between pt-3 border-t border-[var(--md-outline-variant)]">
                 <button
                   onClick={() => handlePrintTransferSlip(selectedTransferForView)}
-                  className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer"
+                  className="m3-btn-primary text-xs"
                 >
                   <Printer className="w-4 h-4" />
                   <span>طباعة إذن التحويل الرسمي</span>
                 </button>
                 <button
                   onClick={() => setSelectedTransferForView(null)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold"
+                  className="m3-btn-outlined text-xs"
                 >
                   إغلاق
                 </button>

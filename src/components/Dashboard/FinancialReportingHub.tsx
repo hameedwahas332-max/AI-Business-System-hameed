@@ -294,15 +294,15 @@ export const FinancialReportingHub: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-right" dir="rtl">
       {/* Top Header Bar */}
-      <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="m3-card p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-cyan-400" />
+          <h2 className="text-xl font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+            <TrendingUp className="w-6 h-6 text-[var(--md-primary-text)]" />
             مركز التقارير والذكاء المالي (Financial Intelligence Hub)
           </h2>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-[var(--md-on-surface-variant)] mt-1">
             القوائم المالية الختامية، قائمة الدخل والميزانية، التحليل المالي، ومعدلات الأداء بالعملة النشطة ({currSym}).
           </p>
         </div>
@@ -311,10 +311,10 @@ export const FinancialReportingHub: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsRatesOpen(true)}
-            className="px-3.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+            className="m3-btn-tonal !min-h-[38px] text-xs"
             title="إدارة وتعديل أسعار الصرف اليومية"
           >
-            <Coins className="w-4 h-4 text-amber-400" />
+            <Coins className="w-4 h-4 text-[var(--md-secondary)]" />
             <span>نشرة أسعار الصرف اليومية</span>
           </button>
 
@@ -322,21 +322,21 @@ export const FinancialReportingHub: React.FC = () => {
             <button
               type="button"
               onClick={handlePrintOverview}
-              className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+              className="m3-btn-outlined !min-h-[38px] text-xs"
               title="طباعة المركز المالي والقوائم"
             >
-              <Printer className="w-4 h-4 text-cyan-400" />
+              <Printer className="w-4 h-4 text-[var(--md-primary-text)]" />
               <span>طباعة القوائم</span>
             </button>
           )}
 
-          <div className="flex bg-slate-800/80 p-1 rounded-lg border border-slate-700">
+          <div className="flex flex-wrap bg-[var(--md-surface-container)] p-1 rounded-xl border border-[var(--md-outline-variant)] gap-1">
             <button
               onClick={() => setActiveSection('overview')}
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap ${
                 activeSection === 'overview'
-                  ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
-                  : 'text-slate-300 hover:text-white'
+                  ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/35 font-bold shadow-sm'
+                  : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] border border-transparent'
               }`}
             >
               <PieChart className="w-4 h-4" />
@@ -344,10 +344,10 @@ export const FinancialReportingHub: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveSection('reports')}
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap ${
                 activeSection === 'reports'
-                  ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
-                  : 'text-slate-300 hover:text-white'
+                  ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/35 font-bold shadow-sm'
+                  : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] border border-transparent'
               }`}
             >
               <BarChart3 className="w-4 h-4" />
@@ -355,10 +355,10 @@ export const FinancialReportingHub: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveSection('forecast')}
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap ${
                 activeSection === 'forecast'
-                  ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
-                  : 'text-slate-300 hover:text-white'
+                  ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/35 font-bold shadow-sm'
+                  : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] border border-transparent'
               }`}
             >
               <DollarSign className="w-4 h-4" />
@@ -374,17 +374,17 @@ export const FinancialReportingHub: React.FC = () => {
         <div className="space-y-6 animate-fadeIn">
           {/* Status banner for Clean Mode */}
           {financialData.isClean && !financialData.hasData && (
-            <div className="p-4 bg-cyan-950/30 border border-cyan-800/40 rounded-2xl flex items-center justify-between gap-4">
+            <div className="p-4 bg-[var(--md-info-container)] border border-[var(--md-info)]/35 text-[var(--md-on-info-container)] rounded-2xl flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
+                <CheckCircle2 className="w-5 h-5 text-[var(--md-info)] shrink-0" />
                 <div>
-                  <h4 className="text-sm font-bold text-cyan-200">وضع الإنتاج النظيف نشط (Clean Production Mode)</h4>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <h4 className="text-sm font-bold">وضع الإنتاج النظيف نشط (Clean Production Mode)</h4>
+                  <p className="text-xs opacity-85 mt-0.5">
                     جميع الحسابات والقوائم الختامية مصفّرة وجاهزة لاحتساب عملياتك التجارية الفعلية فور تسجيلها.
                   </p>
                 </div>
               </div>
-              <span className="text-xs font-mono font-bold text-cyan-400 bg-cyan-500/10 px-2.5 py-1 rounded-lg border border-cyan-500/20">
+              <span className="m3-badge m3-badge-info font-mono font-bold tabular-nums">
                 0.00 {currSym}
               </span>
             </div>
@@ -392,70 +392,84 @@ export const FinancialReportingHub: React.FC = () => {
 
           {/* Top 4 Financial KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between shadow-sm">
-              <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
+            <div className="m3-card p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] text-xs font-semibold">
                 <span>إجمالي الإيرادات (المبيعات)</span>
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-[var(--md-success-container)] text-[var(--md-on-success-container)] border border-[var(--md-success)]/25 flex items-center justify-center">
                   <TrendingUp className="w-4 h-4" />
                 </div>
               </div>
               <div className="mt-3">
-                <div className="text-2xl font-black text-white font-mono">
-                  {formatNumber(financialData.salesRevenue)} <span className="text-xs font-bold text-slate-400">{currSym}</span>
+                <div className="text-2xl font-black text-[var(--md-on-surface)] font-mono tabular-nums">
+                  {formatNumber(financialData.salesRevenue)}{' '}
+                  <span className="text-xs font-bold text-[var(--md-on-surface-variant)]">{currSym}</span>
                 </div>
-                <div className="text-xs text-emerald-400 mt-1 flex items-center gap-1 font-semibold">
+                <div className="text-xs text-[var(--md-success)] mt-1 flex items-center gap-1 font-semibold tabular-nums">
                   <ArrowUpRight className="w-3.5 h-3.5" />
                   <span>هامش الربح: {financialData.grossMargin.toFixed(1)}%</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between shadow-sm">
-              <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
+            <div className="m3-card p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] text-xs font-semibold">
                 <span>صافي الدخل التشغيلي</span>
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${financialData.netIncome >= 0 ? 'bg-cyan-500/10 text-cyan-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                <div
+                  className={`w-8 h-8 rounded-lg border flex items-center justify-center ${
+                    financialData.netIncome >= 0
+                      ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border-[var(--md-primary)]/25'
+                      : 'bg-[var(--md-error-container)] text-[var(--md-on-error-container)] border-[var(--md-error)]/25'
+                  }`}
+                >
                   <DollarSign className="w-4 h-4" />
                 </div>
               </div>
               <div className="mt-3">
-                <div className={`text-2xl font-black font-mono ${financialData.netIncome >= 0 ? 'text-cyan-400' : 'text-rose-400'}`}>
-                  {formatNumber(financialData.netIncome)} <span className="text-xs font-bold text-slate-400">{currSym}</span>
+                <div
+                  className={`text-2xl font-black font-mono tabular-nums ${
+                    financialData.netIncome >= 0 ? 'text-[var(--md-primary-text)]' : 'text-[var(--md-error)]'
+                  }`}
+                >
+                  {formatNumber(financialData.netIncome)}{' '}
+                  <span className="text-xs font-bold text-[var(--md-on-surface-variant)]">{currSym}</span>
                 </div>
-                <div className="text-xs text-slate-400 mt-1 font-medium">
+                <div className="text-xs text-[var(--md-on-surface-variant)] mt-1 font-medium tabular-nums">
                   بعد خصم المصاريف: {formatNumber(financialData.operatingExpenses)} {currSym}
                 </div>
               </div>
             </div>
 
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between shadow-sm">
-              <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
+            <div className="m3-card p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] text-xs font-semibold">
                 <span>تقييم المخزون الحالي بالتكلفة</span>
-                <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-[var(--md-info-container)] text-[var(--md-on-info-container)] border border-[var(--md-info)]/25 flex items-center justify-center">
                   <Building2 className="w-4 h-4" />
                 </div>
               </div>
               <div className="mt-3">
-                <div className="text-2xl font-black text-white font-mono">
-                  {formatNumber(financialData.inventoryValuation)} <span className="text-xs font-bold text-slate-400">{currSym}</span>
+                <div className="text-2xl font-black text-[var(--md-on-surface)] font-mono tabular-nums">
+                  {formatNumber(financialData.inventoryValuation)}{' '}
+                  <span className="text-xs font-bold text-[var(--md-on-surface-variant)]">{currSym}</span>
                 </div>
-                <div className="text-xs text-slate-400 mt-1 font-medium">
+                <div className="text-xs text-[var(--md-on-surface-variant)] mt-1 font-medium">
                   أصل متداول جاهز للبيع والتشغيل
                 </div>
               </div>
             </div>
 
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between shadow-sm">
-              <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
+            <div className="m3-card p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] text-xs font-semibold">
                 <span>رأس المال العامل (Working Capital)</span>
-                <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] border border-[var(--md-secondary)]/25 flex items-center justify-center">
                   <Scale className="w-4 h-4" />
                 </div>
               </div>
               <div className="mt-3">
-                <div className="text-2xl font-black text-amber-400 font-mono">
-                  {formatNumber(financialData.workingCapital)} <span className="text-xs font-bold text-slate-400">{currSym}</span>
+                <div className="text-2xl font-black text-[var(--md-secondary)] font-mono tabular-nums">
+                  {formatNumber(financialData.workingCapital)}{' '}
+                  <span className="text-xs font-bold text-[var(--md-on-surface-variant)]">{currSym}</span>
                 </div>
-                <div className="text-xs text-slate-400 mt-1 font-medium">
+                <div className="text-xs text-[var(--md-on-surface-variant)] mt-1 font-medium tabular-nums">
                   نسبة التداول: {financialData.currentRatio > 0 ? financialData.currentRatio.toFixed(2) : '1.00'}x
                 </div>
               </div>
@@ -465,110 +479,164 @@ export const FinancialReportingHub: React.FC = () => {
           {/* Dual Financial Statements Grid: Income Statement & Balance Sheet */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* 1. قائمة الدخل والأرباح والخسائر */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Receipt className="w-5 h-5 text-emerald-400" />
+            <div className="m3-card p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-[var(--md-outline-variant)] pb-3">
+                <h3 className="text-base font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                  <Receipt className="w-5 h-5 text-[var(--md-success)]" />
                   قائمة الدخل والأرباح (Income Statement)
                 </h3>
-                <span className="text-xs font-mono text-slate-400 font-semibold">{currSym}</span>
+                <span className="text-xs font-mono text-[var(--md-on-surface-variant)] font-semibold">{currSym}</span>
               </div>
 
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between items-center py-1.5 border-b border-slate-800/60">
-                  <span className="text-slate-300 font-medium">إجمالي إيرادات المبيعات (Sales Revenue)</span>
-                  <span className="font-mono font-bold text-emerald-400">
-                    +{formatNumber(financialData.salesRevenue)} {currSym}
-                  </span>
-                </div>
+              <div className="overflow-x-auto">
+                <table className="m3-table text-right">
+                  <tbody>
+                    <tr>
+                      <td className="font-medium text-[var(--md-on-surface)]">
+                        إجمالي إيرادات المبيعات (Sales Revenue)
+                      </td>
+                      <td className="text-left font-mono font-bold text-[var(--md-success)] tabular-nums whitespace-nowrap">
+                        +{formatNumber(financialData.salesRevenue)} {currSym}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="font-medium text-[var(--md-on-surface)]">
+                        تكلفة البضاعة المباعة (Cost of Goods Sold - COGS)
+                      </td>
+                      <td className="text-left font-mono font-bold text-[var(--md-error)] tabular-nums whitespace-nowrap">
+                        -{formatNumber(financialData.cogs)} {currSym}
+                      </td>
+                    </tr>
+                    <tr className="bg-[var(--md-surface-container)] font-bold">
+                      <td className="text-[var(--md-on-surface)] font-bold">إجمالي الربح (Gross Profit)</td>
+                      <td className="text-left font-mono font-bold text-[var(--md-success)] tabular-nums whitespace-nowrap">
+                        {formatNumber(financialData.grossProfit)} {currSym}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="text-[var(--md-on-surface-variant)]">
+                        المصروفات التشغيلية والعمومية (Operating Expenses)
+                      </td>
+                      <td className="text-left font-mono text-[var(--md-on-surface)] tabular-nums whitespace-nowrap">
+                        -{formatNumber(financialData.operatingExpenses)} {currSym}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="text-[var(--md-on-surface-variant)]">
+                        الرواتب والأجور المقدرة (Salaries & Wages)
+                      </td>
+                      <td className="text-left font-mono text-[var(--md-on-surface)] tabular-nums whitespace-nowrap">
+                        -{formatNumber(financialData.salaries)} {currSym}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
 
-                <div className="flex justify-between items-center py-1.5 border-b border-slate-800/60">
-                  <span className="text-slate-300 font-medium">تكلفة البضاعة المباعة (Cost of Goods Sold - COGS)</span>
-                  <span className="font-mono font-bold text-rose-400">
-                    -{formatNumber(financialData.cogs)} {currSym}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center py-2 bg-slate-950/60 px-3 rounded-xl border border-slate-800 font-bold">
-                  <span className="text-white">إجمالي الربح (Gross Profit)</span>
-                  <span className="font-mono text-emerald-400">
-                    {formatNumber(financialData.grossProfit)} {currSym}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center py-1.5 border-b border-slate-800/60">
-                  <span className="text-slate-400">المصروفات التشغيلية والعمومية (Operating Expenses)</span>
-                  <span className="font-mono text-slate-300">
-                    -{formatNumber(financialData.operatingExpenses)} {currSym}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center py-1.5 border-b border-slate-800/60">
-                  <span className="text-slate-400">الرواتب والأجور المقدرة (Salaries & Wages)</span>
-                  <span className="font-mono text-slate-300">
-                    -{formatNumber(financialData.salaries)} {currSym}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center py-3 bg-gradient-to-r from-emerald-950/30 to-cyan-950/30 px-3.5 rounded-xl border border-emerald-500/30 font-black text-base">
-                  <span className="text-emerald-300">صافي الأرباح التشغيلية (Net Income)</span>
-                  <span className="font-mono text-emerald-400">
-                    {formatNumber(financialData.netIncome)} {currSym}
-                  </span>
-                </div>
+              <div
+                className={`flex justify-between items-center py-3 px-4 rounded-xl border font-black text-base tabular-nums ${
+                  financialData.netIncome >= 0
+                    ? 'bg-[var(--md-success-container)] border-[var(--md-success)]/35 text-[var(--md-on-success-container)]'
+                    : 'bg-[var(--md-error-container)] border-[var(--md-error)]/35 text-[var(--md-on-error-container)]'
+                }`}
+              >
+                <span>صافي الأرباح التشغيلية (Net Income)</span>
+                <span className="font-mono">
+                  {formatNumber(financialData.netIncome)} {currSym}
+                </span>
               </div>
             </div>
 
             {/* 2. الميزانية العمومية والمركز المالي */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Scale className="w-5 h-5 text-cyan-400" />
+            <div className="m3-card p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-[var(--md-outline-variant)] pb-3">
+                <h3 className="text-base font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                  <Scale className="w-5 h-5 text-[var(--md-primary-text)]" />
                   الميزانية العمومية والمركز المالي (Balance Sheet)
                 </h3>
-                <span className="text-xs font-mono text-slate-400 font-semibold">{currSym}</span>
+                <span className="text-xs font-mono text-[var(--md-on-surface-variant)] font-semibold">{currSym}</span>
               </div>
 
-              <div className="space-y-3 text-sm">
-                <div className="space-y-1.5">
-                  <div className="text-xs font-bold text-cyan-400">الأصول المتداولة (Current Assets):</div>
-                  <div className="flex justify-between items-center py-1 text-xs border-b border-slate-800/60">
-                    <span className="text-slate-300">النقدية وما يعادلها في الصندوق والبنوك</span>
-                    <span className="font-mono font-bold text-slate-200">{formatNumber(financialData.cashAndBank)} {currSym}</span>
+              <div className="space-y-4">
+                <div>
+                  <div className="text-xs font-bold text-[var(--md-primary-text)] mb-1.5">
+                    الأصول المتداولة (Current Assets):
                   </div>
-                  <div className="flex justify-between items-center py-1 text-xs border-b border-slate-800/60">
-                    <span className="text-slate-300">حسابات العملاء والمدينون (Accounts Receivable)</span>
-                    <span className="font-mono font-bold text-slate-200">{formatNumber(financialData.accountsReceivable)} {currSym}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-1 text-xs border-b border-slate-800/60">
-                    <span className="text-slate-300">بضاعة آخر المدة بالمخازن (Inventory)</span>
-                    <span className="font-mono font-bold text-slate-200">{formatNumber(financialData.inventoryValuation)} {currSym}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-1.5 font-bold text-xs bg-slate-950/50 px-2 rounded-lg">
-                    <span className="text-cyan-300">إجمالي الأصول المتداولة</span>
-                    <span className="font-mono text-cyan-400">{formatNumber(financialData.totalCurrentAssets)} {currSym}</span>
+                  <div className="overflow-x-auto">
+                    <table className="m3-table text-right text-xs">
+                      <tbody>
+                        <tr>
+                          <td className="!py-2 text-[var(--md-on-surface)]">
+                            النقدية وما يعادلها في الصندوق والبنوك
+                          </td>
+                          <td className="!py-2 text-left font-mono font-bold text-[var(--md-on-surface)] tabular-nums whitespace-nowrap">
+                            {formatNumber(financialData.cashAndBank)} {currSym}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="!py-2 text-[var(--md-on-surface)]">
+                            حسابات العملاء والمدينون (Accounts Receivable)
+                          </td>
+                          <td className="!py-2 text-left font-mono font-bold text-[var(--md-on-surface)] tabular-nums whitespace-nowrap">
+                            {formatNumber(financialData.accountsReceivable)} {currSym}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="!py-2 text-[var(--md-on-surface)]">
+                            بضاعة آخر المدة بالمخازن (Inventory)
+                          </td>
+                          <td className="!py-2 text-left font-mono font-bold text-[var(--md-on-surface)] tabular-nums whitespace-nowrap">
+                            {formatNumber(financialData.inventoryValuation)} {currSym}
+                          </td>
+                        </tr>
+                        <tr className="bg-[var(--md-surface-container)] font-bold">
+                          <td className="!py-2 text-[var(--md-primary-text)] font-bold">إجمالي الأصول المتداولة</td>
+                          <td className="!py-2 text-left font-mono font-bold text-[var(--md-primary-text)] tabular-nums whitespace-nowrap">
+                            {formatNumber(financialData.totalCurrentAssets)} {currSym}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
 
-                <div className="space-y-1.5 pt-1">
-                  <div className="text-xs font-bold text-amber-400">الالتزامات والخصوم المتداولة (Liabilities):</div>
-                  <div className="flex justify-between items-center py-1 text-xs border-b border-slate-800/60">
-                    <span className="text-slate-300">ذمم الموردين والدائنون (Accounts Payable)</span>
-                    <span className="font-mono font-bold text-slate-200">{formatNumber(financialData.accountsPayable)} {currSym}</span>
+                <div>
+                  <div className="text-xs font-bold text-[var(--md-warning)] mb-1.5">
+                    الالتزامات والخصوم المتداولة (Liabilities):
                   </div>
-                  <div className="flex justify-between items-center py-1 text-xs border-b border-slate-800/60">
-                    <span className="text-slate-300">مخصص ضريبة القيمة المضافة المستحقة</span>
-                    <span className="font-mono font-bold text-slate-200">{formatNumber(financialData.vatPayable)} {currSym}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-1.5 font-bold text-xs bg-slate-950/50 px-2 rounded-lg">
-                    <span className="text-amber-300">إجمالي الالتزامات المتداولة</span>
-                    <span className="font-mono text-amber-400">{formatNumber(financialData.totalCurrentLiabilities)} {currSym}</span>
+                  <div className="overflow-x-auto">
+                    <table className="m3-table text-right text-xs">
+                      <tbody>
+                        <tr>
+                          <td className="!py-2 text-[var(--md-on-surface)]">
+                            ذمم الموردين والدائنون (Accounts Payable)
+                          </td>
+                          <td className="!py-2 text-left font-mono font-bold text-[var(--md-on-surface)] tabular-nums whitespace-nowrap">
+                            {formatNumber(financialData.accountsPayable)} {currSym}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="!py-2 text-[var(--md-on-surface)]">
+                            مخصص ضريبة القيمة المضافة المستحقة
+                          </td>
+                          <td className="!py-2 text-left font-mono font-bold text-[var(--md-on-surface)] tabular-nums whitespace-nowrap">
+                            {formatNumber(financialData.vatPayable)} {currSym}
+                          </td>
+                        </tr>
+                        <tr className="bg-[var(--md-surface-container)] font-bold">
+                          <td className="!py-2 text-[var(--md-warning)] font-bold">إجمالي الالتزامات المتداولة</td>
+                          <td className="!py-2 text-left font-mono font-bold text-[var(--md-warning)] tabular-nums whitespace-nowrap">
+                            {formatNumber(financialData.totalCurrentLiabilities)} {currSym}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center py-3 bg-gradient-to-r from-amber-950/30 to-blue-950/30 px-3.5 rounded-xl border border-amber-500/30 font-black text-base">
-                  <span className="text-amber-300">صافي رأس المال العامل (Working Capital)</span>
-                  <span className="font-mono text-amber-400">
+                <div className="flex justify-between items-center py-3 px-4 rounded-xl bg-[var(--md-secondary-container)] border border-[var(--md-secondary)]/35 text-[var(--md-on-secondary-container)] font-black text-base tabular-nums">
+                  <span>صافي رأس المال العامل (Working Capital)</span>
+                  <span className="font-mono">
                     {formatNumber(financialData.workingCapital)} {currSym}
                   </span>
                 </div>
@@ -579,91 +647,111 @@ export const FinancialReportingHub: React.FC = () => {
           {/* Third Row: Tax & Zakat Cockpit + Cash Flow Statement */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Zakat & Tax Card */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
+            <div className="m3-card p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-[var(--md-outline-variant)] pb-3">
+                <h3 className="text-base font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-[var(--md-success)]" />
                   الإقرار الضريبي والوعاء الزكوي (Tax & Zakat Cockpit)
                 </h3>
-                <span className="text-xs font-mono text-slate-400 font-semibold">{currSym}</span>
+                <span className="text-xs font-mono text-[var(--md-on-surface-variant)] font-semibold">{currSym}</span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="p-3.5 bg-slate-950/60 border border-slate-800 rounded-xl space-y-1">
-                  <span className="text-xs text-slate-400">ضريبة المخرجات (المبيعات)</span>
-                  <div className="text-base font-bold text-emerald-400 font-mono">
+                <div className="p-3.5 bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-xl space-y-1">
+                  <span className="text-xs text-[var(--md-on-surface-variant)]">ضريبة المخرجات (المبيعات)</span>
+                  <div className="text-base font-bold text-[var(--md-success)] font-mono tabular-nums">
                     {formatNumber(financialData.vatOutput)} {currSym}
                   </div>
                 </div>
 
-                <div className="p-3.5 bg-slate-950/60 border border-slate-800 rounded-xl space-y-1">
-                  <span className="text-xs text-slate-400">ضريبة المدخلات (المشتريات)</span>
-                  <div className="text-base font-bold text-blue-400 font-mono">
+                <div className="p-3.5 bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-xl space-y-1">
+                  <span className="text-xs text-[var(--md-on-surface-variant)]">ضريبة المدخلات (المشتريات)</span>
+                  <div className="text-base font-bold text-[var(--md-info)] font-mono tabular-nums">
                     {formatNumber(financialData.vatInput)} {currSym}
                   </div>
                 </div>
 
-                <div className="p-3.5 bg-slate-950/60 border border-slate-800 rounded-xl space-y-1">
-                  <span className="text-xs text-slate-400">صافي الضريبة المستحقة</span>
-                  <div className="text-base font-bold text-amber-400 font-mono">
+                <div className="p-3.5 bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-xl space-y-1">
+                  <span className="text-xs text-[var(--md-on-surface-variant)]">صافي الضريبة المستحقة</span>
+                  <div className="text-base font-bold text-[var(--md-warning)] font-mono tabular-nums">
                     {formatNumber(financialData.netVat)} {currSym}
                   </div>
                 </div>
 
-                <div className="p-3.5 bg-slate-950/60 border border-slate-800 rounded-xl space-y-1">
-                  <span className="text-xs text-slate-400">الزكاة الشرعية التقديرية (2.5%)</span>
-                  <div className="text-base font-bold text-emerald-400 font-mono">
+                <div className="p-3.5 bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-xl space-y-1">
+                  <span className="text-xs text-[var(--md-on-surface-variant)]">الزكاة الشرعية التقديرية (2.5%)</span>
+                  <div className="text-base font-bold text-[var(--md-primary-text)] font-mono tabular-nums">
                     {formatNumber(financialData.zakatDue)} {currSym}
                   </div>
                 </div>
               </div>
 
-              <div className="p-3 bg-slate-800/40 rounded-xl border border-slate-800 text-xs text-slate-400 leading-relaxed">
+              <div className="p-3 bg-[var(--md-surface-container-low)] rounded-xl border border-[var(--md-outline-variant)] text-xs text-[var(--md-on-surface-variant)] leading-relaxed">
                 يتم احتساب الوعاء الزكوي على رأس المال العامل وصافي الأرباح السنوية وفقاً للمعايير المحاسبية المعتمدة بنسبة 2.5%.
               </div>
             </div>
 
             {/* Cash Flow Summary Card */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Wallet className="w-5 h-5 text-cyan-400" />
+            <div className="m3-card p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-[var(--md-outline-variant)] pb-3">
+                <h3 className="text-base font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                  <Wallet className="w-5 h-5 text-[var(--md-primary-text)]" />
                   ملخص التدفقات النقدية الفعلية (Cash Flow)
                 </h3>
-                <span className="text-xs font-mono text-slate-400 font-semibold">{currSym}</span>
+                <span className="text-xs font-mono text-[var(--md-on-surface-variant)] font-semibold">{currSym}</span>
               </div>
 
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between items-center py-2 border-b border-slate-800/60">
-                  <span className="text-slate-300 flex items-center gap-2">
-                    <ArrowDownLeft className="w-4 h-4 text-emerald-400" />
-                    المقبوضات النقدية المحصلة (Cash Inflow)
-                  </span>
-                  <span className="font-mono font-bold text-emerald-400">
-                    +{formatNumber(financialData.cashInflow)} {currSym}
-                  </span>
-                </div>
+              <div className="overflow-x-auto">
+                <table className="m3-table text-right">
+                  <tbody>
+                    <tr>
+                      <td className="text-[var(--md-on-surface)]">
+                        <span className="inline-flex items-center gap-2 font-medium">
+                          <ArrowDownLeft className="w-4 h-4 text-[var(--md-success)]" />
+                          المقبوضات النقدية المحصلة (Cash Inflow)
+                        </span>
+                      </td>
+                      <td className="text-left font-mono font-bold text-[var(--md-success)] tabular-nums whitespace-nowrap">
+                        +{formatNumber(financialData.cashInflow)} {currSym}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="text-[var(--md-on-surface)]">
+                        <span className="inline-flex items-center gap-2 font-medium">
+                          <ArrowUpRight className="w-4 h-4 text-[var(--md-error)]" />
+                          المدفوعات والمصاريف النقدية (Cash Outflow)
+                        </span>
+                      </td>
+                      <td className="text-left font-mono font-bold text-[var(--md-error)] tabular-nums whitespace-nowrap">
+                        -{formatNumber(financialData.cashOutflow)} {currSym}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
 
-                <div className="flex justify-between items-center py-2 border-b border-slate-800/60">
-                  <span className="text-slate-300 flex items-center gap-2">
-                    <ArrowUpRight className="w-4 h-4 text-rose-400" />
-                    المدفوعات والمصاريف النقدية (Cash Outflow)
-                  </span>
-                  <span className="font-mono font-bold text-rose-400">
-                    -{formatNumber(financialData.cashOutflow)} {currSym}
-                  </span>
-                </div>
+              <div
+                className={`flex justify-between items-center py-3 px-4 rounded-xl border font-black text-base tabular-nums ${
+                  financialData.netCashFlow >= 0
+                    ? 'bg-[var(--md-primary-container)] border-[var(--md-primary)]/35 text-[var(--md-on-primary-container)]'
+                    : 'bg-[var(--md-error-container)] border-[var(--md-error)]/35 text-[var(--md-on-error-container)]'
+                }`}
+              >
+                <span>صافي السيولة النقدية المتولدة</span>
+                <span className="font-mono">
+                  {formatNumber(financialData.netCashFlow)} {currSym}
+                </span>
+              </div>
 
-                <div className="flex justify-between items-center py-3 bg-gradient-to-r from-blue-950/30 to-cyan-950/30 px-3.5 rounded-xl border border-blue-500/30 font-black text-base">
-                  <span className="text-cyan-300">صافي السيولة النقدية المتولدة</span>
-                  <span className="font-mono text-cyan-400">
-                    {formatNumber(financialData.netCashFlow)} {currSym}
-                  </span>
-                </div>
-
-                <div className="text-xs text-slate-400 pt-1">
-                  حالة السيولة: {financialData.netCashFlow >= 0 ? '🟢 سيولة إيجابية متوازنة' : '🔴 عجز في التدفق النقدي'}
-                </div>
+              <div className="flex items-center justify-between pt-1 text-xs">
+                <span className="text-[var(--md-on-surface-variant)] font-semibold">حالة السيولة:</span>
+                <span
+                  className={`m3-badge ${
+                    financialData.netCashFlow >= 0 ? 'm3-badge-success' : 'm3-badge-error'
+                  }`}
+                >
+                  {financialData.netCashFlow >= 0 ? 'سيولة إيجابية متوازنة' : 'عجز في التدفق النقدي'}
+                </span>
               </div>
             </div>
           </div>

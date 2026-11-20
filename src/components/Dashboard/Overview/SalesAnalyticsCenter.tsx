@@ -82,19 +82,19 @@ export const SalesAnalyticsCenter: React.FC<SalesAnalyticsCenterProps> = ({
   const electronicSales = Math.max(0, totalSales - cashSales - creditSales);
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-5 text-right">
+    <div className="m3-card p-5 sm:p-6 space-y-5 text-right h-full flex flex-col justify-between">
       {/* Header with KPI aggregates */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--md-outline-variant)] pb-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] flex items-center justify-center shrink-0">
               <BarChart3 className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm sm:text-base font-bold text-white">
+              <h3 className="text-sm sm:text-base font-bold text-[var(--md-on-surface)]">
                 مقارنة المبيعات والمشتريات والتدفق التشغيلي
               </h3>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-[var(--md-on-surface-variant)]">
                 تحليل مرئي لحركة الإيرادات مقابل الإنفاق التجاري
               </p>
             </div>
@@ -102,20 +102,24 @@ export const SalesAnalyticsCenter: React.FC<SalesAnalyticsCenterProps> = ({
         </div>
 
         {/* View mode toggle */}
-        <div className="flex items-center gap-2">
-          <div className="bg-slate-800 p-1 rounded-xl border border-slate-700 flex items-center">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="bg-[var(--md-surface-container)] p-1 rounded-xl border border-[var(--md-outline-variant)] flex items-center">
             <button
               onClick={() => setViewMode('weekly')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                viewMode === 'weekly' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                viewMode === 'weekly'
+                  ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] shadow-sm'
+                  : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
               }`}
             >
               أسبوعي
             </button>
             <button
               onClick={() => setViewMode('monthly')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                viewMode === 'monthly' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                viewMode === 'monthly'
+                  ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] shadow-sm'
+                  : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
               }`}
             >
               شهري
@@ -125,7 +129,7 @@ export const SalesAnalyticsCenter: React.FC<SalesAnalyticsCenterProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={() => onNavigate && onNavigate('real_business')}
-              className="text-xs font-bold text-amber-300 hover:text-amber-200 flex items-center gap-1 cursor-pointer px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/25"
+              className="text-xs font-bold text-[var(--md-on-secondary-container)] hover:opacity-90 flex items-center gap-1 cursor-pointer px-2.5 py-1.5 rounded-xl bg-[var(--md-secondary-container)] border border-[color-mix(in_srgb,var(--md-secondary)_30%,transparent)]"
             >
               <span>مناديب التوزيع</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
@@ -133,7 +137,7 @@ export const SalesAnalyticsCenter: React.FC<SalesAnalyticsCenterProps> = ({
 
             <button
               onClick={() => onNavigate && onNavigate('invoices')}
-              className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer px-2.5 py-1 rounded-xl bg-slate-800 border border-slate-700"
+              className="text-xs font-bold text-[var(--md-primary-text)] hover:opacity-90 flex items-center gap-1 cursor-pointer px-2.5 py-1.5 rounded-xl bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)]"
             >
               <span>سجل الفواتير</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
@@ -144,58 +148,58 @@ export const SalesAnalyticsCenter: React.FC<SalesAnalyticsCenterProps> = ({
 
       {/* Mini Summary Badges */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="bg-slate-800/50 p-3 rounded-2xl border border-slate-800 flex items-center justify-between">
+        <div className="bg-[var(--md-surface-container)] p-3 rounded-xl border border-[var(--md-outline-variant)] flex items-center justify-between">
           <div>
-            <span className="text-[10px] text-slate-400 block font-semibold">إجمالي المبيعات</span>
-            <span className="text-sm font-black text-emerald-400 font-mono tabular-nums">
+            <span className="text-[11px] text-[var(--md-on-surface-variant)] block font-semibold">إجمالي المبيعات</span>
+            <span className="text-sm font-black text-[var(--md-primary-text)] font-mono tabular-nums">
               {formatAmount(totalSales)} {currency}
             </span>
           </div>
-          <span className="w-3 h-3 rounded-full bg-emerald-500 shadow-sm" />
+          <span className="w-3 h-3 rounded-full bg-[var(--md-primary)]" />
         </div>
 
-        <div className="bg-slate-800/50 p-3 rounded-2xl border border-slate-800 flex items-center justify-between">
+        <div className="bg-[var(--md-surface-container)] p-3 rounded-xl border border-[var(--md-outline-variant)] flex items-center justify-between">
           <div>
-            <span className="text-[10px] text-slate-400 block font-semibold">إجمالي المشتريات</span>
-            <span className="text-sm font-black text-amber-400 font-mono tabular-nums">
+            <span className="text-[11px] text-[var(--md-on-surface-variant)] block font-semibold">إجمالي المشتريات</span>
+            <span className="text-sm font-black text-[var(--md-secondary)] font-mono tabular-nums">
               {formatAmount(totalPurchases)} {currency}
             </span>
           </div>
-          <span className="w-3 h-3 rounded-full bg-amber-400 shadow-sm" />
+          <span className="w-3 h-3 rounded-full bg-[var(--md-secondary)]" />
         </div>
 
-        <div className="bg-slate-800/50 p-3 rounded-2xl border border-slate-800 flex items-center justify-between">
+        <div className="bg-[var(--md-surface-container)] p-3 rounded-xl border border-[var(--md-outline-variant)] flex items-center justify-between">
           <div>
-            <span className="text-[10px] text-slate-400 block font-semibold">صافي الفارق التشغيلي</span>
-            <span className="text-sm font-black text-cyan-400 font-mono tabular-nums">
+            <span className="text-[11px] text-[var(--md-on-surface-variant)] block font-semibold">صافي الفارق التشغيلي</span>
+            <span className="text-sm font-black text-[var(--md-info)] font-mono tabular-nums">
               +{formatAmount(netFlow)} {currency}
             </span>
           </div>
-          <span className="w-3 h-3 rounded-full bg-cyan-400 shadow-sm" />
+          <span className="w-3 h-3 rounded-full bg-[var(--md-info)]" />
         </div>
       </div>
 
       {/* Visual Chart Bars */}
       <div className="space-y-2 pt-2">
-        <div className="flex items-center justify-between text-[11px] text-slate-400 px-1 pb-1">
+        <div className="flex items-center justify-between text-[11px] text-[var(--md-on-surface-variant)] px-1 pb-1">
           <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5 font-bold text-slate-300">
-              <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" />
+            <span className="flex items-center gap-1.5 font-bold text-[var(--md-on-surface)]">
+              <span className="w-2.5 h-2.5 rounded-sm bg-[var(--md-primary)]" />
               <span>المبيعات (Sales)</span>
             </span>
-            <span className="flex items-center gap-1.5 font-bold text-slate-300">
-              <span className="w-2.5 h-2.5 rounded-sm bg-amber-400" />
+            <span className="flex items-center gap-1.5 font-bold text-[var(--md-on-surface)]">
+              <span className="w-2.5 h-2.5 rounded-sm bg-[var(--md-secondary)]" />
               <span>المشتريات (Purchases)</span>
             </span>
           </div>
-          <span className="font-mono text-[10px]">
+          <span className="font-mono text-[10px] tabular-nums">
             {totalSales > 0 || totalPurchases > 0
               ? `معدل التدفق الإيجابي: ${totalPurchases > 0 ? (netFlow >= 0 ? '+' : '') + Math.round((netFlow / totalPurchases) * 100) + '%' : '+100%'}`
               : 'معدل التدفق: بانتظار أول عملية'}
           </span>
         </div>
 
-        <div className="h-44 flex items-end gap-3 pt-4 border-b border-slate-800 pb-2 px-2">
+        <div className="h-44 flex items-end gap-3 pt-4 border-b border-[var(--md-outline-variant)] pb-2 px-2">
           {activePoints.map((item, idx) => {
             const hasData = item.sales > 0 || item.purchases > 0;
             const salesHeight = hasData ? Math.max(8, Math.round((item.sales / maxVal) * 100)) : 4;
@@ -207,7 +211,7 @@ export const SalesAnalyticsCenter: React.FC<SalesAnalyticsCenterProps> = ({
                   {/* Sales Bar */}
                   <div className="relative w-full max-w-[18px] h-full flex items-end">
                     <div
-                      className={`w-full ${hasData ? 'bg-emerald-500 hover:bg-emerald-400' : 'bg-slate-800'} rounded-t-md transition-all duration-300 shadow-md shadow-emerald-950/40`}
+                      className={`w-full ${hasData ? 'bg-[var(--md-primary)] hover:opacity-85' : 'bg-[var(--md-surface-container-high)]'} rounded-t-md transition-all duration-300`}
                       style={{ height: `${salesHeight}%` }}
                       title={`مبيعات ${item.label}: ${formatAmount(item.sales)} ${currency}`}
                     />
@@ -216,7 +220,7 @@ export const SalesAnalyticsCenter: React.FC<SalesAnalyticsCenterProps> = ({
                   {/* Purchases Bar */}
                   <div className="relative w-full max-w-[18px] h-full flex items-end">
                     <div
-                      className={`w-full ${hasData ? 'bg-amber-400 hover:bg-amber-300' : 'bg-slate-800'} rounded-t-md transition-all duration-300 shadow-md shadow-amber-950/40`}
+                      className={`w-full ${hasData ? 'bg-[var(--md-secondary)] hover:opacity-85' : 'bg-[var(--md-surface-container-high)]'} rounded-t-md transition-all duration-300`}
                       style={{ height: `${purchasesHeight}%` }}
                       title={`مشتريات ${item.label}: ${formatAmount(item.purchases)} ${currency}`}
                     />
@@ -224,7 +228,7 @@ export const SalesAnalyticsCenter: React.FC<SalesAnalyticsCenterProps> = ({
                 </div>
 
                 {/* Day/Month Label */}
-                <span className="text-[10px] font-bold text-slate-400 group-hover:text-white transition-colors truncate">
+                <span className="text-[10px] font-bold text-[var(--md-on-surface-variant)] group-hover:text-[var(--md-on-surface)] transition-colors truncate">
                   {item.label}
                 </span>
               </div>
@@ -234,48 +238,48 @@ export const SalesAnalyticsCenter: React.FC<SalesAnalyticsCenterProps> = ({
       </div>
 
       {/* Sales Channels Distribution Strip */}
-      <div className="pt-2 border-t border-slate-800/80 space-y-2">
-        <div className="flex items-center justify-between text-xs text-slate-400">
-          <span className="font-bold text-slate-300">قنوات تحصيل المبيعات (Payment Channels):</span>
-          <span className="font-mono text-[10px] text-slate-400">كاشير • تحويلات • آجل</span>
+      <div className="pt-2 border-t border-[var(--md-outline-variant)] space-y-2">
+        <div className="flex items-center justify-between text-xs text-[var(--md-on-surface-variant)]">
+          <span className="font-bold text-[var(--md-on-surface)]">قنوات تحصيل المبيعات (Payment Channels):</span>
+          <span className="font-mono text-[10px]">كاشير • تحويلات • آجل</span>
         </div>
 
-        <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden flex">
+        <div className="w-full h-3 bg-[var(--md-surface-container-high)] rounded-full overflow-hidden flex">
           {totalSales > 0 ? (
             <>
               <div
-                className="bg-emerald-500 h-full"
+                className="bg-[var(--md-primary)] h-full"
                 style={{ width: '65%' }}
                 title={`نقدي (Cash): ${formatAmount(cashSales)} ${currency} (65%)`}
               />
               <div
-                className="bg-blue-500 h-full"
+                className="bg-[var(--md-info)] h-full"
                 style={{ width: '25%' }}
                 title={`آجل (Credit): ${formatAmount(creditSales)} ${currency} (25%)`}
               />
               <div
-                className="bg-amber-400 h-full"
+                className="bg-[var(--md-secondary)] h-full"
                 style={{ width: '10%' }}
                 title={`إلكتروني ومحافظ: ${formatAmount(electronicSales)} ${currency} (10%)`}
               />
             </>
           ) : (
-            <div className="w-full h-full bg-slate-800" title="بانتظار تسجيل أول مبيعات" />
+            <div className="w-full h-full bg-[var(--md-surface-container-high)]" title="بانتظار تسجيل أول مبيعات" />
           )}
         </div>
 
-        <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-400 pt-1">
+        <div className="flex flex-wrap items-center justify-between text-[11px] text-[var(--md-on-surface-variant)] pt-1 gap-2">
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>نقدي: <strong className="font-mono text-slate-200 tabular-nums">{totalSales > 0 ? '65%' : '0%'}</strong> ({formatAmount(cashSales)})</span>
+            <span className="w-2 h-2 rounded-full bg-[var(--md-primary)]" />
+            <span>نقدي: <strong className="font-mono text-[var(--md-on-surface)] tabular-nums">{totalSales > 0 ? '65%' : '0%'}</strong> ({formatAmount(cashSales)})</span>
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-blue-500" />
-            <span>آجل / ذمم: <strong className="font-mono text-slate-200 tabular-nums">{totalSales > 0 ? '25%' : '0%'}</strong> ({formatAmount(creditSales)})</span>
+            <span className="w-2 h-2 rounded-full bg-[var(--md-info)]" />
+            <span>آجل / ذمم: <strong className="font-mono text-[var(--md-on-surface)] tabular-nums">{totalSales > 0 ? '25%' : '0%'}</strong> ({formatAmount(creditSales)})</span>
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-amber-400" />
-            <span>بنوك ومحافظ: <strong className="font-mono text-slate-200 tabular-nums">{totalSales > 0 ? '10%' : '0%'}</strong> ({formatAmount(electronicSales)})</span>
+            <span className="w-2 h-2 rounded-full bg-[var(--md-secondary)]" />
+            <span>بنوك ومحافظ: <strong className="font-mono text-[var(--md-on-surface)] tabular-nums">{totalSales > 0 ? '10%' : '0%'}</strong> ({formatAmount(electronicSales)})</span>
           </span>
         </div>
       </div>

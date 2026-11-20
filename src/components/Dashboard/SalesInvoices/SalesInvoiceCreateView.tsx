@@ -1146,22 +1146,22 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
   return (
     <div className="space-y-6 animate-fadeIn pb-16" id="sales-invoice-create-view">
       {/* Top Bar Header */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="m3-card p-4 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <button
             type="button"
             onClick={onBack}
-            className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-colors flex items-center justify-center border border-slate-700/60"
+            className="m3-btn-tonal p-2.5 flex items-center justify-center cursor-pointer"
             title="الرجوع للقائمة"
           >
             <ArrowRight className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-              <FileText className="w-6 h-6 text-blue-500" />
+            <h1 className="text-xl sm:text-2xl font-bold text-[var(--md-on-surface)] tracking-tight flex items-center gap-2">
+              <FileText className="w-6 h-6 text-[var(--md-primary-text)]" />
               إنشاء فاتورة مبيعات جديدة
             </h1>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-[var(--md-on-surface-variant)] mt-1">
               تسجيل سريع للمبيعات، خيارات الدفع الفوري والآجل، وخصم المخزون والقيود المحاسبية التلقائية
             </p>
           </div>
@@ -1175,7 +1175,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
             type="button"
             onClick={() => handleSave('DRAFT')}
             disabled={loading || hasBelowCost}
-            className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 rounded-xl text-xs sm:text-sm font-medium transition-colors border border-slate-700 disabled:cursor-not-allowed"
+            className="m3-btn-outlined px-4 py-2.5 disabled:opacity-50 text-xs sm:text-sm font-medium disabled:cursor-not-allowed cursor-pointer"
             title={hasBelowCost ? 'لا يمكن الحفظ: يوجد صنف مسعر بأقل من سعر الشراء' : undefined}
           >
             حفظ كمسودة
@@ -1185,7 +1185,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
             type="button"
             onClick={() => handleSave('PENDING', true)}
             disabled={loading || hasBelowCost}
-            className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-blue-400 border border-blue-500/30 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-colors disabled:cursor-not-allowed"
+            className="m3-btn-tonal px-4 py-2.5 disabled:opacity-50 text-xs sm:text-sm font-semibold flex items-center gap-2 disabled:cursor-not-allowed cursor-pointer"
             title={hasBelowCost ? 'لا يمكن الحفظ: يوجد صنف مسعر بأقل من سعر الشراء' : undefined}
           >
             <Printer className="w-4 h-4" />
@@ -1196,7 +1196,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
             type="button"
             onClick={() => handleSave('PENDING')}
             disabled={loading || hasBelowCost}
-            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 shadow-lg shadow-blue-600/20 transition-all disabled:cursor-not-allowed"
+            className="m3-btn-primary px-5 py-2.5 disabled:opacity-50 text-xs sm:text-sm font-bold flex items-center gap-2 disabled:cursor-not-allowed cursor-pointer"
             title={hasBelowCost ? 'لا يمكن الحفظ: يوجد صنف مسعر بأقل من سعر الشراء' : undefined}
           >
             {loading ? (
@@ -1215,30 +1215,30 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-rose-400 text-sm flex items-center gap-3 animate-shake">
+        <div className="p-4 bg-[var(--md-error-container)] border border-[var(--md-error)]/30 rounded-2xl text-[var(--md-on-error-container)] text-sm flex items-center gap-3 animate-shake">
           <AlertCircle className="w-5 h-5 flex-shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {quickNotice && (
-        <div className="p-3 bg-emerald-500/15 border border-emerald-500/30 rounded-xl text-emerald-400 text-xs font-semibold flex items-center gap-2 animate-fadeIn">
+        <div className="p-3 bg-[var(--md-success-container)] border border-[var(--md-success)]/30 rounded-xl text-[var(--md-on-success-container)] text-xs font-semibold flex items-center gap-2 animate-fadeIn">
           <CheckCircle2 className="w-4 h-4" />
           <span>{quickNotice}</span>
         </div>
       )}
 
       {hasBelowCost && (
-        <div className="p-4 bg-rose-500/15 border border-rose-500/40 rounded-2xl text-rose-300 text-sm font-bold flex items-center gap-3 shadow-lg shadow-rose-950/20 animate-pulse">
-          <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+        <div className="p-4 bg-[var(--md-error-container)] border border-[var(--md-error)]/40 rounded-2xl text-[var(--md-on-error-container)] text-sm font-bold flex items-center gap-3 animate-pulse">
+          <AlertTriangle className="w-5 h-5 shrink-0" />
           <span>⛔ تنبيه رقابي: لا يمكن إتمام البيع بسعر أقل من سعر الشراء لمنع الخسائر!</span>
         </div>
       )}
 
       {/* Price Tier Selector Bar */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-sm flex items-center gap-2 overflow-x-auto">
-        <span className="text-xs font-bold text-slate-400 px-2 shrink-0 flex items-center gap-1.5">
-          <Tag className="w-3.5 h-3.5 text-blue-400" />
+      <div className="m3-card p-3 flex items-center gap-2 overflow-x-auto">
+        <span className="text-xs font-bold text-[var(--md-on-surface-variant)] px-2 shrink-0 flex items-center gap-1.5">
+          <Tag className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
           مستوى تسعير الفاتورة:
         </span>
         {[
@@ -1251,10 +1251,10 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
             key={tier.id}
             type="button"
             onClick={() => handlePriceTierChange(tier.id as PriceTier)}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap border ${
               selectedPriceTier === tier.id
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-950/40 border border-blue-400/40'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] border-[var(--md-primary)]'
+                : 'bg-[var(--md-surface-container-low)] text-[var(--md-on-surface-variant)] border-[var(--md-outline-variant)] hover:bg-[var(--md-surface-container-high)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             <span>{tier.icon}</span>
@@ -1266,26 +1266,26 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
       {/* Invoice Meta Section Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* 1. Customer & Account Card */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-            <div className="flex items-center gap-2 text-blue-400 font-semibold text-sm">
+        <div className="m3-card p-5 space-y-4">
+          <div className="flex items-center justify-between border-b border-[var(--md-outline-variant)] pb-2">
+            <div className="flex items-center gap-2 text-[var(--md-primary-text)] font-semibold text-sm">
               <User className="w-4 h-4" />
               <span>بيانات العميل والحساب</span>
             </div>
             <button
               type="button"
               onClick={selectQuickCashCustomer}
-              className="text-[11px] px-2.5 py-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg font-medium border border-blue-500/20 flex items-center gap-1 transition-colors"
+              className="m3-btn-tonal text-[11px] px-2.5 py-1 font-medium flex items-center gap-1 cursor-pointer"
               title="اختيار عميل نقدي سريع بضغطة واحدة"
             >
-              <Zap className="w-3 h-3 text-amber-400" />
+              <Zap className="w-3 h-3 text-[var(--md-secondary)]" />
               عميل نقدي سريع
             </button>
           </div>
 
           <div className="space-y-2">
-            <label className="block text-xs font-medium text-slate-300">
-              العميل <span className="text-rose-400">*</span>
+            <label className="block text-xs font-medium text-[var(--md-on-surface-variant)]">
+              العميل <span className="text-[var(--md-error)]">*</span>
             </label>
             <select
               value={selectedCustomerId}
@@ -1297,7 +1297,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                   setCustomerName(cust.name);
                 }
               }}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              className="m3-select w-full px-3 py-2 text-sm"
             >
               <option value="">-- اختر من قائمة العملاء المسجلين --</option>
               {customerList.map((c) => (
@@ -1318,14 +1318,14 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                   }
                 }}
                 placeholder="أو اكتب اسم العميل يدوياً (عميل نقدي / مؤسسة...)"
-                className="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                className="m3-input w-full px-3 py-2 text-xs"
               />
             </div>
           </div>
 
           {/* Recipient / Received By */}
           <div className="space-y-1">
-            <label className="block text-xs font-medium text-slate-300">
+            <label className="block text-xs font-medium text-[var(--md-on-surface-variant)]">
               المستلم / المسحوب بواسطة (سائق / مندوب / ابن العميل)
             </label>
             <input
@@ -1333,30 +1333,30 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
               value={receivedBy}
               onChange={(e) => setReceivedBy(e.target.value)}
               placeholder="اختياري - اسم الشخص المستلم للبضاعة أو الفاتورة..."
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              className="m3-input w-full px-3 py-2 text-xs"
             />
           </div>
 
           {selectedCustomer && (
-            <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl space-y-1.5 text-xs">
+            <div className="p-3 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl space-y-1.5 text-xs">
               <div className="flex justify-between">
-                <span className="text-slate-400">الرصيد الحالي:</span>
-                <span className="font-mono font-bold text-blue-400">
+                <span className="text-[var(--md-on-surface-variant)]">الرصيد الحالي:</span>
+                <span className="font-mono font-bold text-[var(--md-primary-text)] tabular-nums">
                   {formatAmount(selectedCustomer.current_balance || 0, selectedCustomer.currency || currency)}
                 </span>
               </div>
               {selectedCustomer.credit_limit > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-slate-400">الحد الائتماني:</span>
-                  <span className="font-mono text-slate-300">
+                  <span className="text-[var(--md-on-surface-variant)]">الحد الائتماني:</span>
+                  <span className="font-mono text-[var(--md-on-surface)] tabular-nums">
                     {formatAmount(selectedCustomer.credit_limit, selectedCustomer.currency || currency)}
                   </span>
                 </div>
               )}
               {paymentMethod === 'CREDIT' && remainingDue > 0 && (
-                <div className="flex justify-between border-t border-slate-800 pt-1 text-amber-400 font-bold">
+                <div className="flex justify-between border-t border-[var(--md-outline-variant)] pt-1 text-[var(--md-warning)] font-bold">
                   <span>الرصيد المتوقع بعد الفاتورة:</span>
-                  <span className="font-mono">
+                  <span className="font-mono tabular-nums">
                     {formatAmount(
                       Number(selectedCustomer.current_balance || 0) + remainingDue,
                       selectedCustomer.currency || currency
@@ -1369,62 +1369,61 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
         </div>
 
         {/* 2. Dates & Numbering Card */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-          <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm border-b border-slate-800 pb-2">
+        <div className="m3-card p-5 space-y-4">
+          <div className="flex items-center gap-2 text-[var(--md-success)] font-semibold text-sm border-b border-[var(--md-outline-variant)] pb-2">
             <Calendar className="w-4 h-4" />
             <span>التواريخ والترقيم</span>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">تاريخ الفاتورة</label>
+              <label className="block text-xs font-medium text-[var(--md-on-surface-variant)] mb-1">تاريخ الفاتورة</label>
               <input
                 type="date"
                 value={invoiceDate}
                 onChange={(e) => setInvoiceDate(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 font-mono"
+                className="m3-input w-full px-3 py-2 text-xs font-mono tabular-nums"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">تاريخ الاستحقاق</label>
+              <label className="block text-xs font-medium text-[var(--md-on-surface-variant)] mb-1">تاريخ الاستحقاق</label>
               <input
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 font-mono"
+                className="m3-input w-full px-3 py-2 text-xs font-mono tabular-nums"
               />
             </div>
           </div>
 
-
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">
-              رقم الفاتورة <span className="text-slate-500 text-[11px]">(تلقائي إن ترك فارغاً)</span>
+            <label className="block text-xs font-medium text-[var(--md-on-surface-variant)] mb-1">
+              رقم الفاتورة <span className="text-[var(--md-on-surface-variant)]/75 text-[11px]">(تلقائي إن ترك فارغاً)</span>
             </label>
             <input
               type="text"
               value={invoiceNumber}
               onChange={(e) => setInvoiceNumber(toEnglishDigits(e.target.value))}
               placeholder="مثال: INV-2026-0001"
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 font-mono"
+              className="m3-input w-full px-3 py-2 text-sm font-mono tabular-nums"
             />
           </div>
         </div>
 
         {/* 3. Currency & Salesperson Card */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-          <div className="flex items-center gap-2 text-amber-400 font-semibold text-sm border-b border-slate-800 pb-2">
+        <div className="m3-card p-5 space-y-4">
+          <div className="flex items-center gap-2 text-[var(--md-secondary)] font-semibold text-sm border-b border-[var(--md-outline-variant)] pb-2">
             <DollarSign className="w-4 h-4" />
             <span>العملة ومندوب المبيعات</span>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">العملة</label>
+              <label className="block text-xs font-medium text-[var(--md-on-surface-variant)] mb-1">العملة</label>
               <select
                 value={currency}
                 onChange={(e) => handleCurrencyChange(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="m3-select w-full px-3 py-2 text-sm"
               >
                 <option value="YER">ريال يمني (YER)</option>
                 <option value="SAR">ريال سعودي (SAR)</option>
@@ -1432,9 +1431,9 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1 flex items-center justify-between">
+              <label className="block text-xs font-medium text-[var(--md-on-surface-variant)] mb-1 flex items-center justify-between">
                 <span>سعر التحويل / الصرف</span>
-                <span className="text-[10px] text-blue-400 font-mono">0-9 EN</span>
+                <span className="text-[10px] text-[var(--md-primary-text)] font-mono">0-9 EN</span>
               </label>
               <input
                 type="text"
@@ -1447,30 +1446,30 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                   setExchangeRate(parseEnglishNumber(sanitized, 1.0));
                 }}
                 disabled={currency === 'YER'}
-                className="w-full bg-slate-800 disabled:opacity-50 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 font-mono text-left"
+                className="m3-input w-full disabled:opacity-50 px-3 py-2 text-sm font-mono text-left tabular-nums"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">مندوب / بائع</label>
+              <label className="block text-xs font-medium text-[var(--md-on-surface-variant)] mb-1">مندوب / بائع</label>
               <input
                 type="text"
                 value={salespersonName}
                 onChange={(e) => setSalespersonName(e.target.value)}
                 placeholder="اسم البائع"
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                className="m3-input w-full px-3 py-2 text-xs"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">الفرع</label>
+              <label className="block text-xs font-medium text-[var(--md-on-surface-variant)] mb-1">الفرع</label>
               <input
                 type="text"
                 value={branchName}
                 onChange={(e) => setBranchName(e.target.value)}
                 placeholder="الفرع الرئيسي"
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                className="m3-input w-full px-3 py-2 text-xs"
               />
             </div>
           </div>
@@ -1478,20 +1477,20 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
       </div>
 
       {/* Lightning Fast Data-Entry Bar & Barcode Scanner */}
-      <div className="bg-gradient-to-r from-blue-950/40 via-slate-900 to-indigo-950/40 border border-blue-500/20 rounded-2xl p-4 sm:p-5 shadow-sm space-y-3">
+      <div className="m3-card p-4 sm:p-5 border-[var(--md-primary)]/30 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-blue-400 font-bold text-sm">
-            <Barcode className="w-5 h-5 text-blue-400" />
+          <div className="flex items-center gap-2 text-[var(--md-primary-text)] font-bold text-sm">
+            <Barcode className="w-5 h-5" />
             <span>البحث السريع وإضافة الأصناف بالباركود أو الاسم</span>
           </div>
-          <span className="text-xs text-slate-400">
-            اضغط <kbd className="px-1.5 py-0.5 bg-slate-800 rounded text-[10px] text-blue-300 font-mono">Enter</kbd> للإضافة الفورية
+          <span className="text-xs text-[var(--md-on-surface-variant)]">
+            اضغط <kbd className="px-1.5 py-0.5 bg-[var(--md-surface-container-high)] border border-[var(--md-outline-variant)] rounded text-[10px] text-[var(--md-primary-text)] font-mono">Enter</kbd> للإضافة الفورية
           </span>
         </div>
 
         <div className="relative">
           <div className="relative">
-            <Search className="w-5 h-5 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-5 h-5 text-[var(--md-on-surface-variant)] absolute right-3.5 top-1/2 -translate-y-1/2" />
             <input
               ref={searchInputRef}
               type="text"
@@ -1503,13 +1502,13 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
               onFocus={() => setIsSearchOpen(true)}
               onKeyDown={handleSearchKeyDown}
               placeholder="🔍 ابحث باسم الصنف أو امسح الباركود (Barcode) أو اكتب الرمز..."
-              className="w-full bg-slate-950/80 border border-slate-700 hover:border-blue-500/50 focus:border-blue-500 rounded-xl pr-11 pl-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none transition-all"
+              className="m3-input w-full pr-11 pl-4 py-3 text-sm"
             />
           </div>
 
           {/* Instant Search Results Dropdown */}
           {isSearchOpen && searchResults.length > 0 && (
-            <div className="absolute z-30 left-0 right-0 top-full mt-1.5 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl max-h-64 overflow-y-auto divide-y divide-slate-800">
+            <div className="m3-card-elevated absolute z-30 left-0 right-0 top-full mt-1.5 max-h-64 overflow-y-auto divide-y divide-[var(--md-outline-variant)]">
               {searchResults.slice(0, 8).map((prod) => {
                 const stock = parseFloat(prod.current_stock || '0');
                 const price = parseFloat(prod.selling_price || '0');
@@ -1518,27 +1517,27 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                     key={prod.id}
                     type="button"
                     onClick={() => handleQuickAddProduct(prod)}
-                    className="w-full text-right p-3 hover:bg-blue-600/10 flex items-center justify-between transition-colors group"
+                    className="w-full text-right p-3 hover:bg-[var(--md-primary-container)]/35 flex items-center justify-between transition-colors group cursor-pointer"
                   >
                     <div>
-                      <div className="font-semibold text-sm text-slate-100 group-hover:text-blue-400 flex items-center gap-2">
+                      <div className="font-semibold text-sm text-[var(--md-on-surface)] group-hover:text-[var(--md-primary-text)] flex items-center gap-2">
                         {prod.name}
                         {prod.sku && (
-                          <span className="text-[11px] text-slate-400 font-mono font-normal">
+                          <span className="text-[11px] text-[var(--md-on-surface-variant)] font-mono font-normal">
                             [{prod.sku}]
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-slate-400 flex items-center gap-3 mt-0.5">
-                        <span>الوحدة: <strong className="text-slate-300">{prod.unit || 'حبة'}</strong></span>
-                        <span>المخزون: <strong className="font-mono text-slate-300">{formatNumber(stock)}</strong></span>
+                      <div className="text-xs text-[var(--md-on-surface-variant)] flex items-center gap-3 mt-0.5">
+                        <span>الوحدة: <strong className="text-[var(--md-on-surface)]">{prod.unit || 'حبة'}</strong></span>
+                        <span>المخزون: <strong className="font-mono text-[var(--md-on-surface)] tabular-nums">{formatNumber(stock)}</strong></span>
                       </div>
                     </div>
                     <div className="text-left">
-                      <div className="font-mono font-bold text-sm text-emerald-400">
+                      <div className="font-mono font-bold text-sm text-[var(--md-success)] tabular-nums">
                         {formatAmount(price, currency)}
                       </div>
-                      <span className="text-[10px] text-blue-400 flex items-center justify-end gap-1 mt-0.5">
+                      <span className="text-[10px] text-[var(--md-primary-text)] flex items-center justify-end gap-1 mt-0.5">
                         <Plus className="w-3 h-3" /> إضافة للفاتورة
                       </span>
                     </div>
@@ -1552,8 +1551,8 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
         {/* Popular / Fast Product Quick Chips */}
         {productList.length > 0 && (
           <div className="flex items-center gap-2 overflow-x-auto pt-1 pb-0.5 no-scrollbar">
-            <span className="text-[11px] text-slate-400 whitespace-nowrap flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span className="text-[11px] text-[var(--md-on-surface-variant)] whitespace-nowrap flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5 text-[var(--md-secondary)]" />
               أصناف سريعة:
             </span>
             {productList.slice(0, 6).map((prod) => (
@@ -1561,10 +1560,10 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                 key={prod.id}
                 type="button"
                 onClick={() => handleQuickAddProduct(prod)}
-                className="px-2.5 py-1 bg-slate-800/80 hover:bg-blue-600/20 text-slate-300 hover:text-blue-300 border border-slate-700 hover:border-blue-500/40 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex items-center gap-1.5 flex-shrink-0"
+                className="px-2.5 py-1 bg-[var(--md-surface-container-low)] hover:bg-[var(--md-primary-container)] text-[var(--md-on-surface)] hover:text-[var(--md-on-primary-container)] border border-[var(--md-outline-variant)] rounded-lg text-xs font-medium whitespace-nowrap transition-all flex items-center gap-1.5 flex-shrink-0 cursor-pointer"
               >
                 <span>{prod.name}</span>
-                <span className="font-mono text-[10px] text-emerald-400">
+                <span className="font-mono text-[10px] text-[var(--md-success)] tabular-nums">
                   {formatNumber(parseFloat(prod.selling_price || '0'))}
                 </span>
               </button>
@@ -1574,16 +1573,16 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
       </div>
 
       {/* Invoice Line Items Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-        <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
+      <div className="m3-card overflow-hidden">
+        <div className="p-4 sm:p-5 border-b border-[var(--md-outline-variant)] flex items-center justify-between bg-[var(--md-surface-container-low)]">
           <div className="flex items-center gap-2">
-            <Building className="w-5 h-5 text-blue-400" />
-            <h3 className="font-bold text-white text-base">جدول بنود وأصناف الفاتورة</h3>
+            <Building className="w-5 h-5 text-[var(--md-primary-text)]" />
+            <h3 className="font-bold text-[var(--md-on-surface)] text-base">جدول بنود وأصناف الفاتورة</h3>
           </div>
           <button
             type="button"
             onClick={addItemRow}
-            className="px-3.5 py-1.5 bg-blue-600/20 border border-blue-500/30 hover:bg-blue-600 hover:text-white text-blue-400 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors"
+            className="m3-btn-tonal px-3.5 py-1.5 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             إضافة بند جديد
@@ -1591,23 +1590,23 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-right text-sm">
-            <thead className="bg-slate-950/70 border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase">
+          <table className="m3-table w-full text-right text-sm">
+            <thead className="m3-thead text-xs font-semibold uppercase">
               <tr>
-                <th className="py-3 px-3 w-10 text-center">#</th>
-                <th className="py-3 px-2 w-28 text-center">رقم الصنف/القطعة</th>
-                <th className="py-3 px-3 min-w-[200px]">المنتج من المخزن / الصنف</th>
-                <th className="py-3 px-3 min-w-[130px]">الوصف اليدوي</th>
-                <th className="py-3 px-3 w-28 text-center">الوحدة</th>
-                <th className="py-3 px-3 w-24 text-center">الكمية</th>
-                <th className="py-3 px-3 w-32 text-left">سعر الوحدة</th>
-                <th className="py-3 px-3 w-24 text-left">خصم</th>
-                <th className="py-3 px-3 w-20 text-center">ضريبة %</th>
-                <th className="py-3 px-3 w-32 text-left">الإجمالي</th>
-                <th className="py-3 px-3 w-20 text-center">إجراء</th>
+                <th className="m3-th py-3 px-3 w-10 text-center">#</th>
+                <th className="m3-th py-3 px-2 w-28 text-center">رقم الصنف/القطعة</th>
+                <th className="m3-th py-3 px-3 min-w-[200px]">المنتج من المخزن / الصنف</th>
+                <th className="m3-th py-3 px-3 min-w-[130px]">الوصف اليدوي</th>
+                <th className="m3-th py-3 px-3 w-28 text-center">الوحدة</th>
+                <th className="m3-th py-3 px-3 w-24 text-center">الكمية</th>
+                <th className="m3-th py-3 px-3 w-32 text-left">سعر الوحدة</th>
+                <th className="m3-th py-3 px-3 w-24 text-left">خصم</th>
+                <th className="m3-th py-3 px-3 w-20 text-center">ضريبة %</th>
+                <th className="m3-th py-3 px-3 w-32 text-left">الإجمالي</th>
+                <th className="m3-th py-3 px-3 w-20 text-center">إجراء</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-[var(--md-outline-variant)]">
               {items.map((it, idx) => {
                 const isOverStock =
                   it.product_id &&
@@ -1616,14 +1615,14 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
 
                 return (
                   <React.Fragment key={it.id}>
-                    <tr className="hover:bg-slate-800/30 transition-colors">
-                      <td className="py-2.5 px-3 text-center text-slate-500 text-xs font-mono">
+                    <tr className="hover:bg-[var(--md-surface-container-low)] transition-colors">
+                      <td className="py-2.5 px-3 text-center text-[var(--md-on-surface-variant)] text-xs font-mono tabular-nums">
                         {idx + 1}
                       </td>
 
                       {/* Item Code / Part Number */}
                       <td className="py-2.5 px-2 text-center">
-                        <span className="font-mono text-xs font-bold text-blue-400 bg-slate-950/70 px-2 py-1 rounded-md border border-slate-800 inline-block">
+                        <span className="font-mono text-xs font-bold text-[var(--md-primary-text)] bg-[var(--md-surface-container-low)] px-2 py-1 rounded-md border border-[var(--md-outline-variant)] inline-block tabular-nums">
                           {it.itemCode || it.partNumber || it.sku || '-'}
                         </span>
                       </td>
@@ -1633,7 +1632,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                         <select
                           value={it.product_id || ''}
                           onChange={(e) => handleProductSelect(idx, e.target.value)}
-                          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500"
+                          className="m3-select w-full px-2.5 py-1.5 text-xs"
                         >
                           <option value="">-- أو صنف يدوي غير مسجل --</option>
                           {productList.map((p) => (
@@ -1644,11 +1643,11 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                         </select>
                         {it.product_id && (
                           <div className="flex items-center gap-2 mt-1 text-[11px]">
-                            <span className="text-slate-400">
-                              المخزون المتاح: <span className="font-mono text-emerald-400 font-bold">{formatProductStock(it.current_stock ?? 0, productList.find((p) => p.id === it.product_id))}</span>
+                            <span className="text-[var(--md-on-surface-variant)]">
+                              المخزون المتاح: <span className="font-mono text-[var(--md-success)] font-bold tabular-nums">{formatProductStock(it.current_stock ?? 0, productList.find((p) => p.id === it.product_id))}</span>
                             </span>
                             {isOverStock && (
-                              <span className="text-rose-400 flex items-center gap-0.5 font-bold">
+                              <span className="text-[var(--md-error)] flex items-center gap-0.5 font-bold">
                                 <AlertTriangle className="w-3 h-3" /> الكمية تتجاوز الرصيد
                               </span>
                             )}
@@ -1663,7 +1662,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                           value={it.name || ''}
                           onChange={(e) => updateItem(idx, { name: e.target.value })}
                           placeholder="اسم الصنف / البيان"
-                          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500"
+                          className="m3-input w-full px-2.5 py-1.5 text-xs"
                         />
                       </td>
 
@@ -1674,7 +1673,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                             <select
                               value={it.selectedUnit || 'base'}
                               onChange={(e) => handleUpdateLineUnit(idx, e.target.value as any)}
-                              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 text-center font-bold"
+                              className="m3-select w-full px-2 py-1.5 text-xs text-center font-bold"
                             >
                               <option value="base">{it.baseUnitName || it.unit || 'حبة'} (أساسي)</option>
                               {it.subUnitName && (
@@ -1695,7 +1694,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                                   updateItem(idx, { unit: val });
                                 }
                               }}
-                              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 text-center font-medium"
+                              className="m3-select w-full px-2 py-1.5 text-xs text-center font-medium"
                             >
                               {COMMON_UNITS.map((u) => (
                                 <option key={u} value={u}>
@@ -1712,7 +1711,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                                 updateItem(idx, { customUnit: e.target.value, unit: e.target.value || 'أخرى' })
                               }
                               placeholder="حدد الوحدة..."
-                              className="w-full bg-slate-950 border border-slate-700 rounded-md px-1.5 py-1 text-[11px] text-center text-blue-300 focus:outline-none focus:border-blue-500"
+                              className="m3-input w-full px-1.5 py-1 text-[11px] text-center"
                             />
                           )}
                         </div>
@@ -1727,7 +1726,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                           lang="en"
                           value={it.quantity}
                           onChange={(e) => updateItem(idx, { quantity: parseEnglishNumber(e.target.value, 0) })}
-                          className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-blue-500 font-mono font-bold"
+                          className="m3-input w-20 px-2 py-1.5 text-xs text-center font-mono font-bold tabular-nums"
                         />
                       </td>
 
@@ -1754,10 +1753,10 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                                   value={it.unit_price === 0 || (it.unit_price as any) === '' ? '' : it.unit_price}
                                   onChange={(e) => updateItem(idx, { unit_price: parseEnglishNumber(e.target.value, 0) })}
                                   placeholder={unitCostPrice > 0 ? String(unitCostPrice) : '0'}
-                                  className={`w-full bg-slate-800 border rounded-lg px-2 py-1.5 text-xs text-left font-mono focus:outline-none placeholder:text-slate-400/35 select-none font-mono ${
+                                  className={`m3-input w-full px-2 py-1.5 text-xs text-left font-mono tabular-nums select-none ${
                                     isRowBelowCost
-                                      ? 'border-rose-500 bg-rose-500/10 text-rose-400 ring-1 ring-rose-500/40'
-                                      : 'border-slate-700 text-white focus:border-blue-500'
+                                      ? 'border-[var(--md-error)] bg-[var(--md-error-container)] text-[var(--md-on-error-container)] ring-1 ring-[var(--md-error)]/40'
+                                      : ''
                                   }`}
                                 />
                               </div>
@@ -1766,18 +1765,18 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                               {unitCostPrice > 0 && (
                                 <div className="flex items-center justify-between text-[10px]">
                                   <span
-                                    className="text-[10px] text-slate-400/25 hover:text-slate-300 transition-opacity cursor-help select-none group/cost inline-flex items-center"
+                                    className="text-[10px] text-[var(--md-on-surface-variant)]/40 hover:text-[var(--md-on-surface)] transition-opacity cursor-help select-none group/cost inline-flex items-center"
                                     title={`سعر التكلفة: ${unitCostPrice}`}
                                   >
                                     <span className="group-hover/cost:hidden">ك: ••••</span>
-                                    <span className="hidden group-hover/cost:inline font-mono">ك: {unitCostPrice}</span>
+                                    <span className="hidden group-hover/cost:inline font-mono tabular-nums">ك: {unitCostPrice}</span>
                                   </span>
                                 </div>
                               )}
 
                               {/* Real-Time Row Warning Badge */}
                               {isRowBelowCost && (
-                                <div className="text-[10px] text-rose-400 font-bold flex items-center gap-1 bg-rose-500/10 border border-rose-500/30 rounded-md px-1.5 py-0.5 leading-tight">
+                                <div className="text-[10px] text-[var(--md-on-error-container)] font-bold flex items-center gap-1 bg-[var(--md-error-container)] border border-[var(--md-error)]/30 rounded-md px-1.5 py-0.5 leading-tight">
                                   <span>⚠️ أقل من التكلفة ({unitCostPrice})</span>
                                 </div>
                               )}
@@ -1795,7 +1794,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                           lang="en"
                           value={it.discount}
                           onChange={(e) => updateItem(idx, { discount: parseEnglishNumber(e.target.value, 0) })}
-                          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-left text-rose-400 focus:outline-none focus:border-blue-500 font-mono"
+                          className="m3-input w-full px-2 py-1.5 text-xs text-left text-[var(--md-error)] font-mono tabular-nums"
                         />
                       </td>
 
@@ -1804,7 +1803,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                         <select
                           value={it.tax_percent}
                           onChange={(e) => updateItem(idx, { tax_percent: parseEnglishNumber(e.target.value, 0) })}
-                          className="w-16 bg-slate-800 border border-slate-700 rounded-lg px-1 py-1.5 text-xs text-center text-slate-300 focus:outline-none focus:border-blue-500 font-mono"
+                          className="m3-select w-16 px-1 py-1.5 text-xs text-center font-mono tabular-nums"
                         >
                           <option value="0">0%</option>
                           <option value="5">5%</option>
@@ -1813,7 +1812,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                       </td>
 
                       {/* Total */}
-                      <td className="py-2.5 px-3 text-left font-mono font-bold text-white text-xs">
+                      <td className="py-2.5 px-3 text-left font-mono font-bold text-[var(--md-on-surface)] text-xs tabular-nums">
                         {formatAmount(it.total, currency)}
                       </td>
 
@@ -1823,7 +1822,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                           <button
                             type="button"
                             onClick={() => duplicateItemRow(idx)}
-                            className="p-1 text-slate-400 hover:text-slate-200 rounded transition-colors"
+                            className="p-1 text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] rounded transition-colors cursor-pointer"
                             title="تكرار البند"
                           >
                             <Copy className="w-3.5 h-3.5" />
@@ -1831,7 +1830,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                           <button
                             type="button"
                             onClick={() => removeItemRow(idx)}
-                            className="p-1 text-rose-400/80 hover:text-rose-400 rounded transition-colors"
+                            className="p-1 text-[var(--md-error)] hover:bg-[var(--md-error-container)] rounded transition-colors cursor-pointer"
                             title="حذف البند"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1842,35 +1841,35 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
 
                     {/* Battery Spec & Inline Warranty & Scrap Discount Row */}
                     {it.activityType === 'battery' && (
-                      <tr className="bg-amber-950/20 border-b border-amber-900/40">
+                      <tr className="bg-[var(--md-warning-container)]/35 border-b border-[var(--md-outline-variant)]">
                         <td colSpan={11} className="px-4 py-2.5">
                           <div className="flex items-center gap-4 flex-wrap text-xs">
-                            <span className="font-bold text-amber-400 flex items-center gap-1.5 shrink-0">
-                              <Zap className="w-4 h-4 text-amber-400" />
+                            <span className="font-bold text-[var(--md-warning)] flex items-center gap-1.5 shrink-0">
+                              <Zap className="w-4 h-4" />
                               بيانات ضمان وسيريال البطارية:
                             </span>
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[11px] text-slate-400">الرقم التسلسلي (Serial No):</span>
+                              <span className="text-[11px] text-[var(--md-on-surface-variant)]">الرقم التسلسلي (Serial No):</span>
                               <input
                                 type="text"
                                 placeholder="SN-BAT-..."
                                 value={it.serialNumber || ''}
                                 onChange={(e) => updateItem(idx, { serialNumber: e.target.value })}
-                                className="bg-slate-900 border border-amber-500/40 rounded-lg px-2.5 py-1 text-xs text-white font-mono focus:outline-none focus:border-amber-400"
+                                className="m3-input px-2.5 py-1 text-xs font-mono"
                               />
                             </div>
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[11px] text-slate-400">نهاية الضمان:</span>
+                              <span className="text-[11px] text-[var(--md-on-surface-variant)]">نهاية الضمان:</span>
                               <input
                                 type="date"
                                 value={it.warrantyEndDate || ''}
                                 onChange={(e) => updateItem(idx, { warrantyEndDate: e.target.value })}
-                                className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-amber-300 font-mono focus:outline-none"
+                                className="m3-input px-2 py-1 text-xs font-mono tabular-nums"
                               />
-                              <span className="text-[10px] text-slate-500 font-mono">({it.warrantyMonths || 12} شهر)</span>
+                              <span className="text-[10px] text-[var(--md-on-surface-variant)] font-mono">({it.warrantyMonths || 12} شهر)</span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[11px] text-slate-400">خصم استبدال رجيع قديم:</span>
+                              <span className="text-[11px] text-[var(--md-on-surface-variant)]">خصم استبدال رجيع قديم:</span>
                               <input
                                 type="text"
                                 inputMode="decimal"
@@ -1879,9 +1878,9 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                                 placeholder="0.00"
                                 value={it.scrapDiscount || ''}
                                 onChange={(e) => updateItem(idx, { scrapDiscount: parseEnglishNumber(e.target.value, 0) })}
-                                className="w-24 bg-slate-900 border border-emerald-500/40 rounded-lg px-2 py-1 text-xs text-emerald-400 font-mono font-bold focus:outline-none"
+                                className="m3-input w-24 px-2 py-1 text-xs text-[var(--md-success)] font-mono font-bold tabular-nums"
                               />
-                              <span className="text-[10px] text-emerald-400">{currency}</span>
+                              <span className="text-[10px] text-[var(--md-success)]">{currency}</span>
                             </div>
                           </div>
                         </td>
@@ -1890,46 +1889,46 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
 
                     {/* Tires Spec (قسم الإطارات والكفرات) */}
                     {it.activityType === 'tire' && (
-                      <tr className="bg-sky-950/20 border-b border-sky-900/40">
+                      <tr className="bg-[var(--md-info-container)]/35 border-b border-[var(--md-outline-variant)]">
                         <td colSpan={11} className="px-4 py-2.5">
                           <div className="flex items-center gap-4 flex-wrap text-xs">
-                            <span className="font-bold text-sky-400 flex items-center gap-1.5 shrink-0">
+                            <span className="font-bold text-[var(--md-info)] flex items-center gap-1.5 shrink-0">
                               <span className="text-sm">🛞</span>
                               مواصفات وضمان الإطار:
                             </span>
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[11px] text-slate-400">المقاس:</span>
+                              <span className="text-[11px] text-[var(--md-on-surface-variant)]">المقاس:</span>
                               <input
                                 type="text"
                                 placeholder="مثال: 205/55 R16"
                                 value={it.tireSize || ''}
                                 onChange={(e) => updateItem(idx, { tireSize: e.target.value })}
-                                className="bg-slate-900 border border-sky-500/40 rounded-lg px-2.5 py-1 text-xs text-white font-mono focus:outline-none focus:border-sky-400"
+                                className="m3-input px-2.5 py-1 text-xs font-mono"
                               />
                             </div>
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[11px] text-slate-400">سنة والصنع (DOT):</span>
+                              <span className="text-[11px] text-[var(--md-on-surface-variant)]">سنة والصنع (DOT):</span>
                               <input
                                 type="text"
                                 placeholder="مثال: 4025 (أسبوع 40 - 2025)"
                                 value={it.tireProductionDot || ''}
                                 onChange={(e) => updateItem(idx, { tireProductionDot: e.target.value })}
-                                className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-sky-200 font-mono focus:outline-none"
+                                className="m3-input px-2 py-1 text-xs font-mono"
                               />
                             </div>
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[11px] text-slate-400">المنشأ / الغاط:</span>
+                              <span className="text-[11px] text-[var(--md-on-surface-variant)]">المنشأ / الغاط:</span>
                               <input
                                 type="text"
                                 placeholder="ياباني - 8PR"
                                 value={it.tirePlyOrigin || ''}
                                 onChange={(e) => updateItem(idx, { tirePlyOrigin: e.target.value })}
-                                className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-300 focus:outline-none"
+                                className="m3-input px-2 py-1 text-xs"
                               />
                             </div>
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[11px] text-slate-400">الضمان:</span>
-                              <span className="text-sky-300 font-mono font-bold">{it.warrantyMonths || 12} شهر</span>
+                              <span className="text-[11px] text-[var(--md-on-surface-variant)]">الضمان:</span>
+                              <span className="text-[var(--md-info)] font-mono font-bold tabular-nums">{it.warrantyMonths || 12} شهر</span>
                             </div>
                           </div>
                         </td>
@@ -1944,13 +1943,13 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
       </div>
 
       {/* Payment Method Selector (طريقة الدفع: نقد - تحويل بنكي - آجل - محفظة إلكترونية) */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
-            <CreditCard className="w-5 h-5 text-emerald-400" />
+      <div className="m3-card p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-[var(--md-outline-variant)] pb-3 flex-wrap gap-2">
+          <div className="flex items-center gap-2 text-[var(--md-primary-text)] font-bold text-sm">
+            <CreditCard className="w-5 h-5" />
             <span>طريقة الدفع والسداد (Payment Method)</span>
           </div>
-          <span className="text-xs text-slate-400">حدد طريقة السداد المناسبة للفاتورة</span>
+          <span className="text-xs text-[var(--md-on-surface-variant)]">حدد طريقة السداد المناسبة للفاتورة</span>
         </div>
 
         {/* 4 Rich Payment Method Selection Cards */}
@@ -1959,21 +1958,21 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
           <button
             type="button"
             onClick={() => handlePaymentMethodChange('CASH')}
-            className={`p-3.5 rounded-xl border text-right transition-all flex flex-col justify-between gap-2 ${
+            className={`p-3.5 rounded-xl border text-right transition-all flex flex-col justify-between gap-2 cursor-pointer ${
               paymentMethod === 'CASH'
-                ? 'bg-emerald-500/15 border-emerald-500/60 ring-2 ring-emerald-500/20 text-white'
-                : 'bg-slate-800/60 border-slate-700 hover:bg-slate-800 text-slate-300'
+                ? 'bg-[var(--md-success-container)] border-[var(--md-success)] text-[var(--md-on-success-container)]'
+                : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] hover:bg-[var(--md-surface-container-high)] text-[var(--md-on-surface)]'
             }`}
           >
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <div className="w-8 h-8 rounded-lg bg-[var(--md-success-container)] border border-[var(--md-outline-variant)] flex items-center justify-center text-[var(--md-success)]">
                 <Banknote className="w-4 h-4" />
               </div>
-              {paymentMethod === 'CASH' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+              {paymentMethod === 'CASH' && <CheckCircle2 className="w-4 h-4 text-[var(--md-success)]" />}
             </div>
             <div>
-              <h4 className="font-bold text-sm text-white">نقد (Cash)</h4>
-              <p className="text-[11px] text-slate-400 mt-0.5">سداد نقدي مباشر في الصندوق والخزينة</p>
+              <h4 className="font-bold text-sm text-[var(--md-on-surface)]">نقد (Cash)</h4>
+              <p className="text-[11px] text-[var(--md-on-surface-variant)] mt-0.5">سداد نقدي مباشر في الصندوق والخزينة</p>
             </div>
           </button>
 
@@ -1981,21 +1980,21 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
           <button
             type="button"
             onClick={() => handlePaymentMethodChange('BANK')}
-            className={`p-3.5 rounded-xl border text-right transition-all flex flex-col justify-between gap-2 ${
+            className={`p-3.5 rounded-xl border text-right transition-all flex flex-col justify-between gap-2 cursor-pointer ${
               paymentMethod === 'BANK'
-                ? 'bg-blue-500/15 border-blue-500/60 ring-2 ring-blue-500/20 text-white'
-                : 'bg-slate-800/60 border-slate-700 hover:bg-slate-800 text-slate-300'
+                ? 'bg-[var(--md-info-container)] border-[var(--md-info)] text-[var(--md-on-info-container)]'
+                : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] hover:bg-[var(--md-surface-container-high)] text-[var(--md-on-surface)]'
             }`}
           >
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400">
+              <div className="w-8 h-8 rounded-lg bg-[var(--md-info-container)] border border-[var(--md-outline-variant)] flex items-center justify-center text-[var(--md-info)]">
                 <Landmark className="w-4 h-4" />
               </div>
-              {paymentMethod === 'BANK' && <CheckCircle2 className="w-4 h-4 text-blue-400" />}
+              {paymentMethod === 'BANK' && <CheckCircle2 className="w-4 h-4 text-[var(--md-info)]" />}
             </div>
             <div>
-              <h4 className="font-bold text-sm text-white">تحويل بنكي (Bank Transfer)</h4>
-              <p className="text-[11px] text-slate-400 mt-0.5">إيداع أو حوالة مباشرة في الحساب البنكي</p>
+              <h4 className="font-bold text-sm text-[var(--md-on-surface)]">تحويل بنكي (Bank Transfer)</h4>
+              <p className="text-[11px] text-[var(--md-on-surface-variant)] mt-0.5">إيداع أو حوالة مباشرة في الحساب البنكي</p>
             </div>
           </button>
 
@@ -2003,21 +2002,21 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
           <button
             type="button"
             onClick={() => handlePaymentMethodChange('CREDIT')}
-            className={`p-3.5 rounded-xl border text-right transition-all flex flex-col justify-between gap-2 ${
+            className={`p-3.5 rounded-xl border text-right transition-all flex flex-col justify-between gap-2 cursor-pointer ${
               paymentMethod === 'CREDIT'
-                ? 'bg-amber-500/15 border-amber-500/60 ring-2 ring-amber-500/20 text-white'
-                : 'bg-slate-800/60 border-slate-700 hover:bg-slate-800 text-slate-300'
+                ? 'bg-[var(--md-warning-container)] border-[var(--md-warning)] text-[var(--md-on-warning-container)]'
+                : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] hover:bg-[var(--md-surface-container-high)] text-[var(--md-on-surface)]'
             }`}
           >
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400">
+              <div className="w-8 h-8 rounded-lg bg-[var(--md-warning-container)] border border-[var(--md-outline-variant)] flex items-center justify-center text-[var(--md-warning)]">
                 <Clock className="w-4 h-4" />
               </div>
-              {paymentMethod === 'CREDIT' && <CheckCircle2 className="w-4 h-4 text-amber-400" />}
+              {paymentMethod === 'CREDIT' && <CheckCircle2 className="w-4 h-4 text-[var(--md-warning)]" />}
             </div>
             <div>
-              <h4 className="font-bold text-sm text-white">آجل (Credit / ذمة)</h4>
-              <p className="text-[11px] text-slate-400 mt-0.5">تسجيل الفاتورة كذمة آجلة على حساب العميل</p>
+              <h4 className="font-bold text-sm text-[var(--md-on-surface)]">آجل (Credit / ذمة)</h4>
+              <p className="text-[11px] text-[var(--md-on-surface-variant)] mt-0.5">تسجيل الفاتورة كذمة آجلة على حساب العميل</p>
             </div>
           </button>
 
@@ -2025,48 +2024,48 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
           <button
             type="button"
             onClick={() => handlePaymentMethodChange('WALLET')}
-            className={`p-3.5 rounded-xl border text-right transition-all flex flex-col justify-between gap-2 ${
+            className={`p-3.5 rounded-xl border text-right transition-all flex flex-col justify-between gap-2 cursor-pointer ${
               paymentMethod === 'WALLET'
-                ? 'bg-purple-500/15 border-purple-500/60 ring-2 ring-purple-500/20 text-white'
-                : 'bg-slate-800/60 border-slate-700 hover:bg-slate-800 text-slate-300'
+                ? 'bg-[var(--md-secondary-container)] border-[var(--md-secondary)] text-[var(--md-on-secondary-container)]'
+                : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] hover:bg-[var(--md-surface-container-high)] text-[var(--md-on-surface)]'
             }`}
           >
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-400">
+              <div className="w-8 h-8 rounded-lg bg-[var(--md-secondary-container)] border border-[var(--md-outline-variant)] flex items-center justify-center text-[var(--md-secondary)]">
                 <Wallet className="w-4 h-4" />
               </div>
-              {paymentMethod === 'WALLET' && <CheckCircle2 className="w-4 h-4 text-purple-400" />}
+              {paymentMethod === 'WALLET' && <CheckCircle2 className="w-4 h-4 text-[var(--md-secondary)]" />}
             </div>
             <div>
-              <h4 className="font-bold text-sm text-white">محفظة إلكترونية (E-Wallet)</h4>
-              <p className="text-[11px] text-slate-400 mt-0.5">الكريمي، ون كاش، فلوسك، جايبي، كاش، جوالي</p>
+              <h4 className="font-bold text-sm text-[var(--md-on-surface)]">محفظة إلكترونية (E-Wallet)</h4>
+              <p className="text-[11px] text-[var(--md-on-surface-variant)] mt-0.5">الكريمي، ون كاش، فلوسك، جايبي، كاش، جوالي</p>
             </div>
           </button>
         </div>
 
         {/* Dynamic Context Fields based on Selected Payment Method */}
         {paymentMethod === 'BANK' && (
-          <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-xl space-y-3">
-            <div className="text-xs font-semibold text-blue-400">تفاصيل التحويل البنكي:</div>
+          <div className="p-4 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl space-y-3">
+            <div className="text-xs font-semibold text-[var(--md-info)]">تفاصيل التحويل البنكي:</div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-slate-400 mb-1">اسم البنك / الحساب</label>
+                <label className="block text-xs text-[var(--md-on-surface-variant)] mb-1">اسم البنك / الحساب</label>
                 <input
                   type="text"
                   value={bankName}
                   onChange={(e) => setBankName(e.target.value)}
                   placeholder="مثال: بنك التضامن / بنك الكريمي"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                  className="m3-input w-full px-3 py-2 text-xs"
                 />
               </div>
               <div>
-                <label className="block text-xs text-slate-400 mb-1">رقم الإشعار / الحوالة البنكية</label>
+                <label className="block text-xs text-[var(--md-on-surface-variant)] mb-1">رقم الإشعار / الحوالة البنكية</label>
                 <input
                   type="text"
                   value={bankRefNo}
                   onChange={(e) => setBankRefNo(toEnglishDigits(e.target.value))}
                   placeholder="رقم العملية البنكية"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 font-mono"
+                  className="m3-input w-full px-3 py-2 text-xs font-mono"
                 />
               </div>
             </div>
@@ -2074,18 +2073,18 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
         )}
 
         {paymentMethod === 'WALLET' && (
-          <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-xl space-y-3">
-            <div className="text-xs font-semibold text-purple-400">مزود المحفظة الإلكترونية:</div>
+          <div className="p-4 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl space-y-3">
+            <div className="text-xs font-semibold text-[var(--md-secondary)]">مزود المحفظة الإلكترونية:</div>
             <div className="flex items-center gap-2 flex-wrap">
               {WALLET_PRESETS.map((w) => (
                 <button
                   key={w}
                   type="button"
                   onClick={() => setWalletProvider(w)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
                     walletProvider === w
-                      ? 'bg-purple-600/30 border-purple-500 text-purple-300'
-                      : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-750'
+                      ? 'bg-[var(--md-secondary-container)] border-[var(--md-secondary)] text-[var(--md-on-secondary-container)]'
+                      : 'bg-[var(--md-surface-container)] border-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-container-high)]'
                   }`}
                 >
                   {w}
@@ -2094,22 +2093,22 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
               <div>
-                <label className="block text-xs text-slate-400 mb-1">اسم المحفظة / الخدمة</label>
+                <label className="block text-xs text-[var(--md-on-surface-variant)] mb-1">اسم المحفظة / الخدمة</label>
                 <input
                   type="text"
                   value={walletProvider}
                   onChange={(e) => setWalletProvider(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
+                  className="m3-input w-full px-3 py-2 text-xs"
                 />
               </div>
               <div>
-                <label className="block text-xs text-slate-400 mb-1">رقم الحوالة / العملية بالمحفظة</label>
+                <label className="block text-xs text-[var(--md-on-surface-variant)] mb-1">رقم الحوالة / العملية بالمحفظة</label>
                 <input
                   type="text"
                   value={walletTxNo}
                   onChange={(e) => setWalletTxNo(toEnglishDigits(e.target.value))}
                   placeholder="مثال: TX-984210"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500 font-mono"
+                  className="m3-input w-full px-3 py-2 text-xs font-mono"
                 />
               </div>
             </div>
@@ -2117,8 +2116,8 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
         )}
 
         {paymentMethod === 'CREDIT' && (
-          <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs flex items-center gap-2.5">
-            <Clock className="w-4 h-4 flex-shrink-0 text-amber-400" />
+          <div className="p-3 bg-[var(--md-warning-container)] border border-[var(--md-warning)]/30 rounded-xl text-[var(--md-on-warning-container)] text-xs flex items-center gap-2.5">
+            <Clock className="w-4 h-4 flex-shrink-0" />
             <span>
               فاتورة بالآجل: سيتم قيد إجمالي الفاتورة ({formatAmount(grandTotal, currency)}) كذمة وحساب مدين على العميل.
             </span>
@@ -2129,9 +2128,9 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
       {/* Financial Summary & Payment Options Bottom Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Notes & Immediate Payment */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-            <div className="flex items-center gap-2 text-blue-400 font-semibold text-sm">
+        <div className="m3-card p-5 space-y-4">
+          <div className="flex items-center justify-between border-b border-[var(--md-outline-variant)] pb-2 flex-wrap gap-2">
+            <div className="flex items-center gap-2 text-[var(--md-primary-text)] font-semibold text-sm">
               <DollarSign className="w-4 h-4" />
               <span>المبلغ المسدد والخيارات السريعة</span>
             </div>
@@ -2140,21 +2139,21 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
               <button
                 type="button"
                 onClick={() => setPaidAmount(grandTotal)}
-                className="text-[11px] px-2 py-0.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 rounded font-medium border border-emerald-500/30"
+                className="m3-badge m3-badge-success text-[11px] font-medium cursor-pointer hover:opacity-85 transition-opacity"
               >
                 100% مسدد
               </button>
               <button
                 type="button"
                 onClick={() => setPaidAmount(Number((grandTotal / 2).toFixed(2)))}
-                className="text-[11px] px-2 py-0.5 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 rounded font-medium border border-blue-500/30"
+                className="m3-badge m3-badge-info text-[11px] font-medium cursor-pointer hover:opacity-85 transition-opacity"
               >
                 50% دفعة
               </button>
               <button
                 type="button"
                 onClick={() => setPaidAmount(0)}
-                className="text-[11px] px-2 py-0.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 rounded font-medium border border-amber-500/30"
+                className="m3-badge m3-badge-warning text-[11px] font-medium cursor-pointer hover:opacity-85 transition-opacity"
               >
                 آجل (0)
               </button>
@@ -2163,7 +2162,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
+              <label className="block text-xs font-medium text-[var(--md-on-surface-variant)] mb-1">
                 المبلغ المسلم / المسدد فورا ({getActiveCurrencySymbol(currency)})
               </label>
               <input
@@ -2173,88 +2172,88 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
                 lang="en"
                 value={paidAmount}
                 onChange={(e) => setPaidAmount(parseEnglishNumber(e.target.value, 0))}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-emerald-400 font-bold font-mono focus:outline-none focus:border-emerald-500"
+                className="m3-input w-full px-3 py-2 text-sm text-[var(--md-success)] font-bold font-mono tabular-nums"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">نوع السداد المحدد</label>
-              <div className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs font-semibold text-white flex items-center gap-2">
-                {paymentMethod === 'CASH' && <><Banknote className="w-4 h-4 text-emerald-400" /> <span>نقد (الصندوق)</span></>}
-                {paymentMethod === 'BANK' && <><Landmark className="w-4 h-4 text-blue-400" /> <span>تحويل بنكي</span></>}
-                {paymentMethod === 'CREDIT' && <><Clock className="w-4 h-4 text-amber-400" /> <span>آجل بالكامل</span></>}
-                {paymentMethod === 'WALLET' && <><Wallet className="w-4 h-4 text-purple-400" /> <span>محفظة إلكترونية</span></>}
+              <label className="block text-xs font-medium text-[var(--md-on-surface-variant)] mb-1">نوع السداد المحدد</label>
+              <div className="w-full bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl px-3 py-2.5 text-xs font-semibold text-[var(--md-on-surface)] flex items-center gap-2">
+                {paymentMethod === 'CASH' && <><Banknote className="w-4 h-4 text-[var(--md-success)]" /> <span>نقد (الصندوق)</span></>}
+                {paymentMethod === 'BANK' && <><Landmark className="w-4 h-4 text-[var(--md-info)]" /> <span>تحويل بنكي</span></>}
+                {paymentMethod === 'CREDIT' && <><Clock className="w-4 h-4 text-[var(--md-warning)]" /> <span>آجل بالكامل</span></>}
+                {paymentMethod === 'WALLET' && <><Wallet className="w-4 h-4 text-[var(--md-secondary)]" /> <span>محفظة إلكترونية</span></>}
               </div>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">ملاحظات وشروط الفاتورة</label>
+            <label className="block text-xs font-medium text-[var(--md-on-surface-variant)] mb-1">ملاحظات وشروط الفاتورة</label>
             <textarea
               rows={3}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="مثال: البضاعة المباعة لا ترد بعد 3 أيام، الدفع خلال 14 يوما..."
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-blue-500 resize-none"
+              className="m3-input w-full p-3 text-xs resize-none"
             />
           </div>
         </div>
 
         {/* Right: Grand Totals Breakdown */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-3.5">
-          <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm border-b border-slate-800 pb-2">
+        <div className="m3-card p-5 space-y-3.5">
+          <div className="flex items-center gap-2 text-[var(--md-success)] font-semibold text-sm border-b border-[var(--md-outline-variant)] pb-2">
             <CheckCircle2 className="w-4 h-4" />
             <span>الحسابات والإجمالي الختامي</span>
           </div>
 
           {hasBelowCost && (
-            <div className="p-3 bg-rose-500/15 border border-rose-500/40 rounded-xl text-rose-300 text-xs font-bold flex items-center gap-2 animate-pulse shadow-md shadow-rose-950/20">
-              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+            <div className="p-3 bg-[var(--md-error-container)] border border-[var(--md-error)]/40 rounded-xl text-[var(--md-on-error-container)] text-xs font-bold flex items-center gap-2 animate-pulse">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
               <span>⛔ تنبيه محاسبي: يوجد صنف مسعّر بأقل من سعر الشراء! لا يمكن إتمام البيع بخسارة حتى يتم تعديل السعر.</span>
             </div>
           )}
 
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between text-slate-300">
+            <div className="flex justify-between text-[var(--md-on-surface-variant)]">
               <span>المجموع الفرعي (Subtotal):</span>
-              <span className="font-mono">{formatAmount(subtotal, currency)}</span>
+              <span className="font-mono tabular-nums text-[var(--md-on-surface)]">{formatAmount(subtotal, currency)}</span>
             </div>
 
-            <div className="flex justify-between text-rose-400">
+            <div className="flex justify-between text-[var(--md-error)]">
               <span>إجمالي الخصم التجاري:</span>
-              <span className="font-mono">-{formatAmount(totalDiscount, currency)}</span>
+              <span className="font-mono tabular-nums">-{formatAmount(totalDiscount, currency)}</span>
             </div>
 
-            <div className="flex justify-between text-emerald-400">
+            <div className="flex justify-between text-[var(--md-success)]">
               <span>ضريبة القيمة المضافة (VAT):</span>
-              <span className="font-mono">+{formatAmount(totalTax, currency)}</span>
+              <span className="font-mono tabular-nums">+{formatAmount(totalTax, currency)}</span>
             </div>
 
-            <div className="border-t border-slate-800 pt-2.5 flex justify-between text-base font-extrabold text-white">
+            <div className="border-t border-[var(--md-outline-variant)] pt-2.5 flex justify-between text-base font-extrabold text-[var(--md-on-surface)]">
               <span>الإجمالي النهائي (Grand Total):</span>
-              <span className="font-mono text-xl text-blue-400">{formatAmount(grandTotal, currency)}</span>
+              <span className="font-mono text-xl text-[var(--md-primary-text)] tabular-nums">{formatAmount(grandTotal, currency)}</span>
             </div>
 
             {currency !== 'YER' && (
-              <div className="flex justify-between text-xs text-amber-300 font-mono font-bold pt-1 border-t border-slate-800/60">
+              <div className="flex justify-between text-xs text-[var(--md-secondary)] font-mono font-bold pt-1 border-t border-[var(--md-outline-variant)] tabular-nums">
                 <span>المعادل بالعملة الأساسية:</span>
                 <span>≈ {formatNumber(grandTotal * (exchangeRate || 1))} {getActiveCurrencySymbol('YER')}</span>
               </div>
             )}
 
-            <div className="flex justify-between text-xs text-emerald-400 pt-1">
+            <div className="flex justify-between text-xs text-[var(--md-success)] pt-1">
               <span>المسلم / المسدد ({paymentMethod === 'CASH' ? 'نقداً' : paymentMethod === 'BANK' ? 'بنكي' : paymentMethod === 'WALLET' ? 'محفظة' : 'آجل'}):</span>
-              <span className="font-mono font-bold">{formatAmount(paidAmount, currency)}</span>
+              <span className="font-mono font-bold tabular-nums">{formatAmount(paidAmount, currency)}</span>
             </div>
 
-            <div className="flex justify-between text-sm font-bold text-amber-400 pt-1 border-t border-slate-800/80">
+            <div className="flex justify-between text-sm font-bold text-[var(--md-warning)] pt-1 border-t border-[var(--md-outline-variant)]">
               <span>الرصيد المتبقي على العميل (الذمة):</span>
-              <span className="font-mono text-base">{formatAmount(remainingDue, currency)}</span>
+              <span className="font-mono text-base tabular-nums">{formatAmount(remainingDue, currency)}</span>
             </div>
 
             {paidAmount > grandTotal && (
-              <div className="flex justify-between text-sm font-bold text-cyan-400 pt-1 bg-cyan-950/40 p-2 rounded-xl border border-cyan-800/40">
+              <div className="flex justify-between text-sm font-bold text-[var(--md-on-info-container)] pt-1 bg-[var(--md-info-container)] p-2 rounded-xl border border-[var(--md-info)]/30">
                 <span>المتبقي للعميل (الباقي / الفكة):</span>
-                <span className="font-mono text-base">{formatAmount(paidAmount - grandTotal, currency)}</span>
+                <span className="font-mono text-base tabular-nums">{formatAmount(paidAmount - grandTotal, currency)}</span>
               </div>
             )}
           </div>

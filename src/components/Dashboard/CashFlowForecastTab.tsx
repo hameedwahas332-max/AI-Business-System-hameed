@@ -240,36 +240,36 @@ export const CashFlowForecastTab: React.FC = () => {
   const currency = getActiveCurrencySymbol(company?.currency || forecastData?.currency);
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-6 pb-12 text-right" dir="rtl">
       {/* Top Header Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="m3-card p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg border border-emerald-500/30">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="p-2 bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] rounded-xl border border-[var(--md-primary)]/25">
               <Cpu className="w-5 h-5" />
             </span>
-            <h1 className="text-xl font-bold text-white">توقعات التدفق النقدي (Cash Flow Forecasting)</h1>
-            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-              Read-Only Phase 7.7
-            </span>
+            <h1 className="text-xl font-bold text-[var(--md-on-surface)]">
+              توقعات التدفق النقدي (Cash Flow Forecasting)
+            </h1>
+            <span className="m3-badge m3-badge-primary">Read-Only Phase 7.7</span>
           </div>
-          <p className="text-slate-400 text-xs mt-1">
+          <p className="text-[var(--md-on-surface-variant)] text-xs mt-1.5">
             تحليل قراءة فقط موثوق للسيولة النقدية المستقبلية والتنبؤ بآفاق (30/60/90 يوماً) بالاعتماد على سجلات دفتر الأستاذ والسندات الرسمية.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 self-end md:self-auto">
+        <div className="flex items-center gap-3 self-end md:self-auto flex-wrap">
           {forecastData && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-300">
+            <div className="m3-badge m3-badge-primary !py-1.5 !px-3 !text-xs">
               {forecastData.engine === 'hybrid' ? (
                 <>
-                  <Cpu className="w-4 h-4 text-emerald-400" />
-                  <span className="font-semibold text-emerald-300">محرك هجين (AI + Statistical)</span>
+                  <Cpu className="w-4 h-4" />
+                  <span>محرك هجين (AI + Statistical)</span>
                 </>
               ) : (
                 <>
-                  <Calculator className="w-4 h-4 text-teal-400" />
-                  <span className="font-semibold text-teal-300">محرك إحصائي محدد (Statistical Engine)</span>
+                  <Calculator className="w-4 h-4" />
+                  <span>محرك إحصائي محدد (Statistical Engine)</span>
                 </>
               )}
             </div>
@@ -278,7 +278,7 @@ export const CashFlowForecastTab: React.FC = () => {
           <button
             onClick={fetchForecast}
             disabled={loading}
-            className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold rounded-lg transition-colors shadow-sm disabled:opacity-50"
+            className="m3-btn-primary !min-h-[38px] text-xs disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             تحديث التوقعات
@@ -287,103 +287,105 @@ export const CashFlowForecastTab: React.FC = () => {
       </div>
 
       {error && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-xl text-xs flex items-center gap-3">
-          <AlertTriangle className="w-5 h-5 shrink-0" />
+        <div className="bg-[var(--md-error-container)] border border-[var(--md-error)]/40 text-[var(--md-on-error-container)] p-4 rounded-xl text-xs font-medium flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 text-[var(--md-error)] shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {loading && !forecastData && (
-        <div className="p-12 text-center bg-slate-900 border border-slate-800 rounded-2xl shadow-xl">
-          <RefreshCw className="w-8 h-8 text-emerald-500 animate-spin mx-auto mb-3" />
-          <p className="text-slate-300 text-sm font-semibold">جاري حساب التدفقات النقدية واستخلاص التوقعات...</p>
+        <div className="m3-card p-12 text-center">
+          <RefreshCw className="w-8 h-8 text-[var(--md-primary-text)] animate-spin mx-auto mb-3" />
+          <p className="text-[var(--md-on-surface-variant)] text-sm font-semibold">
+            جاري حساب التدفقات النقدية واستخلاص التوقعات...
+          </p>
         </div>
       )}
 
       {forecastData && (
         <>
           {/* Section 1: Detailed Liquidity & Treasury Positions (4 Cards) */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-300 px-1">
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between text-xs font-bold text-[var(--md-on-surface)] px-1 flex-wrap gap-2">
               <span className="flex items-center gap-1.5">
-                <Wallet className="w-4 h-4 text-emerald-400" />
+                <Wallet className="w-4 h-4 text-[var(--md-primary-text)]" />
                 <span>أرصدة السيولة النقدية والبنكية وقنوات الخزينة المتاحة:</span>
               </span>
-              <span className="text-[11px] text-slate-400 font-mono font-normal">
+              <span className="text-[11px] text-[var(--md-on-surface-variant)] font-normal">
                 جاهزية فورية ومطابقة لدفتر الأستاذ
               </span>
             </div>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Card 1: Total Available Cash & Bank */}
-              <div className="bg-gradient-to-br from-slate-900 to-slate-950 p-5 rounded-2xl border border-emerald-500/30 shadow-xl relative overflow-hidden">
-                <div className="flex items-center justify-between text-slate-400 mb-2">
-                  <span className="text-xs font-semibold text-emerald-300">إجمالي السيولة المتاحة</span>
-                  <span className="p-1.5 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 rounded-lg">
+              <div className="m3-card p-5 border-[var(--md-primary)]/40 relative overflow-hidden">
+                <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] mb-2">
+                  <span className="text-xs font-bold text-[var(--md-primary-text)]">إجمالي السيولة المتاحة</span>
+                  <span className="p-1.5 bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/25 rounded-lg">
                     <Wallet className="w-4 h-4" />
                   </span>
                 </div>
-                <div className="text-2xl font-black text-white font-mono tabular-nums">
+                <div className="text-2xl font-black text-[var(--md-on-surface)] font-mono tabular-nums">
                   {formatAmount(forecastData?.facts?.currentCashPosition ?? 0)}{' '}
-                  <span className="text-xs font-normal text-emerald-400">{currency}</span>
+                  <span className="text-xs font-semibold text-[var(--md-primary-text)]">{currency}</span>
                 </div>
-                <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                <div className="text-[11px] text-[var(--md-on-surface-variant)] mt-1 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-[var(--md-success)]" />
                   <span>الصندوق + البنوك + المحافظ</span>
                 </div>
               </div>
 
               {/* Card 2: Cash Box (1101) */}
-              <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
-                <div className="flex items-center justify-between text-slate-400 mb-2">
-                  <span className="text-xs font-medium text-slate-300">الخزينة والصندوق النقدي</span>
-                  <span className="p-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-lg">
+              <div className="m3-card p-5">
+                <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] mb-2">
+                  <span className="text-xs font-semibold">الخزينة والصندوق النقدي</span>
+                  <span className="p-1.5 bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] border border-[var(--md-secondary)]/25 rounded-lg">
                     <Coins className="w-4 h-4" />
                   </span>
                 </div>
-                <div className="text-2xl font-bold text-slate-100 font-mono tabular-nums">
+                <div className="text-2xl font-bold text-[var(--md-on-surface)] font-mono tabular-nums">
                   {formatAmount(forecastData?.facts?.cashBalance ?? 0)}{' '}
-                  <span className="text-xs font-normal text-slate-400">{currency}</span>
+                  <span className="text-xs font-normal text-[var(--md-on-surface-variant)]">{currency}</span>
                 </div>
-                <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-                  <span className="font-mono text-amber-400/90 font-semibold">حساب 1101</span>
-                  <span>• نقدية الصندوق والمكتب</span>
+                <div className="text-[11px] text-[var(--md-on-surface-variant)] mt-1 flex items-center gap-1">
+                  <span className="font-mono text-[var(--md-secondary)] font-semibold tabular-nums">حساب 1101</span>
+                  <span>· نقدية الصندوق والمكتب</span>
                 </div>
               </div>
 
               {/* Card 3: Bank Accounts (1102) */}
-              <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
-                <div className="flex items-center justify-between text-slate-400 mb-2">
-                  <span className="text-xs font-medium text-slate-300">الحسابات والودائع البنكية</span>
-                  <span className="p-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg">
+              <div className="m3-card p-5">
+                <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] mb-2">
+                  <span className="text-xs font-semibold">الحسابات والودائع البنكية</span>
+                  <span className="p-1.5 bg-[var(--md-info-container)] text-[var(--md-on-info-container)] border border-[var(--md-info)]/25 rounded-lg">
                     <Landmark className="w-4 h-4" />
                   </span>
                 </div>
-                <div className="text-2xl font-bold text-slate-100 font-mono tabular-nums">
+                <div className="text-2xl font-bold text-[var(--md-on-surface)] font-mono tabular-nums">
                   {formatAmount(forecastData?.facts?.bankBalance ?? 0)}{' '}
-                  <span className="text-xs font-normal text-slate-400">{currency}</span>
+                  <span className="text-xs font-normal text-[var(--md-on-surface-variant)]">{currency}</span>
                 </div>
-                <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-                  <span className="font-mono text-blue-400/90 font-semibold">حساب 1102</span>
-                  <span>• أرصدة البنوك المعتمدة</span>
+                <div className="text-[11px] text-[var(--md-on-surface-variant)] mt-1 flex items-center gap-1">
+                  <span className="font-mono text-[var(--md-info)] font-semibold tabular-nums">حساب 1102</span>
+                  <span>· أرصدة البنوك المعتمدة</span>
                 </div>
               </div>
 
               {/* Card 4: E-Wallets (1107) */}
-              <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
-                <div className="flex items-center justify-between text-slate-400 mb-2">
-                  <span className="text-xs font-medium text-slate-300">المحافظ الرقمية والشبكات</span>
-                  <span className="p-1.5 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg">
+              <div className="m3-card p-5">
+                <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] mb-2">
+                  <span className="text-xs font-semibold">المحافظ الرقمية والشبكات</span>
+                  <span className="p-1.5 bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/25 rounded-lg">
                     <Smartphone className="w-4 h-4" />
                   </span>
                 </div>
-                <div className="text-2xl font-bold text-slate-100 font-mono tabular-nums">
+                <div className="text-2xl font-bold text-[var(--md-on-surface)] font-mono tabular-nums">
                   {formatAmount(forecastData?.facts?.walletBalance ?? 0)}{' '}
-                  <span className="text-xs font-normal text-slate-400">{currency}</span>
+                  <span className="text-xs font-normal text-[var(--md-on-surface-variant)]">{currency}</span>
                 </div>
-                <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-                  <span className="font-mono text-purple-400/90 font-semibold">حساب 1107</span>
-                  <span>• الكريمي، جوالي، ون كاش</span>
+                <div className="text-[11px] text-[var(--md-on-surface-variant)] mt-1 flex items-center gap-1">
+                  <span className="font-mono text-[var(--md-primary-text)] font-semibold tabular-nums">حساب 1107</span>
+                  <span>· الكريمي، جوالي، ون كاش</span>
                 </div>
               </div>
             </div>
@@ -391,145 +393,165 @@ export const CashFlowForecastTab: React.FC = () => {
 
           {/* Section 2: Receivables, Payables & Working Capital */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
-              <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-xs font-medium">مستحقات العملاء (الذمم المدينة)</span>
-                <span className="p-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg">
+            <div className="m3-card p-5">
+              <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] mb-2">
+                <span className="text-xs font-semibold">مستحقات العملاء (الذمم المدينة)</span>
+                <span className="p-1.5 bg-[var(--md-success-container)] text-[var(--md-on-success-container)] border border-[var(--md-success)]/25 rounded-lg">
                   <TrendingUp className="w-4 h-4" />
                 </span>
               </div>
-              <div className="text-2xl font-bold text-slate-100 font-mono tabular-nums">
+              <div className="text-2xl font-bold text-[var(--md-on-surface)] font-mono tabular-nums">
                 {formatAmount(forecastData?.facts?.totalReceivables ?? 0)}{' '}
-                <span className="text-xs font-normal text-slate-400">{currency}</span>
+                <span className="text-xs font-normal text-[var(--md-on-surface-variant)]">{currency}</span>
               </div>
-              <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-                <ArrowUpRight className="w-3 h-3 text-emerald-400" />
-                <span>متوسط المقبوضات: {formatAmount(forecastData?.facts?.recentAverageInflow ?? 0)} {currency}/يوم</span>
+              <div className="text-[11px] text-[var(--md-on-surface-variant)] mt-1 flex items-center gap-1 tabular-nums">
+                <ArrowUpRight className="w-3 h-3 text-[var(--md-success)]" />
+                <span>
+                  متوسط المقبوضات: {formatAmount(forecastData?.facts?.recentAverageInflow ?? 0)} {currency}/يوم
+                </span>
               </div>
             </div>
 
-            <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
-              <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-xs font-medium">التزامات الموردين (الذمم الدائنة)</span>
-                <span className="p-1.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-lg">
+            <div className="m3-card p-5">
+              <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] mb-2">
+                <span className="text-xs font-semibold">التزامات الموردين (الذمم الدائنة)</span>
+                <span className="p-1.5 bg-[var(--md-error-container)] text-[var(--md-on-error-container)] border border-[var(--md-error)]/25 rounded-lg">
                   <TrendingDown className="w-4 h-4" />
                 </span>
               </div>
-              <div className="text-2xl font-bold text-slate-100 font-mono tabular-nums">
+              <div className="text-2xl font-bold text-[var(--md-on-surface)] font-mono tabular-nums">
                 {formatAmount(forecastData?.facts?.totalPayables ?? 0)}{' '}
-                <span className="text-xs font-normal text-slate-400">{currency}</span>
+                <span className="text-xs font-normal text-[var(--md-on-surface-variant)]">{currency}</span>
               </div>
-              <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-                <ArrowDownRight className="w-3 h-3 text-rose-400" />
-                <span>متوسط المدفوعات: {formatAmount(forecastData?.facts?.recentAverageOutflow ?? 0)} {currency}/يوم</span>
+              <div className="text-[11px] text-[var(--md-on-surface-variant)] mt-1 flex items-center gap-1 tabular-nums">
+                <ArrowDownRight className="w-3 h-3 text-[var(--md-error)]" />
+                <span>
+                  متوسط المدفوعات: {formatAmount(forecastData?.facts?.recentAverageOutflow ?? 0)} {currency}/يوم
+                </span>
               </div>
             </div>
 
-            <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
-              <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-xs font-medium">صافي رأس المال العامل المتوقع</span>
-                <span className="p-1.5 bg-teal-500/10 text-teal-400 border border-teal-500/20 rounded-lg">
+            <div className="m3-card p-5">
+              <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] mb-2">
+                <span className="text-xs font-semibold">صافي رأس المال العامل المتوقع</span>
+                <span className="p-1.5 bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/25 rounded-lg">
                   <ShieldCheck className="w-4 h-4" />
                 </span>
               </div>
-              <div className={`text-2xl font-bold font-mono tabular-nums ${(forecastData?.calculations?.workingCapital ?? 0) >= 0 ? 'text-slate-100' : 'text-rose-400'}`}>
+              <div
+                className={`text-2xl font-bold font-mono tabular-nums ${
+                  (forecastData?.calculations?.workingCapital ?? 0) >= 0
+                    ? 'text-[var(--md-on-surface)]'
+                    : 'text-[var(--md-error)]'
+                }`}
+              >
                 {formatAmount(forecastData?.calculations?.workingCapital ?? 0)}{' '}
-                <span className="text-xs font-normal text-slate-400">{currency}</span>
+                <span className="text-xs font-normal text-[var(--md-on-surface-variant)]">{currency}</span>
               </div>
-              <div className="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
+              <div className="text-[11px] text-[var(--md-on-surface-variant)] mt-1 flex items-center justify-between">
                 <span>السيولة + المستحقات - الالتزامات</span>
-                <span className="font-mono text-teal-400 font-semibold">{forecastData?.calculations?.receivablesCoverageRatio ?? 1.5}x تغطية</span>
+                <span className="font-mono text-[var(--md-primary-text)] font-semibold tabular-nums">
+                  {forecastData?.calculations?.receivablesCoverageRatio ?? 1.5}x تغطية
+                </span>
               </div>
             </div>
           </div>
 
           {/* Forecast Horizons (30 / 60 / 90 Days) */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="m3-card p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[var(--md-outline-variant)] pb-3 flex-wrap gap-2">
               <div className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-emerald-400" />
-                <h2 className="text-base font-bold text-slate-100">توقعات الرصيد النقدي المتوقع عبر الآفاق الزمنية</h2>
+                <Calendar className="w-5 h-5 text-[var(--md-primary-text)]" />
+                <h2 className="text-base font-bold text-[var(--md-on-surface)]">
+                  توقعات الرصيد النقدي المتوقع عبر الآفاق الزمنية
+                </h2>
               </div>
-              <span className="text-xs text-slate-400 font-medium">
+              <span className="text-xs text-[var(--md-on-surface-variant)] font-medium tabular-nums">
                 تحليل السجل التاريخي: {forecastData?.calculations?.historicalDaysAnalyzed ?? 90} يوماً
               </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-1">
               {/* 30 Days Card */}
-              <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-5 relative overflow-hidden">
+              <div className="bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-xl p-5 relative overflow-hidden">
                 <div className="flex justify-between items-center mb-3">
-                  <span className="text-xs font-bold text-slate-300 bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-md">
-                    أفق 30 يوماً
-                  </span>
-                  <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
+                  <span className="m3-badge">أفق 30 يوماً</span>
+                  <span className="m3-badge m3-badge-success tabular-nums">
                     ثقة: {forecastData?.forecast?.days30?.confidence ?? 90}%
                   </span>
                 </div>
-                <div className="text-2xl font-bold text-slate-100 mb-2">
+                <div className="text-2xl font-bold font-mono text-[var(--md-on-surface)] mb-3 tabular-nums">
                   {formatAmount(forecastData?.forecast?.days30?.expected ?? 0)}{' '}
-                  <span className="text-xs font-normal text-slate-400">{currency}</span>
+                  <span className="text-xs font-normal text-[var(--md-on-surface-variant)]">{currency}</span>
                 </div>
-                <div className="text-xs text-slate-300 space-y-1 bg-slate-900 p-3 rounded-lg border border-slate-800">
+                <div className="text-xs space-y-1.5 bg-[var(--md-surface-container-lowest)] p-3 rounded-lg border border-[var(--md-outline-variant)] tabular-nums">
                   <div className="flex justify-between">
-                    <span className="text-slate-400">الحد الأدنى المتوقع:</span>
-                    <span className="font-semibold text-slate-200">{formatAmount(forecastData?.forecast?.days30?.lowerBound ?? 0)}</span>
+                    <span className="text-[var(--md-on-surface-variant)]">الحد الأدنى المتوقع:</span>
+                    <span className="font-mono font-semibold text-[var(--md-on-surface)]">
+                      {formatAmount(forecastData?.forecast?.days30?.lowerBound ?? 0)}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">الحد الأعلى المتوقع:</span>
-                    <span className="font-semibold text-slate-200">{formatAmount(forecastData?.forecast?.days30?.upperBound ?? 0)}</span>
+                    <span className="text-[var(--md-on-surface-variant)]">الحد الأعلى المتوقع:</span>
+                    <span className="font-mono font-semibold text-[var(--md-on-surface)]">
+                      {formatAmount(forecastData?.forecast?.days30?.upperBound ?? 0)}
+                    </span>
                   </div>
                 </div>
               </div>
 
               {/* 60 Days Card */}
-              <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-5 relative overflow-hidden">
+              <div className="bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-xl p-5 relative overflow-hidden">
                 <div className="flex justify-between items-center mb-3">
-                  <span className="text-xs font-bold text-slate-300 bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-md">
-                    أفق 60 يوماً
-                  </span>
-                  <span className="text-xs font-semibold text-teal-400 bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded">
+                  <span className="m3-badge">أفق 60 يوماً</span>
+                  <span className="m3-badge m3-badge-primary tabular-nums">
                     ثقة: {forecastData?.forecast?.days60?.confidence ?? 85}%
                   </span>
                 </div>
-                <div className="text-2xl font-bold text-slate-100 mb-2">
+                <div className="text-2xl font-bold font-mono text-[var(--md-on-surface)] mb-3 tabular-nums">
                   {formatAmount(forecastData?.forecast?.days60?.expected ?? 0)}{' '}
-                  <span className="text-xs font-normal text-slate-400">{currency}</span>
+                  <span className="text-xs font-normal text-[var(--md-on-surface-variant)]">{currency}</span>
                 </div>
-                <div className="text-xs text-slate-300 space-y-1 bg-slate-900 p-3 rounded-lg border border-slate-800">
+                <div className="text-xs space-y-1.5 bg-[var(--md-surface-container-lowest)] p-3 rounded-lg border border-[var(--md-outline-variant)] tabular-nums">
                   <div className="flex justify-between">
-                    <span className="text-slate-400">الحد الأدنى المتوقع:</span>
-                    <span className="font-semibold text-slate-200">{formatAmount(forecastData?.forecast?.days60?.lowerBound ?? 0)}</span>
+                    <span className="text-[var(--md-on-surface-variant)]">الحد الأدنى المتوقع:</span>
+                    <span className="font-mono font-semibold text-[var(--md-on-surface)]">
+                      {formatAmount(forecastData?.forecast?.days60?.lowerBound ?? 0)}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">الحد الأعلى المتوقع:</span>
-                    <span className="font-semibold text-slate-200">{formatAmount(forecastData?.forecast?.days60?.upperBound ?? 0)}</span>
+                    <span className="text-[var(--md-on-surface-variant)]">الحد الأعلى المتوقع:</span>
+                    <span className="font-mono font-semibold text-[var(--md-on-surface)]">
+                      {formatAmount(forecastData?.forecast?.days60?.upperBound ?? 0)}
+                    </span>
                   </div>
                 </div>
               </div>
 
               {/* 90 Days Card */}
-              <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-5 relative overflow-hidden">
+              <div className="bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-xl p-5 relative overflow-hidden">
                 <div className="flex justify-between items-center mb-3">
-                  <span className="text-xs font-bold text-slate-300 bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-md">
-                    أفق 90 يوماً
-                  </span>
-                  <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
+                  <span className="m3-badge">أفق 90 يوماً</span>
+                  <span className="m3-badge m3-badge-info tabular-nums">
                     ثقة: {forecastData?.forecast?.days90?.confidence ?? 80}%
                   </span>
                 </div>
-                <div className="text-2xl font-bold text-slate-100 mb-2">
+                <div className="text-2xl font-bold font-mono text-[var(--md-on-surface)] mb-3 tabular-nums">
                   {formatAmount(forecastData?.forecast?.days90?.expected ?? 0)}{' '}
-                  <span className="text-xs font-normal text-slate-400">{currency}</span>
+                  <span className="text-xs font-normal text-[var(--md-on-surface-variant)]">{currency}</span>
                 </div>
-                <div className="text-xs text-slate-300 space-y-1 bg-slate-900 p-3 rounded-lg border border-slate-800">
+                <div className="text-xs space-y-1.5 bg-[var(--md-surface-container-lowest)] p-3 rounded-lg border border-[var(--md-outline-variant)] tabular-nums">
                   <div className="flex justify-between">
-                    <span className="text-slate-400">الحد الأدنى المتوقع:</span>
-                    <span className="font-semibold text-slate-200">{formatAmount(forecastData?.forecast?.days90?.lowerBound ?? 0)}</span>
+                    <span className="text-[var(--md-on-surface-variant)]">الحد الأدنى المتوقع:</span>
+                    <span className="font-mono font-semibold text-[var(--md-on-surface)]">
+                      {formatAmount(forecastData?.forecast?.days90?.lowerBound ?? 0)}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">الحد الأعلى المتوقع:</span>
-                    <span className="font-semibold text-slate-200">{formatAmount(forecastData?.forecast?.days90?.upperBound ?? 0)}</span>
+                    <span className="text-[var(--md-on-surface-variant)]">الحد الأعلى المتوقع:</span>
+                    <span className="font-mono font-semibold text-[var(--md-on-surface)]">
+                      {formatAmount(forecastData?.forecast?.days90?.upperBound ?? 0)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -538,12 +560,14 @@ export const CashFlowForecastTab: React.FC = () => {
 
           {/* AI Commentary & Analysis Section */}
           {forecastData.commentary && (
-            <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-xl border border-slate-800">
+            <div className="m3-card p-6">
               <div className="flex items-center gap-2 mb-3">
-                <Cpu className="w-5 h-5 text-emerald-400" />
-                <h3 className="text-sm font-bold text-emerald-300">التعليق التنفيذي والتحليل المالي للسيولة</h3>
+                <Cpu className="w-5 h-5 text-[var(--md-primary-text)]" />
+                <h3 className="text-sm font-bold text-[var(--md-primary-text)]">
+                  التعليق التنفيذي والتحليل المالي للسيولة
+                </h3>
               </div>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
+              <p className="text-xs sm:text-sm text-[var(--md-on-surface)] leading-relaxed">
                 {forecastData.commentary}
               </p>
             </div>
@@ -552,42 +576,44 @@ export const CashFlowForecastTab: React.FC = () => {
           {/* Risks & Recommendations Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Risk Observations */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
-              <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
-                <AlertTriangle className="w-5 h-5 text-amber-400" />
-                <h3 className="text-sm font-bold text-slate-100">ملاحظات وتقييم مخاطر السيولة</h3>
+            <div className="m3-card p-5 space-y-3">
+              <div className="flex items-center gap-2 border-b border-[var(--md-outline-variant)] pb-2.5">
+                <AlertTriangle className="w-5 h-5 text-[var(--md-warning)]" />
+                <h3 className="text-sm font-bold text-[var(--md-on-surface)]">ملاحظات وتقييم مخاطر السيولة</h3>
               </div>
 
-              {(!forecastData?.risks || forecastData.risks.length === 0) ? (
-                <p className="text-xs text-slate-400 py-4 text-center">لا توجد مخاطر سيولة حرجة محددة حالياً.</p>
+              {!forecastData?.risks || forecastData.risks.length === 0 ? (
+                <p className="text-xs text-[var(--md-on-surface-variant)] py-4 text-center">
+                  لا توجد مخاطر سيولة حرجة محددة حالياً.
+                </p>
               ) : (
                 <div className="space-y-3">
                   {(forecastData?.risks || []).map((risk: any, idx: number) => (
                     <div
                       key={idx}
-                      className={`p-3.5 rounded-xl border text-xs space-y-1 ${
+                      className={`p-3.5 rounded-xl border text-xs space-y-1.5 ${
                         risk.severity === 'HIGH'
-                          ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                          ? 'bg-[var(--md-error-container)] border-[var(--md-error)]/35 text-[var(--md-on-error-container)]'
                           : risk.severity === 'MEDIUM'
-                          ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
-                          : 'bg-slate-950/60 border-slate-800 text-slate-300'
+                          ? 'bg-[var(--md-warning-container)] border-[var(--md-warning)]/35 text-[var(--md-on-warning-container)]'
+                          : 'bg-[var(--md-surface-container)] border-[var(--md-outline-variant)] text-[var(--md-on-surface)]'
                       }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-slate-100">{risk.title}</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold">{risk.title}</span>
                         <span
-                          className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
+                          className={`m3-badge ${
                             risk.severity === 'HIGH'
-                              ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                              ? 'm3-badge-error'
                               : risk.severity === 'MEDIUM'
-                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                              : 'bg-slate-800 text-slate-300'
+                              ? 'm3-badge-warning'
+                              : ''
                           }`}
                         >
                           {risk.severity === 'HIGH' ? 'مرتفع' : risk.severity === 'MEDIUM' ? 'متوسط' : 'منخفض'}
                         </span>
                       </div>
-                      <p className="text-slate-400 leading-relaxed">{risk.description}</p>
+                      <p className="opacity-85 leading-relaxed">{risk.description}</p>
                     </div>
                   ))}
                 </div>
@@ -595,36 +621,40 @@ export const CashFlowForecastTab: React.FC = () => {
             </div>
 
             {/* Operational Recommendations */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
-              <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
-                <Lightbulb className="w-5 h-5 text-emerald-400" />
-                <h3 className="text-sm font-bold text-slate-100">التوصيات والإجراءات التشغيلية الموصى بها</h3>
+            <div className="m3-card p-5 space-y-3">
+              <div className="flex items-center gap-2 border-b border-[var(--md-outline-variant)] pb-2.5">
+                <Lightbulb className="w-5 h-5 text-[var(--md-success)]" />
+                <h3 className="text-sm font-bold text-[var(--md-on-surface)]">
+                  التوصيات والإجراءات التشغيلية الموصى بها
+                </h3>
               </div>
 
-              {(!forecastData?.recommendations || forecastData.recommendations.length === 0) ? (
-                <p className="text-xs text-slate-400 py-4 text-center">لا توجد توصيات إضافية حالياً.</p>
+              {!forecastData?.recommendations || forecastData.recommendations.length === 0 ? (
+                <p className="text-xs text-[var(--md-on-surface-variant)] py-4 text-center">
+                  لا توجد توصيات إضافية حالياً.
+                </p>
               ) : (
                 <div className="space-y-3">
                   {(forecastData?.recommendations || []).map((rec: any, idx: number) => (
                     <div
                       key={idx}
-                      className="p-3.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-xs space-y-1"
+                      className="p-3.5 rounded-xl border border-[var(--md-success)]/30 bg-[var(--md-success-container)]/55 text-[var(--md-on-surface)] text-xs space-y-1.5"
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-emerald-300">{rec.title}</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-[var(--md-success)]">{rec.title}</span>
                         <span
-                          className={`text-[10px] px-2 py-0.5 rounded font-bold ${
+                          className={`m3-badge ${
                             rec.priority === 'HIGH'
-                              ? 'bg-emerald-600 text-white'
+                              ? 'm3-badge-success'
                               : rec.priority === 'MEDIUM'
-                              ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
-                              : 'bg-slate-800 text-slate-300'
+                              ? 'm3-badge-primary'
+                              : ''
                           }`}
                         >
                           أولوية {rec.priority === 'HIGH' ? 'عالية' : rec.priority === 'MEDIUM' ? 'متوسطة' : 'عادية'}
                         </span>
                       </div>
-                      <p className="text-slate-400 leading-relaxed">{rec.description}</p>
+                      <p className="text-[var(--md-on-surface-variant)] leading-relaxed">{rec.description}</p>
                     </div>
                   ))}
                 </div>
@@ -633,10 +663,10 @@ export const CashFlowForecastTab: React.FC = () => {
           </div>
 
           {/* Guarantees & Transparency Footer Note */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 text-slate-300 text-xs flex items-center gap-3">
-            <Info className="w-5 h-5 text-emerald-400 shrink-0" />
+          <div className="m3-card p-4 bg-[var(--md-surface-container-low)] text-[var(--md-on-surface-variant)] text-xs flex items-center gap-3">
+            <Info className="w-5 h-5 text-[var(--md-primary-text)] shrink-0" />
             <div>
-              <span className="font-bold text-slate-100">ضمان سلامة البيانات والحسابات: </span>
+              <span className="font-bold text-[var(--md-on-surface)]">ضمان سلامة البيانات والحسابات: </span>
               نظام التوقع يعتمد كلياً على القراءة المباشرة وحساب التجميعات المالية من أصل السجلات الموثوقة (Read-Only). لا يملك المحرك أي صلاحيات لإنشاء أو تعديل أي فواتير، سندات، أو حركات قيد في دفتر الأستاذ.
             </div>
           </div>

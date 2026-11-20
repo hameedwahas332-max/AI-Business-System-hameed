@@ -295,25 +295,25 @@ export const SalesInvoiceReturnModal: React.FC<SalesInvoiceReturnModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn" dir="rtl">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+    <div className="m3-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn" dir="rtl">
+      <div className="m3-modal-surface rounded-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
+        <div className="px-6 py-4 border-b border-[var(--md-outline-variant)] flex items-center justify-between bg-[var(--md-surface-container-low)]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+            <div className="w-10 h-10 rounded-xl bg-[var(--md-warning-container)] border border-[var(--md-outline-variant)] flex items-center justify-center text-[var(--md-on-warning-container)]">
               <RotateCcw className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">تسجيل مرتجع مبيعات / إشعار دائن</h2>
-              <p className="text-xs text-slate-400">
-                للفاتورة رقم: <span className="text-blue-400 font-mono font-bold">#{invoice.invoice_number}</span> | العميل: {invoice.customer_name}
+              <h2 className="text-lg font-bold text-[var(--md-on-surface)]">تسجيل مرتجع مبيعات / إشعار دائن</h2>
+              <p className="text-xs text-[var(--md-on-surface-variant)]">
+                للفاتورة رقم: <span className="text-[var(--md-primary-text)] font-mono font-bold tabular-nums">#{invoice.invoice_number}</span> | العميل: {invoice.customer_name}
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition-colors"
+            className="text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] p-2 rounded-lg hover:bg-[var(--md-surface-container-high)] transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -322,7 +322,7 @@ export const SalesInvoiceReturnModal: React.FC<SalesInvoiceReturnModalProps> = (
         {/* Content Body */}
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5 flex-1">
           {error && (
-            <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-sm flex items-center gap-2">
+            <div className="p-3 bg-[var(--md-error-container)] border border-[var(--md-error)]/30 rounded-xl text-[var(--md-on-error-container)] text-sm flex items-center gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -331,25 +331,25 @@ export const SalesInvoiceReturnModal: React.FC<SalesInvoiceReturnModalProps> = (
           {/* Items selection & search */}
           <div className="space-y-2.5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <label className="block text-sm font-semibold text-slate-200">
+              <label className="block text-sm font-semibold text-[var(--md-on-surface)]">
                 حدد الأصناف والكميات المراد إرجاعها للمخزن:
               </label>
 
               {returnItems.length > 2 && (
                 <div className="relative w-full sm:w-64">
-                  <Search className="w-3.5 h-3.5 absolute right-2.5 top-2.5 text-slate-400" />
+                  <Search className="w-3.5 h-3.5 absolute right-2.5 top-2.5 text-[var(--md-on-surface-variant)]" />
                   <input
                     type="text"
                     value={itemSearch}
                     onChange={(e) => setItemSearch(e.target.value)}
                     placeholder="بحث بكود الصنف، السيريال، أو المقاس..."
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg pr-8 pl-2.5 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                    className="m3-input w-full pr-8 pl-2.5 py-1.5 text-xs"
                   />
                 </div>
               )}
             </div>
 
-            <div className="border border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-800 bg-slate-950/30">
+            <div className="border border-[var(--md-outline-variant)] rounded-xl overflow-hidden divide-y divide-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)]">
               {returnItems
                 .filter((it) => {
                   if (!itemSearch.trim()) return true;
@@ -366,7 +366,9 @@ export const SalesInvoiceReturnModal: React.FC<SalesInvoiceReturnModalProps> = (
                   <div
                     key={idx}
                     className={`p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-colors ${
-                      it.selected ? 'bg-blue-500/5' : 'hover:bg-slate-800/30'
+                      it.selected
+                        ? 'bg-[var(--md-primary-container)]/35'
+                        : 'hover:bg-[var(--md-surface-container)]'
                     }`}
                   >
                     <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -374,48 +376,48 @@ export const SalesInvoiceReturnModal: React.FC<SalesInvoiceReturnModalProps> = (
                         type="checkbox"
                         checked={it.selected}
                         onChange={() => toggleItem(idx)}
-                        className="w-4 h-4 mt-1 rounded text-blue-600 bg-slate-800 border-slate-700 focus:ring-blue-500 cursor-pointer"
+                        className="w-4 h-4 mt-1 rounded accent-[var(--md-primary)] cursor-pointer"
                       />
                       <div className="space-y-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-bold text-slate-100">{it.product_name}</p>
+                          <p className="text-sm font-bold text-[var(--md-on-surface)]">{it.product_name}</p>
                           {(it.item_code || it.part_number) && (
-                            <span className="px-2 py-0.5 bg-slate-800 text-slate-300 rounded text-[10px] font-mono">
+                            <span className="m3-badge bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] text-[10px] font-mono">
                               #{it.item_code || it.part_number}
                             </span>
                           )}
-                          <span className="px-2 py-0.5 bg-blue-500/10 text-blue-300 border border-blue-500/20 rounded text-[10px] font-medium flex items-center gap-1">
+                          <span className="m3-badge m3-badge-info text-[10px] font-medium flex items-center gap-1">
                             <Package className="w-3 h-3" />
                             الوحدة المباعة: {it.unit}
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-2 flex-wrap text-xs text-slate-400">
+                        <div className="flex items-center gap-2 flex-wrap text-xs text-[var(--md-on-surface-variant)]">
                           {it.serial_number && (
-                            <span className="text-amber-400 font-mono">سيريال: {it.serial_number}</span>
+                            <span className="text-[var(--md-warning)] font-mono">سيريال: {it.serial_number}</span>
                           )}
                           {it.tire_size && (
-                            <span className="text-cyan-400 font-mono">
+                            <span className="text-[var(--md-info)] font-mono">
                               مقاس: {it.tire_size} {it.tire_production_dot ? `(${it.tire_production_dot})` : ''}
                             </span>
                           )}
                           <span>
-                            الكمية المباعة: <strong className="text-white font-mono">{it.max_qty}</strong> {it.unit}
+                            الكمية المباعة: <strong className="text-[var(--md-on-surface)] font-mono tabular-nums">{it.max_qty}</strong> {it.unit}
                           </span>
                           <span>
-                            السعر: <strong className="text-white font-mono" dir="ltr">{formatAmount(it.unit_price, invoice.currency || 'YER')}</strong>
+                            السعر: <strong className="text-[var(--md-on-surface)] font-mono tabular-nums" dir="ltr">{formatAmount(it.unit_price, invoice.currency || 'YER')}</strong>
                           </span>
                         </div>
 
                         {it.warranty_status && (
                           <div className="pt-0.5">
                             {it.warranty_status.isUnderWarranty ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 rounded-md text-[10px] font-bold">
+                              <span className="m3-badge m3-badge-success inline-flex items-center gap-1 text-[10px] font-bold">
                                 <ShieldCheck className="w-3.5 h-3.5" />
                                 <span>تحت الضمان - ساري حتى {it.warranty_status.expiresAtStr}</span>
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-rose-500/10 text-rose-400 border border-rose-500/25 rounded-md text-[10px] font-bold">
+                              <span className="m3-badge m3-badge-error inline-flex items-center gap-1 text-[10px] font-bold">
                                 <AlertTriangle className="w-3.5 h-3.5" />
                                 <span>منتهي الضمان (انتهى في {it.warranty_status.expiresAtStr})</span>
                               </span>
@@ -426,9 +428,9 @@ export const SalesInvoiceReturnModal: React.FC<SalesInvoiceReturnModalProps> = (
                     </div>
 
                   {it.selected && (
-                    <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-800">
+                    <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-2 sm:pt-0 border-[var(--md-outline-variant)]">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-slate-400">كمية الإرجاع:</span>
+                        <span className="text-xs text-[var(--md-on-surface-variant)]">كمية الإرجاع:</span>
                         <input
                           type="number"
                           step="any"
@@ -436,12 +438,12 @@ export const SalesInvoiceReturnModal: React.FC<SalesInvoiceReturnModalProps> = (
                           max={it.max_qty}
                           value={it.quantity}
                           onChange={(e) => updateQty(idx, parseFloat(e.target.value) || 0)}
-                          className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-sm text-center font-mono font-bold text-white focus:outline-none focus:border-blue-500"
+                          className="m3-input w-20 px-2 py-1 text-sm text-center font-mono font-bold tabular-nums"
                         />
-                        <span className="text-xs text-slate-400">{it.unit}</span>
+                        <span className="text-xs text-[var(--md-on-surface-variant)]">{it.unit}</span>
                       </div>
                       <div className="text-right min-w-[90px]">
-                        <span className="text-xs font-bold text-amber-400 font-mono" dir="ltr">
+                        <span className="text-xs font-bold text-[var(--md-warning)] font-mono tabular-nums" dir="ltr">
                           {formatAmount(it.quantity * it.unit_price, invoice.currency || 'YER')}
                         </span>
                       </div>
@@ -455,11 +457,11 @@ export const SalesInvoiceReturnModal: React.FC<SalesInvoiceReturnModalProps> = (
           {/* Refund Method & Date */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">طريقة التسوية / الاسترجاع</label>
+              <label className="block text-xs font-medium text-[var(--md-on-surface-variant)] mb-1">طريقة التسوية / الاسترجاع</label>
               <select
                 value={refundMethod}
                 onChange={(e) => setRefundMethod(e.target.value as any)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500"
+                className="m3-select w-full px-3 py-2 text-sm"
               >
                 <option value="CREDIT_NOTE">إشعار دائن (تخفيض مديونية العميل)</option>
                 <option value="CASH_REFUND">استرجاع نقدي فوري من الخزينة</option>
@@ -468,67 +470,67 @@ export const SalesInvoiceReturnModal: React.FC<SalesInvoiceReturnModalProps> = (
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">تاريخ المرتجع</label>
+              <label className="block text-xs font-medium text-[var(--md-on-surface-variant)] mb-1">تاريخ المرتجع</label>
               <input
                 type="date"
                 value={returnDate}
                 onChange={(e) => setReturnDate(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500"
+                className="m3-input w-full px-3 py-2 text-sm font-mono tabular-nums"
               />
             </div>
           </div>
 
           {/* Reason */}
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1">سبب الإرجاع / ملاحظات</label>
+            <label className="block text-xs font-medium text-[var(--md-on-surface-variant)] mb-1">سبب الإرجاع / ملاحظات</label>
             <textarea
               rows={2}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="مثال: تلف في المنتج، خطأ في الطلب، رغبة العميل..."
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-blue-500 resize-none"
+              className="m3-input w-full p-3 text-sm resize-none"
             />
           </div>
 
           {/* Option to remove/hide invoice from active sales register after return */}
-          <label className="flex items-center gap-3 p-3 bg-rose-500/5 border border-rose-500/20 rounded-xl cursor-pointer hover:bg-rose-500/10 transition-colors">
+          <label className="flex items-center gap-3 p-3 bg-[var(--md-error-container)]/35 border border-[var(--md-error)]/25 rounded-xl cursor-pointer hover:bg-[var(--md-error-container)]/55 transition-colors">
             <input
               type="checkbox"
               checked={removeInvoiceAfterReturn}
               onChange={(e) => setRemoveInvoiceAfterReturn(e.target.checked)}
-              className="w-4 h-4 rounded text-rose-600 bg-slate-800 border-slate-700 focus:ring-rose-500 cursor-pointer"
+              className="w-4 h-4 rounded accent-[var(--md-error)] cursor-pointer"
             />
             <div className="text-xs">
-              <span className="font-bold text-slate-200 block">
+              <span className="font-bold text-[var(--md-on-surface)] block">
                 حذف / إخفاء الفاتورة من سجل فواتير المبيعات بعد اعتماد المرتجع
               </span>
-              <span className="text-slate-400">
+              <span className="text-[var(--md-on-surface-variant)]">
                 سيتم إعادة البضاعة للمخزن وتسوية حساب العميل وإزالة الفاتورة من قائمة المبيعات النشطة
               </span>
             </div>
           </label>
 
           {/* Return Total Summary */}
-          <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-xl flex items-center justify-between">
-            <span className="text-sm font-semibold text-slate-300">إجمالي قيمة المرتجع المستحقة:</span>
-            <span className="text-xl font-bold text-amber-400 font-mono">
+          <div className="p-4 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl flex items-center justify-between">
+            <span className="text-sm font-semibold text-[var(--md-on-surface)]">إجمالي قيمة المرتجع المستحقة:</span>
+            <span className="text-xl font-bold text-[var(--md-warning)] font-mono tabular-nums">
               {formatAmount(selectedTotal, invoice.currency || 'YER')}
             </span>
           </div>
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--md-outline-variant)]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-medium transition-colors"
+              className="m3-btn-outlined px-4 py-2 text-sm font-medium cursor-pointer"
             >
               إلغاء
             </button>
             <button
               type="submit"
               disabled={loading || selectedTotal <= 0}
-              className="px-5 py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white rounded-xl text-sm font-semibold flex items-center gap-2 shadow-lg shadow-amber-600/20 transition-all"
+              className="m3-btn-primary px-5 py-2 disabled:opacity-50 text-sm font-semibold flex items-center gap-2 cursor-pointer"
             >
               {loading ? (
                 <>

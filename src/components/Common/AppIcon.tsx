@@ -21,7 +21,9 @@ export const AppIcon: React.FC<AppIconProps> = ({
     <img
       src="/app-icon.png"
       alt="شعار نظام المحاسبي الذكي ERP"
-      className={`shrink-0 rounded-xl object-contain drop-shadow-lg select-none ${className}`}
+      className={`shrink-0 rounded-xl object-contain select-none ${
+        showTile ? 'ring-1 ring-[var(--md-outline-variant)] shadow-sm bg-[var(--md-surface-container-low)]' : ''
+      } ${className}`}
       style={style}
       loading="eager"
     />

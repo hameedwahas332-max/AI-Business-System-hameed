@@ -100,26 +100,26 @@ export const ScheduleMessageModal: React.FC<ScheduleMessageModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50 animate-fade-in text-right">
-      <div className="bg-[#091511] rounded-2xl border border-emerald-500/30 shadow-2xl max-w-lg w-full overflow-hidden flex flex-col max-h-[92vh]">
+    <div dir="rtl" className="fixed inset-0 z-50 m3-backdrop flex items-center justify-center p-3 sm:p-4 animate-fade-in text-right">
+      <div className="m3-modal-surface max-w-lg w-full overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
-        <div className="p-4 bg-gradient-to-r from-[#061a14] to-[#0c2e1f] border-b border-emerald-500/20 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <Clock className="w-4 h-4 text-emerald-400" />
+        <div className="p-4 bg-[var(--md-surface-container-high)] border-b border-[var(--md-outline-variant)] flex items-center justify-between">
+          <h3 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+            <Clock className="w-4 h-4 text-[var(--md-primary-text)]" />
             <span>جدولة رسالة WhatsApp لوقت محدد</span>
           </h3>
           <button
             onClick={onClose}
             disabled={isSubmitting}
-            className="text-slate-400 hover:text-white p-1 rounded-lg bg-[#06120d] border border-emerald-500/20 cursor-pointer"
+            className="m3-btn-text !min-h-[30px] !p-1.5 cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {error && (
-          <div className="mx-4 mt-3 p-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-xl text-xs font-semibold flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+          <div className="mx-4 mt-3 p-3 bg-[var(--md-error-container)] border border-[var(--md-error)]/30 text-[var(--md-on-error-container)] rounded-xl text-xs font-semibold flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-[var(--md-error)]" />
             <span>{error}</span>
           </div>
         )}
@@ -127,8 +127,8 @@ export const ScheduleMessageModal: React.FC<ScheduleMessageModalProps> = ({
         <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-4 overflow-y-auto text-xs flex-1">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-200 mb-1">
-                رقم الهاتف المستلم (WhatsApp) <span className="text-emerald-400">*</span>
+              <label className="block text-xs font-bold text-[var(--md-on-surface)] mb-1">
+                رقم الهاتف المستلم (WhatsApp) <span className="text-[var(--md-primary-text)]">*</span>
               </label>
               <input
                 type="text"
@@ -137,12 +137,12 @@ export const ScheduleMessageModal: React.FC<ScheduleMessageModalProps> = ({
                 placeholder="+967 770 000 000"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-3.5 py-2 bg-[#06120d] border border-emerald-500/20 rounded-xl text-xs font-mono text-emerald-300 focus:outline-none focus:ring-1 focus:ring-emerald-400 placeholder:text-slate-600"
+                className="m3-input !h-10 text-xs font-mono tabular-nums"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-200 mb-1">
+              <label className="block text-xs font-bold text-[var(--md-on-surface)] mb-1">
                 اسم المستلم
               </label>
               <input
@@ -150,27 +150,27 @@ export const ScheduleMessageModal: React.FC<ScheduleMessageModalProps> = ({
                 placeholder="اسم العميل / المورد"
                 value={recipientName}
                 onChange={(e) => setRecipientName(e.target.value)}
-                className="w-full px-3.5 py-2 bg-[#06120d] border border-emerald-500/20 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-400 placeholder:text-slate-600"
+                className="m3-input !h-10 text-xs"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-200 mb-1">
-              موعد وتاريخ الإرسال المجدول <span className="text-emerald-400">*</span>
+            <label className="block text-xs font-bold text-[var(--md-on-surface)] mb-1">
+              موعد وتاريخ الإرسال المجدول <span className="text-[var(--md-primary-text)]">*</span>
             </label>
             <input
               type="datetime-local"
               required
               value={scheduledAt}
               onChange={(e) => setScheduledAt(e.target.value)}
-              className="w-full px-3.5 py-2 bg-[#06120d] border border-emerald-500/20 rounded-xl text-xs font-mono text-emerald-300 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+              className="m3-input !h-10 text-xs font-mono tabular-nums"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-200 mb-1">
-              نص الرسالة المجدولة <span className="text-emerald-400">*</span>
+            <label className="block text-xs font-bold text-[var(--md-on-surface)] mb-1">
+              نص الرسالة المجدولة <span className="text-[var(--md-primary-text)]">*</span>
             </label>
             <textarea
               rows={4}
@@ -178,24 +178,24 @@ export const ScheduleMessageModal: React.FC<ScheduleMessageModalProps> = ({
               placeholder="اكتب نص الرسالة هنا..."
               value={messageBody}
               onChange={(e) => setMessageBody(e.target.value)}
-              className="w-full p-3 bg-[#06120d] border border-emerald-500/20 rounded-xl text-xs text-slate-200 leading-relaxed focus:outline-none focus:ring-1 focus:ring-emerald-400 font-sans"
+              className="m3-input !h-auto py-2.5 text-xs leading-relaxed font-sans"
             />
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-emerald-500/20">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--md-outline-variant)]">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-xl border border-slate-700 text-slate-300 text-xs font-bold hover:bg-slate-800 cursor-pointer"
+              className="m3-btn-outlined text-xs cursor-pointer"
             >
               إلغاء
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !phone.trim() || !messageBody.trim() || !scheduledAt}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs transition-all shadow-lg shadow-emerald-950 cursor-pointer disabled:opacity-50"
+              className="m3-btn-primary text-xs cursor-pointer disabled:opacity-50"
             >
               {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4" />}
               <span>تأكيد جدولة الرسالة</span>

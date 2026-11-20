@@ -159,22 +159,22 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
   const currSym = getActiveCurrencySymbol(currency);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 overflow-y-auto" dir="rtl">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center m3-backdrop p-4 overflow-y-auto" dir="rtl">
+      <div className="m3-modal-surface rounded-3xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="px-6 py-5 bg-slate-800/70 border-b border-slate-800 flex items-center justify-between">
+        <div className="px-6 py-5 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-2xl border border-emerald-500/20">
+            <div className="p-2.5 bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] rounded-2xl border border-[var(--md-primary)]/20">
               <Banknote className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-white">إتمام السداد وإصدار الفاتورة</h3>
-              <p className="text-xs text-slate-400">اختر طريقة الدفع ومبلغ التحصيل</p>
+              <h3 className="text-xl font-bold text-[var(--md-on-surface)]">إتمام السداد وإصدار الفاتورة</h3>
+              <p className="text-xs text-[var(--md-on-surface-variant)]">اختر طريقة الدفع ومبلغ التحصيل</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors"
+            className="p-2 text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] rounded-xl transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -182,21 +182,21 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Total Banner */}
-          <div className="p-5 bg-gradient-to-br from-slate-950 to-slate-900 border border-slate-800 rounded-2xl flex items-center justify-between shadow-inner">
+          <div className="p-5 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-2xl flex items-center justify-between">
             <div>
-              <span className="text-xs font-semibold text-slate-400 block mb-1">المبلغ الإجمالي المستحق:</span>
-              <div className="text-3xl font-black text-white tracking-tight">
-                {cartTotal.toLocaleString()} <span className="text-emerald-400 text-lg font-bold">{currSym}</span>
+              <span className="text-xs font-semibold text-[var(--md-on-surface-variant)] block mb-1">المبلغ الإجمالي المستحق:</span>
+              <div className="text-3xl font-black text-[var(--md-on-surface)] tracking-tight tabular-nums">
+                {cartTotal.toLocaleString()} <span className="text-[var(--md-primary-text)] text-lg font-bold">{currSym}</span>
               </div>
             </div>
 
             <div className="text-left">
-              <span className="text-xs text-slate-400 block">العميل المفوتر:</span>
-              <span className="text-sm font-bold text-slate-200">
+              <span className="text-xs text-[var(--md-on-surface-variant)] block">العميل المفوتر:</span>
+              <span className="text-sm font-bold text-[var(--md-on-surface)]">
                 {customer?.name || 'عميل نقدي عام'}
               </span>
               {customer?.id && (
-                <div className="text-[11px] text-slate-400 mt-0.5">
+                <div className="text-[11px] text-[var(--md-on-surface-variant)] mt-0.5 tabular-nums">
                   الرصيد السابق: {currentCustBal.toLocaleString()} {currSym}
                 </div>
               )}
@@ -204,23 +204,23 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
           </div>
 
           {error && (
-            <div className="p-3.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-xs flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0" />
+            <div className="p-3.5 bg-[var(--md-error-container)] border border-[var(--md-error)]/30 rounded-xl text-[var(--md-on-error-container)] text-xs flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-[var(--md-error)]" />
               <span>{error}</span>
             </div>
           )}
 
           {/* Payment Method Selector Tabs */}
           <div>
-            <label className="block text-xs font-bold text-slate-300 mb-2">طريقة الدفع:</label>
+            <label className="block text-xs font-bold text-[var(--md-on-surface-variant)] mb-2">طريقة الدفع:</label>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
               {[
-                { id: 'CASH', label: 'نقداً / كاش', icon: Banknote, color: 'text-emerald-400 border-emerald-500/30' },
-                { id: 'CARD', label: 'بطاقة / مدى', icon: CreditCard, color: 'text-blue-400 border-blue-500/30' },
-                { id: 'BANK', label: 'تحويل بنكي', icon: Landmark, color: 'text-cyan-400 border-cyan-500/30' },
-                { id: 'MOBILE', label: 'شبكة / محفظة', icon: Smartphone, color: 'text-purple-400 border-purple-500/30' },
-                { id: 'CREDIT', label: 'آجل / حساب', icon: ArrowRight, color: 'text-amber-400 border-amber-500/30' },
-                { id: 'SPLIT', label: 'دفع مجزأ', icon: Layers, color: 'text-indigo-400 border-indigo-500/30' },
+                { id: 'CASH', label: 'نقداً / كاش', icon: Banknote, color: 'text-[var(--md-primary-text)]' },
+                { id: 'CARD', label: 'بطاقة / مدى', icon: CreditCard, color: 'text-[var(--md-info)]' },
+                { id: 'BANK', label: 'تحويل بنكي', icon: Landmark, color: 'text-[var(--md-info)]' },
+                { id: 'MOBILE', label: 'شبكة / محفظة', icon: Smartphone, color: 'text-[var(--md-secondary)]' },
+                { id: 'CREDIT', label: 'آجل / حساب', icon: ArrowRight, color: 'text-[var(--md-warning)]' },
+                { id: 'SPLIT', label: 'دفع مجزأ', icon: Layers, color: 'text-[var(--md-primary-text)]' },
               ].map((m) => {
                 const isSelected = selectedMethod === m.id;
                 const Icon = m.icon;
@@ -232,13 +232,13 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
                       setSelectedMethod(m.id as any);
                       setError(null);
                     }}
-                    className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1.5 ${
+                    className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer ${
                       isSelected
-                        ? 'bg-slate-800 border-emerald-500 ring-2 ring-emerald-500/30 text-white shadow-lg'
-                        : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:bg-slate-800/80 hover:text-slate-200'
+                        ? 'bg-[var(--md-primary-container)] border-[var(--md-primary)] ring-2 ring-[var(--md-primary)]/25 text-[var(--md-on-primary-container)] shadow-sm'
+                        : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-container)] hover:text-[var(--md-on-surface)]'
                     }`}
                   >
-                    <Icon className={`w-5 h-5 ${isSelected ? 'text-emerald-400' : 'text-slate-400'}`} />
+                    <Icon className={`w-5 h-5 ${isSelected ? 'text-[var(--md-primary-text)]' : m.color}`} />
                     <span className="text-xs font-bold whitespace-nowrap">{m.label}</span>
                   </button>
                 );
@@ -248,13 +248,13 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
 
           {/* Cash Payment Options (Tendered & Change) */}
           {(selectedMethod === 'CASH' || selectedMethod === 'CARD' || selectedMethod === 'BANK' || selectedMethod === 'MOBILE') && (
-            <div className="space-y-4 bg-slate-950/40 p-4 rounded-2xl border border-slate-800/80">
+            <div className="space-y-4 bg-[var(--md-surface-container-low)] p-4 rounded-2xl border border-[var(--md-outline-variant)]">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)] mb-1.5">
                   المبلغ المسدد / المقبوض ({currSym}):
                 </label>
                 <div className="relative">
-                  <DollarSign className="w-5 h-5 text-slate-500 absolute right-3.5 top-3" />
+                  <DollarSign className="w-5 h-5 text-[var(--md-on-surface-variant)] absolute right-3.5 top-3" />
                   <input
                     type="text"
                     inputMode="decimal"
@@ -262,7 +262,7 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
                     lang="en"
                     value={tenderedAmount || ''}
                     onChange={(e) => setTenderedAmount(parseEnglishNumber(e.target.value, 0))}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl pr-11 pl-4 py-2.5 text-lg font-black text-white focus:outline-none focus:border-emerald-500 font-mono"
+                    className="m3-input w-full pr-11 pl-4 py-2.5 text-lg font-black font-mono tabular-nums"
                     placeholder="0.00"
                     autoFocus
                   />
@@ -272,12 +272,12 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
               {/* Quick Cash Presets */}
               {selectedMethod === 'CASH' && (
                 <div>
-                  <span className="text-[11px] font-medium text-slate-400 block mb-1.5">أزرار النقد السريع:</span>
+                  <span className="text-[11px] font-medium text-[var(--md-on-surface-variant)] block mb-1.5">أزرار النقد السريع:</span>
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
                       onClick={() => setTenderedAmount(cartTotal)}
-                      className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold transition-all"
+                      className="m3-btn-tonal px-3 py-1.5 text-xs font-bold tabular-nums"
                     >
                       المبلغ بالضبط ({cartTotal.toLocaleString()})
                     </button>
@@ -286,7 +286,7 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
                         key={preset}
                         type="button"
                         onClick={() => setTenderedAmount(preset)}
-                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-medium transition-all"
+                        className="m3-btn-outlined px-3 py-1.5 text-xs font-medium tabular-nums"
                       >
                         +{preset.toLocaleString()} {currSym}
                       </button>
@@ -297,15 +297,15 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
 
               {/* Change / Remaining Details */}
               <div className="grid grid-cols-2 gap-3 pt-2">
-                <div className="p-3 bg-slate-900 rounded-xl border border-slate-800">
-                  <span className="text-xs text-slate-400 block">المبلغ المتبقي (آجل):</span>
-                  <span className={`text-base font-bold ${remainingAmount > 0 ? 'text-amber-400' : 'text-slate-300'}`}>
+                <div className="p-3 bg-[var(--md-surface-container)] rounded-xl border border-[var(--md-outline-variant)]">
+                  <span className="text-xs text-[var(--md-on-surface-variant)] block">المبلغ المتبقي (آجل):</span>
+                  <span className={`text-base font-bold tabular-nums ${remainingAmount > 0 ? 'text-[var(--md-warning)]' : 'text-[var(--md-on-surface)]'}`}>
                     {remainingAmount.toLocaleString()} {currSym}
                   </span>
                 </div>
-                <div className="p-3 bg-emerald-950/30 rounded-xl border border-emerald-800/40">
-                  <span className="text-xs text-emerald-300 block">الباقي للعميل (فكة):</span>
-                  <span className="text-base font-black text-emerald-400">
+                <div className="p-3 bg-[var(--md-success-container)] rounded-xl border border-[var(--md-success)]/30">
+                  <span className="text-xs text-[var(--md-on-success-container)] block">الباقي للعميل (فكة):</span>
+                  <span className="text-base font-black text-[var(--md-success)] tabular-nums">
                     {changeAmount.toLocaleString()} {currSym}
                   </span>
                 </div>
@@ -315,13 +315,13 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
 
           {/* Split Payment Section */}
           {selectedMethod === 'SPLIT' && (
-            <div className="space-y-3 bg-slate-950/40 p-4 rounded-2xl border border-slate-800/80">
+            <div className="space-y-3 bg-[var(--md-surface-container-low)] p-4 rounded-2xl border border-[var(--md-outline-variant)]">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-slate-300">توزيع الدفعات المجزأة:</span>
+                <span className="text-xs font-bold text-[var(--md-on-surface)]">توزيع الدفعات المجزأة:</span>
                 <button
                   type="button"
                   onClick={handleAddSplitRow}
-                  className="px-2.5 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 rounded-lg text-xs font-bold flex items-center gap-1"
+                  className="m3-btn-tonal px-2.5 py-1 text-xs font-bold flex items-center gap-1"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   إضافة طريقة
@@ -333,7 +333,7 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
                   <select
                     value={p.method}
                     onChange={(e) => handleUpdateSplitRow(idx, 'method', e.target.value)}
-                    className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    className="m3-select px-3 py-2 text-xs"
                   >
                     <option value="CASH">نقد / كاش</option>
                     <option value="CARD">بطاقة / مدى</option>
@@ -349,14 +349,14 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
                     value={p.amount || ''}
                     onChange={(e) => handleUpdateSplitRow(idx, 'amount', parseEnglishNumber(e.target.value, 0))}
                     placeholder="المبلغ"
-                    className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold font-mono focus:outline-none focus:border-indigo-500"
+                    className="m3-input flex-1 px-3 py-2 text-sm font-bold font-mono tabular-nums"
                   />
 
                   {splitPayments.length > 1 && (
                     <button
                       type="button"
                       onClick={() => handleRemoveSplitRow(idx)}
-                      className="p-2 text-slate-500 hover:text-rose-400 rounded-lg"
+                      className="p-2 text-[var(--md-on-surface-variant)] hover:text-[var(--md-error)] rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -364,29 +364,29 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
                 </div>
               ))}
 
-              <div className="flex items-center justify-between text-xs text-slate-300 pt-2 border-t border-slate-800">
-                <span>المسدد في التقسيم: <strong className="text-emerald-400">{paidAmount.toLocaleString()} {currSym}</strong></span>
-                <span>المتبقي آجل: <strong className={remainingAmount > 0 ? 'text-amber-400' : 'text-slate-400'}>{remainingAmount.toLocaleString()} {currSym}</strong></span>
+              <div className="flex items-center justify-between text-xs text-[var(--md-on-surface-variant)] pt-2 border-t border-[var(--md-outline-variant)] tabular-nums">
+                <span>المسدد في التقسيم: <strong className="text-[var(--md-success)]">{paidAmount.toLocaleString()} {currSym}</strong></span>
+                <span>المتبقي آجل: <strong className={remainingAmount > 0 ? 'text-[var(--md-warning)]' : 'text-[var(--md-on-surface-variant)]'}>{remainingAmount.toLocaleString()} {currSym}</strong></span>
               </div>
             </div>
           )}
 
           {/* Credit Limit Alert & Override */}
           {isCreditExceeded && (
-            <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl space-y-2">
-              <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
+            <div className="p-4 bg-[var(--md-error-container)] border border-[var(--md-error)]/30 rounded-2xl space-y-2">
+              <div className="flex items-center gap-2 text-[var(--md-error)] font-bold text-sm">
                 <ShieldAlert className="w-5 h-5" />
                 <span>تنبيه: تجاوز سقف الائتمان للعميل!</span>
               </div>
-              <p className="text-xs text-slate-300">
+              <p className="text-xs text-[var(--md-on-error-container)] tabular-nums">
                 رصيد العميل الحالي ({currentCustBal.toLocaleString()} {currSym}) + المستحق الجديد ({remainingAmount.toLocaleString()} {currSym}) = <strong>{potentialDebt.toLocaleString()} {currSym}</strong> وهو أعلى من الحد المصرح به ({creditLimit.toLocaleString()} {currSym}).
               </p>
-              <label className="flex items-center gap-2 text-xs font-bold text-amber-300 pt-1 cursor-pointer">
+              <label className="flex items-center gap-2 text-xs font-bold text-[var(--md-warning)] pt-1 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={overrideCredit}
                   onChange={(e) => setOverrideCredit(e.target.checked)}
-                  className="rounded border-slate-700 bg-slate-800 text-amber-500 focus:ring-amber-500"
+                  className="rounded border-[var(--md-outline)] bg-[var(--md-surface-container)] text-[var(--md-warning)] focus:ring-[var(--md-warning)]"
                 />
                 السماح بالتجاوز وإتمام البيع الآجل (صلاحية مدير نقطة البيع)
               </label>
@@ -395,45 +395,45 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
 
           {/* Received By */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center justify-between">
+            <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)] mb-1 flex items-center justify-between">
               <span>المستلم / الساحب:</span>
-              <span className="text-[10px] text-sky-400 font-normal">اختياري (سائق / مندوب / ابن العميل)</span>
+              <span className="text-[10px] text-[var(--md-info)] font-normal">اختياري (سائق / مندوب / ابن العميل)</span>
             </label>
             <input
               type="text"
               value={receivedBy}
               onChange={(e) => setReceivedBy(e.target.value)}
               placeholder="مثال: ابن العميل / السائق محمد / رقم اللوحة..."
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
+              className="m3-input w-full px-4 py-2 text-xs"
             />
           </div>
 
           {/* Notes */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">ملاحظات الفاتورة (اختياري):</label>
+            <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)] mb-1">ملاحظات الفاتورة (اختياري):</label>
             <input
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="أي تفاصيل خاصة بالطلب أو التحصيل..."
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+              className="m3-input w-full px-4 py-2 text-xs"
             />
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--md-outline-variant)]">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl text-sm font-semibold transition-colors"
+              className="m3-btn-outlined px-5 py-2.5 text-sm font-semibold"
             >
               رجوع
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-base font-bold shadow-xl shadow-emerald-950/40 transition-all flex items-center gap-2"
+              className="m3-btn-primary px-8 py-2.5 text-base font-bold flex items-center gap-2"
             >
               {loading ? (
                 <span>جاري إصدار الفاتورة...</span>

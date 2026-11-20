@@ -41,28 +41,28 @@ export const POSAIAssistantWidget: React.FC<POSAIAssistantWidgetProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-start bg-slate-950/80 backdrop-blur-sm" dir="rtl">
-      <div className="bg-slate-900 border-l border-slate-800 w-full max-w-md h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
+    <div className="fixed inset-0 z-50 flex justify-start m3-backdrop" dir="rtl">
+      <div className="m3-modal-surface border-l border-[var(--md-outline-variant)] w-full max-w-md h-full flex flex-col animate-in slide-in-from-right duration-200">
         {/* Header */}
-        <div className="px-6 py-4 bg-slate-800/70 border-b border-slate-800 flex items-center justify-between">
+        <div className="px-6 py-4 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-purple-500/10 text-purple-400 rounded-xl border border-purple-500/20">
+            <div className="p-2 bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] rounded-xl border border-[var(--md-primary)]/20">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">المساعد الذكي لنقطة البيع (POS AI)</h3>
-              <p className="text-xs text-slate-400">تحليلات لحظية للمبيعات، المخزون، والديون</p>
+              <h3 className="text-base font-bold text-[var(--md-on-surface)]">المساعد الذكي لنقطة البيع (POS AI)</h3>
+              <p className="text-xs text-[var(--md-on-surface-variant)]">تحليلات لحظية للمبيعات، المخزون، والديون</p>
             </div>
           </div>
           <div className="flex items-center gap-1.5">
             <button
               onClick={fetchInsights}
-              className="p-1.5 text-slate-400 hover:text-white rounded-lg"
+              className="p-1.5 text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] rounded-lg transition-colors"
               title="تحديث البيانات"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
-            <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-white rounded-lg">
+            <button onClick={onClose} className="p-1.5 text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] rounded-lg transition-colors">
               ✕
             </button>
           </div>
@@ -72,7 +72,7 @@ export const POSAIAssistantWidget: React.FC<POSAIAssistantWidgetProps> = ({
         <div className="flex-1 overflow-y-auto p-4 space-y-5 custom-scrollbar">
           {/* Top Selling Products Today */}
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-400">
+            <div className="flex items-center gap-2 text-xs font-bold text-[var(--md-primary-text)]">
               <Flame className="w-4 h-4" />
               <span>الأصناف الأكثر طلباً اليوم:</span>
             </div>
@@ -81,24 +81,24 @@ export const POSAIAssistantWidget: React.FC<POSAIAssistantWidgetProps> = ({
                 insights.topSellingToday.map((p: any, idx: number) => (
                   <div
                     key={idx}
-                    className="p-3 bg-slate-800/40 border border-slate-800 rounded-xl flex items-center justify-between text-xs"
+                    className="p-3 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl flex items-center justify-between text-xs"
                   >
-                    <span className="font-semibold text-white">{p.item_name}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-emerald-400 font-bold">{p.total_qty} قطعة</span>
-                      <span className="text-slate-400">{Number(p.total_rev).toLocaleString()} {currency}</span>
+                    <span className="font-semibold text-[var(--md-on-surface)]">{p.item_name}</span>
+                    <div className="flex items-center gap-3 tabular-nums">
+                      <span className="text-[var(--md-success)] font-bold">{p.total_qty} قطعة</span>
+                      <span className="text-[var(--md-on-surface-variant)]">{Number(p.total_rev).toLocaleString()} {currency}</span>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-slate-500 italic p-2">لا توجد مبيعات مسجلة اليوم بعد</p>
+                <p className="text-xs text-[var(--md-on-surface-variant)] italic p-2">لا توجد مبيعات مسجلة اليوم بعد</p>
               )}
             </div>
           </div>
 
           {/* Low Stock Alerts */}
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-amber-400">
+            <div className="flex items-center gap-2 text-xs font-bold text-[var(--md-warning)]">
               <AlertTriangle className="w-4 h-4" />
               <span>تنبيهات انخفاض المخزون أثناء البيع:</span>
             </div>
@@ -107,24 +107,24 @@ export const POSAIAssistantWidget: React.FC<POSAIAssistantWidgetProps> = ({
                 insights.lowStockAlerts.map((p: any, idx: number) => (
                   <div
                     key={idx}
-                    className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl flex items-center justify-between text-xs"
+                    className="p-3 bg-[var(--md-warning-container)]/40 border border-[var(--md-warning)]/30 rounded-xl flex items-center justify-between text-xs"
                   >
-                    <span className="font-semibold text-slate-200">{p.name}</span>
-                    <div className="text-left">
-                      <span className="text-rose-400 font-bold block">المتبقي: {p.current_stock}</span>
-                      <span className="text-[10px] text-slate-400">الحد الأدنى: {p.min_stock_level}</span>
+                    <span className="font-semibold text-[var(--md-on-surface)]">{p.name}</span>
+                    <div className="text-left tabular-nums">
+                      <span className="text-[var(--md-error)] font-bold block">المتبقي: {p.current_stock}</span>
+                      <span className="text-[10px] text-[var(--md-on-surface-variant)]">الحد الأدنى: {p.min_stock_level}</span>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-slate-500 italic p-2">المخزون مستقر ولا توجد نواقص حرجة</p>
+                <p className="text-xs text-[var(--md-on-surface-variant)] italic p-2">المخزون مستقر ولا توجد نواقص حرجة</p>
               )}
             </div>
           </div>
 
           {/* Top Debtors */}
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-blue-400">
+            <div className="flex items-center gap-2 text-xs font-bold text-[var(--md-info)]">
               <Users className="w-4 h-4" />
               <span>أعلى العملاء مديونية (انتبه عند البيع الآجل):</span>
             </div>
@@ -133,16 +133,16 @@ export const POSAIAssistantWidget: React.FC<POSAIAssistantWidgetProps> = ({
                 insights.topDebtors.map((c: any, idx: number) => (
                   <div
                     key={idx}
-                    className="p-3 bg-slate-800/40 border border-slate-800 rounded-xl flex items-center justify-between text-xs"
+                    className="p-3 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl flex items-center justify-between text-xs"
                   >
-                    <span className="font-semibold text-white">{c.name}</span>
-                    <span className="text-amber-400 font-bold">
+                    <span className="font-semibold text-[var(--md-on-surface)]">{c.name}</span>
+                    <span className="text-[var(--md-warning)] font-bold tabular-nums">
                       {Number(c.current_balance).toLocaleString()} {currency}
                     </span>
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-slate-500 italic p-2">لا توجد ديون معلقة على العملاء</p>
+                <p className="text-xs text-[var(--md-on-surface-variant)] italic p-2">لا توجد ديون معلقة على العملاء</p>
               )}
             </div>
           </div>

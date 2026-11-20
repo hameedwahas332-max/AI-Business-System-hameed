@@ -114,26 +114,26 @@ export const POSShiftModal: React.FC<POSShiftModalProps> = ({
   const walletJaib = (currentShift as any)?.wallet_jaib ?? Math.max(0, bankSales - walletKuraimi - walletJawali - walletOneCash - walletFloosak);
 
   return (
-    <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50" dir="rtl">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-5 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+    <div className="fixed inset-0 m3-backdrop flex items-center justify-center p-4 z-50" dir="rtl">
+      <div className="m3-modal-surface rounded-3xl max-w-lg w-full p-5 space-y-4 max-h-[92vh] overflow-y-auto">
+        <div className="flex items-center justify-between border-b border-[var(--md-outline-variant)] pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
+            <div className="p-2 bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] rounded-xl border border-[var(--md-primary)]/20">
               <Clock className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white">إدارة ورديات ونقدية الكاشير المتعددة</h3>
-              <p className="text-[11px] text-slate-400">تسوية النقد، العملات (YER, SAR, USD)، والمحافظ الإلكترونية</p>
+              <h3 className="text-sm font-bold text-[var(--md-on-surface)]">إدارة ورديات ونقدية الكاشير المتعددة</h3>
+              <p className="text-[11px] text-[var(--md-on-surface-variant)]">تسوية النقد، العملات (YER, SAR, USD)، والمحافظ الإلكترونية</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white p-1 rounded-lg">
+          <button onClick={onClose} className="text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] p-1 rounded-lg transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {error && (
-          <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-xs text-rose-400 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 shrink-0" />
+          <div className="p-3 bg-[var(--md-error-container)] border border-[var(--md-error)]/30 rounded-2xl text-xs text-[var(--md-on-error-container)] flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-[var(--md-error)]" />
             <span>{error}</span>
           </div>
         )}
@@ -141,18 +141,18 @@ export const POSShiftModal: React.FC<POSShiftModalProps> = ({
         {!currentShift ? (
           // Open New Shift Form
           <form onSubmit={handleOpenShift} className="space-y-4">
-            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl space-y-1">
-              <div className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                <Unlock className="w-4 h-4" />
+            <div className="p-4 bg-[var(--md-primary-container)]/70 border border-[var(--md-primary)]/25 rounded-2xl space-y-1">
+              <div className="text-xs font-bold text-[var(--md-on-primary-container)] flex items-center gap-1.5">
+                <Unlock className="w-4 h-4 text-[var(--md-primary-text)]" />
                 فتح وردية كاشير جديدة
               </div>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-[var(--md-on-surface-variant)]">
                 أدخل رصيد العهدة الافتتاحي الموجود في الدرج لبدء جلسة البيع
               </p>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1">
+              <label className="block text-xs font-bold text-[var(--md-on-surface-variant)] mb-1">
                 الرصيد الافتتاحي للعهدة النقدية ({currSym})
               </label>
               <input
@@ -163,7 +163,7 @@ export const POSShiftModal: React.FC<POSShiftModalProps> = ({
                 required
                 value={openingCash}
                 onChange={(e) => setOpeningCash(e.target.value.replace(/[^0-9.]/g, ''))}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono font-bold focus:outline-none focus:border-emerald-500 text-center"
+                className="m3-input w-full px-3 py-2 text-sm font-mono font-bold text-center tabular-nums"
               />
             </div>
 
@@ -171,14 +171,14 @@ export const POSShiftModal: React.FC<POSShiftModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl"
+                className="m3-btn-outlined px-4 py-2 text-xs font-bold"
               >
                 إلغاء
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl"
+                className="m3-btn-primary px-5 py-2 text-xs font-bold"
               >
                 {loading ? 'جاري الفتح...' : 'بدء الوردية الآن'}
               </button>
@@ -188,14 +188,14 @@ export const POSShiftModal: React.FC<POSShiftModalProps> = ({
           // Active Shift Management
           <div className="space-y-4">
             {/* Sub-tab navigation */}
-            <div className="grid grid-cols-4 gap-1 bg-slate-800/60 p-1 rounded-2xl border border-slate-800 text-[11px]">
+            <div className="grid grid-cols-4 gap-1 bg-[var(--md-surface-container-low)] p-1 rounded-2xl border border-[var(--md-outline-variant)] text-[11px]">
               <button
                 type="button"
                 onClick={() => setActiveSubTab('overview')}
-                className={`py-1.5 font-bold rounded-xl transition-all ${
+                className={`py-1.5 font-bold rounded-xl transition-all cursor-pointer ${
                   activeSubTab === 'overview'
-                    ? 'bg-emerald-600 text-white shadow'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] shadow-sm'
+                    : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
                 }`}
               >
                 ملخص النقد
@@ -203,10 +203,10 @@ export const POSShiftModal: React.FC<POSShiftModalProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveSubTab('wallets')}
-                className={`py-1.5 font-bold rounded-xl transition-all ${
+                className={`py-1.5 font-bold rounded-xl transition-all cursor-pointer ${
                   activeSubTab === 'wallets'
-                    ? 'bg-blue-600 text-white shadow'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-[var(--md-info)] text-white shadow-sm'
+                    : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
                 }`}
               >
                 المحافظ والعملات
@@ -214,10 +214,10 @@ export const POSShiftModal: React.FC<POSShiftModalProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveSubTab('movement')}
-                className={`py-1.5 font-bold rounded-xl transition-all ${
+                className={`py-1.5 font-bold rounded-xl transition-all cursor-pointer ${
                   activeSubTab === 'movement'
-                    ? 'bg-amber-600 text-white shadow'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-[var(--md-secondary)] text-[var(--md-on-secondary)] shadow-sm'
+                    : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
                 }`}
               >
                 سحب / إيداع
@@ -225,10 +225,10 @@ export const POSShiftModal: React.FC<POSShiftModalProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveSubTab('close')}
-                className={`py-1.5 font-bold rounded-xl transition-all ${
+                className={`py-1.5 font-bold rounded-xl transition-all cursor-pointer ${
                   activeSubTab === 'close'
-                    ? 'bg-rose-600 text-white shadow'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-[var(--md-error)] text-[var(--md-on-error)] shadow-sm'
+                    : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
                 }`}
               >
                 تسوية وإغلاق
@@ -237,34 +237,34 @@ export const POSShiftModal: React.FC<POSShiftModalProps> = ({
 
             {activeSubTab === 'overview' && (
               <div className="space-y-3">
-                <div className="p-3.5 bg-slate-800/40 border border-slate-800 rounded-2xl space-y-2.5 text-xs">
-                  <div className="flex justify-between items-center text-slate-400">
+                <div className="p-3.5 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-2xl space-y-2.5 text-xs">
+                  <div className="flex justify-between items-center text-[var(--md-on-surface-variant)]">
                     <span>رقم الوردية:</span>
-                    <span className="font-bold text-white font-mono">#{currentShift.shift_number}</span>
+                    <span className="font-bold text-[var(--md-on-surface)] font-mono tabular-nums">#{currentShift.shift_number}</span>
                   </div>
-                  <div className="flex justify-between items-center text-slate-400">
+                  <div className="flex justify-between items-center text-[var(--md-on-surface-variant)]">
                     <span>وقت الفتح:</span>
-                    <span className="text-white font-mono">{formatDateTime(currentShift.opened_at)}</span>
+                    <span className="text-[var(--md-on-surface)] font-mono tabular-nums">{formatDateTime(currentShift.opened_at)}</span>
                   </div>
-                  <div className="flex justify-between items-center text-slate-400">
+                  <div className="flex justify-between items-center text-[var(--md-on-surface-variant)]">
                     <span>العهدة الافتتاحية:</span>
-                    <span className="font-bold text-white font-mono" dir="ltr">{openingNum.toLocaleString('en-US', { minimumFractionDigits: 2 })} {currSym}</span>
+                    <span className="font-bold text-[var(--md-on-surface)] font-mono tabular-nums" dir="ltr">{openingNum.toLocaleString('en-US', { minimumFractionDigits: 2 })} {currSym}</span>
                   </div>
-                  <div className="flex justify-between items-center text-slate-400">
+                  <div className="flex justify-between items-center text-[var(--md-on-surface-variant)]">
                     <span>مبيعات نقداً (Cash):</span>
-                    <span className="font-bold text-emerald-400 font-mono" dir="ltr">{cashSales.toLocaleString('en-US', { minimumFractionDigits: 2 })} {currSym}</span>
+                    <span className="font-bold text-[var(--md-success)] font-mono tabular-nums" dir="ltr">{cashSales.toLocaleString('en-US', { minimumFractionDigits: 2 })} {currSym}</span>
                   </div>
-                  <div className="flex justify-between items-center text-slate-400">
+                  <div className="flex justify-between items-center text-[var(--md-on-surface-variant)]">
                     <span>مبيعات محافظ وبنوك:</span>
-                    <span className="font-bold text-cyan-400 font-mono" dir="ltr">{(cardSales + bankSales).toLocaleString('en-US', { minimumFractionDigits: 2 })} {currSym}</span>
+                    <span className="font-bold text-[var(--md-info)] font-mono tabular-nums" dir="ltr">{(cardSales + bankSales).toLocaleString('en-US', { minimumFractionDigits: 2 })} {currSym}</span>
                   </div>
-                  <div className="flex justify-between items-center text-slate-400">
+                  <div className="flex justify-between items-center text-[var(--md-on-surface-variant)]">
                     <span>سحوبات / مصروفات:</span>
-                    <span className="font-bold text-rose-400 font-mono" dir="ltr">{(cashOut + cashRefunds).toLocaleString('en-US', { minimumFractionDigits: 2 })} {currSym}</span>
+                    <span className="font-bold text-[var(--md-error)] font-mono tabular-nums" dir="ltr">{(cashOut + cashRefunds).toLocaleString('en-US', { minimumFractionDigits: 2 })} {currSym}</span>
                   </div>
-                  <div className="pt-2 border-t border-slate-700/60 flex justify-between items-center">
-                    <span className="font-bold text-slate-200">إجمالي النقد المتوقع بالدرج:</span>
-                    <span className="text-base font-black text-emerald-400 font-mono" dir="ltr">
+                  <div className="pt-2 border-t border-[var(--md-outline-variant)] flex justify-between items-center">
+                    <span className="font-bold text-[var(--md-on-surface)]">إجمالي النقد المتوقع بالدرج:</span>
+                    <span className="text-base font-black text-[var(--md-primary-text)] font-mono tabular-nums" dir="ltr">
                       {expectedCash.toLocaleString('en-US', { minimumFractionDigits: 2 })} {currSym}
                     </span>
                   </div>
@@ -275,30 +275,30 @@ export const POSShiftModal: React.FC<POSShiftModalProps> = ({
             {activeSubTab === 'wallets' && (
               <div className="space-y-3.5">
                 {/* 1. Multi-currency Cash Drawer Breakdown */}
-                <div className="p-3.5 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-2.5">
-                  <div className="text-xs font-bold text-slate-200 flex items-center justify-between">
+                <div className="p-3.5 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-2xl space-y-2.5">
+                  <div className="text-xs font-bold text-[var(--md-on-surface)] flex items-center justify-between">
                     <span className="flex items-center gap-1.5">
-                      <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                      <DollarSign className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
                       <span>النقد بالدرج حسب العملة (Cash Drawer by Currency):</span>
                     </span>
-                    <span className="text-slate-400 font-mono text-[11px]">English Digits</span>
+                    <span className="text-[var(--md-on-surface-variant)] font-mono text-[11px]">English Digits</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl space-y-0.5">
-                      <span className="text-[10px] text-slate-400 block font-bold">ريال يمني (YER)</span>
-                      <span className="text-xs font-black text-emerald-400 font-mono" dir="ltr">
+                    <div className="p-2.5 bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-xl space-y-0.5">
+                      <span className="text-[10px] text-[var(--md-on-surface-variant)] block font-bold">ريال يمني (YER)</span>
+                      <span className="text-xs font-black text-[var(--md-success)] font-mono tabular-nums" dir="ltr">
                         {cashSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
-                    <div className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl space-y-0.5">
-                      <span className="text-[10px] text-slate-400 block font-bold">ريال سعودي (SAR)</span>
-                      <span className="text-xs font-black text-amber-400 font-mono" dir="ltr">
+                    <div className="p-2.5 bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-xl space-y-0.5">
+                      <span className="text-[10px] text-[var(--md-on-surface-variant)] block font-bold">ريال سعودي (SAR)</span>
+                      <span className="text-xs font-black text-[var(--md-warning)] font-mono tabular-nums" dir="ltr">
                         {Number((currentShift as any)?.cash_sar || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
-                    <div className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl space-y-0.5">
-                      <span className="text-[10px] text-slate-400 block font-bold">دولار أمريكي (USD)</span>
-                      <span className="text-xs font-black text-blue-400 font-mono" dir="ltr">
+                    <div className="p-2.5 bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-xl space-y-0.5">
+                      <span className="text-[10px] text-[var(--md-on-surface-variant)] block font-bold">دولار أمريكي (USD)</span>
+                      <span className="text-xs font-black text-[var(--md-info)] font-mono tabular-nums" dir="ltr">
                         {Number((currentShift as any)?.cash_usd || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
@@ -306,100 +306,100 @@ export const POSShiftModal: React.FC<POSShiftModalProps> = ({
                 </div>
 
                 {/* 2. Yemen E-Wallets Breakdown with Multi-Currency */}
-                <div className="p-3.5 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-2.5 text-xs">
-                  <div className="text-xs font-bold text-slate-200 flex items-center justify-between">
+                <div className="p-3.5 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-2xl space-y-2.5 text-xs">
+                  <div className="text-xs font-bold text-[var(--md-on-surface)] flex items-center justify-between">
                     <span>المحافظ الإلكترونية وشبكات الدفع اليمنية:</span>
-                    <span className="text-slate-400 text-[10px] font-mono">YER / SAR / USD</span>
+                    <span className="text-[var(--md-on-surface-variant)] text-[10px] font-mono">YER / SAR / USD</span>
                   </div>
 
                   <div className="space-y-2">
                     {/* الكريمي جوال */}
-                    <div className="p-2.5 bg-slate-900/90 border border-slate-800 rounded-xl flex items-center justify-between">
+                    <div className="p-2.5 bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-xl flex items-center justify-between">
                       <div>
-                        <span className="text-white font-bold block text-xs">الكريمي (حسابي / إم فلوس)</span>
-                        <span className="text-[10px] text-slate-500">بنك الكريمي للتمويل الأصغر</span>
+                        <span className="text-[var(--md-on-surface)] font-bold block text-xs">الكريمي (حسابي / إم فلوس)</span>
+                        <span className="text-[10px] text-[var(--md-on-surface-variant)]">بنك الكريمي للتمويل الأصغر</span>
                       </div>
-                      <div className="text-left font-mono" dir="ltr">
-                        <div className="text-xs font-bold text-emerald-400">
+                      <div className="text-left font-mono tabular-nums" dir="ltr">
+                        <div className="text-xs font-bold text-[var(--md-success)]">
                           {walletKuraimi.toLocaleString('en-US', { minimumFractionDigits: 2 })} YER
                         </div>
-                        <div className="text-[10px] text-slate-500">
+                        <div className="text-[10px] text-[var(--md-on-surface-variant)]">
                           0.00 SAR | 0.00 USD
                         </div>
                       </div>
                     </div>
 
                     {/* جوالي CAC */}
-                    <div className="p-2.5 bg-slate-900/90 border border-slate-800 rounded-xl flex items-center justify-between">
+                    <div className="p-2.5 bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-xl flex items-center justify-between">
                       <div>
-                        <span className="text-white font-bold block text-xs">جوالي (Jawali)</span>
-                        <span className="text-[10px] text-slate-500">كاك بنك (CAC Bank)</span>
+                        <span className="text-[var(--md-on-surface)] font-bold block text-xs">جوالي (Jawali)</span>
+                        <span className="text-[10px] text-[var(--md-on-surface-variant)]">كاك بنك (CAC Bank)</span>
                       </div>
-                      <div className="text-left font-mono" dir="ltr">
-                        <div className="text-xs font-bold text-emerald-400">
+                      <div className="text-left font-mono tabular-nums" dir="ltr">
+                        <div className="text-xs font-bold text-[var(--md-success)]">
                           {walletJawali.toLocaleString('en-US', { minimumFractionDigits: 2 })} YER
                         </div>
-                        <div className="text-[10px] text-slate-500">
+                        <div className="text-[10px] text-[var(--md-on-surface-variant)]">
                           0.00 SAR | 0.00 USD
                         </div>
                       </div>
                     </div>
 
                     {/* ون كاش OneCash */}
-                    <div className="p-2.5 bg-slate-900/90 border border-slate-800 rounded-xl flex items-center justify-between">
+                    <div className="p-2.5 bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-xl flex items-center justify-between">
                       <div>
-                        <span className="text-white font-bold block text-xs">ون كاش (OneCash)</span>
-                        <span className="text-[10px] text-slate-500">شركة ون كاش لخدمات الدفع</span>
+                        <span className="text-[var(--md-on-surface)] font-bold block text-xs">ون كاش (OneCash)</span>
+                        <span className="text-[10px] text-[var(--md-on-surface-variant)]">شركة ون كاش لخدمات الدفع</span>
                       </div>
-                      <div className="text-left font-mono" dir="ltr">
-                        <div className="text-xs font-bold text-emerald-400">
+                      <div className="text-left font-mono tabular-nums" dir="ltr">
+                        <div className="text-xs font-bold text-[var(--md-success)]">
                           {walletOneCash.toLocaleString('en-US', { minimumFractionDigits: 2 })} YER
                         </div>
-                        <div className="text-[10px] text-slate-500">
+                        <div className="text-[10px] text-[var(--md-on-surface-variant)]">
                           0.00 SAR | 0.00 USD
                         </div>
                       </div>
                     </div>
 
                     {/* فلوسك YKB */}
-                    <div className="p-2.5 bg-slate-900/90 border border-slate-800 rounded-xl flex items-center justify-between">
+                    <div className="p-2.5 bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-xl flex items-center justify-between">
                       <div>
-                        <span className="text-white font-bold block text-xs">فلوسك (Floosak)</span>
-                        <span className="text-[10px] text-slate-500">بنك اليمن والكويت (YKB)</span>
+                        <span className="text-[var(--md-on-surface)] font-bold block text-xs">فلوسك (Floosak)</span>
+                        <span className="text-[10px] text-[var(--md-on-surface-variant)]">بنك اليمن والكويت (YKB)</span>
                       </div>
-                      <div className="text-left font-mono" dir="ltr">
-                        <div className="text-xs font-bold text-emerald-400">
+                      <div className="text-left font-mono tabular-nums" dir="ltr">
+                        <div className="text-xs font-bold text-[var(--md-success)]">
                           {walletFloosak.toLocaleString('en-US', { minimumFractionDigits: 2 })} YER
                         </div>
-                        <div className="text-[10px] text-slate-500">
+                        <div className="text-[10px] text-[var(--md-on-surface-variant)]">
                           0.00 SAR | 0.00 USD
                         </div>
                       </div>
                     </div>
 
                     {/* جوبي Tadhamon */}
-                    <div className="p-2.5 bg-slate-900/90 border border-slate-800 rounded-xl flex items-center justify-between">
+                    <div className="p-2.5 bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-xl flex items-center justify-between">
                       <div>
-                        <span className="text-white font-bold block text-xs">جوبي (Jaib)</span>
-                        <span className="text-[10px] text-slate-500">بنك التضامن الإسلامي الدولي</span>
+                        <span className="text-[var(--md-on-surface)] font-bold block text-xs">جوبي (Jaib)</span>
+                        <span className="text-[10px] text-[var(--md-on-surface-variant)]">بنك التضامن الإسلامي الدولي</span>
                       </div>
-                      <div className="text-left font-mono" dir="ltr">
-                        <div className="text-xs font-bold text-emerald-400">
+                      <div className="text-left font-mono tabular-nums" dir="ltr">
+                        <div className="text-xs font-bold text-[var(--md-success)]">
                           {walletJaib.toLocaleString('en-US', { minimumFractionDigits: 2 })} YER
                         </div>
-                        <div className="text-[10px] text-slate-500">
+                        <div className="text-[10px] text-[var(--md-on-surface-variant)]">
                           0.00 SAR | 0.00 USD
                         </div>
                       </div>
                     </div>
 
                     {/* بطاقات بنكية ونقاط بيع POS */}
-                    <div className="p-2.5 bg-slate-900/90 border border-slate-800 rounded-xl flex items-center justify-between">
+                    <div className="p-2.5 bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-xl flex items-center justify-between">
                       <div>
-                        <span className="text-white font-bold block text-xs">بطاقات ونقاط بيع (POS Terminals)</span>
-                        <span className="text-[10px] text-slate-500">مدى / فيزا / ماستركارد</span>
+                        <span className="text-[var(--md-on-surface)] font-bold block text-xs">بطاقات ونقاط بيع (POS Terminals)</span>
+                        <span className="text-[10px] text-[var(--md-on-surface-variant)]">مدى / فيزا / ماستركارد</span>
                       </div>
-                      <div className="text-left font-mono text-xs font-bold text-cyan-400" dir="ltr">
+                      <div className="text-left font-mono text-xs font-bold text-[var(--md-info)] tabular-nums" dir="ltr">
                         {cardSales.toLocaleString('en-US', { minimumFractionDigits: 2 })} {currSym}
                       </div>
                     </div>
@@ -414,10 +414,10 @@ export const POSShiftModal: React.FC<POSShiftModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setMovementType('CASH_IN')}
-                    className={`p-2 rounded-xl text-xs font-bold border flex flex-col items-center gap-1 ${
+                    className={`p-2 rounded-xl text-xs font-bold border flex flex-col items-center gap-1 cursor-pointer transition-colors ${
                       movementType === 'CASH_IN'
-                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
-                        : 'bg-slate-800 border-slate-700 text-slate-400'
+                        ? 'bg-[var(--md-success-container)] border-[var(--md-success)] text-[var(--md-on-success-container)]'
+                        : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)]'
                     }`}
                   >
                     <ArrowDownLeft className="w-4 h-4" />
@@ -426,10 +426,10 @@ export const POSShiftModal: React.FC<POSShiftModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setMovementType('CASH_OUT')}
-                    className={`p-2 rounded-xl text-xs font-bold border flex flex-col items-center gap-1 ${
+                    className={`p-2 rounded-xl text-xs font-bold border flex flex-col items-center gap-1 cursor-pointer transition-colors ${
                       movementType === 'CASH_OUT'
-                        ? 'bg-amber-500/20 border-amber-500 text-amber-400'
-                        : 'bg-slate-800 border-slate-700 text-slate-400'
+                        ? 'bg-[var(--md-warning-container)] border-[var(--md-warning)] text-[var(--md-on-warning-container)]'
+                        : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)]'
                     }`}
                   >
                     <ArrowUpRight className="w-4 h-4" />
@@ -438,10 +438,10 @@ export const POSShiftModal: React.FC<POSShiftModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setMovementType('EXPENSE')}
-                    className={`p-2 rounded-xl text-xs font-bold border flex flex-col items-center gap-1 ${
+                    className={`p-2 rounded-xl text-xs font-bold border flex flex-col items-center gap-1 cursor-pointer transition-colors ${
                       movementType === 'EXPENSE'
-                        ? 'bg-rose-500/20 border-rose-500 text-rose-400'
-                        : 'bg-slate-800 border-slate-700 text-slate-400'
+                        ? 'bg-[var(--md-error-container)] border-[var(--md-error)] text-[var(--md-on-error-container)]'
+                        : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)]'
                     }`}
                   >
                     <DollarSign className="w-4 h-4" />
@@ -450,7 +450,7 @@ export const POSShiftModal: React.FC<POSShiftModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">المبلغ ({currSym}) *</label>
+                  <label className="block text-xs font-bold text-[var(--md-on-surface-variant)] mb-1">المبلغ ({currSym}) *</label>
                   <input
                     type="text"
                     inputMode="decimal"
@@ -460,26 +460,26 @@ export const POSShiftModal: React.FC<POSShiftModalProps> = ({
                     value={movementAmount}
                     onChange={(e) => setMovementAmount(e.target.value.replace(/[^0-9.]/g, ''))}
                     placeholder="0.00"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-white focus:outline-none focus:border-emerald-500 text-left"
+                    className="m3-input w-full px-3 py-2 text-xs font-mono font-bold text-left tabular-nums"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">السبب والبيان *</label>
+                  <label className="block text-xs font-bold text-[var(--md-on-surface-variant)] mb-1">السبب والبيان *</label>
                   <input
                     type="text"
                     required
                     value={movementReason}
                     onChange={(e) => setMovementReason(e.target.value)}
                     placeholder="مثال: سحب نقدي لإيداع بنكي / شراء أدوات نظافة"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                    className="m3-input w-full px-3 py-2 text-xs"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading || !movementAmount || !movementReason.trim()}
-                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl disabled:opacity-50"
+                  className="m3-btn-primary w-full py-2.5 text-xs font-bold"
                 >
                   {loading ? 'جاري الحفظ...' : 'تأكيد حركة النقدية'}
                 </button>
@@ -488,18 +488,18 @@ export const POSShiftModal: React.FC<POSShiftModalProps> = ({
 
             {activeSubTab === 'close' && (
               <form onSubmit={handleCloseShift} className="space-y-3">
-                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-xs text-amber-400 space-y-1">
+                <div className="p-3 bg-[var(--md-warning-container)]/60 border border-[var(--md-warning)]/30 rounded-2xl text-xs text-[var(--md-on-warning-container)] space-y-1">
                   <div className="font-bold flex items-center gap-1.5">
-                    <Lock className="w-4 h-4" />
+                    <Lock className="w-4 h-4 text-[var(--md-warning)]" />
                     تسوية وإغلاق الوردية
                   </div>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-[var(--md-on-surface-variant)]">
                     أدخل النقد الفعلي الموجود بالدرج بعد عد النقود لمقارنته مع المتوقع واحتساب العجز أو الزيادة.
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">النقد الفعلي بالدرج ({currSym}) *</label>
+                  <label className="block text-xs font-bold text-[var(--md-on-surface-variant)] mb-1">النقد الفعلي بالدرج ({currSym}) *</label>
                   <input
                     type="text"
                     inputMode="decimal"
@@ -509,25 +509,25 @@ export const POSShiftModal: React.FC<POSShiftModalProps> = ({
                     value={actualCash}
                     onChange={(e) => setActualCash(e.target.value.replace(/[^0-9.]/g, ''))}
                     placeholder="أدخل المبلغ بعد العد اليدوي..."
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm font-mono font-bold text-white focus:outline-none focus:border-rose-500 text-left"
+                    className="m3-input w-full px-3 py-2 text-sm font-mono font-bold text-left tabular-nums"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">ملاحظات الإغلاق والتسوية</label>
+                  <label className="block text-xs font-bold text-[var(--md-on-surface-variant)] mb-1">ملاحظات الإغلاق والتسوية</label>
                   <textarea
                     rows={2}
                     value={closingNotes}
                     onChange={(e) => setClosingNotes(e.target.value)}
                     placeholder="أي ملاحظات حول الفوارق أو الجلسة..."
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+                    className="m3-input w-full px-3 py-2 text-xs"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading || !actualCash}
-                  className="w-full py-2.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl disabled:opacity-50"
+                  className="m3-btn-danger w-full py-2.5 text-xs font-bold"
                 >
                   {loading ? 'جاري الإغلاق...' : 'تأكيد إغلاق الوردية وطباعة التقرير'}
                 </button>

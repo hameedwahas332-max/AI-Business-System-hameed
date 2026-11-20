@@ -1114,44 +1114,48 @@ export const AIAssistantTab: React.FC = () => {
   const getCategoryIcon = (cat: ModuleCategory) => {
     switch (cat) {
       case 'CUSTOMER':
-        return <Users className="w-4 h-4 text-emerald-400" />;
+        return <Users className="w-4 h-4 text-[var(--md-primary-text)]" />;
       case 'SUPPLIER':
-        return <Truck className="w-4 h-4 text-blue-400" />;
+        return <Truck className="w-4 h-4 text-[var(--md-info)]" />;
       case 'INVOICE':
-        return <FileText className="w-4 h-4 text-teal-400" />;
+        return <FileText className="w-4 h-4 text-[var(--md-success)]" />;
       case 'VOUCHER':
-        return <Receipt className="w-4 h-4 text-amber-400" />;
+        return <Receipt className="w-4 h-4 text-[var(--md-warning)]" />;
       case 'EMPLOYEE':
-        return <UserCheck className="w-4 h-4 text-indigo-400" />;
+        return <UserCheck className="w-4 h-4 text-[var(--md-secondary)]" />;
       case 'SALES_REP':
-        return <Briefcase className="w-4 h-4 text-cyan-400" />;
+        return <Briefcase className="w-4 h-4 text-[var(--md-info)]" />;
       case 'LOW_STOCK':
-        return <PackageMinus className="w-4 h-4 text-rose-400" />;
+        return <PackageMinus className="w-4 h-4 text-[var(--md-error)]" />;
     }
   };
 
   return (
-    <div className="space-y-6 text-right text-slate-100 font-sans" dir="rtl">
+    <div className="space-y-6 text-right text-[var(--md-on-surface)] font-sans" dir="rtl">
       {/* Header Banner */}
-      <div className="p-5 rounded-2xl bg-slate-900 border border-emerald-900/50 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-base font-bold text-white flex items-center gap-2">
-            <Bot className="w-5 h-5 text-emerald-400" />
-            <span>المساعد الذكي للأعمال (AI Business Assistant)</span>
-          </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            تحليل مالي فوري مرتبط بجميع قوائم النظام، ومراسل أعمال شامل لصياغة وإرسال رسائل الواتساب الرسمية
-          </p>
+      <div className="m3-card-elevated p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/20 flex items-center justify-center shrink-0">
+            <Bot className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-[var(--md-on-surface)]">
+              المساعد الذكي للأعمال (AI Business Assistant)
+            </h2>
+            <p className="text-xs text-[var(--md-on-surface-variant)] mt-0.5">
+              تحليل مالي فوري مرتبط بجميع قوائم النظام، ومراسل أعمال شامل لصياغة وإرسال رسائل الواتساب الرسمية
+            </p>
+          </div>
         </div>
 
-        {/* Sub-tab navigation pill */}
-        <div className="flex items-center gap-1 p-1 bg-slate-950 rounded-xl text-xs font-medium border border-slate-800">
+        {/* Sub-tab navigation */}
+        <div className="flex flex-wrap items-center gap-1 p-1 bg-[var(--md-surface-container-low)] rounded-xl text-xs font-medium border border-[var(--md-outline-variant)]">
           <button
             onClick={() => setActiveSubTab('chat')}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
               activeSubTab === 'chat'
-                ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-950/50'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] font-bold'
+                : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             المحادثة والمسودات
@@ -1160,8 +1164,8 @@ export const AIAssistantTab: React.FC = () => {
             onClick={() => setActiveSubTab('insights')}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
               activeSubTab === 'insights'
-                ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-950/50'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] font-bold'
+                : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             الرؤى والتحليلات الذكية
@@ -1170,8 +1174,8 @@ export const AIAssistantTab: React.FC = () => {
             onClick={() => setActiveSubTab('messaging')}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
               activeSubTab === 'messaging'
-                ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-950/50'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] font-bold'
+                : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             مراسل المطالبات والواتساب
@@ -1183,12 +1187,12 @@ export const AIAssistantTab: React.FC = () => {
         <div className="space-y-4">
           {/* Quick Prompts Bar */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1.5 text-xs">
-            <span className="text-slate-400 font-medium shrink-0">استعلامات سريعة:</span>
+            <span className="text-[var(--md-on-surface-variant)] font-semibold shrink-0">استعلامات سريعة:</span>
             {QUICK_PROMPTS.map((prompt, i) => (
               <button
                 key={i}
                 onClick={() => handleSend(undefined, prompt)}
-                className="px-3 py-1.5 bg-slate-900 border border-slate-700 hover:border-emerald-600 hover:bg-slate-800 text-slate-300 rounded-full transition-all shrink-0 font-medium cursor-pointer"
+                className="m3-btn-outlined !min-h-[32px] !px-3 !py-1.5 !rounded-full text-xs shrink-0 cursor-pointer"
               >
                 {prompt}
               </button>
@@ -1196,33 +1200,33 @@ export const AIAssistantTab: React.FC = () => {
           </div>
 
           {/* Chat Container */}
-          <div className="bg-slate-900 border border-emerald-900/50 rounded-2xl p-4 h-[520px] flex flex-col justify-between shadow-xl">
+          <div className="m3-card p-4 h-[520px] flex flex-col justify-between">
             {/* Messages Display */}
             <div className="space-y-4 overflow-y-auto p-2">
               {messages.map((m) => (
                 <div key={m.id} className="space-y-2">
                   <div className={`flex items-start gap-2.5 text-xs ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                     {m.sender === 'assistant' && (
-                      <div className="p-1.5 bg-emerald-950 text-emerald-400 rounded-lg shrink-0 border border-emerald-800/80">
+                      <div className="p-1.5 bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] rounded-lg shrink-0 border border-[var(--md-primary)]/20">
                         <Sparkles className="w-4 h-4" />
                       </div>
                     )}
                     <div
-                      className={`p-3.5 rounded-2xl max-w-xl leading-relaxed whitespace-pre-wrap ${
+                      className={`p-3.5 rounded-2xl max-w-xl leading-relaxed whitespace-pre-wrap border ${
                         m.sender === 'user'
-                          ? 'bg-emerald-600 text-white font-medium rounded-tl-none shadow-md shadow-emerald-950/40'
-                          : 'bg-slate-950 border border-slate-800 text-slate-200 rounded-tr-none'
+                          ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border-[var(--md-primary)]/30 font-medium rounded-tl-none'
+                          : 'bg-[var(--md-surface-container-high)] text-[var(--md-on-surface)] border-[var(--md-outline-variant)] rounded-tr-none'
                       }`}
                     >
                       {m.content}
 
                       {/* Render Executed Tool Badges */}
                       {m.toolCalls && m.toolCalls.length > 0 && (
-                        <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex flex-wrap gap-1.5">
+                        <div className="mt-2.5 pt-2 border-t border-[var(--md-outline-variant)] flex flex-wrap gap-1.5">
                           {m.toolCalls.map((tc, idx) => (
                             <span
                               key={idx}
-                              className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono"
+                              className="m3-badge m3-badge-primary text-[10px] font-mono"
                             >
                               ✓ أداة: {tc.toolName}
                             </span>
@@ -1235,7 +1239,7 @@ export const AIAssistantTab: React.FC = () => {
               ))}
 
               {isSending && (
-                <div className="flex items-center gap-2 text-xs text-emerald-400 font-medium py-2">
+                <div className="flex items-center gap-2 text-xs text-[var(--md-primary-text)] font-medium py-2">
                   <RefreshCw className="w-4 h-4 animate-spin" />
                   <span>جاري استشارة السجلات المحاسبية والتحليل الفوري...</span>
                 </div>
@@ -1244,34 +1248,34 @@ export const AIAssistantTab: React.FC = () => {
 
             {/* Proposed Action Confirmation Card overlay */}
             {confirmingAction && (
-              <div className="m-2 p-4 bg-slate-950 border border-amber-600/60 rounded-xl text-xs space-y-3 shadow-xl">
-                <div className="flex items-center justify-between">
-                  <div className="font-bold text-amber-400 flex items-center gap-1.5">
-                    <AlertCircle className="w-4 h-4 text-amber-400" />
+              <div className="m-2 p-4 bg-[var(--md-warning-container)]/60 border border-[var(--md-warning)]/40 rounded-xl text-xs space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="font-bold text-[var(--md-on-warning-container)] flex items-center gap-1.5">
+                    <AlertCircle className="w-4 h-4 text-[var(--md-warning)]" />
                     <span>طلب تأكيد إجراء مالي (تأكيد بشري مطلوب)</span>
                   </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800 font-mono font-bold">
+                  <span className="m3-badge m3-badge-warning text-[10px] font-mono">
                     PENDING HUMAN APPROVAL
                   </span>
                 </div>
 
-                <div className="p-3 bg-slate-900 rounded-lg border border-amber-900/50 text-slate-200 font-mono space-y-1">
-                  <p><span className="text-slate-400">نوع الإجراء:</span> {confirmingAction.type}</p>
-                  <p><span className="text-slate-400">البيانات:</span> {JSON.stringify(confirmingAction.data)}</p>
+                <div className="p-3 bg-[var(--md-surface-container-lowest)] rounded-lg border border-[var(--md-outline-variant)] text-[var(--md-on-surface)] font-mono space-y-1">
+                  <p><span className="text-[var(--md-on-surface-variant)]">نوع الإجراء:</span> {confirmingAction.type}</p>
+                  <p><span className="text-[var(--md-on-surface-variant)]">البيانات:</span> {JSON.stringify(confirmingAction.data)}</p>
                 </div>
 
-                {confirmStatus && <p className="font-bold text-emerald-400">{confirmStatus}</p>}
+                {confirmStatus && <p className="font-bold text-[var(--md-success)]">{confirmStatus}</p>}
 
                 <div className="flex items-center justify-end gap-2">
                   <button
                     onClick={() => setConfirmingAction(null)}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold cursor-pointer"
+                    className="m3-btn-outlined !min-h-[34px] !px-3 text-xs cursor-pointer"
                   >
                     إلغاء
                   </button>
                   <button
                     onClick={handleConfirmAction}
-                    className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-emerald-950/50 cursor-pointer"
+                    className="m3-btn-primary !min-h-[34px] !px-4 text-xs cursor-pointer"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     <span>تأكيد واعتماد الإجراء المالي</span>
@@ -1281,18 +1285,18 @@ export const AIAssistantTab: React.FC = () => {
             )}
 
             {/* Input Form */}
-            <form onSubmit={handleSend} className="flex gap-2 pt-3 border-t border-slate-800">
+            <form onSubmit={handleSend} className="flex gap-2 pt-3 border-t border-[var(--md-outline-variant)]">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="اسأل المساعد الذكي عن السيولة، المبيعات، العملاء، الموردين، المخزون، أو المناديب..."
-                className="flex-1 px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
+                className="m3-input flex-1 text-xs"
               />
               <button
                 type="submit"
                 disabled={isSending}
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-emerald-950/50 flex items-center gap-1.5 cursor-pointer"
+                className="m3-btn-primary text-xs shrink-0 disabled:opacity-50 cursor-pointer"
               >
                 <span>إرسال</span>
                 <Send className="w-3.5 h-3.5" />
@@ -1306,13 +1310,13 @@ export const AIAssistantTab: React.FC = () => {
       {activeSubTab === 'insights' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Lightbulb className="w-4 h-4 text-amber-400" />
+            <h3 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+              <Lightbulb className="w-4 h-4 text-[var(--md-warning)]" />
               <span>الرؤى والتوصيات الذكية الشاملة (Fact / Calc / Interpretation / Recommendation)</span>
             </h3>
             <button
               onClick={fetchInsights}
-              className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-semibold cursor-pointer"
+              className="m3-btn-text !min-h-[32px] !px-3 text-xs cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLoadingInsights ? 'animate-spin' : ''}`} />
               <span>تحديث الرؤى</span>
@@ -1321,36 +1325,36 @@ export const AIAssistantTab: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {insights.map((insight) => (
-              <div key={insight.id} className="p-4 rounded-2xl bg-slate-900 border border-emerald-900/40 shadow-xl space-y-2">
+              <div key={insight.id} className="m3-card p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <span
-                    className={`text-[10px] px-2 py-0.5 rounded font-mono font-bold ${
+                    className={`m3-badge text-[10px] font-mono ${
                       insight.category === 'FACT'
-                        ? 'bg-blue-950 text-blue-300 border border-blue-800'
+                        ? 'm3-badge-info'
                         : insight.category === 'CALCULATION'
-                        ? 'bg-purple-950 text-purple-300 border border-purple-800'
+                        ? 'm3-badge-secondary'
                         : insight.category === 'INTERPRETATION'
-                        ? 'bg-amber-950 text-amber-300 border border-amber-800'
-                        : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                        ? 'm3-badge-warning'
+                        : 'm3-badge-success'
                     }`}
                   >
                     {insight.category}
                   </span>
                   <span
                     className={`text-[10px] font-bold ${
-                      insight.impact === 'HIGH' ? 'text-rose-400' : 'text-slate-400'
+                      insight.impact === 'HIGH' ? 'text-[var(--md-error)]' : 'text-[var(--md-on-surface-variant)]'
                     }`}
                   >
                     أهمية {insight.impact}
                   </span>
                 </div>
 
-                <h4 className="text-xs font-bold text-white">{insight.title}</h4>
-                <p className="text-xs text-slate-300 leading-relaxed">{insight.description}</p>
+                <h4 className="text-xs font-bold text-[var(--md-on-surface)]">{insight.title}</h4>
+                <p className="text-xs text-[var(--md-on-surface-variant)] leading-relaxed">{insight.description}</p>
 
                 {insight.actionableStep && (
-                  <div className="pt-2 border-t border-slate-800 text-xs font-semibold text-emerald-400 flex items-center gap-1">
-                    <ArrowRight className="w-3.5 h-3.5 text-emerald-400" />
+                  <div className="pt-2 border-t border-[var(--md-outline-variant)] text-xs font-semibold text-[var(--md-primary-text)] flex items-center gap-1">
+                    <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                     <span>التوصية التنفيذية: {insight.actionableStep}</span>
                   </div>
                 )}
@@ -1362,20 +1366,20 @@ export const AIAssistantTab: React.FC = () => {
 
       {/* Comprehensive Multi-Module Business Messaging Subtab */}
       {activeSubTab === 'messaging' && (
-        <div className="bg-slate-900 border border-emerald-900/50 rounded-2xl p-5 space-y-5 shadow-xl">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+        <div className="m3-card p-5 space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--md-outline-variant)] pb-4">
             <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <PhoneCall className="w-4 h-4 text-emerald-400" />
+              <h3 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                <PhoneCall className="w-4 h-4 text-[var(--md-primary-text)]" />
                 <span>مراسل الأعمال الشامل لكل القوائم ومركز واتساب</span>
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-[var(--md-on-surface-variant)] mt-0.5">
                 صياغة وإرسال رسائل رسمية مرتبطة مباشرة بالعملاء، الموردين، الفواتير، السندات، الموظفين، المناديب، ونواقص المخزون
               </p>
             </div>
             <button
               onClick={loadAllErpCollections}
-              className="px-3 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-700 text-emerald-400 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+              className="m3-btn-outlined !min-h-[36px] text-xs cursor-pointer self-start sm:self-auto"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLoadingCollections ? 'animate-spin' : ''}`} />
               <span>تحديث القوائم</span>
@@ -1385,7 +1389,7 @@ export const AIAssistantTab: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
             {/* 1. Module Category */}
             <div>
-              <label className="flex items-center gap-1.5 text-slate-300 font-semibold mb-1.5">
+              <label className="flex items-center gap-1.5 text-[var(--md-on-surface-variant)] font-semibold mb-1.5">
                 {getCategoryIcon(selectedCategory)}
                 <span>1. اختر القائمة / القسم المرتبط</span>
               </label>
@@ -1397,7 +1401,7 @@ export const AIAssistantTab: React.FC = () => {
                   setDraftResult(null);
                   setWhatsAppStatus(null);
                 }}
-                className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-emerald-500 transition-colors"
+                className="m3-select text-xs"
               >
                 {MODULE_CATEGORIES.map((cat) => (
                   <option key={cat.value} value={cat.value}>
@@ -1409,7 +1413,7 @@ export const AIAssistantTab: React.FC = () => {
 
             {/* 2. Target Party / Document */}
             <div>
-              <label className="block text-slate-300 font-semibold mb-1.5">
+              <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1.5">
                 2. اختر الطرف أو المستند المستهدف ({currentEntities.length})
               </label>
               <select
@@ -1420,7 +1424,7 @@ export const AIAssistantTab: React.FC = () => {
                   setWhatsAppStatus(null);
                 }}
                 disabled={currentEntities.length === 0}
-                className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-emerald-500 transition-colors disabled:opacity-60"
+                className="m3-select text-xs disabled:opacity-60"
               >
                 {currentEntities.length === 0 ? (
                   <option value="">لا توجد سجلات مسجلة في هذا القسم حالياً</option>
@@ -1436,7 +1440,7 @@ export const AIAssistantTab: React.FC = () => {
 
             {/* 3. Dynamic Smart Message Type */}
             <div>
-              <label className="block text-slate-300 font-semibold mb-1.5">
+              <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1.5">
                 3. نوع الرسالة الذكية
               </label>
               <select
@@ -1445,7 +1449,7 @@ export const AIAssistantTab: React.FC = () => {
                   setMessageType(e.target.value);
                   setDraftResult(null);
                 }}
-                className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-emerald-500 transition-colors"
+                className="m3-select text-xs"
               >
                 {(MESSAGE_TYPES_BY_CATEGORY[selectedCategory] || []).map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -1460,7 +1464,7 @@ export const AIAssistantTab: React.FC = () => {
               <button
                 onClick={handleGenerateDraftMessage}
                 disabled={isDrafting || !selectedEntityId}
-                className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                className="m3-btn-primary w-full text-xs disabled:opacity-50 cursor-pointer"
               >
                 {isDrafting ? (
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -1473,18 +1477,18 @@ export const AIAssistantTab: React.FC = () => {
           </div>
 
           {draftResult && (
-            <div className="p-4 bg-slate-950 border border-emerald-900/50 rounded-2xl space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs border-b border-slate-800 pb-3">
+            <div className="p-4 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-2xl space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs border-b border-[var(--md-outline-variant)] pb-3">
                 <div className="flex items-center gap-2">
-                  <Edit3 className="w-4 h-4 text-emerald-400" />
-                  <span className="font-bold text-white">
+                  <Edit3 className="w-4 h-4 text-[var(--md-primary-text)]" />
+                  <span className="font-bold text-[var(--md-on-surface)]">
                     صياغة الرسالة المهنية لـ: {draftResult.entityName}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <label className="text-slate-400 flex items-center gap-1 shrink-0">
-                    <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                  <label className="text-[var(--md-on-surface-variant)] flex items-center gap-1 shrink-0">
+                    <Phone className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
                     <span>رقم الواتساب:</span>
                   </label>
                   <input
@@ -1495,13 +1499,13 @@ export const AIAssistantTab: React.FC = () => {
                       setDraftResult({ ...draftResult, recipientPhone: e.target.value })
                     }
                     placeholder="مثال: 771234567 أو 967771234567"
-                    className="px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono text-xs w-48 focus:outline-none focus:border-emerald-500"
+                    className="m3-input !h-9 !w-48 font-mono tabular-nums text-xs"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] text-slate-400 mb-1.5">
+                <label className="block text-[11px] text-[var(--md-on-surface-variant)] mb-1.5">
                   نص الرسالة (يمكنك التعديل المباشر قبل الإرسال):
                 </label>
                 <textarea
@@ -1510,22 +1514,22 @@ export const AIAssistantTab: React.FC = () => {
                   onChange={(e) =>
                     setDraftResult({ ...draftResult, draftText: e.target.value })
                   }
-                  className="w-full p-3.5 bg-slate-900 rounded-xl border border-slate-800 text-xs text-slate-100 font-sans leading-relaxed focus:outline-none focus:border-emerald-500 resize-y"
+                  className="m3-input !h-auto py-3 text-xs font-sans leading-relaxed resize-y"
                 />
               </div>
 
               {whatsAppStatus && (
                 <div
-                  className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
+                  className={`p-3 rounded-xl text-xs flex items-center gap-2 border ${
                     whatsAppStatus.type === 'success'
-                      ? 'bg-emerald-950/70 border border-emerald-700 text-emerald-300'
-                      : 'bg-rose-950/70 border border-rose-700 text-rose-300'
+                      ? 'bg-[var(--md-success-container)] border-[var(--md-success)]/30 text-[var(--md-on-success-container)]'
+                      : 'bg-[var(--md-error-container)] border-[var(--md-error)]/30 text-[var(--md-on-error-container)]'
                   }`}
                 >
                   {whatsAppStatus.type === 'success' ? (
-                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-[var(--md-success)] shrink-0" />
                   ) : (
-                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <AlertCircle className="w-4 h-4 text-[var(--md-error)] shrink-0" />
                   )}
                   <span>{whatsAppStatus.text}</span>
                 </div>
@@ -1534,10 +1538,10 @@ export const AIAssistantTab: React.FC = () => {
               <div className="flex flex-wrap items-center justify-end gap-2.5 pt-1">
                 <button
                   onClick={() => copyToClipboard(draftResult.draftText)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-900/40 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
+                  className="m3-btn-tonal text-xs cursor-pointer"
                 >
                   {copied ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <Check className="w-3.5 h-3.5 text-[var(--md-success)]" />
                   ) : (
                     <Copy className="w-3.5 h-3.5" />
                   )}
@@ -1547,7 +1551,7 @@ export const AIAssistantTab: React.FC = () => {
                 <button
                   onClick={handleSendViaWhatsApp}
                   disabled={isSendingWhatsApp}
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-emerald-950/50 cursor-pointer transition-all"
+                  className="m3-btn-primary text-xs disabled:opacity-50 cursor-pointer"
                 >
                   {isSendingWhatsApp ? (
                     <RefreshCw className="w-4 h-4 animate-spin" />

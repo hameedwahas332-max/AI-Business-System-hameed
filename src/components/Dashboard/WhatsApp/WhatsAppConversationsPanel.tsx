@@ -256,79 +256,71 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
   };
 
   return (
-    <div id="whatsapp-3panel-container" className="bg-slate-900 rounded-2xl border border-slate-800 shadow-xl overflow-hidden flex flex-col lg:flex-row h-[780px]">
+    <div id="whatsapp-3panel-container" dir="rtl" className="m3-card overflow-hidden flex flex-col lg:flex-row h-[780px]">
       
       {/* ========================================================================= */}
       {/* PANEL 1: CONVERSATION LIST (LEFT) */}
       {/* ========================================================================= */}
       <div
         id="whatsapp-panel-conversations-list"
-        className={`w-full lg:w-80 xl:w-96 border-b lg:border-b-0 lg:border-l border-slate-800 flex flex-col bg-slate-950/40 ${
+        className={`w-full lg:w-80 xl:w-96 border-b lg:border-b-0 lg:border-l border-[var(--md-outline-variant)] flex flex-col bg-[var(--md-surface-container-low)] ${
           activeTabMobile !== 'LIST' ? 'hidden lg:flex' : 'flex'
         }`}
       >
         {/* Search & Filter Header */}
-        <div className="p-3.5 border-b border-slate-800 bg-slate-900 space-y-2.5">
+        <div className="p-3.5 border-b border-[var(--md-outline-variant)] bg-[var(--md-surface-container)] space-y-2.5">
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute right-3 top-1/2 -translate-y-1/2" />
             <input
               id="input-search-conversations"
               type="text"
               placeholder="بحث بالاسم، الهاتف، أو الحساب..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-3 pr-9 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-100 placeholder:text-slate-500"
+              className="m3-input !h-9 !pr-9 !pl-3 text-xs"
             />
           </div>
 
           {/* Filter Pills */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-1 text-[11px] font-bold scrollbar-none">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] font-bold scrollbar-none">
             <button
               onClick={() => setFilterType('ALL')}
-              className={`px-2.5 py-1 rounded-lg transition-all whitespace-nowrap ${
-                filterType === 'ALL'
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-xs'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+              className={`!min-h-[28px] !px-2.5 !py-1 !rounded-lg text-[11px] whitespace-nowrap cursor-pointer tabular-nums ${
+                filterType === 'ALL' ? 'm3-btn-primary' : 'm3-btn-outlined'
               }`}
             >
               الكل ({conversations.length})
             </button>
             <button
               onClick={() => setFilterType('CUSTOMERS')}
-              className={`px-2.5 py-1 rounded-lg transition-all whitespace-nowrap ${
-                filterType === 'CUSTOMERS'
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-xs'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+              className={`!min-h-[28px] !px-2.5 !py-1 !rounded-lg text-[11px] whitespace-nowrap cursor-pointer ${
+                filterType === 'CUSTOMERS' ? 'm3-btn-primary' : 'm3-btn-outlined'
               }`}
             >
               عملاء
             </button>
             <button
               onClick={() => setFilterType('SUPPLIERS')}
-              className={`px-2.5 py-1 rounded-lg transition-all whitespace-nowrap ${
-                filterType === 'SUPPLIERS'
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-xs'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+              className={`!min-h-[28px] !px-2.5 !py-1 !rounded-lg text-[11px] whitespace-nowrap cursor-pointer ${
+                filterType === 'SUPPLIERS' ? 'm3-btn-primary' : 'm3-btn-outlined'
               }`}
             >
               موردون
             </button>
             <button
               onClick={() => setFilterType('OVERDUE')}
-              className={`px-2.5 py-1 rounded-lg transition-all whitespace-nowrap ${
+              className={`!min-h-[28px] !px-2.5 !py-1 !rounded-lg text-[11px] whitespace-nowrap cursor-pointer ${
                 filterType === 'OVERDUE'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+                  ? 'm3-btn-tonal !bg-[var(--md-warning-container)] !text-[var(--md-on-warning-container)] border border-[var(--md-warning)]/40'
+                  : 'm3-btn-outlined'
               }`}
             >
               متأخرون
             </button>
             <button
               onClick={() => setFilterType('UNREAD')}
-              className={`px-2.5 py-1 rounded-lg transition-all whitespace-nowrap ${
-                filterType === 'UNREAD'
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-xs'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+              className={`!min-h-[28px] !px-2.5 !py-1 !rounded-lg text-[11px] whitespace-nowrap cursor-pointer ${
+                filterType === 'UNREAD' ? 'm3-btn-primary' : 'm3-btn-outlined'
               }`}
             >
               غير مقروء
@@ -337,12 +329,12 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
         </div>
 
         {/* Conversations Scrollable List */}
-        <div className="flex-1 overflow-y-auto divide-y divide-slate-800/60">
+        <div className="flex-1 overflow-y-auto divide-y divide-[var(--md-outline-variant)]/70">
           {filteredConversations.length === 0 ? (
-            <div className="p-8 text-center text-slate-500 space-y-2">
-              <User className="w-8 h-8 mx-auto text-slate-600" />
-              <p className="text-xs font-semibold text-slate-300">لا توجد محادثات مطابقة</p>
-              <p className="text-[11px] text-slate-500">يمكنك بدء محادثة جديدة باستخدام زر "+ رسالة جديدة".</p>
+            <div className="p-8 text-center text-[var(--md-on-surface-variant)] space-y-2">
+              <User className="w-8 h-8 mx-auto opacity-50" />
+              <p className="text-xs font-semibold text-[var(--md-on-surface)]">لا توجد محادثات مطابقة</p>
+              <p className="text-[11px] text-[var(--md-on-surface-variant)]">يمكنك بدء محادثة جديدة باستخدام زر "+ رسالة جديدة".</p>
             </div>
           ) : (
             filteredConversations.map((conv) => {
@@ -360,21 +352,21 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                     onSelectConversation(conv.phone_number || conv.customer_phone || '');
                     setActiveTabMobile('CHAT');
                   }}
-                  className={`p-3.5 cursor-pointer transition-all flex items-start gap-3 hover:bg-slate-800/50 ${
-                    isSelected ? 'bg-emerald-500/10 border-r-4 border-r-emerald-500' : 'bg-transparent'
+                  className={`p-3.5 cursor-pointer transition-all flex items-start gap-3 hover:bg-[var(--md-surface-container-high)]/60 ${
+                    isSelected ? 'bg-[var(--md-primary-container)]/50 border-r-4 border-r-[var(--md-primary)]' : 'bg-transparent'
                   }`}
                 >
                   {/* Avatar */}
-                  <div className="relative">
-                    <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 flex items-center justify-center font-bold text-sm">
+                  <div className="relative shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-[var(--md-surface-container-high)] border border-[var(--md-outline-variant)] text-[var(--md-on-surface)] flex items-center justify-center font-bold text-sm">
                       {name.slice(0, 2)}
                     </div>
                     {isCustomer ? (
-                      <span className="absolute -bottom-1 -right-1 p-0.5 bg-emerald-600 rounded-full text-white" title="عميل">
+                      <span className="absolute -bottom-1 -right-1 p-0.5 bg-[var(--md-primary)] rounded-full text-[var(--md-on-primary)]" title="عميل">
                         <User className="w-2.5 h-2.5" />
                       </span>
                     ) : (
-                      <span className="absolute -bottom-1 -right-1 p-0.5 bg-teal-600 rounded-full text-white" title="مورد">
+                      <span className="absolute -bottom-1 -right-1 p-0.5 bg-[var(--md-info)] rounded-full text-white" title="مورد">
                         <Building className="w-2.5 h-2.5" />
                       </span>
                     )}
@@ -383,30 +375,30 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                   {/* Details */}
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center justify-between gap-1">
-                      <h4 className="text-xs font-bold text-slate-100 truncate">{name}</h4>
-                      <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                      <h4 className="text-xs font-bold text-[var(--md-on-surface)] truncate">{name}</h4>
+                      <span className="text-[10px] text-[var(--md-on-surface-variant)] font-mono tabular-nums shrink-0">
                         {conv.last_message_time ? new Date(conv.last_message_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : ''}
                       </span>
                     </div>
 
-                    <p className="text-[11px] text-slate-400 truncate leading-tight">
-                      {conv.last_direction === 'OUTBOUND' && <span className="text-slate-500">أنت: </span>}
+                    <p className="text-[11px] text-[var(--md-on-surface-variant)] truncate leading-tight">
+                      {conv.last_direction === 'OUTBOUND' && <span className="font-semibold text-[var(--md-primary-text)]">أنت: </span>}
                       {conv.last_message || 'لا توجد رسائل سابقة'}
                     </p>
 
                     <div className="flex items-center justify-between gap-1 pt-0.5">
-                      <span className="text-[10px] text-slate-500 font-mono" dir="ltr">
+                      <span className="text-[10px] text-[var(--md-on-surface-variant)] font-mono tabular-nums" dir="ltr">
                         {conv.phone_number}
                       </span>
 
                       <div className="flex items-center gap-1">
                         {numBalance > 0 && (
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono">
+                          <span className="m3-badge m3-badge-warning !px-1.5 !py-0.5 text-[9px] font-mono tabular-nums">
                             مستحق: {numBalance.toLocaleString('en-US')}
                           </span>
                         )}
                         {conv.unread_count > 0 && (
-                          <span className="px-1.5 py-0.5 rounded-full bg-emerald-600 text-white font-bold text-[10px] animate-pulse">
+                          <span className="px-1.5 py-0.5 rounded-full bg-[var(--md-primary)] text-[var(--md-on-primary)] font-bold text-[10px] tabular-nums">
                             {conv.unread_count}
                           </span>
                         )}
@@ -425,44 +417,44 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
       {/* ========================================================================= */}
       <div
         id="whatsapp-panel-active-chat"
-        className={`flex-1 flex flex-col bg-slate-950/20 border-b lg:border-b-0 lg:border-l border-slate-800 ${
+        className={`flex-1 flex flex-col bg-[var(--md-surface)] border-b lg:border-b-0 lg:border-l border-[var(--md-outline-variant)] ${
           activeTabMobile !== 'CHAT' ? 'hidden lg:flex' : 'flex'
         }`}
       >
         {selectedPhone ? (
           <>
             {/* Conversation Header */}
-            <div className="p-3.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between gap-3 shadow-sm">
-              <div className="flex items-center gap-3">
+            <div className="p-3.5 bg-[var(--md-surface-container)] border-b border-[var(--md-outline-variant)] flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <button
                   onClick={() => setActiveTabMobile('LIST')}
-                  className="lg:hidden p-1.5 rounded-lg border border-slate-700 text-slate-300"
+                  className="lg:hidden m3-btn-outlined !min-h-[32px] !p-1.5"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
 
-                <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs border border-emerald-500/30">
+                <div className="w-9 h-9 rounded-xl bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] flex items-center justify-center font-bold text-xs border border-[var(--md-primary)]/30 shrink-0">
                   {(activeConversation?.customer_name || activeConversation?.supplier_name || 'WA').slice(0, 2)}
                 </div>
 
-                <div>
-                  <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-                    <span>{activeConversation?.customer_name || activeConversation?.supplier_name || 'محادثة مباشرة'}</span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2 flex-wrap">
+                    <span className="truncate">{activeConversation?.customer_name || activeConversation?.supplier_name || 'محادثة مباشرة'}</span>
+                    <span className="m3-badge m3-badge-primary text-[10px] font-bold">
                       {activeConversation?.customer_id ? 'عميل نشط' : (activeConversation?.supplier_id ? 'مورد' : 'جهة اتصال')}
                     </span>
                   </h3>
-                  <p className="text-[11px] text-slate-400 font-mono flex items-center gap-2" dir="ltr">
+                  <p className="text-[11px] text-[var(--md-on-surface-variant)] font-mono tabular-nums flex items-center gap-2" dir="ltr">
                     <span>{selectedPhone}</span>
                     {activeConversation?.customer_account_number && (
-                      <span className="text-[10px] text-slate-500">#{activeConversation.customer_account_number}</span>
+                      <span className="text-[10px] opacity-80">#{activeConversation.customer_account_number}</span>
                     )}
                   </p>
                 </div>
               </div>
 
               {/* Header Actions */}
-              <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="flex items-center gap-1.5 flex-wrap shrink-0">
                 <button
                   type="button"
                   onClick={() => {
@@ -473,10 +465,10 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                       onSimulateReply(selectedPhone, replyText);
                     }
                   }}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-teal-500/10 hover:bg-teal-600 text-teal-300 hover:text-white border border-teal-500/20 text-[11px] font-bold transition-all"
+                  className="m3-btn-tonal !min-h-[30px] !px-2.5 !py-1 !rounded-lg text-[11px] cursor-pointer"
                   title="محاكاة وصول رد وارد من العميل داخل النظام"
                 >
-                  <Sparkles className="w-3 h-3 text-teal-400" />
+                  <Sparkles className="w-3 h-3" />
                   <span className="hidden sm:inline">محاكاة رد وارد</span>
                 </button>
 
@@ -487,10 +479,10 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                       onMarkAsRead(selectedPhone);
                     }
                   }}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[11px] font-bold transition-all"
+                  className="m3-btn-outlined !min-h-[30px] !px-2.5 !py-1 !rounded-lg text-[11px] cursor-pointer"
                   title="تعيين المحادثة كمقروءة"
                 >
-                  <CheckCheck className="w-3 h-3 text-cyan-400" />
+                  <CheckCheck className="w-3 h-3 text-[var(--md-info)]" />
                   <span className="hidden sm:inline">كمقروء</span>
                 </button>
 
@@ -504,7 +496,7 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                       }
                     }
                   }}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-slate-800 transition-colors"
+                  className="p-1.5 rounded-lg text-[var(--md-on-surface-variant)] hover:text-[var(--md-error)] hover:bg-[var(--md-error-container)] border border-[var(--md-outline-variant)] transition-colors cursor-pointer"
                   title="حذف المحادثة"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -513,7 +505,7 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                 {/* Header Context View Toggle (Mobile) */}
                 <button
                   onClick={() => setActiveTabMobile('CONTEXT')}
-                  className="lg:hidden px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-200 text-xs font-bold"
+                  className="lg:hidden m3-btn-tonal !min-h-[30px] !px-2.5 !py-1 text-xs"
                 >
                   البيانات
                 </button>
@@ -521,19 +513,19 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
             </div>
 
             {/* Messages Scroll View */}
-            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-[var(--md-surface-container-lowest)]/40">
               {isLoadingMessages && messages.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-slate-400 space-y-2">
-                  <RefreshCw className="w-6 h-6 animate-spin text-emerald-400" />
+                <div className="h-full flex items-center justify-center text-[var(--md-on-surface-variant)] space-y-2">
+                  <RefreshCw className="w-6 h-6 animate-spin text-[var(--md-primary-text)]" />
                 </div>
               ) : messages.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400 space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                <div className="h-full flex flex-col items-center justify-center text-center p-6 text-[var(--md-on-surface-variant)] space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] flex items-center justify-center border border-[var(--md-primary)]/30">
                     <Send className="w-6 h-6" />
                   </div>
                   <div className="space-y-1">
-                    <h4 className="text-sm font-bold text-slate-200">ابدأ المحادثة عبر WhatsApp</h4>
-                    <p className="text-xs max-w-sm text-slate-400">
+                    <h4 className="text-sm font-bold text-[var(--md-on-surface)]">ابدأ المحادثة عبر WhatsApp</h4>
+                    <p className="text-xs max-w-sm text-[var(--md-on-surface-variant)]">
                       يمكنك إرسال رسالة ترحيبية، تذكير بفاتورة مستحقة، أو كشف حساب فوري.
                     </p>
                   </div>
@@ -542,13 +534,13 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                   <div className="flex flex-wrap justify-center gap-2 pt-2">
                     <button
                       onClick={() => handleGenerateAIDraft('POLITE_REMINDER')}
-                      className="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-emerald-500 text-slate-200 text-xs font-medium transition-all"
+                      className="m3-btn-outlined !min-h-[34px] text-xs cursor-pointer"
                     >
                       ✨ كتابة تذكير ودي بالمستحقات
                     </button>
                     <button
                       onClick={() => handleGenerateAIDraft('STATEMENT_NOTICE')}
-                      className="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-emerald-500 text-slate-200 text-xs font-medium transition-all"
+                      className="m3-btn-outlined !min-h-[34px] text-xs cursor-pointer"
                     >
                       ✨ ملخص كشف الحساب
                     </button>
@@ -563,17 +555,19 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                       className={`flex flex-col ${isOut ? 'items-end' : 'items-start'}`}
                     >
                       <div
-                        className={`max-w-[82%] sm:max-w-[70%] p-3.5 rounded-2xl space-y-1.5 shadow-md text-xs leading-relaxed ${
+                        className={`max-w-[82%] sm:max-w-[70%] p-3.5 rounded-2xl space-y-1.5 text-xs leading-relaxed ${
                           isOut
-                            ? 'bg-emerald-700 text-white rounded-br-none'
-                            : 'bg-slate-800 text-slate-100 border border-slate-700 rounded-bl-none'
+                            ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/30 rounded-br-none'
+                            : 'bg-[var(--md-surface-container-high)] text-[var(--md-on-surface)] border border-[var(--md-outline-variant)] rounded-bl-none'
                         }`}
                       >
                         {/* Message Type Badge */}
                         {msg.message_type && msg.message_type !== 'TEXT' && (
                           <div
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                              isOut ? 'bg-emerald-800/80 text-emerald-100' : 'bg-slate-900 text-slate-300'
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+                              isOut
+                                ? 'bg-[var(--md-surface-container-lowest)]/60 text-[var(--md-on-primary-container)] border-[var(--md-primary)]/25'
+                                : 'bg-[var(--md-surface-container)] text-[var(--md-on-surface-variant)] border-[var(--md-outline-variant)]'
                             }`}
                           >
                             <FileText className="w-2.5 h-2.5" />
@@ -592,10 +586,10 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                         <p className="whitespace-pre-wrap font-sans">{msg.message_body}</p>
 
                         {/* ERP Linked Badge or Action */}
-                        <div className="flex items-center justify-between gap-2 pt-1 border-t border-white/10 text-[10px]">
+                        <div className="flex items-center justify-between gap-3 pt-1.5 border-t border-[var(--md-outline-variant)]/50 text-[10px]">
                           {msg.reference_id || msg.customer_id || msg.supplier_id ? (
-                            <span className={`inline-flex items-center gap-1 font-mono text-[10px] ${
-                              isOut ? 'text-emerald-100/80' : 'text-slate-400'
+                            <span className={`inline-flex items-center gap-1 font-mono text-[10px] font-semibold ${
+                              isOut ? 'text-[var(--md-on-primary-container)]/85' : 'text-[var(--md-on-surface-variant)]'
                             }`}>
                               <Link className="w-2.5 h-2.5" />
                               <span>مرتبط بـ ERP</span>
@@ -607,8 +601,8 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                                   setLinkingMessage(msg);
                                   setLinkEntityId(erpContext?.customer?.id || erpContext?.supplier?.id || '');
                                 }}
-                                className={`inline-flex items-center gap-1 text-[10px] hover:underline font-semibold ${
-                                  isOut ? 'text-emerald-100 hover:text-white' : 'text-slate-400 hover:text-emerald-300'
+                                className={`inline-flex items-center gap-1 text-[10px] hover:underline font-semibold cursor-pointer ${
+                                  isOut ? 'text-[var(--md-on-primary-container)]' : 'text-[var(--md-primary-text)]'
                                 }`}
                                 title="ربط هذه الرسالة بسجل عميل أو مورد أو فاتورة"
                               >
@@ -619,7 +613,9 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                           )}
 
                           <div className="flex items-center gap-1.5">
-                            <span className="font-mono">
+                            <span className={`font-mono tabular-nums font-semibold ${
+                              isOut ? 'text-[var(--md-on-primary-container)]/85' : 'text-[var(--md-on-surface-variant)]'
+                            }`}>
                               {new Date(msg.created_at).toLocaleTimeString('en-US', {
                                 hour: '2-digit',
                                 minute: '2-digit',
@@ -629,13 +625,13 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                             {isOut && (
                               <span>
                                 {msg.status === 'READ' ? (
-                                  <CheckCheck className="w-3.5 h-3.5 text-cyan-300 inline" title="تمت القراءة" />
+                                  <CheckCheck className="w-3.5 h-3.5 text-[var(--md-info)] inline" title="تمت القراءة" />
                                 ) : msg.status === 'DELIVERED' ? (
-                                  <CheckCheck className="w-3.5 h-3.5 text-emerald-200 inline" title="تم التسليم" />
+                                  <CheckCheck className="w-3.5 h-3.5 text-[var(--md-primary-text)] inline" title="تم التسليم" />
                                 ) : msg.status === 'FAILED' ? (
-                                  <AlertTriangle className="w-3.5 h-3.5 text-rose-300 inline" title="فشل الإرسال" />
+                                  <AlertTriangle className="w-3.5 h-3.5 text-[var(--md-error)] inline" title="فشل الإرسال" />
                                 ) : (
-                                  <Check className="w-3.5 h-3.5 text-emerald-300 inline" title="تم الإرسال" />
+                                  <Check className="w-3.5 h-3.5 text-[var(--md-on-primary-container)]/80 inline" title="تم الإرسال" />
                                 )}
                               </span>
                             )}
@@ -644,12 +640,12 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
 
                         {/* Failed message retry bar */}
                         {isOut && msg.status === 'FAILED' && onRetryMessage && (
-                          <div className="pt-1 flex items-center justify-between gap-2 border-t border-rose-400/20">
-                            <span className="text-[10px] text-rose-200 font-bold">فشل الإرسال</span>
+                          <div className="pt-1.5 flex items-center justify-between gap-2 border-t border-[var(--md-error)]/30">
+                            <span className="text-[10px] text-[var(--md-error)] font-bold">فشل الإرسال</span>
                             <button
                               onClick={() => handleRetry(msg.id)}
                               disabled={retryingMessageId === msg.id}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-rose-500/30 hover:bg-rose-500/50 text-rose-100 text-[10px] font-bold transition-all disabled:opacity-40"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--md-error-container)] text-[var(--md-on-error-container)] border border-[var(--md-error)]/30 text-[10px] font-bold transition-all disabled:opacity-40 cursor-pointer"
                               title="إعادة إرسال الرسالة الفاشلة"
                             >
                               <RotateCw className={`w-3 h-3 ${retryingMessageId === msg.id ? 'animate-spin' : ''}`} />
@@ -666,14 +662,14 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
 
             {/* Validation Warning Alert */}
             {validationWarning && (
-              <div className="mx-4 mb-2 p-2.5 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-xl text-xs font-semibold flex items-center justify-between gap-2 animate-shake">
+              <div className="mx-4 mb-2 p-2.5 bg-[var(--md-error-container)] border border-[var(--md-error)]/30 text-[var(--md-on-error-container)] rounded-xl text-xs font-semibold flex items-center justify-between gap-2 animate-shake">
                 <div className="flex items-center gap-1.5">
-                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <AlertTriangle className="w-4 h-4 text-[var(--md-error)] shrink-0" />
                   <span>{validationWarning}</span>
                 </div>
                 <button
                   onClick={() => setValidationWarning(null)}
-                  className="text-rose-300 hover:text-rose-100 text-[11px] font-bold"
+                  className="text-[11px] font-bold underline cursor-pointer"
                 >
                   إغلاق
                 </button>
@@ -681,85 +677,85 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
             )}
 
             {/* Interactive Composer */}
-            <div className="p-3 bg-slate-900 border-t border-slate-800 space-y-2">
+            <div className="p-3 bg-[var(--md-surface-container)] border-t border-[var(--md-outline-variant)] space-y-2">
               {/* Quick Template Shortcuts */}
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] font-bold scrollbar-none">
-                <span className="text-slate-400 text-[10px] shrink-0 font-bold">قوالب سريعة:</span>
+                <span className="text-[var(--md-on-surface-variant)] text-[10px] shrink-0 font-bold">قوالب سريعة:</span>
                 <button
                   type="button"
                   onClick={() => handleQuickTemplate('REMINDER')}
-                  className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 transition-all whitespace-nowrap active:scale-95"
+                  className="px-2.5 py-1 rounded-lg bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)] border border-[var(--md-warning)]/25 hover:opacity-85 transition-all whitespace-nowrap cursor-pointer"
                 >
                   🔔 تذكير برصيد
                 </button>
                 <button
                   type="button"
                   onClick={() => handleQuickTemplate('STATEMENT')}
-                  className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 transition-all whitespace-nowrap active:scale-95"
+                  className="px-2.5 py-1 rounded-lg bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/25 hover:opacity-85 transition-all whitespace-nowrap cursor-pointer"
                 >
                   📄 إرسال كشف حساب
                 </button>
                 <button
                   type="button"
                   onClick={() => handleQuickTemplate('PAYMENT')}
-                  className="px-2.5 py-1 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/20 transition-all whitespace-nowrap active:scale-95"
+                  className="px-2.5 py-1 rounded-lg bg-[var(--md-success-container)] text-[var(--md-on-success-container)] border border-[var(--md-success)]/25 hover:opacity-85 transition-all whitespace-nowrap cursor-pointer"
                 >
                   💳 تأكيد استلام دفعة
                 </button>
                 <button
                   type="button"
                   onClick={() => handleQuickTemplate('INVOICE')}
-                  className="px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/20 transition-all whitespace-nowrap active:scale-95"
+                  className="px-2.5 py-1 rounded-lg bg-[var(--md-info-container)] text-[var(--md-on-info-container)] border border-[var(--md-info)]/25 hover:opacity-85 transition-all whitespace-nowrap cursor-pointer"
                 >
                   🧾 إرسال فاتورة
                 </button>
               </div>
 
               {/* Dynamic Variables Bar */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[10px] font-bold scrollbar-none text-slate-400">
-                <span className="text-slate-500 shrink-0 flex items-center gap-1">
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[10px] font-bold scrollbar-none text-[var(--md-on-surface-variant)]">
+                <span className="shrink-0 flex items-center gap-1">
                   <Tag className="w-3 h-3" /> متغيرات:
                 </span>
                 <button
                   onClick={() => handleInsertVariable('customer_name')}
-                  className="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-300 border border-slate-700 transition-colors whitespace-nowrap text-slate-300"
+                  className="px-2 py-0.5 rounded-md bg-[var(--md-surface-container-high)] hover:bg-[var(--md-primary-container)] hover:text-[var(--md-on-primary-container)] border border-[var(--md-outline-variant)] transition-colors whitespace-nowrap text-[var(--md-on-surface)] cursor-pointer"
                 >
                   اسم العميل
                 </button>
                 <button
                   onClick={() => handleInsertVariable('remaining_balance')}
-                  className="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-300 border border-slate-700 transition-colors whitespace-nowrap text-slate-300"
+                  className="px-2 py-0.5 rounded-md bg-[var(--md-surface-container-high)] hover:bg-[var(--md-primary-container)] hover:text-[var(--md-on-primary-container)] border border-[var(--md-outline-variant)] transition-colors whitespace-nowrap text-[var(--md-on-surface)] cursor-pointer"
                 >
                   الرصيد المتبقي
                 </button>
                 <button
                   onClick={() => handleInsertVariable('invoice_number')}
-                  className="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-300 border border-slate-700 transition-colors whitespace-nowrap text-slate-300"
+                  className="px-2 py-0.5 rounded-md bg-[var(--md-surface-container-high)] hover:bg-[var(--md-primary-container)] hover:text-[var(--md-on-primary-container)] border border-[var(--md-outline-variant)] transition-colors whitespace-nowrap text-[var(--md-on-surface)] cursor-pointer"
                 >
                   رقم الفاتورة
                 </button>
                 <button
                   onClick={() => handleInsertVariable('due_date')}
-                  className="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-300 border border-slate-700 transition-colors whitespace-nowrap text-slate-300"
+                  className="px-2 py-0.5 rounded-md bg-[var(--md-surface-container-high)] hover:bg-[var(--md-primary-container)] hover:text-[var(--md-on-primary-container)] border border-[var(--md-outline-variant)] transition-colors whitespace-nowrap text-[var(--md-on-surface)] cursor-pointer"
                 >
                   تاريخ الاستحقاق
                 </button>
                 <button
                   onClick={() => handleInsertVariable('paid_amount')}
-                  className="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-300 border border-slate-700 transition-colors whitespace-nowrap text-slate-300"
+                  className="px-2 py-0.5 rounded-md bg-[var(--md-surface-container-high)] hover:bg-[var(--md-primary-container)] hover:text-[var(--md-on-primary-container)] border border-[var(--md-outline-variant)] transition-colors whitespace-nowrap text-[var(--md-on-surface)] cursor-pointer"
                 >
                   المبلغ المسدد
                 </button>
                 <button
                   onClick={() => handleInsertVariable('company_name')}
-                  className="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-300 border border-slate-700 transition-colors whitespace-nowrap text-slate-300"
+                  className="px-2 py-0.5 rounded-md bg-[var(--md-surface-container-high)] hover:bg-[var(--md-primary-container)] hover:text-[var(--md-on-primary-container)] border border-[var(--md-outline-variant)] transition-colors whitespace-nowrap text-[var(--md-on-surface)] cursor-pointer"
                 >
                   اسم الشركة
                 </button>
               </div>
 
               {/* Text Input Box */}
-              <div className="relative border border-slate-700 rounded-2xl bg-slate-950 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
+              <div className="relative border border-[var(--md-outline)] rounded-2xl bg-[var(--md-surface-container-lowest)] focus-within:border-[var(--md-primary)] focus-within:ring-2 focus-within:ring-[var(--md-primary)]/20 transition-all">
                 <textarea
                   id="whatsapp-composer-textarea"
                   value={messageInput}
@@ -775,21 +771,21 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                   }}
                   placeholder="اكتب رسالتك هنا... (اضغط Ctrl+Enter للإرسال)"
                   rows={3}
-                  className="w-full p-3 bg-transparent text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none resize-none leading-relaxed"
+                  className="w-full p-3 bg-transparent text-xs text-[var(--md-on-surface)] placeholder:text-[var(--md-on-surface-variant)]/70 focus:outline-none resize-none leading-relaxed"
                 />
 
                 {/* Composer Footer Actions */}
-                <div className="flex items-center justify-between p-2 border-t border-slate-800/80 bg-slate-900/90 rounded-b-2xl">
+                <div className="flex items-center justify-between p-2 border-t border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] rounded-b-2xl gap-2 flex-wrap">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {/* Attachment Chip */}
                     {selectedAttachment && (
-                      <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-200 border border-emerald-500/30 text-[10px]">
+                      <div className="m3-badge m3-badge-primary inline-flex items-center gap-1 text-[10px]">
                         <Paperclip className="w-3 h-3" />
                         <span className="truncate max-w-[120px]">{selectedAttachment.fileName || selectedAttachment.name}</span>
                         <button
                           type="button"
                           onClick={() => setSelectedAttachment(null)}
-                          className="text-slate-400 hover:text-rose-300 ml-0.5"
+                          className="hover:text-[var(--md-error)] ml-0.5 cursor-pointer"
                         >
                           <X className="w-3 h-3" />
                         </button>
@@ -800,22 +796,22 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                     <div className="relative">
                       <button
                         onClick={() => setShowTemplatesMenu(!showTemplatesMenu)}
-                        className="p-1.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-slate-100 transition-colors text-xs font-bold flex items-center gap-1"
+                        className="m3-btn-text !min-h-[30px] !px-2 !py-1 text-xs font-bold cursor-pointer"
                         title="اختيار قالب جاهز"
                       >
-                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                        <Sparkles className="w-3.5 h-3.5 text-[var(--md-warning)]" />
                         <span className="hidden sm:inline">قوالب</span>
                       </button>
 
                       {showTemplatesMenu && (
-                        <div className="absolute bottom-full right-0 mb-2 w-72 bg-slate-900 border border-slate-800 rounded-xl shadow-xl p-2 z-20 space-y-1">
-                          <p className="text-[11px] font-bold text-slate-400 px-2 py-1">قوالب جاهزة سريعة:</p>
+                        <div className="absolute bottom-full right-0 mb-2 w-72 m3-modal-surface p-2 z-20 space-y-1">
+                          <p className="text-[11px] font-bold text-[var(--md-on-surface-variant)] px-2 py-1">قوالب جاهزة سريعة:</p>
                           <div className="max-h-48 overflow-y-auto space-y-1">
                             {templates.map((t) => (
                               <button
                                 key={t.id}
                                 onClick={() => handleApplyTemplate(t)}
-                                className="w-full text-right p-2 rounded-lg hover:bg-emerald-500/10 text-xs font-semibold text-slate-200 transition-colors block truncate"
+                                className="w-full text-right p-2 rounded-lg hover:bg-[var(--md-primary-container)] hover:text-[var(--md-on-primary-container)] text-xs font-semibold text-[var(--md-on-surface)] transition-colors block truncate cursor-pointer"
                               >
                                 {t.name}
                               </button>
@@ -828,10 +824,10 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                     {/* AI Draft Helpers */}
                     <button
                       onClick={() => handleGenerateAIDraft('POLITE_REMINDER')}
-                      className="p-1.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-slate-100 transition-colors text-xs font-medium hidden sm:flex items-center gap-1"
+                      className="m3-btn-text !min-h-[30px] !px-2 !py-1 text-xs font-medium hidden sm:flex cursor-pointer"
                       title="صياغة تذكير ذكي"
                     >
-                      <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                      <Sparkles className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
                       <span>صياغة ذكية</span>
                     </button>
 
@@ -842,10 +838,10 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                           onScheduleMessagePrompt(selectedPhone || '', messageInput);
                         }
                       }}
-                      className="p-1.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-slate-100 transition-colors text-xs font-medium flex items-center gap-1"
+                      className="m3-btn-text !min-h-[30px] !px-2 !py-1 text-xs font-medium cursor-pointer"
                       title="جدولة الرسالة لوقت لاحق"
                     >
-                      <Clock className="w-3.5 h-3.5 text-teal-400" />
+                      <Clock className="w-3.5 h-3.5 text-[var(--md-info)]" />
                       <span className="hidden sm:inline">جدولة</span>
                     </button>
                   </div>
@@ -858,12 +854,12 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                       }`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-emerald-900/60 text-emerald-300 hover:text-white border border-emerald-500/30 font-bold text-xs transition-all active:scale-95 ${
+                      className={`m3-btn-outlined !min-h-[34px] !px-3 !py-1 text-xs ${
                         !selectedPhone ? 'pointer-events-none opacity-40' : ''
                       }`}
                       title="إرسال عبر تطبيق واتساب الخارجي (wa.me)"
                     >
-                      <ExternalLink className="w-3.5 h-3.5" />
+                      <ExternalLink className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
                       <span className="hidden sm:inline">إرسال عبر تطبيق واتساب الخارجي (wa.me)</span>
                       <span className="sm:hidden">wa.me</span>
                     </a>
@@ -872,7 +868,7 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                       id="btn-whatsapp-send-action"
                       onClick={handleSend}
                       disabled={isSending || !messageInput.trim()}
-                      className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs transition-all shadow-md shadow-emerald-950/40 disabled:opacity-40 active:scale-95"
+                      className="m3-btn-primary !min-h-[34px] !px-4 !py-1 text-xs cursor-pointer disabled:opacity-40"
                     >
                       {isSending ? (
                         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -887,13 +883,13 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
             </div>
           </>
         ) : (
-          <div className="h-full flex flex-col items-center justify-center p-8 text-center text-slate-500 space-y-3">
-            <div className="w-14 h-14 rounded-2xl bg-slate-800 text-slate-400 flex items-center justify-center">
+          <div className="h-full flex flex-col items-center justify-center p-8 text-center text-[var(--md-on-surface-variant)] space-y-3">
+            <div className="w-14 h-14 rounded-2xl bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] flex items-center justify-center border border-[var(--md-outline-variant)]">
               <MessageSquare className="w-7 h-7" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-sm font-bold text-slate-300">لم يتم تحديد محادثة</h3>
-              <p className="text-xs max-w-xs text-slate-500">
+              <h3 className="text-sm font-bold text-[var(--md-on-surface)]">لم يتم تحديد محادثة</h3>
+              <p className="text-xs max-w-xs text-[var(--md-on-surface-variant)]">
                 اختر عميلاً أو مورداً من القائمة الجانبية لعرض المحادثة والبيانات المالية المحاسبية المرتبطة به.
               </p>
             </div>
@@ -906,19 +902,19 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
       {/* ========================================================================= */}
       <div
         id="whatsapp-panel-erp-context"
-        className={`w-full lg:w-72 xl:w-80 bg-slate-900 flex flex-col overflow-y-auto ${
+        className={`w-full lg:w-72 xl:w-80 bg-[var(--md-surface-container)] flex flex-col overflow-y-auto ${
           activeTabMobile !== 'CONTEXT' ? 'hidden lg:flex' : 'flex'
         }`}
       >
         {/* Header */}
-        <div className="p-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
-          <h3 className="text-xs font-bold text-slate-100 flex items-center gap-1.5">
-            <Building className="w-4 h-4 text-emerald-400" />
+        <div className="p-3.5 border-b border-[var(--md-outline-variant)] flex items-center justify-between bg-[var(--md-surface-container-low)]">
+          <h3 className="text-xs font-bold text-[var(--md-on-surface)] flex items-center gap-1.5">
+            <Building className="w-4 h-4 text-[var(--md-primary-text)]" />
             <span>السياق المحاسبي والمالي</span>
           </h3>
           <button
             onClick={() => setActiveTabMobile('CHAT')}
-            className="lg:hidden text-xs text-emerald-400 font-bold"
+            className="lg:hidden text-xs text-[var(--md-primary-text)] font-bold cursor-pointer"
           >
             العودة للمحادثة
           </button>
@@ -927,51 +923,49 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
         {/* Content */}
         <div className="p-4 space-y-4 flex-1">
           {isLoadingERPContext ? (
-            <div className="p-8 text-center text-slate-500">
-              <RefreshCw className="w-5 h-5 animate-spin mx-auto text-emerald-400" />
+            <div className="p-8 text-center text-[var(--md-on-surface-variant)]">
+              <RefreshCw className="w-5 h-5 animate-spin mx-auto text-[var(--md-primary-text)]" />
             </div>
           ) : erpContext?.customer || erpContext?.supplier ? (
             <>
               {/* Profile Card */}
-              <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2">
-                <div className="flex items-center justify-between">
+              <div className="p-3 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] space-y-2">
+                <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold text-slate-500">بيانات الحساب</span>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                      erpContext.customer
-                        ? 'bg-blue-500/10 text-blue-300 border border-blue-500/20'
-                        : 'bg-amber-500/10 text-amber-300 border border-amber-500/20'
+                    <span className="text-[10px] font-bold text-[var(--md-on-surface-variant)]">بيانات الحساب</span>
+                    <span className={`m3-badge !px-1.5 !py-0.5 text-[10px] font-bold ${
+                      erpContext.customer ? 'm3-badge-info' : 'm3-badge-warning'
                     }`}>
                       {erpContext.customer ? 'عميل' : 'مورد'}
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded">
+                  <span className="m3-badge m3-badge-primary !px-1.5 !py-0.5 text-[10px] font-mono tabular-nums font-bold">
                     #{erpContext.customer?.account_number || erpContext.supplier?.account_number || 'ACC-001'}
                   </span>
                 </div>
-                <h4 className="text-xs font-bold text-slate-100">
+                <h4 className="text-xs font-bold text-[var(--md-on-surface)]">
                   {erpContext.customer?.name || erpContext.supplier?.name}
                 </h4>
-                <p className="text-[11px] text-slate-400 font-mono" dir="ltr">
+                <p className="text-[11px] text-[var(--md-on-surface-variant)] font-mono tabular-nums" dir="ltr">
                   {erpContext.customer?.phone || erpContext.supplier?.phone || selectedPhone}
                 </p>
               </div>
 
               {/* Financial Balance Card */}
-              <div className="p-3.5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-1.5">
+              <div className="p-3.5 rounded-xl bg-[var(--md-primary-container)]/50 border border-[var(--md-primary)]/30 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-emerald-300">الرصيد المالي المعتمد</span>
-                  <DollarSign className="w-4 h-4 text-emerald-400" />
+                  <span className="text-[11px] font-bold text-[var(--md-on-primary-container)]">الرصيد المالي المعتمد</span>
+                  <DollarSign className="w-4 h-4 text-[var(--md-primary-text)]" />
                 </div>
-                <p className="text-lg font-black text-slate-100 font-mono">
+                <p className="text-lg font-black text-[var(--md-on-surface)] font-mono tabular-nums">
                   {parseFloat(
                     (erpContext.authoritativeBalance !== undefined
                       ? erpContext.authoritativeBalance
                       : erpContext.customer?.current_balance || erpContext.supplier?.current_balance || 0) as any
                   ).toLocaleString('en-US')}{' '}
-                  <span className="text-xs font-bold text-slate-400">ر.ي.</span>
+                  <span className="text-xs font-bold text-[var(--md-on-surface-variant)]">ر.ي.</span>
                 </p>
-                <p className="text-[10px] text-emerald-400 font-semibold">
+                <p className="text-[10px] text-[var(--md-on-primary-container)] font-semibold">
                   {parseFloat((erpContext.customer?.current_balance || erpContext.supplier?.current_balance || 0) as any) > 0
                     ? (erpContext.customer ? '⚠️ رصيد مدين مستحق التحصيل' : '✅ رصيد دائن للمورد مستحق السداد')
                     : parseFloat((erpContext.customer?.current_balance || erpContext.supplier?.current_balance || 0) as any) < 0
@@ -982,7 +976,7 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
 
               {/* Quick Action ERP Shortcuts */}
               <div className="space-y-1.5 pt-1">
-                <p className="text-[11px] font-bold text-slate-400">إجراءات محاسبية فورية عبر واتساب:</p>
+                <p className="text-[11px] font-bold text-[var(--md-on-surface-variant)]">إجراءات محاسبية فورية عبر واتساب:</p>
 
                 <button
                   onClick={() => {
@@ -992,46 +986,46 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                       onSendStatement(entityId, type, selectedPhone);
                     }
                   }}
-                  className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-800 hover:bg-emerald-500/10 text-slate-200 hover:text-emerald-300 border border-slate-700 hover:border-emerald-500/30 text-xs font-bold transition-colors"
+                  className="m3-btn-outlined w-full !justify-between !min-h-[36px] !px-3 text-xs cursor-pointer"
                 >
                   <span className="flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                    <FileText className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
                     <span>إرسال كشف الحساب ({erpContext.customer ? 'عميل' : 'مورد'})</span>
                   </span>
-                  <ArrowDownLeft className="w-3.5 h-3.5 text-slate-400" />
+                  <ArrowDownLeft className="w-3.5 h-3.5 text-[var(--md-on-surface-variant)]" />
                 </button>
 
                 {erpContext.customer && (
                   <button
                     onClick={() => handleGenerateAIDraft('POLITE_REMINDER')}
-                    className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-800 hover:bg-amber-500/10 text-slate-200 hover:text-amber-300 border border-slate-700 hover:border-amber-500/30 text-xs font-bold transition-colors"
+                    className="m3-btn-outlined w-full !justify-between !min-h-[36px] !px-3 text-xs cursor-pointer"
                   >
                     <span className="flex items-center gap-1.5">
-                      <Flame className="w-3.5 h-3.5 text-amber-400" />
+                      <Flame className="w-3.5 h-3.5 text-[var(--md-warning)]" />
                       <span>تذكير بمطابقة الرصيد</span>
                     </span>
-                    <ArrowDownLeft className="w-3.5 h-3.5 text-slate-400" />
+                    <ArrowDownLeft className="w-3.5 h-3.5 text-[var(--md-on-surface-variant)]" />
                   </button>
                 )}
               </div>
 
               {/* Recent Sales Invoices list (Customer) */}
               {erpContext.recentInvoices && erpContext.recentInvoices.length > 0 && (
-                <div className="space-y-2 pt-2 border-t border-slate-800">
+                <div className="space-y-2 pt-2 border-t border-[var(--md-outline-variant)]">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-slate-300">آخر فواتير المبيعات</span>
-                    <span className="text-[10px] text-slate-500">({erpContext.recentInvoices.length})</span>
+                    <span className="text-[11px] font-bold text-[var(--md-on-surface)]">آخر فواتير المبيعات</span>
+                    <span className="text-[10px] text-[var(--md-on-surface-variant)] tabular-nums">({erpContext.recentInvoices.length})</span>
                   </div>
 
                   <div className="space-y-1.5">
                     {erpContext.recentInvoices.map((inv: any) => (
                       <div
                         key={inv.id}
-                        className="p-2 rounded-lg border border-slate-800 bg-slate-950/50 flex items-center justify-between text-[11px]"
+                        className="p-2 rounded-lg border border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] flex items-center justify-between text-[11px]"
                       >
                         <div>
-                          <p className="font-mono font-bold text-slate-200">#{inv.invoice_number}</p>
-                          <p className="text-[10px] text-slate-400 font-mono">
+                          <p className="font-mono tabular-nums font-bold text-[var(--md-on-surface)]">#{inv.invoice_number}</p>
+                          <p className="text-[10px] text-[var(--md-on-surface-variant)] font-mono tabular-nums">
                             المتبقي: {parseFloat(inv.remaining_amount || inv.total).toLocaleString('en-US')} ر.ي.
                           </p>
                         </div>
@@ -1042,7 +1036,7 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                               onSendInvoiceReminder(inv.id, selectedPhone);
                             }
                           }}
-                          className="px-2 py-1 rounded bg-emerald-500/20 hover:bg-emerald-600 hover:text-white text-emerald-400 text-[10px] font-bold transition-colors"
+                          className="m3-btn-tonal !min-h-[26px] !px-2 !py-0.5 !rounded-md text-[10px] cursor-pointer"
                           title="إرسال تذكير بهذه الفاتورة"
                         >
                           تذكير
@@ -1055,21 +1049,21 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
 
               {/* Recent Purchase Invoices list (Supplier) */}
               {erpContext.recentPurchaseInvoices && erpContext.recentPurchaseInvoices.length > 0 && (
-                <div className="space-y-2 pt-2 border-t border-slate-800">
+                <div className="space-y-2 pt-2 border-t border-[var(--md-outline-variant)]">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-slate-300">آخر فواتير المشتريات</span>
-                    <span className="text-[10px] text-slate-500">({erpContext.recentPurchaseInvoices.length})</span>
+                    <span className="text-[11px] font-bold text-[var(--md-on-surface)]">آخر فواتير المشتريات</span>
+                    <span className="text-[10px] text-[var(--md-on-surface-variant)] tabular-nums">({erpContext.recentPurchaseInvoices.length})</span>
                   </div>
 
                   <div className="space-y-1.5">
                     {erpContext.recentPurchaseInvoices.map((pinv: any) => (
                       <div
                         key={pinv.id}
-                        className="p-2 rounded-lg border border-slate-800 bg-slate-950/50 flex items-center justify-between text-[11px]"
+                        className="p-2 rounded-lg border border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] flex items-center justify-between text-[11px]"
                       >
                         <div>
-                          <p className="font-mono font-bold text-slate-200">#{pinv.invoice_number}</p>
-                          <p className="text-[10px] text-slate-400 font-mono">
+                          <p className="font-mono tabular-nums font-bold text-[var(--md-on-surface)]">#{pinv.invoice_number}</p>
+                          <p className="text-[10px] text-[var(--md-on-surface-variant)] font-mono tabular-nums">
                             الإجمالي: {parseFloat(pinv.total_amount || pinv.total || 0).toLocaleString('en-US')} ر.ي.
                           </p>
                         </div>
@@ -1080,7 +1074,7 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                               `الأخوة شركة ${erpContext.supplier?.name || ''} المحترمين،\nنود تأكيد استلام ومطابقة فاتورة المشتريات رقم #${pinv.invoice_number} البالغ إجماليها ${parseFloat(pinv.total_amount || pinv.total || 0).toLocaleString('en-US')} ر.ي. شاكرين حسن تعاونكم.`
                             );
                           }}
-                          className="px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-600 hover:text-white text-amber-300 text-[10px] font-bold transition-colors"
+                          className="px-2 py-1 rounded-md bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)] border border-[var(--md-warning)]/25 hover:opacity-85 text-[10px] font-bold transition-colors cursor-pointer"
                           title="صياغة رسالة مطابقة فاتورة المشتريات"
                         >
                           مطابقة
@@ -1093,9 +1087,9 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
 
               {/* Recent Payments list */}
               {erpContext.recentPayments && erpContext.recentPayments.length > 0 && (
-                <div className="space-y-2 pt-2 border-t border-slate-800">
+                <div className="space-y-2 pt-2 border-t border-[var(--md-outline-variant)]">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-slate-300">
+                    <span className="text-[11px] font-bold text-[var(--md-on-surface)]">
                       {erpContext.customer ? 'آخر سندات القبض' : 'آخر سندات الصرف'}
                     </span>
                   </div>
@@ -1104,18 +1098,18 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                     {erpContext.recentPayments.map((pay: any) => (
                       <div
                         key={pay.id}
-                        className="p-2 rounded-lg border border-slate-800 bg-slate-950/50 flex items-center justify-between text-[11px]"
+                        className="p-2 rounded-lg border border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] flex items-center justify-between text-[11px]"
                       >
                         <div>
-                          <p className="font-mono font-bold text-slate-200">{pay.payment_number || `PAY-${pay.id.slice(0, 6)}`}</p>
-                          <p className="text-[10px] text-emerald-400 font-mono font-bold">
+                          <p className="font-mono tabular-nums font-bold text-[var(--md-on-surface)]">{pay.payment_number || `PAY-${pay.id.slice(0, 6)}`}</p>
+                          <p className="text-[10px] text-[var(--md-success)] font-mono tabular-nums font-bold">
                             {parseFloat(pay.amount).toLocaleString('en-US')} ر.ي.
                           </p>
                         </div>
 
                         <button
                           onClick={() => selectedPhone && onSendPaymentReminder(pay.id, selectedPhone)}
-                          className="px-2 py-1 rounded bg-teal-500/20 hover:bg-teal-600 hover:text-white text-teal-300 text-[10px] font-bold transition-colors"
+                          className="m3-btn-tonal !min-h-[26px] !px-2 !py-0.5 !rounded-md text-[10px] cursor-pointer"
                           title="إرسال إشعار السند"
                         >
                           إشعار
@@ -1128,39 +1122,39 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
 
               {/* Related Attachments with SHA256 integrity */}
               {erpContext.relatedAttachments && erpContext.relatedAttachments.length > 0 && (
-                <div className="space-y-2 pt-2 border-t border-slate-800">
+                <div className="space-y-2 pt-2 border-t border-[var(--md-outline-variant)]">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-slate-300">المرفقات والوثائق المحاسبية</span>
-                    <span className="text-[10px] text-slate-500">({erpContext.relatedAttachments.length})</span>
+                    <span className="text-[11px] font-bold text-[var(--md-on-surface)]">المرفقات والوثائق المحاسبية</span>
+                    <span className="text-[10px] text-[var(--md-on-surface-variant)] tabular-nums">({erpContext.relatedAttachments.length})</span>
                   </div>
 
                   <div className="space-y-1.5">
                     {erpContext.relatedAttachments.map((att: any) => (
                       <div
                         key={att.id}
-                        className="p-2 rounded-lg border border-slate-800 bg-slate-950/50 space-y-1.5 text-[11px]"
+                        className="p-2 rounded-lg border border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] space-y-1.5 text-[11px]"
                       >
                         <div className="flex items-start justify-between gap-1.5">
                           <div className="truncate max-w-[170px]">
-                            <p className="font-semibold text-slate-200 truncate">{att.fileName || att.file_name || 'وثيقة'}</p>
-                            <p className="text-[10px] text-slate-500 font-mono">
+                            <p className="font-semibold text-[var(--md-on-surface)] truncate">{att.fileName || att.file_name || 'وثيقة'}</p>
+                            <p className="text-[10px] text-[var(--md-on-surface-variant)] font-mono tabular-nums">
                               {att.fileSize ? `${Math.round(att.fileSize / 1024)} KB` : 'ملف'}
                             </p>
                           </div>
-                          <span className="inline-flex items-center gap-0.5 text-[9px] px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
+                          <span className="m3-badge m3-badge-success !px-1.5 !py-0.5 inline-flex items-center gap-0.5 text-[9px] font-mono">
                             <ShieldCheck className="w-2.5 h-2.5" />
                             <span>SHA-256</span>
                           </span>
                         </div>
 
-                        <div className="flex items-center justify-end gap-1 pt-1 border-t border-slate-800/80">
+                        <div className="flex items-center justify-end gap-1 pt-1 border-t border-[var(--md-outline-variant)]/70">
                           <button
                             type="button"
                             onClick={() => {
                               setSelectedAttachment(att);
                               setMessageInput((prev) => `${prev} مرفق: ${att.fileName || att.file_name}`.trim());
                             }}
-                            className="px-2 py-0.5 rounded bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-300 text-slate-300 text-[10px] font-bold transition-colors flex items-center gap-1"
+                            className="m3-btn-tonal !min-h-[24px] !px-2 !py-0.5 !rounded-md text-[10px] cursor-pointer"
                           >
                             <Paperclip className="w-2.5 h-2.5" />
                             <span>إرفاق بالمحادثة</span>
@@ -1173,10 +1167,10 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
               )}
             </>
           ) : (
-            <div className="p-6 text-center text-slate-500 space-y-2">
-              <Info className="w-6 h-6 mx-auto text-slate-600" />
-              <p className="text-xs font-semibold text-slate-300">لا تتوفر بيانات محاسبية</p>
-              <p className="text-[11px] text-slate-500">
+            <div className="p-6 text-center text-[var(--md-on-surface-variant)] space-y-2">
+              <Info className="w-6 h-6 mx-auto opacity-50" />
+              <p className="text-xs font-semibold text-[var(--md-on-surface)]">لا تتوفر بيانات محاسبية</p>
+              <p className="text-[11px] text-[var(--md-on-surface-variant)]">
                 هذا الرقم غير مرتبط بسجل عميل أو مورد مسجل في النظام المحاسبي بعد.
               </p>
             </div>
@@ -1186,33 +1180,33 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
 
       {/* Linking Modal */}
       {linkingMessage && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2 text-slate-100 font-bold text-sm">
-                <Link className="w-4 h-4 text-emerald-400" />
+        <div className="fixed inset-0 z-50 m3-backdrop flex items-center justify-center p-4 animate-fade-in">
+          <div className="m3-modal-surface max-w-md w-full p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-[var(--md-outline-variant)] pb-3">
+              <div className="flex items-center gap-2 text-[var(--md-on-surface)] font-bold text-sm">
+                <Link className="w-4 h-4 text-[var(--md-primary-text)]" />
                 <span>ربط رسالة الواتساب بسجل محاسبي (ERP)</span>
               </div>
               <button
                 onClick={() => setLinkingMessage(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                className="m3-btn-text !min-h-[30px] !p-1"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs text-slate-300 space-y-1">
-              <span className="text-[10px] font-bold text-slate-500">نص الرسالة:</span>
+            <div className="p-3 bg-[var(--md-surface-container-low)] rounded-xl border border-[var(--md-outline-variant)] text-xs text-[var(--md-on-surface)] space-y-1">
+              <span className="text-[10px] font-bold text-[var(--md-on-surface-variant)]">نص الرسالة:</span>
               <p className="line-clamp-2 italic font-sans">{linkingMessage.message_body}</p>
             </div>
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-400 font-bold mb-1">نوع السجل المراد الربط به:</label>
+                <label className="block text-[var(--md-on-surface)] font-bold mb-1">نوع السجل المراد الربط به:</label>
                 <select
                   value={linkEntityType}
                   onChange={(e) => setLinkEntityType(e.target.value as any)}
-                  className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 font-medium focus:border-emerald-500 focus:outline-none"
+                  className="m3-select !h-10 text-xs"
                 >
                   <option value="CUSTOMER">عميل (Customer)</option>
                   <option value="SUPPLIER">مورد (Supplier)</option>
@@ -1223,18 +1217,18 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
               </div>
 
               <div>
-                <label className="block text-slate-400 font-bold mb-1">المعرف أو الكود المحاسبي (ID):</label>
+                <label className="block text-[var(--md-on-surface)] font-bold mb-1">المعرف أو الكود المحاسبي (ID):</label>
                 <input
                   type="text"
                   value={linkEntityId}
                   onChange={(e) => setLinkEntityId(e.target.value)}
                   placeholder="أدخل معرّف السجل..."
-                  className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 font-mono focus:border-emerald-500 focus:outline-none"
+                  className="m3-input !h-10 text-xs font-mono"
                 />
                 {/* Context Quick Fill */}
                 {(erpContext?.customer || erpContext?.supplier || erpContext?.recentInvoices?.length || erpContext?.recentPurchaseInvoices?.length) && (
                   <div className="mt-2 space-y-1">
-                    <span className="text-[10px] text-slate-500 font-bold">اقتراحات سريعة من السياق الحالي:</span>
+                    <span className="text-[10px] text-[var(--md-on-surface-variant)] font-bold">اقتراحات سريعة من السياق الحالي:</span>
                     <div className="flex flex-wrap gap-1.5">
                       {erpContext?.customer && (
                         <button
@@ -1243,7 +1237,7 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                             setLinkEntityType('CUSTOMER');
                             setLinkEntityId(erpContext.customer!.id);
                           }}
-                          className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-emerald-500/20 hover:text-emerald-300 border border-slate-700"
+                          className="m3-btn-outlined !min-h-[26px] !px-2 !py-0.5 !rounded-md text-[10px] cursor-pointer"
                         >
                           العميل الحالي
                         </button>
@@ -1255,7 +1249,7 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                             setLinkEntityType('SUPPLIER');
                             setLinkEntityId(erpContext.supplier!.id);
                           }}
-                          className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-emerald-500/20 hover:text-emerald-300 border border-slate-700"
+                          className="m3-btn-outlined !min-h-[26px] !px-2 !py-0.5 !rounded-md text-[10px] cursor-pointer"
                         >
                           المورد الحالي
                         </button>
@@ -1267,7 +1261,7 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                             setLinkEntityType('INVOICE');
                             setLinkEntityId(erpContext.recentInvoices![0].id);
                           }}
-                          className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-emerald-500/20 hover:text-emerald-300 border border-slate-700"
+                          className="m3-btn-outlined !min-h-[26px] !px-2 !py-0.5 !rounded-md text-[10px] tabular-nums cursor-pointer"
                         >
                           فاتورة #{erpContext.recentInvoices[0].invoice_number}
                         </button>
@@ -1279,7 +1273,7 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                             setLinkEntityType('PURCHASE_INVOICE');
                             setLinkEntityId(erpContext.recentPurchaseInvoices![0].id);
                           }}
-                          className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-emerald-500/20 hover:text-emerald-300 border border-slate-700"
+                          className="m3-btn-outlined !min-h-[26px] !px-2 !py-0.5 !rounded-md text-[10px] tabular-nums cursor-pointer"
                         >
                           فاتورة مشتريات #{erpContext.recentPurchaseInvoices[0].invoice_number}
                         </button>
@@ -1290,11 +1284,11 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--md-outline-variant)]">
               <button
                 type="button"
                 onClick={() => setLinkingMessage(null)}
-                className="px-3.5 py-1.5 rounded-xl text-slate-400 hover:text-slate-200 text-xs font-bold"
+                className="m3-btn-outlined text-xs"
               >
                 إلغاء
               </button>
@@ -1302,7 +1296,7 @@ export const WhatsAppConversationsPanel: React.FC<WhatsAppConversationsPanelProp
                 type="button"
                 onClick={handleExecuteLink}
                 disabled={isLinking || !linkEntityId.trim()}
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md disabled:opacity-40"
+                className="m3-btn-primary text-xs cursor-pointer disabled:opacity-40"
               >
                 {isLinking && <RotateCw className="w-3 h-3 animate-spin" />}
                 <span>حفظ الربط بالسجل</span>

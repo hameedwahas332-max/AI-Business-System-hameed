@@ -432,22 +432,22 @@ export const POSReturnsModal: React.FC<POSReturnsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 overflow-y-auto" dir="rtl">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center m3-backdrop p-4 overflow-y-auto" dir="rtl">
+      <div className="m3-modal-surface rounded-3xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="px-6 py-4 bg-slate-800/80 border-b border-slate-800 flex items-center justify-between">
+        <div className="px-6 py-4 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-rose-500/10 text-rose-400 rounded-2xl border border-rose-500/20">
+            <div className="p-2.5 bg-[var(--md-error-container)] text-[var(--md-error)] rounded-2xl border border-[var(--md-error)]/25">
               <RotateCcw className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">مرتجع مبيعات واسترداد</h3>
-              <p className="text-xs text-slate-400">إرجاع أصناف الفاتورة واسترداد القيمة محاسبياً ومخزنياً</p>
+              <h3 className="text-lg font-bold text-[var(--md-on-surface)]">مرتجع مبيعات واسترداد</h3>
+              <p className="text-xs text-[var(--md-on-surface-variant)]">إرجاع أصناف الفاتورة واسترداد القيمة محاسبياً ومخزنياً</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl cursor-pointer"
+            className="p-2 text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] rounded-xl cursor-pointer transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -455,15 +455,15 @@ export const POSReturnsModal: React.FC<POSReturnsModalProps> = ({
 
         <div className="p-6 space-y-5">
           {error && (
-            <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-xs flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0" />
+            <div className="p-3 bg-[var(--md-error-container)] border border-[var(--md-error)]/30 rounded-xl text-[var(--md-on-error-container)] text-xs flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-[var(--md-error)]" />
               <span>{error}</span>
             </div>
           )}
 
           {success && (
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <div className="p-3 bg-[var(--md-success-container)] border border-[var(--md-success)]/30 rounded-xl text-[var(--md-on-success-container)] text-xs flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-[var(--md-success)]" />
               <span>{success}</span>
             </div>
           )}
@@ -471,20 +471,20 @@ export const POSReturnsModal: React.FC<POSReturnsModalProps> = ({
           {/* Step 1: Search Invoice or Barcode */}
           <form onSubmit={handleSearchInvoice} className="flex gap-2">
             <div className="relative flex-1">
-              <Search className="w-4 h-4 text-slate-500 absolute right-3.5 top-3" />
+              <Search className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute right-3.5 top-3" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="ابحث برقم الفاتورة، أو باركود الصنف، أو السيريال، أو مقاس الإطار..."
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl pr-10 pl-4 py-2.5 text-sm text-white focus:outline-none focus:border-rose-500"
+                className="m3-input w-full pr-10 pl-4 py-2.5 text-sm"
                 autoFocus
               />
             </div>
             <button
               type="submit"
               disabled={searching || !searchQuery.trim()}
-              className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 disabled:opacity-40 text-white rounded-xl text-xs font-bold shrink-0 transition-colors cursor-pointer"
+              className="m3-btn-danger px-5 py-2.5 text-xs font-bold shrink-0"
             >
               {searching ? 'جاري البحث...' : 'بحث سريع'}
             </button>
@@ -493,9 +493,9 @@ export const POSReturnsModal: React.FC<POSReturnsModalProps> = ({
           {/* Step 1.5: Multiple Matching Invoices List */}
           {matchingInvoices.length > 0 && !invoice && (
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-300">
+              <div className="flex items-center justify-between text-xs font-bold text-[var(--md-on-surface)]">
                 <span className="flex items-center gap-1.5">
-                  <Layers className="w-4 h-4 text-amber-400" />
+                  <Layers className="w-4 h-4 text-[var(--md-warning)]" />
                   عثرنا على ({matchingInvoices.length}) فواتير تطابق بحثك، اختر الفاتورة المطلوبة:
                 </span>
               </div>
@@ -503,17 +503,17 @@ export const POSReturnsModal: React.FC<POSReturnsModalProps> = ({
                 {matchingInvoices.map((inv) => (
                   <div
                     key={inv.id || inv.invoice_number}
-                    className="p-3 bg-slate-950/60 border border-slate-800 hover:border-rose-500/50 rounded-xl flex items-center justify-between gap-3 text-xs transition-colors"
+                    className="p-3 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] hover:border-[var(--md-error)]/50 rounded-xl flex items-center justify-between gap-3 text-xs transition-colors"
                   >
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-white text-sm">#{inv.invoice_number}</span>
-                        <span className="text-slate-400 text-[11px] font-mono">
+                        <span className="font-mono font-bold text-[var(--md-on-surface)] text-sm tabular-nums">#{inv.invoice_number}</span>
+                        <span className="text-[var(--md-on-surface-variant)] text-[11px] font-mono tabular-nums">
                           {inv.invoice_date || inv.created_at?.split('T')[0]}
                         </span>
-                        <span className="text-emerald-400 font-bold">{inv.customer_name || 'عميل نقدي'}</span>
+                        <span className="text-[var(--md-primary-text)] font-bold">{inv.customer_name || 'عميل نقدي'}</span>
                       </div>
-                      <div className="text-[11px] text-slate-400">
+                      <div className="text-[11px] text-[var(--md-on-surface-variant)]">
                         الأصناف ({Array.isArray(inv.items) ? inv.items.length : 0}):{' '}
                         {Array.isArray(inv.items)
                           ? inv.items.map((it: any) => it.item_name || it.name).filter(Boolean).slice(0, 3).join('، ')
@@ -521,13 +521,13 @@ export const POSReturnsModal: React.FC<POSReturnsModalProps> = ({
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="font-mono font-black text-rose-400 text-sm">
+                      <span className="font-mono font-black text-[var(--md-error)] text-sm tabular-nums">
                         {formatNumber(Number(inv.total || inv.grandTotal || 0))} {currSym}
                       </span>
                       <button
                         type="button"
                         onClick={() => selectInvoiceToReturn(inv)}
-                        className="px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                        className="px-3 py-1.5 bg-[var(--md-error-container)] hover:bg-[var(--md-error)] text-[var(--md-on-error-container)] hover:text-[var(--md-on-error)] border border-[var(--md-error)]/30 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
                       >
                         <span>اختيار</span>
                         <ArrowRight className="w-3.5 h-3.5 rotate-180" />
@@ -541,60 +541,60 @@ export const POSReturnsModal: React.FC<POSReturnsModalProps> = ({
 
           {/* Step 1.6: Fallback Direct Return When Product Recognized But No Historical Invoice */}
           {directReturnProduct && !invoice && (
-            <form onSubmit={handleConfirmDirectReturn} className="p-4 bg-orange-950/20 border border-orange-500/30 rounded-2xl space-y-4">
+            <form onSubmit={handleConfirmDirectReturn} className="p-4 bg-[var(--md-warning-container)]/50 border border-[var(--md-warning)]/30 rounded-2xl space-y-4">
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-orange-500/20 text-orange-400 rounded-xl shrink-0">
+                <div className="p-2 bg-[var(--md-warning-container)] text-[var(--md-warning)] rounded-xl shrink-0">
                   <Package className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-white">مرتجع مباشر للصنف (بدون فاتورة سابقة)</h4>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <h4 className="text-sm font-bold text-[var(--md-on-surface)]">مرتجع مباشر للصنف (بدون فاتورة سابقة)</h4>
+                  <p className="text-xs text-[var(--md-on-surface-variant)] mt-0.5">
                     تم التعرف على الصنف في الدليل ولكن لا توجد فاتورة سابقة مسجلة له. يمكنك إعادته للمخزن مباشرة وقيد قيمته:
                   </p>
                 </div>
               </div>
 
-              <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl text-xs space-y-1">
+              <div className="p-3 bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-xl text-xs space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-white text-sm">{directReturnProduct.name}</span>
-                  <span className="font-mono text-cyan-400 text-[11px]">
+                  <span className="font-bold text-[var(--md-on-surface)] text-sm">{directReturnProduct.name}</span>
+                  <span className="font-mono text-[var(--md-info)] text-[11px] tabular-nums">
                     باركود: {directReturnProduct.barcode || directReturnProduct.sku || 'N/A'}
                   </span>
                 </div>
-                <div className="text-slate-400 text-[11px]">
+                <div className="text-[var(--md-on-surface-variant)] text-[11px]">
                   الوحدة: {directReturnProduct.unit || 'حبة'} | المخزون الحالي: {directReturnProduct.stock || directReturnProduct.quantity || 0}
                 </div>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">الكمية المرجعة:</label>
+                  <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">الكمية المرجعة:</label>
                   <input
                     type="number"
                     min="1"
                     step="any"
                     value={directQty}
                     onChange={(e) => setDirectQty(Math.max(1, parseFloat(e.target.value) || 1))}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-center font-mono font-bold text-white focus:outline-none focus:border-orange-500"
+                    className="m3-input w-full px-3 py-1.5 text-center font-mono font-bold tabular-nums"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">سعر الاسترداد ({currSym}):</label>
+                  <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">سعر الاسترداد ({currSym}):</label>
                   <input
                     type="number"
                     min="0"
                     step="any"
                     value={directPrice}
                     onChange={(e) => setDirectPrice(Math.max(0, parseFloat(e.target.value) || 0))}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-center font-mono font-bold text-white focus:outline-none focus:border-orange-500"
+                    className="m3-input w-full px-3 py-1.5 text-center font-mono font-bold tabular-nums"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">طريقة الرد:</label>
+                  <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">طريقة الرد:</label>
                   <select
                     value={refundMethod}
                     onChange={(e) => setRefundMethod(e.target.value as any)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-1.5 text-white text-xs focus:outline-none"
+                    className="m3-select w-full px-2 py-1.5 text-xs"
                   >
                     <option value="CASH">نقداً من الدرج</option>
                     <option value="BANK">تحويل بنكي</option>
@@ -603,10 +603,10 @@ export const POSReturnsModal: React.FC<POSReturnsModalProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+              <div className="flex items-center justify-between pt-2 border-t border-[var(--md-outline-variant)]">
                 <div>
-                  <span className="text-[11px] text-slate-400 block">إجمالي المسترد:</span>
-                  <span className="font-mono font-black text-orange-400 text-base">
+                  <span className="text-[11px] text-[var(--md-on-surface-variant)] block">إجمالي المسترد:</span>
+                  <span className="font-mono font-black text-[var(--md-warning)] text-base tabular-nums">
                     {formatNumber(directQty * directPrice)} {currSym}
                   </span>
                 </div>
@@ -614,14 +614,14 @@ export const POSReturnsModal: React.FC<POSReturnsModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setDirectReturnProduct(null)}
-                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold cursor-pointer"
+                    className="m3-btn-outlined px-3 py-2 text-xs font-bold"
                   >
                     إلغاء
                   </button>
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-black shadow-lg shadow-orange-950/40 transition-all flex items-center gap-1.5 cursor-pointer"
+                    className="m3-btn-danger px-4 py-2 text-xs font-black flex items-center gap-1.5"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>تأكيد الإرجاع المباشر للمخزن</span>
@@ -634,75 +634,75 @@ export const POSReturnsModal: React.FC<POSReturnsModalProps> = ({
           {/* Step 2: Invoice Details & Items to Return */}
           {invoice && (
             <form onSubmit={handleSubmitReturn} className="space-y-4">
-              <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-2xl grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div className="p-4 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-2xl grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                 <div>
-                  <span className="text-slate-400 block">الفاتورة الأصلية:</span>
-                  <span className="text-sm font-bold text-white font-mono">#{invoice.invoice_number}</span>
+                  <span className="text-[var(--md-on-surface-variant)] block">الفاتورة الأصلية:</span>
+                  <span className="text-sm font-bold text-[var(--md-on-surface)] font-mono tabular-nums">#{invoice.invoice_number}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block">تاريخ الشراء:</span>
-                  <span className="font-medium text-slate-300 font-mono">{invoice.invoice_date || invoice.created_at?.split('T')[0]}</span>
+                  <span className="text-[var(--md-on-surface-variant)] block">تاريخ الشراء:</span>
+                  <span className="font-medium text-[var(--md-on-surface)] font-mono tabular-nums">{invoice.invoice_date || invoice.created_at?.split('T')[0]}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block">العميل:</span>
-                  <span className="font-bold text-emerald-400">{invoice.customer_name || 'عميل نقدي'}</span>
+                  <span className="text-[var(--md-on-surface-variant)] block">العميل:</span>
+                  <span className="font-bold text-[var(--md-primary-text)]">{invoice.customer_name || 'عميل نقدي'}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block">إجمالي الفاتورة:</span>
-                  <span className="font-bold text-white font-mono" dir="ltr">{formatNumber(Number(invoice.total || 0))} {currSym}</span>
+                  <span className="text-[var(--md-on-surface-variant)] block">إجمالي الفاتورة:</span>
+                  <span className="font-bold text-[var(--md-on-surface)] font-mono tabular-nums" dir="ltr">{formatNumber(Number(invoice.total || 0))} {currSym}</span>
                 </div>
               </div>
 
               {/* Items Selection */}
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-2">
+                <label className="block text-xs font-bold text-[var(--md-on-surface-variant)] mb-2">
                   حدد الأصناف والكميات المراد استرجاعها للمخزن:
                 </label>
                 <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
                   {returnItems.map((item, idx) => (
                     <div
                       key={idx}
-                      className="p-3 bg-slate-800/60 border border-slate-800 hover:border-slate-700 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs transition-colors"
+                      className="p-3 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] hover:border-[var(--md-outline)] rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs transition-colors"
                     >
                       <div className="min-w-0 flex-1 space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-white">{item.name}</span>
+                          <span className="font-bold text-[var(--md-on-surface)]">{item.name}</span>
                           {(item.itemCode || item.partNumber) && (
-                            <span className="px-2 py-0.5 bg-slate-700/60 text-slate-300 rounded text-[10px] font-mono">
+                            <span className="px-2 py-0.5 bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] rounded text-[10px] font-mono">
                               #{item.itemCode || item.partNumber}
                             </span>
                           )}
-                          <span className="px-2 py-0.5 bg-blue-500/10 text-blue-300 border border-blue-500/20 rounded text-[10px] font-medium">
+                          <span className="m3-badge-info text-[10px]">
                             الوحدة: {item.unit}
                           </span>
                         </div>
 
                         {/* Specs & Serial / DOT info */}
-                        <div className="flex items-center gap-2 flex-wrap text-[11px] text-slate-400">
+                        <div className="flex items-center gap-2 flex-wrap text-[11px] text-[var(--md-on-surface-variant)]">
                           {item.serialNumber && (
-                            <span className="text-amber-400 font-mono">
+                            <span className="text-[var(--md-warning)] font-mono">
                               سيريال: {item.serialNumber}
                             </span>
                           )}
                           {item.tireSize && (
-                            <span className="text-cyan-400 font-mono">
+                            <span className="text-[var(--md-info)] font-mono">
                               مقاس: {item.tireSize} {item.tireProductionDot ? `(DOT: ${item.tireProductionDot})` : ''}
                             </span>
                           )}
-                          <span>الكمية المشتراة: <strong className="text-white font-mono">{item.originalQty}</strong> {item.unit}</span>
-                          <span>السعر: <strong className="text-white font-mono" dir="ltr">{formatNumber(item.unitPrice)}</strong> {currSym}</span>
+                          <span>الكمية المشتراة: <strong className="text-[var(--md-on-surface)] font-mono tabular-nums">{item.originalQty}</strong> {item.unit}</span>
+                          <span>السعر: <strong className="text-[var(--md-on-surface)] font-mono tabular-nums" dir="ltr">{formatNumber(item.unitPrice)}</strong> {currSym}</span>
                         </div>
 
                         {/* Warranty Badge */}
                         {item.warrantyStatus && (
                           <div className="pt-0.5">
                             {item.warrantyStatus.isUnderWarranty ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md text-[10px] font-bold">
+                              <span className="m3-badge-success text-[10px]">
                                 <ShieldCheck className="w-3 h-3" />
                                 تحت الضمان - ساري حتى {item.warrantyStatus.expiresAtStr}
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-md text-[10px] font-bold">
+                              <span className="m3-badge-error text-[10px]">
                                 <AlertTriangle className="w-3 h-3" />
                                 منتهي الضمان (انتهى في {item.warrantyStatus.expiresAtStr})
                               </span>
@@ -711,9 +711,9 @@ export const POSReturnsModal: React.FC<POSReturnsModalProps> = ({
                         )}
                       </div>
 
-                      <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-700/60">
+                      <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-[var(--md-outline-variant)]">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-slate-400 text-[11px]">الكمية المرجعة:</span>
+                          <span className="text-[var(--md-on-surface-variant)] text-[11px]">الكمية المرجعة:</span>
                           <input
                             type="number"
                             min="0"
@@ -721,14 +721,14 @@ export const POSReturnsModal: React.FC<POSReturnsModalProps> = ({
                             step="any"
                             value={item.returnQty}
                             onChange={(e) => handleQtyChange(idx, parseFloat(e.target.value) || 0)}
-                            className="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-center font-mono font-bold text-white focus:outline-none focus:border-rose-500"
+                            className="m3-input w-16 px-2 py-1 text-center font-mono font-bold tabular-nums"
                           />
-                          <span className="text-slate-400 text-[10px]">{item.unit}</span>
+                          <span className="text-[var(--md-on-surface-variant)] text-[10px]">{item.unit}</span>
                         </div>
 
                         <div className="text-left min-w-[90px]">
-                          <span className="text-[10px] text-slate-400 block">المبلغ المسترد:</span>
-                          <span className="font-bold text-rose-400 font-mono text-xs" dir="ltr">
+                          <span className="text-[10px] text-[var(--md-on-surface-variant)] block">المبلغ المسترد:</span>
+                          <span className="font-bold text-[var(--md-error)] font-mono text-xs tabular-nums" dir="ltr">
                             {formatNumber(item.refundAmount)} {currSym}
                           </span>
                         </div>
@@ -741,11 +741,11 @@ export const POSReturnsModal: React.FC<POSReturnsModalProps> = ({
               {/* Refund Method & Reason */}
               <div className="grid grid-cols-2 gap-3 pt-2">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">طريقة رد المبلغ:</label>
+                  <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)] mb-1.5">طريقة رد المبلغ:</label>
                   <select
                     value={refundMethod}
                     onChange={(e) => setRefundMethod(e.target.value as any)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+                    className="m3-select w-full px-3 py-2 text-xs"
                   >
                     <option value="CASH">نقداً من الدرج (Cash Refund)</option>
                     <option value="BANK">تحويل بنكي</option>
@@ -755,22 +755,22 @@ export const POSReturnsModal: React.FC<POSReturnsModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">سبب الإرجاع:</label>
+                  <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)] mb-1.5">سبب الإرجاع:</label>
                   <input
                     type="text"
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                     placeholder="سبب الإرجاع..."
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+                    className="m3-input w-full px-3 py-2 text-xs"
                   />
                 </div>
               </div>
 
               {/* Refund Total & Confirmation */}
-              <div className="p-4 bg-rose-950/20 border border-rose-800/30 rounded-2xl flex items-center justify-between">
+              <div className="p-4 bg-[var(--md-error-container)]/60 border border-[var(--md-error)]/30 rounded-2xl flex items-center justify-between flex-wrap gap-3">
                 <div>
-                  <span className="text-xs text-rose-300 font-semibold block">إجمالي مبلغ الاسترداد المستحق:</span>
-                  <span className="text-2xl font-black text-rose-400 font-mono">
+                  <span className="text-xs text-[var(--md-on-error-container)] font-semibold block">إجمالي مبلغ الاسترداد المستحق:</span>
+                  <span className="text-2xl font-black text-[var(--md-error)] font-mono tabular-nums">
                     {formatNumber(totalRefund)} {currSym}
                   </span>
                 </div>
@@ -781,14 +781,14 @@ export const POSReturnsModal: React.FC<POSReturnsModalProps> = ({
                       setInvoice(null);
                       setReturnItems([]);
                     }}
-                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                    className="m3-btn-outlined px-4 py-2 text-xs font-bold"
                   >
                     تغيير الفاتورة
                   </button>
                   <button
                     type="submit"
                     disabled={submitting || totalRefund <= 0}
-                    className="px-6 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-rose-950/40 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-40"
+                    className="m3-btn-danger px-6 py-2.5 text-xs font-bold flex items-center gap-2"
                   >
                     {submitting ? 'جاري المعالجة...' : 'تأكيد تسجيل المرتجع'}
                   </button>

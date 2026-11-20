@@ -149,17 +149,17 @@ export const ReceivablesPayablesHub: React.FC<ReceivablesPayablesHubProps> = ({
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 text-right flex flex-col justify-between h-full">
+    <div className="m3-card p-5 sm:p-6 space-y-4 text-right flex flex-col justify-between h-full">
       {/* Toast notification */}
       {whatsappToast && (
-        <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 rounded-xl text-xs flex items-center justify-between">
+        <div className="p-3 bg-[var(--md-success-container)] border border-[color-mix(in_srgb,var(--md-success)_35%,transparent)] text-[var(--md-on-success-container)] rounded-xl text-xs flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span className="font-bold">{whatsappToast}</span>
           </div>
           <button
             onClick={() => onNavigate && onNavigate('whatsapp')}
-            className="text-[11px] underline font-bold hover:text-white"
+            className="text-[11px] underline font-bold hover:opacity-80 cursor-pointer"
           >
             فتح واتساب
           </button>
@@ -167,45 +167,45 @@ export const ReceivablesPayablesHub: React.FC<ReceivablesPayablesHubProps> = ({
       )}
 
       {/* Header with Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--md-outline-variant)] pb-3">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] flex items-center justify-center shrink-0">
             <Users className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white">إدارة الذمم والمطالبات والمناديب</h3>
-            <p className="text-[11px] text-slate-400">المدينون • الموردون • مناديب التوزيع والعمولات</p>
+            <h3 className="text-sm font-bold text-[var(--md-on-surface)]">إدارة الذمم والمطالبات والمناديب</h3>
+            <p className="text-[11px] text-[var(--md-on-surface-variant)]">المدينون • الموردون • مناديب التوزيع والعمولات</p>
           </div>
         </div>
 
         {/* Tab switch */}
-        <div className="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700">
+        <div className="flex items-center bg-[var(--md-surface-container)] p-1 rounded-xl border border-[var(--md-outline-variant)]">
           <button
             onClick={() => setActiveTab('customers')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'customers'
-                ? 'bg-amber-500 text-slate-950 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] shadow-sm'
+                : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             العملاء المدينون
           </button>
           <button
             onClick={() => setActiveTab('suppliers')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'suppliers'
-                ? 'bg-rose-500 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] shadow-sm'
+                : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             مستحقات الموردين
           </button>
           <button
             onClick={() => setActiveTab('sales_reps')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'sales_reps'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] shadow-sm'
+                : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             مناديب التوزيع
@@ -214,15 +214,15 @@ export const ReceivablesPayablesHub: React.FC<ReceivablesPayablesHubProps> = ({
       </div>
 
       {/* Totals Strip */}
-      <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-800/40 border border-slate-800 text-xs">
-        <span className="text-slate-400 font-semibold">
+      <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] text-xs">
+        <span className="text-[var(--md-on-surface-variant)] font-semibold">
           {activeTab === 'customers'
             ? 'إجمالي الديون القائمة للعملاء:'
             : activeTab === 'suppliers'
             ? 'إجمالي الالتزامات المستحقة للموردين:'
             : 'إجمالي مبيعات مناديب التوزيع الميداني:'}
         </span>
-        <span className="font-mono tabular-nums font-black text-sm text-white">
+        <span className="font-mono tabular-nums font-black text-sm text-[var(--md-on-surface)]">
           {formatAmount(
             activeTab === 'customers'
               ? totalReceivables
@@ -235,30 +235,30 @@ export const ReceivablesPayablesHub: React.FC<ReceivablesPayablesHubProps> = ({
       </div>
 
       {/* Entity Rows */}
-      <div className="space-y-2.5 flex-1 max-h-[420px] overflow-y-auto pr-1">
+      <div className="space-y-2.5 flex-1 max-h-[420px] overflow-y-auto pr-1 custom-scrollbar">
         {activeTab === 'customers' &&
           (safeCustomers.length === 0 ? (
-            <div className="py-8 text-center text-xs text-slate-500 bg-slate-950/40 rounded-2xl border border-slate-800/80">
-              <Users className="w-8 h-8 mx-auto mb-2 text-slate-600" />
-              <p className="font-semibold text-slate-400">لا يوجد عملاء مدينون حالياً</p>
-              <p className="text-[11px] text-slate-500 mt-1">كافة الحسابات مسددة بالكامل أو بانتظار إصدار فواتير جديدة</p>
+            <div className="py-8 text-center text-xs text-[var(--md-on-surface-variant)] bg-[var(--md-surface-container)] rounded-xl border border-[var(--md-outline-variant)]">
+              <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="font-semibold text-[var(--md-on-surface)]">لا يوجد عملاء مدينون حالياً</p>
+              <p className="text-[11px] text-[var(--md-on-surface-variant)] mt-1">كافة الحسابات مسددة بالكامل أو بانتظار إصدار فواتير جديدة</p>
             </div>
           ) : (
             safeCustomers.map((cust) => (
               <div
                 key={cust.id}
-                className="p-3 rounded-2xl bg-slate-800/30 border border-slate-800/80 hover:border-slate-700 transition-colors flex items-center justify-between gap-3 text-right"
+                className="p-3 rounded-xl bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] hover:border-[var(--md-outline)] transition-colors flex items-center justify-between gap-3 text-right"
               >
                 <div className="space-y-0.5 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h4 className="text-xs font-bold text-slate-200 truncate">{cust.name}</h4>
+                    <h4 className="text-xs font-bold text-[var(--md-on-surface)] truncate">{cust.name}</h4>
                     {cust.overdue && (
-                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-rose-500/15 text-rose-400 border border-rose-500/30">
+                      <span className="m3-badge m3-badge-error text-[10px]">
                         متأخر
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
+                  <div className="flex items-center gap-2 text-[10px] text-[var(--md-on-surface-variant)] font-mono tabular-nums">
                     <span>هاتف: {cust.phone}</span>
                     <span>•</span>
                     <span>
@@ -269,23 +269,23 @@ export const ReceivablesPayablesHub: React.FC<ReceivablesPayablesHubProps> = ({
 
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="text-left">
-                    <span className="text-xs font-black font-mono tabular-nums text-amber-400 block">
+                    <span className="text-xs font-black font-mono tabular-nums text-[var(--md-secondary)] block">
                       {formatAmount(cust.balance)} {currency}
                     </span>
-                    <span className="text-[9px] text-slate-500 font-medium">مستحق السداد</span>
+                    <span className="text-[10px] text-[var(--md-on-surface-variant)] font-medium">مستحق السداد</span>
                   </div>
 
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => handleSendWhatsapp(cust.name)}
-                      className="p-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 transition-colors cursor-pointer"
+                      className="p-1.5 rounded-lg bg-[var(--md-success-container)] hover:opacity-85 text-[var(--md-on-success-container)] border border-[color-mix(in_srgb,var(--md-success)_30%,transparent)] transition-colors cursor-pointer"
                       title="إرسال تذكير عبر WhatsApp"
                     >
                       <MessageSquare className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => onNavigate && onNavigate('customers')}
-                      className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors cursor-pointer"
+                      className="p-1.5 rounded-lg bg-[var(--md-surface-container-low)] hover:bg-[var(--md-surface-container-high)] text-[var(--md-on-surface)] border border-[var(--md-outline-variant)] transition-colors cursor-pointer"
                       title="كشف حساب العميل"
                     >
                       <FileText className="w-3.5 h-3.5" />
@@ -298,40 +298,40 @@ export const ReceivablesPayablesHub: React.FC<ReceivablesPayablesHubProps> = ({
 
         {activeTab === 'suppliers' &&
           (safeSuppliers.length === 0 ? (
-            <div className="py-8 text-center text-xs text-slate-500 bg-slate-950/40 rounded-2xl border border-slate-800/80">
-              <Truck className="w-8 h-8 mx-auto mb-2 text-slate-600" />
-              <p className="font-semibold text-slate-400">لا توجد مستحقات موردين حالياً</p>
-              <p className="text-[11px] text-slate-500 mt-1">كافة الحسابات مسددة بالكامل أو لم تسجل فواتير توريد بعد</p>
+            <div className="py-8 text-center text-xs text-[var(--md-on-surface-variant)] bg-[var(--md-surface-container)] rounded-xl border border-[var(--md-outline-variant)]">
+              <Truck className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="font-semibold text-[var(--md-on-surface)]">لا توجد مستحقات موردين حالياً</p>
+              <p className="text-[11px] text-[var(--md-on-surface-variant)] mt-1">كافة الحسابات مسددة بالكامل أو لم تسجل فواتير توريد بعد</p>
             </div>
           ) : (
             safeSuppliers.map((supp) => (
               <div
                 key={supp.id}
-                className="p-3 rounded-2xl bg-slate-800/30 border border-slate-800/80 hover:border-slate-700 transition-colors flex items-center justify-between gap-3 text-right"
+                className="p-3 rounded-xl bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] hover:border-[var(--md-outline)] transition-colors flex items-center justify-between gap-3 text-right"
               >
                 <div className="space-y-0.5 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h4 className="text-xs font-bold text-slate-200 truncate">{supp.name}</h4>
-                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-slate-700 text-slate-300">
+                    <h4 className="text-xs font-bold text-[var(--md-on-surface)] truncate">{supp.name}</h4>
+                    <span className="m3-badge text-[10px]">
                       {supp.category}
                     </span>
                   </div>
-                  <span className="text-[10px] text-slate-400 font-mono block">
+                  <span className="text-[10px] text-[var(--md-on-surface-variant)] font-mono block tabular-nums">
                     الاستحقاق خلال: {supp.dueDays} أيام
                   </span>
                 </div>
 
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="text-left">
-                    <span className="text-xs font-black font-mono tabular-nums text-rose-400 block">
+                    <span className="text-xs font-black font-mono tabular-nums text-[var(--md-error)] block">
                       {formatAmount(supp.balance)} {currency}
                     </span>
-                    <span className="text-[9px] text-slate-500 font-medium">مستحق للمورد</span>
+                    <span className="text-[10px] text-[var(--md-on-surface-variant)] font-medium">مستحق للمورد</span>
                   </div>
 
                   <button
                     onClick={() => onNavigate && onNavigate('payments')}
-                    className="px-2.5 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 text-[10px] font-bold transition-colors cursor-pointer flex items-center gap-1"
+                    className="px-2.5 py-1.5 rounded-lg bg-[var(--md-error-container)] hover:opacity-85 text-[var(--md-on-error-container)] border border-[color-mix(in_srgb,var(--md-error)_30%,transparent)] text-[10px] font-bold transition-colors cursor-pointer flex items-center gap-1"
                   >
                     <CreditCard className="w-3 h-3" />
                     <span>سداد دفعة</span>
@@ -343,29 +343,29 @@ export const ReceivablesPayablesHub: React.FC<ReceivablesPayablesHubProps> = ({
 
         {activeTab === 'sales_reps' &&
           (salesRepresentatives.length === 0 ? (
-            <div className="py-8 text-center text-xs text-slate-500 bg-slate-950/40 rounded-2xl border border-slate-800/80">
-              <Briefcase className="w-8 h-8 mx-auto mb-2 text-slate-600" />
-              <p className="font-semibold text-slate-400">لا يوجد مناديب توزيع مسجلون حالياً</p>
-              <p className="text-[11px] text-slate-500 mt-1">يمكنك إضافة مناديب التوزيع وخطوط السير من تبويب العمليات الميدانية</p>
+            <div className="py-8 text-center text-xs text-[var(--md-on-surface-variant)] bg-[var(--md-surface-container)] rounded-xl border border-[var(--md-outline-variant)]">
+              <Briefcase className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="font-semibold text-[var(--md-on-surface)]">لا يوجد مناديب توزيع مسجلون حالياً</p>
+              <p className="text-[11px] text-[var(--md-on-surface-variant)] mt-1">يمكنك إضافة مناديب التوزيع وخطوط السير من تبويب العمليات الميدانية</p>
             </div>
           ) : (
             salesRepresentatives.map((rep) => (
               <div
                 key={rep.id}
-                className="p-3 rounded-2xl bg-slate-800/30 border border-slate-800/80 hover:border-slate-700 transition-colors flex items-center justify-between gap-3 text-right"
+                className="p-3 rounded-xl bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] hover:border-[var(--md-outline)] transition-colors flex items-center justify-between gap-3 text-right"
               >
                 <div className="space-y-0.5 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h4 className="text-xs font-bold text-slate-200 truncate">{rep.name}</h4>
-                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                    <h4 className="text-xs font-bold text-[var(--md-on-surface)] truncate">{rep.name}</h4>
+                    <span className="m3-badge m3-badge-primary font-mono text-[10px]">
                       {rep.vanCode}
                     </span>
                   </div>
-                  <span className="text-[10px] text-slate-400 truncate block">
+                  <span className="text-[10px] text-[var(--md-on-surface-variant)] truncate block">
                     {rep.zone}
                   </span>
-                  <div className="text-[10px] text-slate-400 font-mono flex items-center gap-2">
-                    <span>المحصل: <strong className="text-slate-200">{formatAmount(rep.collected)}</strong> {currency}</span>
+                  <div className="text-[10px] text-[var(--md-on-surface-variant)] font-mono flex items-center gap-2 tabular-nums">
+                    <span>المحصل: <strong className="text-[var(--md-on-surface)]">{formatAmount(rep.collected)}</strong> {currency}</span>
                     <span>•</span>
                     <span>نسبة العمولة: {rep.commissionRate}</span>
                   </div>
@@ -373,15 +373,15 @@ export const ReceivablesPayablesHub: React.FC<ReceivablesPayablesHubProps> = ({
 
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="text-left">
-                    <span className="text-xs font-black font-mono tabular-nums text-emerald-400 block">
+                    <span className="text-xs font-black font-mono tabular-nums text-[var(--md-primary-text)] block">
                       +{formatAmount(rep.commissionEarned)} {currency}
                     </span>
-                    <span className="text-[9px] text-slate-400 font-medium">عمولة مستحقة</span>
+                    <span className="text-[10px] text-[var(--md-on-surface-variant)] font-medium">عمولة مستحقة</span>
                   </div>
 
                   <button
                     onClick={() => onNavigate && onNavigate('real_business')}
-                    className="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold transition-colors cursor-pointer flex items-center gap-1"
+                    className="px-2.5 py-1.5 rounded-lg bg-[var(--md-primary-container)] hover:opacity-85 text-[var(--md-on-primary-container)] text-[10px] font-bold transition-colors cursor-pointer flex items-center gap-1"
                   >
                     <Briefcase className="w-3 h-3" />
                     <span>المناديب</span>
@@ -393,7 +393,7 @@ export const ReceivablesPayablesHub: React.FC<ReceivablesPayablesHubProps> = ({
       </div>
 
       {/* Footer Navigation */}
-      <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+      <div className="pt-2 border-t border-[var(--md-outline-variant)] flex items-center justify-between">
         <button
           onClick={() =>
             onNavigate &&
@@ -405,7 +405,7 @@ export const ReceivablesPayablesHub: React.FC<ReceivablesPayablesHubProps> = ({
                 : 'real_business'
             )
           }
-          className="text-xs font-bold text-slate-400 hover:text-white flex items-center gap-1 cursor-pointer"
+          className="text-xs font-bold text-[var(--md-primary-text)] hover:underline flex items-center gap-1 cursor-pointer"
         >
           <span>
             {activeTab === 'customers'

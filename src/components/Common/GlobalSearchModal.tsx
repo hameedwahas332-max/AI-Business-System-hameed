@@ -37,30 +37,34 @@ export function GlobalSearchModal({ isOpen, onClose, onNavigate }: GlobalSearchM
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex items-center px-4 py-3 border-b border-slate-800">
-          <Search className="w-5 h-5 text-slate-400 ml-3" />
+    <div
+      className="fixed inset-0 z-50 m3-backdrop flex items-start justify-center pt-20 px-4"
+      dir="rtl"
+    >
+      <div className="m3-modal-surface w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex items-center px-4 py-3.5 border-b border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)]">
+          <Search className="w-5 h-5 text-[var(--md-primary-text)] ml-3 shrink-0" />
           <input
             type="text"
-            className="flex-1 bg-transparent text-slate-100 placeholder-slate-500 focus:outline-none text-base"
+            className="flex-1 bg-transparent text-[var(--md-on-surface)] placeholder:text-[var(--md-on-surface-variant)] focus:outline-none text-base"
             placeholder="البحث السريع في النظام (فواتير، عملاء، سندات، تقارير)..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             autoFocus
           />
           <button
+            type="button"
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-800"
+            className="p-1.5 text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] rounded-xl hover:bg-[var(--md-surface-container-high)] transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--md-primary)]"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="p-3 max-h-80 overflow-y-auto space-y-1">
-          <div className="text-xs font-semibold text-slate-400 px-3 py-1">التنقل السريع</div>
+          <div className="text-xs font-bold text-[var(--md-on-surface-variant)] px-3 py-1">التنقل السريع</div>
           {filteredItems.length === 0 ? (
-            <div className="text-center py-6 text-slate-500 text-sm">
+            <div className="text-center py-6 text-[var(--md-on-surface-variant)] text-sm">
               لا توجد نتائج مطابقة لبحثك
             </div>
           ) : (
@@ -69,23 +73,24 @@ export function GlobalSearchModal({ isOpen, onClose, onNavigate }: GlobalSearchM
               return (
                 <button
                   key={idx}
+                  type="button"
                   onClick={() => handleSelect(item.tab)}
-                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-200 hover:bg-slate-800/80 transition-colors text-right group"
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] transition-colors text-right group cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--md-primary)]"
                 >
                   <div className="flex items-center space-x-3 space-x-reverse">
-                    <div className="p-2 rounded-lg bg-slate-800 group-hover:bg-cyan-500/10 text-cyan-400">
+                    <div className="p-2 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] group-hover:bg-[var(--md-primary-container)] group-hover:text-[var(--md-on-primary-container)] text-[var(--md-primary-text)] transition-colors">
                       <Icon className="w-4 h-4" />
                     </div>
-                    <span className="text-sm font-medium">{item.title}</span>
+                    <span className="text-sm font-semibold">{item.title}</span>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-slate-300 transform rotate-180" />
+                  <ArrowRight className="w-4 h-4 text-[var(--md-on-surface-variant)] group-hover:text-[var(--md-primary-text)] transform rotate-180 transition-colors" />
                 </button>
               );
             })
           )}
         </div>
 
-        <div className="px-4 py-2 bg-slate-950 border-t border-slate-800 text-xs text-slate-500 flex justify-between">
+        <div className="px-4 py-2.5 bg-[var(--md-surface-container-low)] border-t border-[var(--md-outline-variant)] text-xs text-[var(--md-on-surface-variant)] flex justify-between font-mono tabular-nums">
           <span>اضغط ESC للإغلاق</span>
           <span>Ctrl + K للفتح السريع</span>
         </div>

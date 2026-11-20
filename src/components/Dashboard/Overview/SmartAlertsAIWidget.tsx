@@ -67,7 +67,8 @@ export const SmartAlertsAIWidget: React.FC<SmartAlertsAIWidgetProps> = ({
           ? `تم رصد ${overdueCount} فواتير بيع متأخرة بإجمالي ${formatAmount(totalReceivables)} ${currency}. تشغيل حملة تذكير تلقائية عبر WhatsApp يرفع معدل التحصيل إلى 92% خلال 48 ساعة.`
           : 'لا توجد فواتير بيع متأخرة أو مديونيات معلقة حالياً (0). جميع حسابات العملاء مسددة بالكامل.',
       icon: MessageSquare,
-      color: 'from-amber-500/20 to-emerald-500/10 border-amber-500/30 text-amber-400',
+      badgeTone: 'm3-badge-secondary',
+      iconTone: 'text-[var(--md-secondary)]',
       actionLabel: 'إطلاق تذكيرات WhatsApp الآن',
       actionTab: 'whatsapp' as TabType,
     },
@@ -80,7 +81,8 @@ export const SmartAlertsAIWidget: React.FC<SmartAlertsAIWidgetProps> = ({
           ? `يوجد ${lowStockCount} أصناف استراتيجية أوشكت على النفاد في المستودع الرئيسي. استهلاكها المتوقع خلال الأسبوع الحالي يتطلب إنشاء أوامر شراء للموردين فوراً.`
           : 'لا توجد نواقص مخزنية مسجلة حالياً (0 أصناف منخفضة). مستويات التوفر في المستودع مستقرة.',
       icon: Package,
-      color: 'from-rose-500/20 to-amber-500/10 border-rose-500/30 text-rose-400',
+      badgeTone: 'm3-badge-error',
+      iconTone: 'text-[var(--md-error)]',
       actionLabel: 'مراجعة النواقص وإصدار أمر شراء',
       actionTab: 'purchase_invoices' as TabType,
     },
@@ -93,7 +95,8 @@ export const SmartAlertsAIWidget: React.FC<SmartAlertsAIWidgetProps> = ({
           ? `الرصيد النقدي والبنكي الحالي (${formatAmount(cashBalance)} ${currency}) يغطي الالتزامات التشغيلية والرواتب القادمة، مع إجمالي مبيعات مسجلة (${formatAmount(totalSales)} ${currency}).`
           : `الرصيد النقدي والبنكي الحالي (0 ${currency}). سيبدأ احتساب مؤشر التغطية والتدفقات النقدية فور تسجيل المبيعات أو سندات القبض.`,
       icon: TrendingUp,
-      color: 'from-emerald-500/20 to-teal-500/10 border-emerald-500/30 text-emerald-400',
+      badgeTone: 'm3-badge-success',
+      iconTone: 'text-[var(--md-primary-text)]',
       actionLabel: 'استعراض التنبؤ التفاعلي بالسيولة',
       actionTab: 'cashflow_forecast' as TabType,
     },
@@ -105,34 +108,31 @@ export const SmartAlertsAIWidget: React.FC<SmartAlertsAIWidgetProps> = ({
         ? `حقق مناديب التوزيع الميداني (${repsCount} مناديب) مبيعات بقيمة ${formatAmount(repsSalesTotal)} ${currency} هذا الشهر مع نسبة تحصيل ${collectionRate}%. صرف العمولات المستحقة يعزز معدل التوزيع بنسبة 18%.`
         : `لا يوجد مناديب توزيع مسجلين حالياً. تسجيل المناديب وتعيين خطوط السير والأهداف الميدانية يرفع المبيعات الخارجية وتغطية نقاط البيع.`,
       icon: Sparkles,
-      color: 'from-blue-500/20 to-indigo-500/10 border-blue-500/30 text-blue-400',
+      badgeTone: 'm3-badge-info',
+      iconTone: 'text-[var(--md-info)]',
       actionLabel: 'إدارة أداء وعمولات المناديب',
       actionTab: 'real_business' as TabType,
     },
   ];
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-l from-slate-900 via-slate-900 to-slate-950 border border-emerald-900/40 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 text-right">
-      {/* Decorative glow */}
-      <div className="absolute top-0 left-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-
+    <div className="m3-card relative overflow-hidden p-5 sm:p-6 space-y-4 text-right">
       {/* Header */}
-      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--md-outline-variant)] pb-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-lg shadow-emerald-950/40">
-            <Sparkles className="w-5 h-5 text-amber-300" />
+          <div className="w-9 h-9 rounded-xl bg-[var(--md-primary)] text-[var(--md-on-primary)] flex items-center justify-center shrink-0">
+            <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm sm:text-base font-bold text-white">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-sm sm:text-base font-bold text-[var(--md-on-surface)]">
                 رؤى الذكاء الاصطناعي والتنبيهات الاستباقية (AI Business Copilot)
               </h3>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
+              <span className="m3-badge m3-badge-primary font-mono">
                 LIVE INSIGHTS
               </span>
             </div>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-[var(--md-on-surface-variant)]">
               توصيات تشغيلية ذكية مستخرجة مباشرة من حركة الحسابات والمستودعات
             </p>
           </div>
@@ -140,45 +140,45 @@ export const SmartAlertsAIWidget: React.FC<SmartAlertsAIWidgetProps> = ({
 
         <button
           onClick={() => onNavigate && onNavigate('ai')}
-          className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer self-start sm:self-center"
+          className="text-xs font-bold text-[var(--md-primary-text)] hover:underline flex items-center gap-1 cursor-pointer self-start sm:self-center"
         >
           <span>المساعد المالي الذكي (Copilot)</span>
           <ArrowUpRight className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      {/* 3 AI Recommendations Grid */}
-      <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-1">
+      {/* AI Recommendations Grid */}
+      <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-1">
         {insights.map((item) => {
           const Icon = item.icon;
           return (
             <div
               key={item.id}
-              className={`p-4 rounded-2xl bg-gradient-to-br ${item.color} border space-y-3 flex flex-col justify-between hover:scale-[1.01] transition-transform`}
+              className="p-4 rounded-xl bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] hover:border-[var(--md-primary)] space-y-3 flex flex-col justify-between transition-colors"
             >
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-black/40 text-slate-200 border border-white/10 font-mono">
+                <div className="flex items-center justify-between gap-2">
+                  <span className={`m3-badge ${item.badgeTone} font-mono`}>
                     {item.tag}
                   </span>
-                  <Icon className="w-4 h-4" />
+                  <Icon className={`w-4 h-4 shrink-0 ${item.iconTone}`} />
                 </div>
 
-                <h4 className="text-xs font-black text-white leading-snug">
+                <h4 className="text-xs font-black text-[var(--md-on-surface)] leading-snug">
                   {item.title}
                 </h4>
 
-                <p className="text-[11px] text-slate-300 leading-relaxed">
+                <p className="text-[11px] text-[var(--md-on-surface-variant)] leading-relaxed">
                   {item.description}
                 </p>
               </div>
 
               <button
                 onClick={() => onNavigate && onNavigate(item.actionTab)}
-                className="w-full py-2 px-3 rounded-xl bg-slate-900/90 hover:bg-slate-900 text-white text-[11px] font-bold border border-white/10 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm group"
+                className="m3-btn-outlined w-full text-[11px] group"
               >
-                <span>{item.actionLabel}</span>
-                <ArrowRight className="w-3.5 h-3.5 rotate-180 text-emerald-400 group-hover:-translate-x-1 transition-transform" />
+                <span className="truncate">{item.actionLabel}</span>
+                <ArrowRight className="w-3.5 h-3.5 rotate-180 text-[var(--md-primary-text)] group-hover:-translate-x-1 transition-transform shrink-0" />
               </button>
             </div>
           );

@@ -262,22 +262,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
 
   return (
     <aside
-      className={`bg-slate-900 border-l border-slate-800 flex flex-col h-full flex-shrink-0 select-none z-20 transition-all duration-300 ease-in-out ${
-        isCollapsed ? 'w-20' : 'w-64'
+      className={`bg-[var(--md-surface-container-low)] border-l border-[var(--md-outline-variant)] flex flex-col h-full flex-shrink-0 select-none z-20 transition-[width] duration-200 ease-out ${
+        isCollapsed ? 'w-20' : 'w-64 lg:w-[272px]'
       }`}
     >
       {/* Brand Header & Toggle */}
       <div
-        className={`h-16 flex items-center border-b border-slate-800 bg-slate-900/40 transition-all ${
+        className={`h-16 flex items-center border-b border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] ${
           isCollapsed ? 'justify-center px-2 flex-col py-2 gap-1' : 'justify-between px-4'
         }`}
       >
-        <div className="flex items-center gap-2.5 min-w-0">
-          <AppIcon className="w-8 h-8 text-indigo-400 shrink-0" />
+        <div className="flex items-center gap-3 min-w-0">
+          <AppIcon className="w-8 h-8 shrink-0" />
           {!isCollapsed && (
             <div className="flex flex-col min-w-0">
-              <span className="font-bold text-sm text-white tracking-wide truncate">نظام المحاسبي الذكي ERP</span>
-              <span className="text-[10px] text-amber-400 font-semibold tracking-tight truncate">Smart Accounting & ERP Cloud</span>
+              <span className="font-bold text-sm text-[var(--md-on-surface)] tracking-tight truncate">
+                نظام المحاسبي الذكي ERP
+              </span>
+              <span className="text-[11px] text-[var(--md-secondary)] font-semibold truncate">
+                Smart Accounting & ERP
+              </span>
             </div>
           )}
         </div>
@@ -285,20 +289,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
         <button
           type="button"
           onClick={toggleSidebar}
-          className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all cursor-pointer shrink-0"
+          className="m3-btn-text p-2 min-h-[36px] shrink-0"
           title={isCollapsed ? 'توسيع القائمة الجانبية (Expand Sidebar)' : 'طي القائمة الجانبية (Collapse Sidebar)'}
           aria-label={isCollapsed ? 'توسيع القائمة' : 'طي القائمة'}
         >
           {isCollapsed ? (
-            <PanelRight className="w-5 h-5 text-indigo-400" />
+            <PanelRight className="w-5 h-5 text-[var(--md-primary)]" />
           ) : (
-            <PanelRightClose className="w-4 h-4" />
+            <PanelRightClose className="w-4 h-4 text-[var(--md-on-surface-variant)]" />
           )}
         </button>
       </div>
 
-      {/* Navigation Links */}
-      <nav className="flex-1 overflow-y-auto p-2 space-y-3 custom-scrollbar">
+      {/* Navigation Drawer Links */}
+      <nav aria-label="التنقل الرئيسي" className="flex-1 overflow-y-auto px-3 py-3 space-y-4 custom-scrollbar">
         {visibleSections.map((section, idx) => {
           const isSectionCollapsed = Boolean(collapsedSections[section.title]);
           const hasActiveItem = section.items.some((item) => item.id === activeTab);
@@ -306,30 +310,28 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           return (
             <div key={section.title} className="space-y-1">
               {!isCollapsed ? (
-                // Collapsible Section Header in Expanded Mode
                 <button
                   type="button"
                   onClick={() => toggleSection(section.title)}
-                  className={`w-full flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer group ${
+                  className={`w-full flex items-center justify-between text-[11px] font-bold tracking-wide px-3 py-1.5 rounded-lg transition-colors cursor-pointer group ${
                     hasActiveItem
-                      ? 'text-indigo-300 bg-indigo-950/30'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                      ? 'text-[var(--md-primary)]'
+                      : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)]'
                   }`}
                   title={isSectionCollapsed ? 'فرد هذا القسم' : 'طي هذا القسم'}
                 >
                   <span className="truncate">{section.title}</span>
                   <ChevronDown
-                    className={`w-3.5 h-3.5 text-slate-500 group-hover:text-slate-300 transition-transform duration-200 ${
+                    className={`w-3.5 h-3.5 text-[var(--md-on-surface-variant)] transition-transform duration-150 ${
                       isSectionCollapsed ? '-rotate-90' : 'rotate-0'
                     }`}
                   />
                 </button>
               ) : (
-                // Subtle divider in Collapsed Mode
-                idx > 0 && <div className="h-px bg-slate-800/80 my-2 mx-1" />
+                idx > 0 && <div className="h-px bg-[var(--md-outline-variant)] my-2 mx-2" />
               )}
 
-              {/* Items List (Hidden if section is collapsed in expanded mode) */}
+              {/* Items List */}
               {(!isSectionCollapsed || isCollapsed) && (
                 <div className="space-y-1">
                   {section.items.map((item) => {
@@ -341,39 +343,56 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                         type="button"
                         onClick={() => setActiveTab(item.id)}
                         title={item.label}
-                        className={`w-full flex items-center rounded-xl text-sm font-medium transition-all group cursor-pointer relative ${
-                          isCollapsed
-                            ? 'justify-center p-2.5'
-                            : 'justify-between px-3 py-2'
-                        } ${
-                          isActive
-                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                            : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
-                        }`}
+                        aria-current={isActive ? 'page' : undefined}
+                        className={`m3-nav-item group ${
+                          isCollapsed ? 'justify-center px-2 py-2' : 'justify-between px-3 py-2'
+                        } ${isActive ? 'm3-nav-item-active' : ''}`}
                       >
-                        <div className={`flex items-center min-w-0 ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
+                        {/* Active Pill Side Accent for Non-Color State Signaling */}
+                        {isActive && !isCollapsed && (
+                          <span
+                            aria-hidden="true"
+                            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-1 h-5 rounded-full bg-[var(--md-secondary)]"
+                          />
+                        )}
+
+                        <div
+                          className={`flex items-center min-w-0 ${
+                            isCollapsed ? 'justify-center' : 'gap-3 pr-1'
+                          }`}
+                        >
                           <Icon
-                            className={`w-4 h-4 shrink-0 transition-transform ${
-                              isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'
-                            } ${isCollapsed && 'group-hover:scale-110'}`}
+                            className={`w-4 h-4 shrink-0 transition-colors ${
+                              isActive
+                                ? 'text-[var(--md-on-primary-container)]'
+                                : 'text-[var(--md-on-surface-variant)] group-hover:text-[var(--md-on-surface)]'
+                            }`}
                           />
                           {!isCollapsed && <span className="truncate">{item.label}</span>}
                         </div>
 
                         {!isCollapsed && item.badge && (
                           <span
-                            className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${
+                            className="m3-badge shrink-0"
+                            style={
                               isActive
-                                ? 'bg-indigo-700 text-white'
-                                : 'bg-slate-800 text-indigo-400 border border-indigo-500/20'
-                            }`}
+                                ? {
+                                    backgroundColor: 'var(--md-primary)',
+                                    color: 'var(--md-on-primary)',
+                                    borderColor: 'transparent',
+                                  }
+                                : undefined
+                            }
                           >
                             {item.badge}
                           </span>
                         )}
 
                         {isCollapsed && item.badge && (
-                          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-indigo-500 ring-2 ring-slate-900" />
+                          <span
+                            aria-hidden="true"
+                            className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-[var(--md-secondary)]"
+                          />
                         )}
                       </button>
                     );
@@ -385,93 +404,118 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
         })}
       </nav>
 
-      {/* Footer status & Updates */}
-      <div className="p-2.5 border-t border-slate-800 bg-slate-900/60 space-y-1.5">
+      {/* Footer status & Controls */}
+      <div className="p-3 border-t border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] space-y-2">
         {!isCollapsed ? (
           <>
             <button
               type="button"
               onClick={() => window.dispatchEvent(new CustomEvent('erp:open-updater-modal'))}
-              className={`w-full flex items-center justify-between text-xs px-2.5 py-1.5 rounded-xl transition cursor-pointer select-none ${
+              className="m3-btn-outlined w-full justify-between px-3 text-xs"
+              style={
                 hasUpdate
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 font-bold animate-pulse'
-                  : 'bg-slate-800/40 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-700/40'
-              }`}
+                  ? {
+                      backgroundColor: 'var(--md-secondary-container)',
+                      borderColor: 'var(--md-secondary)',
+                      color: 'var(--md-on-secondary-container)',
+                    }
+                  : undefined
+              }
               title="فتح مركز التحديثات التلقائية المعتمدة"
             >
-              <div className="flex items-center gap-1.5">
-                <Sparkles className={`w-3.5 h-3.5 ${hasUpdate ? 'text-amber-400' : 'text-blue-400'}`} />
-                <span className="font-bold text-[11px]">{hasUpdate ? `تحديث جديد v${availableVersion}` : 'إصدار النظام'}</span>
+              <div className="flex items-center gap-2 min-w-0">
+                <Sparkles
+                  className="w-3.5 h-3.5 shrink-0"
+                  style={{ color: hasUpdate ? 'var(--md-secondary)' : 'var(--md-primary)' }}
+                />
+                <span className="font-semibold truncate">
+                  {hasUpdate ? `تحديث v${availableVersion}` : 'إصدار النظام'}
+                </span>
               </div>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-900/80 text-blue-300 border border-slate-700/60">
-                v{appVersion}
-              </span>
+              <span className="m3-badge font-mono">v{appVersion}</span>
             </button>
 
-            {/* Theme Mode Toggle Pill in Sidebar */}
+            {/* Theme Mode Toggle in Sidebar */}
             <button
               type="button"
               onClick={toggleThemeFromSidebar}
-              className={`w-full flex items-center justify-between text-xs px-2.5 py-1.5 rounded-xl transition cursor-pointer select-none ${
-                sidebarTheme === 'dark'
-                  ? 'bg-slate-800/40 hover:bg-slate-800 text-slate-300 border border-slate-700/40'
-                  : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300/60 font-bold'
-              }`}
+              className="m3-btn-outlined w-full justify-between px-3 text-xs"
               title="تبديل مظهر النظام بين الوضع الليلي والوضع الفاتح"
             >
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 {sidebarTheme === 'dark' ? (
-                  <Sun className="w-3.5 h-3.5 text-amber-400" />
+                  <Sun className="w-3.5 h-3.5" style={{ color: 'var(--md-secondary)' }} />
                 ) : (
-                  <Moon className="w-3.5 h-3.5 text-emerald-700" />
+                  <Moon className="w-3.5 h-3.5" style={{ color: 'var(--md-primary)' }} />
                 )}
-                <span className="font-bold text-[11px]">مظهر النظام</span>
+                <span className="font-semibold">مظهر النظام</span>
               </div>
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                sidebarTheme === 'dark' ? 'bg-slate-900/80 text-amber-300 border border-slate-700/60' : 'bg-emerald-600 text-white'
-              }`}>
+              <span
+                className="m3-badge"
+                style={{
+                  backgroundColor: 'var(--md-primary-container)',
+                  color: 'var(--md-on-primary-container)',
+                  borderColor: 'transparent',
+                }}
+              >
                 {sidebarTheme === 'dark' ? 'الوضع المظلم' : 'الوضع الفاتح'}
               </span>
             </button>
 
-            <div className="flex items-center justify-between text-xs px-2.5 py-1.5 bg-slate-800/50 rounded-xl">
+            <div className="flex items-center justify-between text-xs px-3 py-2 rounded-xl bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)]">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-slate-300 font-medium">PostgreSQL: نشط</span>
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: 'var(--md-success)' }}
+                />
+                <span className="text-[var(--md-on-surface)] font-medium">PostgreSQL: نشط</span>
               </div>
-              <span className="text-[10px] text-slate-400 font-mono">B2 DR Ready</span>
+              <span className="text-[11px] text-[var(--md-on-surface-variant)] font-mono">
+                B2 DR Ready
+              </span>
             </div>
           </>
         ) : (
-          <div className="space-y-1.5 flex flex-col items-center">
+          <div className="space-y-2 flex flex-col items-center">
             <button
               type="button"
               onClick={toggleThemeFromSidebar}
-              className="w-full flex items-center justify-center p-2 bg-slate-800/50 hover:bg-slate-800 rounded-xl text-center cursor-pointer"
+              className="m3-btn-outlined w-full p-2 justify-center"
               title={sidebarTheme === 'dark' ? 'التحويل إلى الوضع الفاتح' : 'التحويل إلى الوضع المظلم'}
+              aria-label="تبديل مظهر النظام"
             >
               {sidebarTheme === 'dark' ? (
-                <Sun className="w-4 h-4 text-amber-400" />
+                <Sun className="w-4 h-4" style={{ color: 'var(--md-secondary)' }} />
               ) : (
-                <Moon className="w-4 h-4 text-emerald-600" />
+                <Moon className="w-4 h-4" style={{ color: 'var(--md-primary)' }} />
               )}
             </button>
             <button
               type="button"
               onClick={() => window.dispatchEvent(new CustomEvent('erp:open-updater-modal'))}
-              className="w-full flex items-center justify-center p-2 bg-slate-800/50 hover:bg-slate-800 rounded-xl text-center relative cursor-pointer"
+              className="m3-btn-outlined w-full p-2 justify-center relative"
               title={hasUpdate ? `تحديث جديد v${availableVersion} متاح - اضغط للترقية` : `الإصدار المثبت v${appVersion}`}
+              aria-label="مركز التحديثات"
             >
-              <Sparkles className={`w-4 h-4 ${hasUpdate ? 'text-amber-400 animate-spin' : 'text-slate-400'}`} />
+              <Sparkles
+                className="w-4 h-4"
+                style={{ color: hasUpdate ? 'var(--md-secondary)' : 'var(--md-on-surface-variant)' }}
+              />
               {hasUpdate && (
-                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-slate-900 animate-ping" />
+                <span
+                  aria-hidden="true"
+                  className="absolute top-1.5 right-2 w-2 h-2 rounded-full bg-[var(--md-secondary)]"
+                />
               )}
             </button>
             <div
-              className="w-full flex items-center justify-center p-2 bg-slate-800/50 rounded-xl text-center"
+              className="w-full h-9 flex items-center justify-center rounded-xl bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)]"
               title="PostgreSQL متصل • النسخ B2 جاهز"
             >
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span
+                className="w-2.5 h-2.5 rounded-full"
+                style={{ backgroundColor: 'var(--md-success)' }}
+              />
             </div>
           </div>
         )}

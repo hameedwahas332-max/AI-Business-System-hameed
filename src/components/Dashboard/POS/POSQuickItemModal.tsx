@@ -129,21 +129,21 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 overflow-y-auto" dir="rtl">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-800 flex items-center justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center m3-backdrop p-4 overflow-y-auto" dir="rtl">
+      <div className="m3-modal-surface rounded-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="px-6 py-4 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
+            <div className="p-2 bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] rounded-xl border border-[var(--md-primary)]/20">
               <Plus className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">إضافة صنف يدوي / بيع مباشر</h3>
-              <p className="text-xs text-slate-400">بيع صنف سريع غير مسجل في دليل المنتجات</p>
+              <h3 className="text-lg font-bold text-[var(--md-on-surface)]">إضافة صنف يدوي / بيع مباشر</h3>
+              <p className="text-xs text-[var(--md-on-surface-variant)]">بيع صنف سريع غير مسجل في دليل المنتجات</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-2 text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -151,28 +151,28 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
           {barcode && (
-            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs flex items-center justify-between gap-2 animate-in fade-in">
+            <div className="p-3 bg-[var(--md-warning-container)] border border-[var(--md-warning)]/30 rounded-xl text-[var(--md-on-warning-container)] text-xs flex items-center justify-between gap-2 animate-in fade-in">
               <div className="flex items-center gap-2">
-                <Barcode className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>تم التقاط باركود غير مسجل: <strong className="font-mono text-amber-200">{barcode}</strong></span>
+                <Barcode className="w-4 h-4 text-[var(--md-warning)] shrink-0" />
+                <span>تم التقاط باركود غير مسجل: <strong className="font-mono">{barcode}</strong></span>
               </div>
-              <span className="text-[10px] bg-amber-400/20 px-2 py-0.5 rounded-full text-amber-200 font-bold shrink-0">تسجيل فوري</span>
+              <span className="m3-badge-warning text-[10px] shrink-0">تسجيل فوري</span>
             </div>
           )}
 
           {error && (
-            <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-sm">
+            <div className="p-3 bg-[var(--md-error-container)] border border-[var(--md-error)]/30 rounded-xl text-[var(--md-on-error-container)] text-sm">
               {error}
             </div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                اسم أو بيان الصنف <span className="text-rose-400">*</span>
+              <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)] mb-1.5">
+                اسم أو بيان الصنف <span className="text-[var(--md-error)]">*</span>
               </label>
               <div className="relative">
-                <Tag className="w-4 h-4 text-slate-500 absolute right-3 top-3" />
+                <Tag className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute right-3 top-3" />
                 <input
                   type="text"
                   value={name}
@@ -181,19 +181,19 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
                     setError(null);
                   }}
                   placeholder="مثال: بطارية هانكوك 70 أمبير / أرز الشعلان / خدمة صيانة..."
-                  className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pr-10 pl-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                  className="m3-input w-full pr-10 pl-3 py-2 text-sm"
                   autoFocus
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+              <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)] mb-1.5 flex items-center justify-between">
                 <span>الباركود الممسوح (Barcode)</span>
-                <span className="text-[10px] text-emerald-400 font-mono">HID Scanner</span>
+                <span className="text-[10px] text-[var(--md-primary-text)] font-mono">HID Scanner</span>
               </label>
               <div className="relative">
-                <Barcode className="w-4 h-4 text-slate-500 absolute right-3 top-3" />
+                <Barcode className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute right-3 top-3" />
                 <input
                   type="text"
                   dir="ltr"
@@ -207,7 +207,7 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
                     }
                   }}
                   placeholder="6291000..."
-                  className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pr-10 pl-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-emerald-500 text-left"
+                  className="m3-input w-full pr-10 pl-3 py-2 text-sm font-mono text-left"
                 />
               </div>
             </div>
@@ -215,11 +215,11 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)] mb-1.5">
                 رقم الصنف / كود القطعة (Item Code)
               </label>
               <div className="relative">
-                <Hash className="w-4 h-4 text-slate-500 absolute right-3 top-3" />
+                <Hash className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute right-3 top-3" />
                 <input
                   type="text"
                   dir="ltr"
@@ -227,13 +227,13 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
                   value={itemCode}
                   onChange={(e) => setItemCode(normalizeScannedBarcode(toEnglishDigits(e.target.value)))}
                   placeholder="ITM-1001"
-                  className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pr-10 pl-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-emerald-500 text-left"
+                  className="m3-input w-full pr-10 pl-3 py-2 text-sm font-mono text-left"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)] mb-1.5">
                 رقم القطعة / OEM (اختياري)
               </label>
               <input
@@ -243,20 +243,20 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
                 value={partNumber}
                 onChange={(e) => setPartNumber(normalizeScannedBarcode(toEnglishDigits(e.target.value)))}
                 placeholder="PART-1001"
-                className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-emerald-500 text-left"
+                className="m3-input w-full px-3 py-2 text-sm font-mono text-left"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">نوع النشاط / التصنيف</label>
+              <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)] mb-1.5">نوع النشاط / التصنيف</label>
               <div className="relative">
-                <Layers className="w-4 h-4 text-slate-500 absolute right-3 top-3" />
+                <Layers className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute right-3 top-3 pointer-events-none" />
                 <select
                   value={activityType}
                   onChange={(e) => setActivityType(e.target.value)}
-                  className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pr-9 pl-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                  className="m3-select w-full pr-9 pl-3 py-2 text-xs"
                 >
                   <option value="general">عام / تجارة متنوعة</option>
                   <option value="food">مواد غذائية وتموينات</option>
@@ -270,8 +270,8 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                الكمية <span className="text-rose-400">*</span>
+              <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)] mb-1.5">
+                الكمية <span className="text-[var(--md-error)]">*</span>
               </label>
               <input
                 type="text"
@@ -280,16 +280,16 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
                 lang="en"
                 value={quantity}
                 onChange={(e) => setQuantity(toEnglishDigits(e.target.value))}
-                className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-emerald-500 text-center"
+                className="m3-input w-full px-3 py-2 text-sm font-mono text-center tabular-nums"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">الوحدة المباعة</label>
+              <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)] mb-1.5">الوحدة المباعة</label>
               <select
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
-                className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                className="m3-select w-full px-3 py-2 text-xs"
               >
                 <option value="قطعة / حبة">قطعة / حبة</option>
                 <option value="باكت / شدة">باكت / شدة</option>
@@ -313,23 +313,23 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
 
           {/* Dynamic spec fields depending on activityType */}
           {activityType === 'food' && (
-            <div className="p-3 bg-emerald-950/20 border border-emerald-500/20 rounded-xl">
-              <label className="block text-xs font-semibold text-emerald-300 mb-1 flex items-center gap-1.5">
+            <div className="p-3 bg-[var(--md-success-container)]/50 border border-[var(--md-success)]/30 rounded-xl">
+              <label className="block text-xs font-semibold text-[var(--md-on-success-container)] mb-1 flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5" /> تاريخ الانتهاء (FEFO)
               </label>
               <input
                 type="date"
                 value={expiryDate}
                 onChange={(e) => setExpiryDate(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                className="m3-input w-full px-3 py-1.5 text-xs"
               />
             </div>
           )}
 
           {activityType === 'battery' && (
-            <div className="p-3 bg-amber-950/20 border border-amber-500/20 rounded-xl grid grid-cols-2 gap-3">
+            <div className="p-3 bg-[var(--md-warning-container)]/50 border border-[var(--md-warning)]/30 rounded-xl grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-amber-300 mb-1 flex items-center gap-1">
+                <label className="block text-xs font-semibold text-[var(--md-on-warning-container)] mb-1 flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5" /> سعة البطارية (Ah) / الموديل
                 </label>
                 <input
@@ -337,11 +337,11 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
                   value={batterySpec}
                   onChange={(e) => setBatterySpec(e.target.value)}
                   placeholder="مثال: 70Ah 12V 550CCA"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                  className="m3-input w-full px-3 py-1.5 text-xs"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-amber-300 mb-1">مدة الضمان (بالأشهر)</label>
+                <label className="block text-xs font-semibold text-[var(--md-on-warning-container)] mb-1">مدة الضمان (بالأشهر)</label>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -350,17 +350,17 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
                   value={warrantyMonths}
                   onChange={(e) => setWarrantyMonths(toEnglishDigits(e.target.value))}
                   placeholder="12"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white font-mono text-center focus:outline-none focus:border-amber-500"
+                  className="m3-input w-full px-3 py-1.5 text-xs font-mono text-center tabular-nums"
                 />
               </div>
             </div>
           )}
 
           {activityType === 'tire' && (
-            <div className="p-3 bg-cyan-950/20 border border-cyan-500/20 rounded-xl space-y-2">
+            <div className="p-3 bg-[var(--md-info-container)]/50 border border-[var(--md-info)]/30 rounded-xl space-y-2">
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="block text-[11px] font-semibold text-cyan-300 mb-1">مقاس الإطار</label>
+                  <label className="block text-[11px] font-semibold text-[var(--md-on-info-container)] mb-1">مقاس الإطار</label>
                   <input
                     type="text"
                     dir="ltr"
@@ -368,11 +368,11 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
                     value={tireSize}
                     onChange={(e) => setTireSize(toEnglishDigits(e.target.value))}
                     placeholder="265/65R17"
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
+                    className="m3-input w-full px-2.5 py-1.5 text-xs font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-cyan-300 mb-1">تاريخ الإنتاج DOT</label>
+                  <label className="block text-[11px] font-semibold text-[var(--md-on-info-container)] mb-1">تاريخ الإنتاج DOT</label>
                   <input
                     type="text"
                     dir="ltr"
@@ -380,11 +380,11 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
                     value={tireProductionDot}
                     onChange={(e) => setTireProductionDot(toEnglishDigits(e.target.value))}
                     placeholder="2425"
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
+                    className="m3-input w-full px-2.5 py-1.5 text-xs font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-cyan-300 mb-1">الضمان (شهر)</label>
+                  <label className="block text-[11px] font-semibold text-[var(--md-on-info-container)] mb-1">الضمان (شهر)</label>
                   <input
                     type="text"
                     inputMode="numeric"
@@ -392,7 +392,7 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
                     lang="en"
                     value={warrantyMonths}
                     onChange={(e) => setWarrantyMonths(toEnglishDigits(e.target.value))}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono text-center focus:outline-none focus:border-cyan-500"
+                    className="m3-input w-full px-2.5 py-1.5 text-xs font-mono text-center tabular-nums"
                   />
                 </div>
               </div>
@@ -400,9 +400,9 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
           )}
 
           {(activityType === 'oil' || activityType === 'autopart') && (
-            <div className="p-3 bg-blue-950/20 border border-blue-500/20 rounded-xl grid grid-cols-2 gap-3">
+            <div className="p-3 bg-[var(--md-info-container)]/50 border border-[var(--md-info)]/30 rounded-xl grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-blue-300 mb-1 flex items-center gap-1">
+                <label className="block text-xs font-semibold text-[var(--md-on-info-container)] mb-1 flex items-center gap-1">
                   <Droplets className="w-3.5 h-3.5" /> درجة اللزوجة / المواصفة
                 </label>
                 <input
@@ -412,11 +412,11 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
                   value={viscosityGrade}
                   onChange={(e) => setViscosityGrade(toEnglishDigits(e.target.value))}
                   placeholder="5W-30 SN/CF"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
+                  className="m3-input w-full px-3 py-1.5 text-xs font-mono"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-blue-300 mb-1">رقم القطعة OEM / البارت</label>
+                <label className="block text-xs font-semibold text-[var(--md-on-info-container)] mb-1">رقم القطعة OEM / البارت</label>
                 <input
                   type="text"
                   dir="ltr"
@@ -424,22 +424,22 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
                   value={partNumber}
                   onChange={(e) => setPartNumber(toEnglishDigits(e.target.value))}
                   placeholder="OEM-90915-YZZD2"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
+                  className="m3-input w-full px-3 py-1.5 text-xs font-mono"
                 />
               </div>
             </div>
           )}
 
           {activityType === 'fuel' && (
-            <div className="p-3 bg-amber-950/20 border border-amber-500/20 rounded-xl grid grid-cols-2 gap-3">
+            <div className="p-3 bg-[var(--md-warning-container)]/50 border border-[var(--md-warning)]/30 rounded-xl grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-amber-300 mb-1 flex items-center gap-1">
+                <label className="block text-xs font-semibold text-[var(--md-on-warning-container)] mb-1 flex items-center gap-1">
                   <Fuel className="w-3.5 h-3.5" /> نوع المشتق النفطي / الوقود
                 </label>
                 <select
                   value={fuelType}
                   onChange={(e) => setFuelType(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                  className="m3-select w-full px-2.5 py-1.5 text-xs"
                 >
                   <option value="petrol_91">بنزين 91 ممتاز</option>
                   <option value="petrol_95">بنزين 95 سوبر</option>
@@ -448,7 +448,7 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-amber-300 mb-1">رقم الطرمبة / العداد</label>
+                <label className="block text-xs font-semibold text-[var(--md-on-warning-container)] mb-1">رقم الطرمبة / العداد</label>
                 <input
                   type="text"
                   dir="ltr"
@@ -456,7 +456,7 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
                   value={pumpNumber}
                   onChange={(e) => setPumpNumber(toEnglishDigits(e.target.value))}
                   placeholder="01"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-amber-500"
+                  className="m3-input w-full px-3 py-1.5 text-xs font-mono"
                 />
               </div>
             </div>
@@ -464,11 +464,11 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                سعر الوحدة ({currency}) <span className="text-rose-400">*</span>
+              <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)] mb-1.5">
+                سعر الوحدة ({currency}) <span className="text-[var(--md-error)]">*</span>
               </label>
               <div className="relative">
-                <DollarSign className="w-4 h-4 text-slate-500 absolute right-3 top-3" />
+                <DollarSign className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute right-3 top-3" />
                 <input
                   type="text"
                   inputMode="decimal"
@@ -477,13 +477,13 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
                   value={unitPrice}
                   onChange={(e) => setUnitPrice(toEnglishDigits(e.target.value))}
                   placeholder="0.00"
-                  className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pr-9 pl-3 py-2 text-sm text-white font-mono font-medium focus:outline-none focus:border-emerald-500 text-left"
+                  className="m3-input w-full pr-9 pl-3 py-2 text-sm font-mono font-medium text-left tabular-nums"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)] mb-1.5">
                 الخصم ({currency})
               </label>
               <input
@@ -494,12 +494,12 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
                 value={discount}
                 onChange={(e) => setDiscount(toEnglishDigits(e.target.value))}
                 placeholder="0"
-                className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-emerald-500 text-left"
+                className="m3-input w-full px-3 py-2 text-sm font-mono text-left tabular-nums"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)] mb-1.5">
                 الضريبة ({currency})
               </label>
               <input
@@ -510,15 +510,15 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
                 value={tax}
                 onChange={(e) => setTax(toEnglishDigits(e.target.value))}
                 placeholder="0"
-                className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-emerald-500 text-left"
+                className="m3-input w-full px-3 py-2 text-sm font-mono text-left tabular-nums"
               />
             </div>
           </div>
 
           {/* Item Net Total Summary */}
-          <div className="p-4 bg-slate-800/50 border border-slate-700/60 rounded-xl flex items-center justify-between">
-            <span className="text-sm text-slate-300 font-medium">إجمالي الصنف الصافي:</span>
-            <span className="text-lg font-black text-emerald-400 font-mono" dir="ltr">
+          <div className="p-4 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl flex items-center justify-between">
+            <span className="text-sm text-[var(--md-on-surface-variant)] font-medium">إجمالي الصنف الصافي:</span>
+            <span className="text-lg font-black text-[var(--md-primary-text)] font-mono tabular-nums" dir="ltr">
               {total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}
             </span>
           </div>
@@ -527,13 +527,13 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-medium transition-colors"
+              className="m3-btn-outlined px-4 py-2.5 text-sm font-medium"
             >
               إلغاء
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-950/40 transition-all flex items-center gap-2"
+              className="m3-btn-primary px-6 py-2.5 text-sm font-bold flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
               إضافة إلى السلة

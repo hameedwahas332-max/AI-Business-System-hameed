@@ -64,45 +64,45 @@ export const POSHeldDrawer: React.FC<POSHeldDrawerProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex justify-end z-50 animate-in fade-in duration-150" dir="rtl">
-      <div className="bg-slate-900 border-l border-slate-800 w-full max-w-lg h-full flex flex-col shadow-2xl animate-in slide-in-from-left duration-200">
+    <div className="fixed inset-0 m3-backdrop flex justify-end z-50 animate-in fade-in duration-150" dir="rtl">
+      <div className="m3-modal-surface border-l border-[var(--md-outline-variant)] w-full max-w-lg h-full flex flex-col animate-in slide-in-from-left duration-200">
         {/* Drawer Header */}
-        <div className="p-4 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between">
+        <div className="p-4 border-b border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <div className="w-8 h-8 rounded-xl bg-[var(--md-warning-container)] border border-[var(--md-warning)]/30 flex items-center justify-center text-[var(--md-warning)]">
               <Clock className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <h3 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
                 <span>الفواتير المعلقة والمؤجلة</span>
-                <span className="px-2 py-0.5 rounded-full bg-slate-800 text-amber-400 text-xs font-mono font-bold border border-slate-700">
+                <span className="m3-badge-warning font-mono tabular-nums">
                   {heldSales.length}
                 </span>
               </h3>
-              <p className="text-[11px] text-slate-400">إدارة فواتير التعليق العادي والتعليق الآجل لحساب العملاء</p>
+              <p className="text-[11px] text-[var(--md-on-surface-variant)]">إدارة فواتير التعليق العادي والتعليق الآجل لحساب العملاء</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition-colors"
+            className="text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] p-1.5 rounded-xl hover:bg-[var(--md-surface-container-high)] transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Filter Tabs: الكل | تعليق آجل | تعليق عادي */}
-        <div className="p-3 bg-slate-950/40 border-b border-slate-800 flex items-center gap-2">
+        <div className="p-3 bg-[var(--md-surface-container-lowest)] border-b border-[var(--md-outline-variant)] flex items-center gap-2">
           <button
             type="button"
             onClick={() => setFilterType('ALL')}
-            className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer border ${
               filterType === 'ALL'
-                ? 'bg-slate-800 text-white border border-slate-700 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                ? 'bg-[var(--md-surface-container-high)] text-[var(--md-on-surface)] border-[var(--md-outline)] shadow-sm'
+                : 'border-transparent text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)]'
             }`}
           >
             <span>الكل</span>
-            <span className="px-1.5 py-0.2 rounded-md bg-slate-700/60 text-[10px] font-mono">
+            <span className="px-1.5 py-0.2 rounded-md bg-[var(--md-surface-container)] text-[10px] font-mono tabular-nums">
               {heldSales.length}
             </span>
           </button>
@@ -110,14 +110,14 @@ export const POSHeldDrawer: React.FC<POSHeldDrawerProps> = ({
           <button
             type="button"
             onClick={() => setFilterType('CREDIT')}
-            className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer border ${
               filterType === 'CREDIT'
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-amber-400 hover:bg-amber-500/10'
+                ? 'bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)] border-[var(--md-warning)]/40 shadow-sm'
+                : 'border-transparent text-[var(--md-on-surface-variant)] hover:text-[var(--md-warning)] hover:bg-[var(--md-warning-container)]/50'
             }`}
           >
             <span>🏷️ تعليق آجل</span>
-            <span className="px-1.5 py-0.2 rounded-md bg-amber-500/20 text-amber-300 text-[10px] font-mono">
+            <span className="px-1.5 py-0.2 rounded-md bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)] text-[10px] font-mono tabular-nums">
               {creditCount}
             </span>
           </button>
@@ -125,14 +125,14 @@ export const POSHeldDrawer: React.FC<POSHeldDrawerProps> = ({
           <button
             type="button"
             onClick={() => setFilterType('NORMAL')}
-            className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer border ${
               filterType === 'NORMAL'
-                ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-blue-400 hover:bg-blue-500/10'
+                ? 'bg-[var(--md-info-container)] text-[var(--md-on-info-container)] border-[var(--md-info)]/40 shadow-sm'
+                : 'border-transparent text-[var(--md-on-surface-variant)] hover:text-[var(--md-info)] hover:bg-[var(--md-info-container)]/50'
             }`}
           >
             <span>⏸️ تعليق عادي</span>
-            <span className="px-1.5 py-0.2 rounded-md bg-blue-500/20 text-blue-300 text-[10px] font-mono">
+            <span className="px-1.5 py-0.2 rounded-md bg-[var(--md-info-container)] text-[var(--md-on-info-container)] text-[10px] font-mono tabular-nums">
               {normalCount}
             </span>
           </button>
@@ -142,11 +142,11 @@ export const POSHeldDrawer: React.FC<POSHeldDrawerProps> = ({
         <div className="flex-1 overflow-y-auto p-4 space-y-3.5 custom-scrollbar">
           {filteredSales.length === 0 ? (
             <div className="text-center py-20 space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-slate-800 text-slate-500 flex items-center justify-center mx-auto">
+              <div className="w-12 h-12 rounded-2xl bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] flex items-center justify-center mx-auto">
                 <ShoppingBag className="w-6 h-6" />
               </div>
-              <p className="text-xs text-slate-400 font-bold">لا توجد فواتير معلقة تطابق الفلتر</p>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-xs text-[var(--md-on-surface)] font-bold">لا توجد فواتير معلقة تطابق الفلتر</p>
+              <p className="text-[11px] text-[var(--md-on-surface-variant)]">
                 يمكنك تعليق أي طلب نقدي أو آجل من واجهة الكاشير بالضغط على زر تعليق أو تعليق آجل
               </p>
             </div>
@@ -169,35 +169,35 @@ export const POSHeldDrawer: React.FC<POSHeldDrawerProps> = ({
                   key={sale.id}
                   className={`p-4 rounded-2xl border transition-all space-y-3 ${
                     isCredit
-                      ? 'bg-amber-950/15 border-amber-500/30 hover:border-amber-500/50'
-                      : 'bg-slate-800/40 border-slate-800 hover:border-slate-700'
+                      ? 'bg-[var(--md-warning-container)]/35 border-[var(--md-warning)]/35 hover:border-[var(--md-warning)]/60'
+                      : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] hover:border-[var(--md-outline)]'
                   }`}
                 >
                   {/* Top Header: Badge & Amount */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="space-y-1">
                       {isCredit ? (
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-bold">
+                        <div className="m3-badge-warning text-[11px]">
                           <span>🏷️ تعليق آجل - لحساب العميل:</span>
-                          <span className="text-white underline underline-offset-2">{custName}</span>
+                          <span className="underline underline-offset-2">{custName}</span>
                         </div>
                       ) : (
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-blue-500/15 text-blue-300 border border-blue-500/30 text-[11px] font-bold">
+                        <div className="m3-badge-info text-[11px]">
                           <span>⏸️ تعليق عادي</span>
-                          <span className="text-slate-300">({custName})</span>
+                          <span>({custName})</span>
                         </div>
                       )}
 
-                      <div className="text-[10px] text-slate-400 flex items-center gap-2 flex-wrap">
+                      <div className="text-[10px] text-[var(--md-on-surface-variant)] flex items-center gap-2 flex-wrap">
                         {sale.reference_no && (
-                          <span className="font-mono text-slate-300 font-bold">#{sale.reference_no}</span>
+                          <span className="font-mono text-[var(--md-on-surface)] font-bold tabular-nums">#{sale.reference_no}</span>
                         )}
                         {timeString && <span>⏰ {timeString}</span>}
                         {sale.customerPhone && (
                           <span>📞 {sale.customerPhone}</span>
                         )}
                         {(sale.receivedBy || (sale as any).received_by) && (
-                          <span className="text-sky-300 bg-sky-950/60 border border-sky-500/30 px-1.5 py-0.5 rounded font-bold">
+                          <span className="m3-badge-info text-[10px]">
                             👤 المستلم: {sale.receivedBy || (sale as any).received_by}
                           </span>
                         )}
@@ -205,7 +205,7 @@ export const POSHeldDrawer: React.FC<POSHeldDrawerProps> = ({
                     </div>
 
                     <div className="text-left shrink-0">
-                      <div className="text-base font-black text-emerald-400 font-mono">
+                      <div className="text-base font-black text-[var(--md-primary-text)] font-mono tabular-nums">
                         {formatAmount(sale.total || sale.totalAmount || 0, currency)}
                       </div>
                     </div>
@@ -213,25 +213,25 @@ export const POSHeldDrawer: React.FC<POSHeldDrawerProps> = ({
 
                   {/* Note */}
                   {sale.note && (
-                    <div className="text-[11px] text-slate-300 bg-slate-900/60 border border-slate-800 px-2.5 py-1 rounded-xl">
+                    <div className="text-[11px] text-[var(--md-on-surface)] bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] px-2.5 py-1 rounded-xl">
                       💬 {sale.note}
                     </div>
                   )}
 
                   {/* Items Preview */}
-                  <div className="text-[11px] text-slate-300 bg-slate-900/40 p-2.5 rounded-xl border border-slate-800/60">
-                    <span className="font-bold text-slate-400">({itemsList.length} أصناف): </span>
+                  <div className="text-[11px] text-[var(--md-on-surface)] bg-[var(--md-surface-container)] p-2.5 rounded-xl border border-[var(--md-outline-variant)]">
+                    <span className="font-bold text-[var(--md-on-surface-variant)]">({itemsList.length} أصناف): </span>
                     <span>
                       {itemsList.map((i: any) => `${i.name || i.item_name} (x${i.quantity})`).join('، ')}
                     </span>
                   </div>
 
                   {/* Actions Bar */}
-                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/60">
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--md-outline-variant)]">
                     <button
                       type="button"
                       onClick={() => onDeleteHeldSale(sale.id)}
-                      className="p-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-xl text-xs font-bold transition-all flex items-center gap-1"
+                      className="p-2 bg-[var(--md-error-container)] hover:bg-[var(--md-error)] text-[var(--md-on-error-container)] hover:text-[var(--md-on-error)] rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
                       title="حذف الفاتورة المعلقة نهائياً"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -248,10 +248,10 @@ export const POSHeldDrawer: React.FC<POSHeldDrawerProps> = ({
                               onResumeSale(sale);
                               onClose();
                             }}
-                            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+                            className="m3-btn-outlined px-3 py-1.5 text-xs font-bold flex items-center gap-1.5"
                             title="استرجاع السلة لفتحها في الكاشير وإضافة أصناف جديدة"
                           >
-                            <Play className="w-3.5 h-3.5 text-blue-400" />
+                            <Play className="w-3.5 h-3.5 text-[var(--md-info)]" />
                             <span>استرجاع للكاشير (إضافة أصناف)</span>
                           </button>
 
@@ -259,7 +259,7 @@ export const POSHeldDrawer: React.FC<POSHeldDrawerProps> = ({
                             type="button"
                             disabled={postingId === sale.id}
                             onClick={() => handlePostDirectly(sale)}
-                            className="px-3.5 py-1.5 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-md shadow-amber-950/40 cursor-pointer disabled:opacity-50"
+                            className="px-3.5 py-1.5 bg-[var(--md-secondary)] hover:opacity-90 text-[var(--md-on-secondary)] rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
                             title="اعتماد وترحيل الفاتورة فوراً لحساب العميل كفاتورة مبيعات آجلة وخصم المخزون"
                           >
                             {postingId === sale.id ? (
@@ -278,7 +278,7 @@ export const POSHeldDrawer: React.FC<POSHeldDrawerProps> = ({
                             onResumeSale(sale);
                             onClose();
                           }}
-                          className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md shadow-emerald-950/30"
+                          className="m3-btn-primary px-4 py-1.5 text-xs font-bold flex items-center gap-1.5"
                         >
                           <Play className="w-3.5 h-3.5" />
                           <span>استئناف الفاتورة للكاشير</span>

@@ -140,38 +140,38 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className={`inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-semibold border border-slate-700/80 shadow-sm transition-all cursor-pointer ${className}`}
+        className={`m3-btn-outlined !min-h-[34px] !px-3 !py-1.5 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--md-primary)] ${className}`}
         title="تخصيص قواعد وتشغيل هذا القسم (Module Engine Settings)"
       >
-        <Settings className="w-3.5 h-3.5 text-amber-400 animate-spin-hover" />
+        <Settings className="w-3.5 h-3.5 text-[var(--md-secondary)] animate-spin-hover" />
         <span>{buttonLabel}</span>
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 overflow-y-auto" dir="rtl">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden my-6 animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 m3-backdrop flex items-center justify-center p-4 overflow-y-auto" dir="rtl">
+          <div className="m3-modal-surface w-full max-w-2xl overflow-hidden my-6 animate-in fade-in zoom-in-95 duration-150">
             {/* Header */}
-            <div className="px-6 py-4 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                <div className="w-10 h-10 rounded-2xl bg-[var(--md-secondary-container)] border border-[var(--md-secondary)]/30 flex items-center justify-center text-[var(--md-on-secondary-container)]">
                   <Sliders className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2 flex-wrap">
                     <span>{MODULE_TITLES[effectiveModule] || 'إعدادات القسم'}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
+                    <span className="m3-badge m3-badge-success font-mono">
                       LIVE ENGINE
                     </span>
                   </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    البروفايل النشط: <strong className="text-amber-300 font-bold">{PRESET_DEFINITIONS[settings.activePreset]?.name}</strong>
+                  <p className="text-xs text-[var(--md-on-surface-variant)] mt-0.5">
+                    البروفايل النشط: <strong className="text-[var(--md-secondary)] font-bold">{PRESET_DEFINITIONS[settings.activePreset]?.name}</strong>
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
                 {savedNotice && (
-                  <span className="text-[11px] text-emerald-400 flex items-center gap-1 bg-emerald-950/60 border border-emerald-800 px-2 py-1 rounded-lg">
+                  <span className="m3-badge m3-badge-success">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     تم الحفظ والتطبيق
                   </span>
@@ -179,7 +179,7 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                  className="p-1.5 text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] rounded-xl transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--md-primary)]"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -187,14 +187,14 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
             </div>
 
             {/* Navigation Tabs inside modal */}
-            <div className="flex items-center gap-2 px-6 pt-3 border-b border-slate-800 bg-slate-900/40 text-xs font-semibold">
+            <div className="flex items-center gap-2 px-6 pt-3 border-b border-[var(--md-outline-variant)] bg-[var(--md-surface-container)] text-xs font-semibold overflow-x-auto">
               <button
                 type="button"
                 onClick={() => setActiveTab('module')}
-                className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 ${
+                className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--md-primary)] ${
                   activeTab === 'module'
-                    ? 'border-emerald-500 text-emerald-400'
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                    ? 'border-[var(--md-primary)] text-[var(--md-primary-text)] font-bold'
+                    : 'border-transparent text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
                 }`}
               >
                 <Sliders className="w-3.5 h-3.5" />
@@ -203,22 +203,22 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveTab('presets')}
-                className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 ${
+                className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--md-primary)] ${
                   activeTab === 'presets'
-                    ? 'border-amber-500 text-amber-400'
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                    ? 'border-[var(--md-secondary)] text-[var(--md-secondary)] font-bold'
+                    : 'border-transparent text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>بروفايل ونشاط المنشأة ({Object.keys(PRESET_DEFINITIONS).length})</span>
+                <span className="tabular-nums">بروفايل ونشاط المنشأة ({Object.keys(PRESET_DEFINITIONS).length})</span>
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('sidebar')}
-                className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 ${
+                className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--md-primary)] ${
                   activeTab === 'sidebar'
-                    ? 'border-indigo-500 text-indigo-400'
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                    ? 'border-[var(--md-info)] text-[var(--md-info)] font-bold'
+                    : 'border-transparent text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
                 }`}
               >
                 <Layers className="w-3.5 h-3.5" />
@@ -227,10 +227,10 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveTab('appearance')}
-                className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 ${
+                className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--md-primary)] ${
                   activeTab === 'appearance'
-                    ? 'border-amber-500 text-amber-400 font-bold'
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                    ? 'border-[var(--md-secondary)] text-[var(--md-secondary)] font-bold'
+                    : 'border-transparent text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
                 }`}
               >
                 <Sun className="w-3.5 h-3.5" />
@@ -246,85 +246,85 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
                 <div className="space-y-4">
                   {/* Products & Inventory Settings */}
                   {(effectiveModule === 'products' || effectiveModule === 'inventory' || effectiveModule === 'purchases' || effectiveModule === 'general') && (
-                    <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800 space-y-3">
-                      <h4 className="font-bold text-slate-200 flex items-center gap-2">
-                        <Layers className="w-4 h-4 text-emerald-400" />
+                    <div className="m3-card p-4 space-y-3">
+                      <h4 className="font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                        <Layers className="w-4 h-4 text-[var(--md-primary-text)]" />
                         <span>قواعد الأصناف والوحدات والمخزون</span>
                       </h4>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                        <label className="flex items-center justify-between p-2.5 bg-slate-900 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                        <label className="flex items-center justify-between gap-2 p-3 bg-[var(--md-surface-container-low)] rounded-xl border border-[var(--md-outline-variant)] cursor-pointer hover:border-[var(--md-primary)]/50 transition-colors">
                           <div>
-                            <span className="font-semibold text-white block">تعدد وحدات القياس (UOM)</span>
-                            <span className="text-[11px] text-slate-400">حبة / باكت / كرتون مع معاملات التحويل</span>
+                            <span className="font-semibold text-[var(--md-on-surface)] block">تعدد وحدات القياس (UOM)</span>
+                            <span className="text-[11px] text-[var(--md-on-surface-variant)]">حبة / باكت / كرتون مع معاملات التحويل</span>
                           </div>
                           <input
                             type="checkbox"
                             checked={settings.enableMultiUnits}
                             onChange={(e) => handleToggle('enableMultiUnits', e.target.checked)}
-                            className="w-4 h-4 accent-emerald-500 rounded cursor-pointer"
+                            className="w-4 h-4 accent-[var(--md-primary)] rounded cursor-pointer shrink-0"
                           />
                         </label>
 
-                        <label className="flex items-center justify-between p-2.5 bg-slate-900 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                        <label className="flex items-center justify-between gap-2 p-3 bg-[var(--md-surface-container-low)] rounded-xl border border-[var(--md-outline-variant)] cursor-pointer hover:border-[var(--md-primary)]/50 transition-colors">
                           <div>
-                            <span className="font-semibold text-white block">مستويات الأسعار المتعددة</span>
-                            <span className="text-[11px] text-slate-400">تجزئة، نصف جملة، جملة، خاص VIP</span>
+                            <span className="font-semibold text-[var(--md-on-surface)] block">مستويات الأسعار المتعددة</span>
+                            <span className="text-[11px] text-[var(--md-on-surface-variant)]">تجزئة، نصف جملة، جملة، خاص VIP</span>
                           </div>
                           <input
                             type="checkbox"
                             checked={settings.enableTieredPricing}
                             onChange={(e) => handleToggle('enableTieredPricing', e.target.checked)}
-                            className="w-4 h-4 accent-emerald-500 rounded cursor-pointer"
+                            className="w-4 h-4 accent-[var(--md-primary)] rounded cursor-pointer shrink-0"
                           />
                         </label>
 
-                        <label className="flex items-center justify-between p-2.5 bg-slate-900 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                        <label className="flex items-center justify-between gap-2 p-3 bg-[var(--md-surface-container-low)] rounded-xl border border-[var(--md-outline-variant)] cursor-pointer hover:border-[var(--md-primary)]/50 transition-colors">
                           <div>
-                            <span className="font-semibold text-white block">تتبع الصلاحية وتواريخ الإنتاج (FEFO)</span>
-                            <span className="text-[11px] text-slate-400">رقم التشغيلة (Batch) وتنبيه قرب الانتهاء</span>
+                            <span className="font-semibold text-[var(--md-on-surface)] block">تتبع الصلاحية وتواريخ الإنتاج (FEFO)</span>
+                            <span className="text-[11px] text-[var(--md-on-surface-variant)]">رقم التشغيلة (Batch) وتنبيه قرب الانتهاء</span>
                           </div>
                           <input
                             type="checkbox"
                             checked={settings.enableExpiryTracking}
                             onChange={(e) => handleToggle('enableExpiryTracking', e.target.checked)}
-                            className="w-4 h-4 accent-emerald-500 rounded cursor-pointer"
+                            className="w-4 h-4 accent-[var(--md-primary)] rounded cursor-pointer shrink-0"
                           />
                         </label>
 
-                        <label className="flex items-center justify-between p-2.5 bg-slate-900 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                        <label className="flex items-center justify-between gap-2 p-3 bg-[var(--md-surface-container-low)] rounded-xl border border-[var(--md-outline-variant)] cursor-pointer hover:border-[var(--md-primary)]/50 transition-colors">
                           <div>
-                            <span className="font-semibold text-white block">سيريال وضمان البطاريات والأجهزة</span>
-                            <span className="text-[11px] text-slate-400">شهادة ضمان وسيريال نمبر ورجيع بطاريات</span>
+                            <span className="font-semibold text-[var(--md-on-surface)] block">سيريال وضمان البطاريات والأجهزة</span>
+                            <span className="text-[11px] text-[var(--md-on-surface-variant)]">شهادة ضمان وسيريال نمبر ورجيع بطاريات</span>
                           </div>
                           <input
                             type="checkbox"
                             checked={settings.enableSerialAndWarranty}
                             onChange={(e) => handleToggle('enableSerialAndWarranty', e.target.checked)}
-                            className="w-4 h-4 accent-emerald-500 rounded cursor-pointer"
+                            className="w-4 h-4 accent-[var(--md-primary)] rounded cursor-pointer shrink-0"
                           />
                         </label>
 
-                        <label className="flex items-center justify-between p-2.5 bg-slate-900 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                        <label className="flex items-center justify-between gap-2 p-3 bg-[var(--md-surface-container-low)] rounded-xl border border-[var(--md-outline-variant)] cursor-pointer hover:border-[var(--md-primary)]/50 transition-colors">
                           <div>
-                            <span className="font-semibold text-white block">مواصفات الزيوت والقطع (Viscosity)</span>
-                            <span className="text-[11px] text-slate-400">درجة اللزوجة 20W-50، سعة اللتر، كود OEM</span>
+                            <span className="font-semibold text-[var(--md-on-surface)] block">مواصفات الزيوت والقطع (Viscosity)</span>
+                            <span className="text-[11px] text-[var(--md-on-surface-variant)]">درجة اللزوجة 20W-50، سعة اللتر، كود OEM</span>
                           </div>
                           <input
                             type="checkbox"
                             checked={settings.enableOilViscositySpec}
                             onChange={(e) => handleToggle('enableOilViscositySpec', e.target.checked)}
-                            className="w-4 h-4 accent-emerald-500 rounded cursor-pointer"
+                            className="w-4 h-4 accent-[var(--md-primary)] rounded cursor-pointer shrink-0"
                           />
                         </label>
 
-                        <div className="p-2.5 bg-slate-900 rounded-xl border border-slate-800 flex items-center justify-between">
-                          <span className="font-semibold text-slate-300">حد التنبيه الافتراضي للنواقص:</span>
+                        <div className="p-3 bg-[var(--md-surface-container-low)] rounded-xl border border-[var(--md-outline-variant)] flex items-center justify-between gap-2">
+                          <span className="font-semibold text-[var(--md-on-surface)]">حد التنبيه الافتراضي للنواقص:</span>
                           <input
                             type="number"
                             value={settings.lowStockDefaultThreshold}
                             onChange={(e) => handleToggle('lowStockDefaultThreshold', Number(e.target.value) || 5)}
-                            className="w-20 px-2 py-1 bg-slate-950 border border-slate-700 rounded-lg text-white font-mono text-center font-bold"
+                            className="m3-input !h-8 !w-20 !px-2 font-mono tabular-nums text-center font-bold"
                           />
                         </div>
                       </div>
@@ -333,87 +333,87 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
 
                   {/* POS & Invoices Settings */}
                   {(effectiveModule === 'pos' || effectiveModule === 'invoices' || effectiveModule === 'purchases' || effectiveModule === 'general') && (
-                    <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800 space-y-3">
-                      <h4 className="font-bold text-slate-200 flex items-center gap-2">
-                        <CreditCard className="w-4 h-4 text-amber-400" />
+                    <div className="m3-card p-4 space-y-3">
+                      <h4 className="font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                        <CreditCard className="w-4 h-4 text-[var(--md-secondary)]" />
                         <span>قواعد الكاشير والفواتير والضريبة</span>
                       </h4>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                        <label className="flex items-center justify-between p-2.5 bg-slate-900 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                        <label className="flex items-center justify-between gap-2 p-3 bg-[var(--md-surface-container-low)] rounded-xl border border-[var(--md-outline-variant)] cursor-pointer hover:border-[var(--md-primary)]/50 transition-colors">
                           <div>
-                            <span className="font-semibold text-white block">السماح بالبيع بالسالب (Negative Stock)</span>
-                            <span className="text-[11px] text-slate-400">إتمام البيع حتى لو كان الرصيد غير متوفر</span>
+                            <span className="font-semibold text-[var(--md-on-surface)] block">السماح بالبيع بالسالب (Negative Stock)</span>
+                            <span className="text-[11px] text-[var(--md-on-surface-variant)]">إتمام البيع حتى لو كان الرصيد غير متوفر</span>
                           </div>
                           <input
                             type="checkbox"
                             checked={settings.allowNegativeStockSale}
                             onChange={(e) => handleToggle('allowNegativeStockSale', e.target.checked)}
-                            className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                            className="w-4 h-4 accent-[var(--md-primary)] rounded cursor-pointer shrink-0"
                           />
                         </label>
 
-                        <label className="flex items-center justify-between p-2.5 bg-slate-900 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                        <label className="flex items-center justify-between gap-2 p-3 bg-[var(--md-surface-container-low)] rounded-xl border border-[var(--md-outline-variant)] cursor-pointer hover:border-[var(--md-primary)]/50 transition-colors">
                           <div>
-                            <span className="font-semibold text-white block">تمكين الكاشير من تعديل السعر</span>
-                            <span className="text-[11px] text-slate-400">تعديل سعر الوحدة يدوياً أثناء البيع</span>
+                            <span className="font-semibold text-[var(--md-on-surface)] block">تمكين الكاشير من تعديل السعر</span>
+                            <span className="text-[11px] text-[var(--md-on-surface-variant)]">تعديل سعر الوحدة يدوياً أثناء البيع</span>
                           </div>
                           <input
                             type="checkbox"
                             checked={settings.allowCashierPriceEdit}
                             onChange={(e) => handleToggle('allowCashierPriceEdit', e.target.checked)}
-                            className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                            className="w-4 h-4 accent-[var(--md-primary)] rounded cursor-pointer shrink-0"
                           />
                         </label>
 
-                        <label className="flex items-center justify-between p-2.5 bg-slate-900 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                        <label className="flex items-center justify-between gap-2 p-3 bg-[var(--md-surface-container-low)] rounded-xl border border-[var(--md-outline-variant)] cursor-pointer hover:border-[var(--md-primary)]/50 transition-colors">
                           <div>
-                            <span className="font-semibold text-white block">خصم استبدال بطارية قديمة (رجيع)</span>
-                            <span className="text-[11px] text-slate-400">بند خصم فوري مالي عند شراء بطارية جديدة</span>
+                            <span className="font-semibold text-[var(--md-on-surface)] block">خصم استبدال بطارية قديمة (رجيع)</span>
+                            <span className="text-[11px] text-[var(--md-on-surface-variant)]">بند خصم فوري مالي عند شراء بطارية جديدة</span>
                           </div>
                           <input
                             type="checkbox"
                             checked={settings.enableBatteryScrapTradeIn}
                             onChange={(e) => handleToggle('enableBatteryScrapTradeIn', e.target.checked)}
-                            className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                            className="w-4 h-4 accent-[var(--md-primary)] rounded cursor-pointer shrink-0"
                           />
                         </label>
 
-                        <label className="flex items-center justify-between p-2.5 bg-slate-900 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                        <label className="flex items-center justify-between gap-2 p-3 bg-[var(--md-surface-container-low)] rounded-xl border border-[var(--md-outline-variant)] cursor-pointer hover:border-[var(--md-primary)]/50 transition-colors">
                           <div>
-                            <span className="font-semibold text-white block">طباعة السيريال والضمان بالفاتورة</span>
-                            <span className="text-[11px] text-slate-400">إظهار مدة وتاريخ انتهاء الضمان رسمي بالطباعة</span>
+                            <span className="font-semibold text-[var(--md-on-surface)] block">طباعة السيريال والضمان بالفاتورة</span>
+                            <span className="text-[11px] text-[var(--md-on-surface-variant)]">إظهار مدة وتاريخ انتهاء الضمان رسمي بالطباعة</span>
                           </div>
                           <input
                             type="checkbox"
                             checked={settings.printWarrantyOnInvoice}
                             onChange={(e) => handleToggle('printWarrantyOnInvoice', e.target.checked)}
-                            className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                            className="w-4 h-4 accent-[var(--md-primary)] rounded cursor-pointer shrink-0"
                           />
                         </label>
 
-                        <div className="p-2.5 bg-slate-900 rounded-xl border border-slate-800 flex items-center justify-between">
-                          <span className="font-semibold text-slate-300">نمط الطباعة الافتراضي:</span>
+                        <div className="p-3 bg-[var(--md-surface-container-low)] rounded-xl border border-[var(--md-outline-variant)] flex items-center justify-between gap-2">
+                          <span className="font-semibold text-[var(--md-on-surface)]">نمط الطباعة الافتراضي:</span>
                           <select
                             value={settings.defaultPrintFormat}
                             onChange={(e) => handleToggle('defaultPrintFormat', e.target.value)}
-                            className="px-3 py-1 bg-slate-950 border border-slate-700 rounded-lg text-white font-bold"
+                            className="m3-select !h-8 !w-auto !px-2.5 text-xs font-bold"
                           >
                             <option value="80mm">إيصال حراري (80mm POS)</option>
                             <option value="A4">فاتورة ضريبية كاملة (A4)</option>
                           </select>
                         </div>
 
-                        <label className="flex items-center justify-between p-2.5 bg-slate-900 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                        <label className="flex items-center justify-between gap-2 p-3 bg-[var(--md-surface-container-low)] rounded-xl border border-[var(--md-outline-variant)] cursor-pointer hover:border-[var(--md-primary)]/50 transition-colors">
                           <div>
-                            <span className="font-semibold text-white block">فرض الالتزام بالحد الائتماني</span>
-                            <span className="text-[11px] text-slate-400">منع البيع الآجل عند تجاوز سقف الديون</span>
+                            <span className="font-semibold text-[var(--md-on-surface)] block">فرض الالتزام بالحد الائتماني</span>
+                            <span className="text-[11px] text-[var(--md-on-surface-variant)]">منع البيع الآجل عند تجاوز سقف الديون</span>
                           </div>
                           <input
                             type="checkbox"
                             checked={settings.enforceCreditLimit}
                             onChange={(e) => handleToggle('enforceCreditLimit', e.target.checked)}
-                            className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                            className="w-4 h-4 accent-[var(--md-primary)] rounded cursor-pointer shrink-0"
                           />
                         </label>
                       </div>
@@ -422,19 +422,19 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
 
                   {/* Customers, Suppliers & Payments Settings */}
                   {(effectiveModule === 'customers' || effectiveModule === 'suppliers' || effectiveModule === 'payments' || effectiveModule === 'general') && (
-                    <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800 space-y-3">
-                      <h4 className="font-bold text-slate-200 flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-sky-400" />
+                    <div className="m3-card p-4 space-y-3">
+                      <h4 className="font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-[var(--md-info)]" />
                         <span>قواعد العملاء والموردين والسندات</span>
                       </h4>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                        <div className="p-2.5 bg-slate-900 rounded-xl border border-slate-800 flex items-center justify-between">
-                          <span className="font-semibold text-slate-300">مستوى السعر الافتراضي للعميل:</span>
+                        <div className="p-3 bg-[var(--md-surface-container-low)] rounded-xl border border-[var(--md-outline-variant)] flex items-center justify-between gap-2">
+                          <span className="font-semibold text-[var(--md-on-surface)]">مستوى السعر الافتراضي للعميل:</span>
                           <select
                             value={settings.defaultCustomerPriceTier}
                             onChange={(e) => handleToggle('defaultCustomerPriceTier', e.target.value)}
-                            className="px-3 py-1 bg-slate-950 border border-slate-700 rounded-lg text-white font-bold"
+                            className="m3-select !h-8 !w-auto !px-2.5 text-xs font-bold"
                           >
                             <option value="retail">سعر التجزئة (Retail)</option>
                             <option value="half_wholesale">نصف جملة (Half-Wholesale)</option>
@@ -443,16 +443,16 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
                           </select>
                         </div>
 
-                        <label className="flex items-center justify-between p-2.5 bg-slate-900 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+                        <label className="flex items-center justify-between gap-2 p-3 bg-[var(--md-surface-container-low)] rounded-xl border border-[var(--md-outline-variant)] cursor-pointer hover:border-[var(--md-primary)]/50 transition-colors">
                           <div>
-                            <span className="font-semibold text-white block">إشعار فوري عبر واتساب بعد السند</span>
-                            <span className="text-[11px] text-slate-400">فتح رسالة التحصيل/الصرف الرسمية للعميل أو المورد</span>
+                            <span className="font-semibold text-[var(--md-on-surface)] block">إشعار فوري عبر واتساب بعد السند</span>
+                            <span className="text-[11px] text-[var(--md-on-surface-variant)]">فتح رسالة التحصيل/الصرف الرسمية للعميل أو المورد</span>
                           </div>
                           <input
                             type="checkbox"
                             checked={settings.autoWhatsAppAfterVoucher}
                             onChange={(e) => handleToggle('autoWhatsAppAfterVoucher', e.target.checked)}
-                            className="w-4 h-4 accent-sky-500 rounded cursor-pointer"
+                            className="w-4 h-4 accent-[var(--md-primary)] rounded cursor-pointer shrink-0"
                           />
                         </label>
                       </div>
@@ -464,7 +464,7 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
               {/* TAB 2: BUSINESS PROFILE PRESETS */}
               {activeTab === 'presets' && (
                 <div className="space-y-3">
-                  <p className="text-slate-400">
+                  <p className="text-[var(--md-on-surface-variant)]">
                     اختر نشاط منشأتك التجاري ليقوم النظام تلقائياً بتفعيل وتنسيق كافة الحقول والوحدات المناسبة لنشاطك:
                   </p>
 
@@ -486,26 +486,26 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
                         <div
                           key={key}
                           onClick={() => handleApplyPreset(key)}
-                          className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                          className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
                             isActive
-                              ? 'bg-amber-500/10 border-amber-500 text-white shadow-lg shadow-amber-950/30'
-                              : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 text-slate-300'
+                              ? 'bg-[var(--md-secondary-container)] border-[var(--md-secondary)] text-[var(--md-on-secondary-container)]'
+                              : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] hover:border-[var(--md-outline)] text-[var(--md-on-surface)]'
                           }`}
                         >
                           <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-sm text-white">{preset.name}</span>
-                              <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
-                                isActive ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-400'
-                              }`}>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-sm text-[var(--md-on-surface)]">{preset.name}</span>
+                              <span className={`m3-badge ${isActive ? 'm3-badge-secondary' : 'm3-badge-primary'}`}>
                                 {preset.badge}
                               </span>
                             </div>
-                            <p className="text-xs text-slate-400">{preset.description}</p>
+                            <p className="text-xs text-[var(--md-on-surface-variant)]">{preset.description}</p>
                           </div>
 
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center border ${
-                            isActive ? 'bg-amber-500 border-amber-400 text-slate-950' : 'border-slate-700'
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center border shrink-0 ${
+                            isActive
+                              ? 'bg-[var(--md-primary)] border-[var(--md-primary)] text-[var(--md-on-primary)]'
+                              : 'border-[var(--md-outline)]'
                           }`}>
                             {isActive && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                           </div>
@@ -519,7 +519,7 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
               {/* TAB 3: SIDEBAR VISIBILITY */}
               {activeTab === 'sidebar' && (
                 <div className="space-y-3">
-                  <p className="text-slate-400">
+                  <p className="text-[var(--md-on-surface-variant)]">
                     يمكنك إخفاء الشاشات أو الأدوات غير المستخدمة لتبسيط القائمة الجانبية للشاشات الرئيسية:
                   </p>
 
@@ -532,13 +532,13 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
                           onClick={() => toggleTabVisibility(tab.id)}
                           className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
                             hidden
-                              ? 'bg-slate-950/40 border-slate-800/80 text-slate-500'
-                              : 'bg-slate-950 border-slate-800 text-slate-200 hover:border-slate-700'
+                              ? 'bg-[var(--md-surface-container-lowest)] border-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)] opacity-75'
+                              : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] text-[var(--md-on-surface)] hover:border-[var(--md-primary)]/50'
                           }`}
                         >
                           <span className="font-medium">{tab.name}</span>
                           <span className={`flex items-center gap-1 text-[11px] font-bold ${
-                            hidden ? 'text-slate-500' : 'text-emerald-400'
+                            hidden ? 'text-[var(--md-on-surface-variant)]' : 'text-[var(--md-primary-text)]'
                           }`}>
                             {hidden ? (
                               <>
@@ -563,8 +563,8 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
               {activeTab === 'appearance' && (
                 <div className="space-y-4">
                   <div>
-                    <h4 className="font-bold text-slate-200 text-sm mb-1">سمة ومظهر المنظومة (Theme Engine)</h4>
-                    <p className="text-slate-400 text-xs">
+                    <h4 className="font-bold text-[var(--md-on-surface)] text-sm mb-1">سمة ومظهر المنظومة (Theme Engine)</h4>
+                    <p className="text-[var(--md-on-surface-variant)] text-xs">
                       اختر نمط الإضاءة والألوان المفضل للعمل على النظام. التغيير فوري ويبقى محفوظاً في جهازك:
                     </p>
                   </div>
@@ -575,35 +575,35 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
                       onClick={() => handleSelectTheme('dark')}
                       className={`p-4 rounded-2xl border-2 transition-all cursor-pointer relative flex flex-col justify-between ${
                         currentTheme === 'dark'
-                          ? 'bg-slate-900 border-amber-500 shadow-lg shadow-amber-500/10'
-                          : 'bg-slate-950 border-slate-800 hover:border-slate-700'
+                          ? 'bg-[var(--md-primary-container)]/35 border-[var(--md-primary)]'
+                          : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] hover:border-[var(--md-outline)]'
                       }`}
                     >
                       <div>
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-xl bg-slate-800 flex items-center justify-center text-amber-400">
+                            <div className="w-8 h-8 rounded-xl bg-[var(--md-secondary-container)] flex items-center justify-center text-[var(--md-on-secondary-container)]">
                               <Moon className="w-4 h-4" />
                             </div>
-                            <span className="font-bold text-white text-sm">الوضع الليلي الكلاسيكي</span>
+                            <span className="font-bold text-[var(--md-on-surface)] text-sm">الوضع الليلي الكلاسيكي</span>
                           </div>
                           {currentTheme === 'dark' && (
-                            <span className="w-6 h-6 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center">
+                            <span className="w-6 h-6 rounded-full bg-[var(--md-primary)] text-[var(--md-on-primary)] flex items-center justify-center">
                               <Check className="w-3.5 h-3.5 stroke-[3]" />
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                        <p className="text-[11px] text-[var(--md-on-surface-variant)] leading-relaxed">
                           الوضع الافتراضي الأصلي للنظام بدرجات الرمادي الداكن والأسود المريح للعين في بيئات الإضاءة الخافتة ونقاط البيع السريعة.
                         </p>
                       </div>
 
-                      <div className="mt-4 pt-3 border-t border-slate-800 flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-full bg-slate-950 border border-slate-700" />
-                        <span className="w-3 h-3 rounded-full bg-slate-900 border border-slate-700" />
-                        <span className="w-3 h-3 rounded-full bg-emerald-500" />
-                        <span className="w-3 h-3 rounded-full bg-amber-500" />
-                        <span className="text-[10px] text-slate-500 font-mono mr-auto">Dark #022C22</span>
+                      <div className="mt-4 pt-3 border-t border-[var(--md-outline-variant)] flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-full bg-[#0D0D0D] border border-[var(--md-outline)]" />
+                        <span className="w-3 h-3 rounded-full bg-[#1B2220] border border-[var(--md-outline)]" />
+                        <span className="w-3 h-3 rounded-full bg-[#14B8A6]" />
+                        <span className="w-3 h-3 rounded-full bg-[#D4AF37]" />
+                        <span className="text-[10px] text-[var(--md-on-surface-variant)] font-mono mr-auto">Dark #0D0D0D</span>
                       </div>
                     </div>
 
@@ -612,35 +612,35 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
                       onClick={() => handleSelectTheme('light')}
                       className={`p-4 rounded-2xl border-2 transition-all cursor-pointer relative flex flex-col justify-between ${
                         currentTheme === 'light'
-                          ? 'bg-emerald-950/20 border-emerald-500 shadow-lg shadow-emerald-500/10'
-                          : 'bg-slate-950 border-slate-800 hover:border-slate-700'
+                          ? 'bg-[var(--md-primary-container)]/35 border-[var(--md-primary)]'
+                          : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] hover:border-[var(--md-outline)]'
                       }`}
                     >
                       <div>
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400">
+                            <div className="w-8 h-8 rounded-xl bg-[var(--md-secondary-container)] flex items-center justify-center text-[var(--md-on-secondary-container)]">
                               <Sun className="w-4 h-4" />
                             </div>
-                            <span className="font-bold text-white text-sm">الوضع الفاتح الملكي (Royal Emerald)</span>
+                            <span className="font-bold text-[var(--md-on-surface)] text-sm">الوضع الفاتح الملكي (Royal Emerald)</span>
                           </div>
                           {currentTheme === 'light' && (
-                            <span className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center">
+                            <span className="w-6 h-6 rounded-full bg-[var(--md-primary)] text-[var(--md-on-primary)] flex items-center justify-center">
                               <Check className="w-3.5 h-3.5 stroke-[3]" />
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                        <p className="text-[11px] text-[var(--md-on-surface-variant)] leading-relaxed">
                           مظهر فائق النقاء بخلفيات مرمرية مريحة وتباين عالي بنمط الزمرد الأخضر والذهب الملكي للطباعة والمكاتب النهارية.
                         </p>
                       </div>
 
-                      <div className="mt-4 pt-3 border-t border-slate-800 flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-full bg-[#F4F7F6] border border-slate-300" />
-                        <span className="w-3 h-3 rounded-full bg-[#FFFFFF] border border-slate-300" />
+                      <div className="mt-4 pt-3 border-t border-[var(--md-outline-variant)] flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-full bg-[#F4F7F6] border border-[var(--md-outline)]" />
+                        <span className="w-3 h-3 rounded-full bg-[#FFFFFF] border border-[var(--md-outline)]" />
                         <span className="w-3 h-3 rounded-full bg-[#0F766E]" />
                         <span className="w-3 h-3 rounded-full bg-[#C9A227]" />
-                        <span className="text-[10px] text-slate-500 font-mono mr-auto">Light #0F766E</span>
+                        <span className="text-[10px] text-[var(--md-on-surface-variant)] font-mono mr-auto">Light #0F766E</span>
                       </div>
                     </div>
                   </div>
@@ -650,11 +650,11 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-3.5 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between">
+            <div className="px-6 py-3.5 border-t border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] flex items-center justify-between">
               <button
                 type="button"
                 onClick={resetSettings}
-                className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1 cursor-pointer"
+                className="m3-btn-text !min-h-[34px] !px-2.5 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--md-primary)]"
                 title="استعادة الإعدادات الافتراضية الشاملة"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -664,7 +664,7 @@ export const ModuleSettingsModal: React.FC<ModuleSettingsModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-emerald-950/50 cursor-pointer"
+                className="m3-btn-primary !min-h-[36px] !px-5 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--md-primary)]"
               >
                 تطبيق وإغلاق
               </button>

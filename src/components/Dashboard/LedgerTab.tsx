@@ -139,61 +139,61 @@ const COA_GROUPS: Array<{
     codePrefix: '1000',
     title: '1000 — الأصول (Assets)',
     subtitle: 'النقدية، البنوك، المحافظ الإلكترونية، العملاء، المخزون، الأصول الثابتة',
-    badgeClass: 'bg-emerald-950 text-emerald-300 border-emerald-800',
-    borderClass: 'border-emerald-900/50',
+    badgeClass: 'm3-badge-success',
+    borderClass: 'border-[var(--md-outline-variant)]',
   },
   {
     key: 'LIABILITY',
     codePrefix: '2000',
     title: '2000 — الالتزامات والخصوم (Liabilities)',
     subtitle: 'ذمم الموردين، ضريبة المخرجات، الرواتب والمستحقات',
-    badgeClass: 'bg-amber-950 text-amber-300 border-amber-800',
-    borderClass: 'border-amber-900/50',
+    badgeClass: 'm3-badge-warning',
+    borderClass: 'border-[var(--md-outline-variant)]',
   },
   {
     key: 'EQUITY',
     codePrefix: '3000',
     title: '3000 — حقوق الملكية ورأس المال (Equity)',
     subtitle: 'رأس المال والأرصدة الافتتاحية والأرباح المحتجزة',
-    badgeClass: 'bg-sky-950 text-sky-300 border-sky-800',
-    borderClass: 'border-sky-900/50',
+    badgeClass: 'm3-badge-info',
+    borderClass: 'border-[var(--md-outline-variant)]',
   },
   {
     key: 'REVENUE',
     codePrefix: '4000',
     title: '4000 — الإيرادات (Revenue)',
     subtitle: 'إيرادات المبيعات ومردودات ومسموحات المبيعات',
-    badgeClass: 'bg-teal-950 text-teal-300 border-teal-800',
-    borderClass: 'border-teal-900/50',
+    badgeClass: 'm3-badge-primary',
+    borderClass: 'border-[var(--md-outline-variant)]',
   },
   {
     key: 'EXPENSE',
     codePrefix: '5000',
     title: '5000 — التكاليف والمصروفات (Expenses & COGS)',
     subtitle: 'تكلفة البضاعة المباعة، الرواتب، العمومية، الإيجارات والمنافع، التسويات',
-    badgeClass: 'bg-rose-950 text-rose-300 border-rose-800',
-    borderClass: 'border-rose-900/50',
+    badgeClass: 'm3-badge-error',
+    borderClass: 'border-[var(--md-outline-variant)]',
   },
 ];
 
 const REFERENCE_TYPE_LABELS: Record<string, { label: string; colorClass: string }> = {
-  SALES_INVOICE: { label: 'فاتورة مبيعات', colorClass: 'bg-teal-950 text-teal-300 border-teal-800' },
-  POS_SALE: { label: 'مبيعات نقطة بيع', colorClass: 'bg-emerald-950 text-emerald-300 border-emerald-800' },
-  PURCHASE_INVOICE: { label: 'فاتورة مشتريات', colorClass: 'bg-purple-950 text-purple-300 border-purple-800' },
-  OPENING_BALANCE: { label: 'رصيد افتتاحي', colorClass: 'bg-sky-950 text-sky-300 border-sky-800' },
-  RECEIPT_VOUCHER: { label: 'سند قبض', colorClass: 'bg-emerald-900/60 text-emerald-200 border-emerald-700' },
-  PAYMENT_VOUCHER: { label: 'سند صرف', colorClass: 'bg-amber-950 text-amber-300 border-amber-800' },
-  EXPENSE_VOUCHER: { label: 'سند مصروف', colorClass: 'bg-rose-950 text-rose-300 border-rose-800' },
-  EXPENSE: { label: 'مصروف تشغيلي', colorClass: 'bg-rose-950 text-rose-300 border-rose-800' },
-  PAYROLL: { label: 'مسير رواتب', colorClass: 'bg-indigo-950 text-indigo-300 border-indigo-800' },
-  SALES_RETURN: { label: 'مرتجع مبيعات', colorClass: 'bg-orange-950 text-orange-300 border-orange-800' },
-  INVENTORY_COGS: { label: 'تكلفة بضاعة مباعة', colorClass: 'bg-amber-950/80 text-amber-200 border-amber-800' },
-  INVENTORY_ADJUSTMENT: { label: 'تسوية مخزون', colorClass: 'bg-indigo-950 text-indigo-300 border-indigo-800' },
-  FUEL_PUMP_SHIFT: { label: 'وردية محطة وقود', colorClass: 'bg-amber-950 text-amber-300 border-amber-800' },
-  FUEL_TANK_REFILL: { label: 'تفريغ وقود خزانات', colorClass: 'bg-cyan-950 text-cyan-300 border-cyan-800' },
-  MANUAL: { label: 'قيد يومية يدوي', colorClass: 'bg-amber-500/15 text-amber-300 border-amber-500/40' },
-  MANUAL_JOURNAL: { label: 'قيد يومية يدوي', colorClass: 'bg-amber-500/15 text-amber-300 border-amber-500/40' },
-  ADJUSTMENT: { label: 'قيد تسوية', colorClass: 'bg-sky-950 text-sky-300 border-sky-800' },
+  SALES_INVOICE: { label: 'فاتورة مبيعات', colorClass: 'm3-badge-primary' },
+  POS_SALE: { label: 'مبيعات نقطة بيع', colorClass: 'm3-badge-success' },
+  PURCHASE_INVOICE: { label: 'فاتورة مشتريات', colorClass: 'm3-badge-info' },
+  OPENING_BALANCE: { label: 'رصيد افتتاحي', colorClass: 'm3-badge-info' },
+  RECEIPT_VOUCHER: { label: 'سند قبض', colorClass: 'm3-badge-success' },
+  PAYMENT_VOUCHER: { label: 'سند صرف', colorClass: 'm3-badge-warning' },
+  EXPENSE_VOUCHER: { label: 'سند مصروف', colorClass: 'm3-badge-error' },
+  EXPENSE: { label: 'مصروف تشغيلي', colorClass: 'm3-badge-error' },
+  PAYROLL: { label: 'مسير رواتب', colorClass: 'm3-badge-secondary' },
+  SALES_RETURN: { label: 'مرتجع مبيعات', colorClass: 'm3-badge-warning' },
+  INVENTORY_COGS: { label: 'تكلفة بضاعة مباعة', colorClass: 'm3-badge-warning' },
+  INVENTORY_ADJUSTMENT: { label: 'تسوية مخزون', colorClass: 'm3-badge-info' },
+  FUEL_PUMP_SHIFT: { label: 'وردية محطة وقود', colorClass: 'm3-badge-warning' },
+  FUEL_TANK_REFILL: { label: 'تفريغ وقود خزانات', colorClass: 'm3-badge-info' },
+  MANUAL: { label: 'قيد يومية يدوي', colorClass: 'm3-badge-secondary' },
+  MANUAL_JOURNAL: { label: 'قيد يومية يدوي', colorClass: 'm3-badge-secondary' },
+  ADJUSTMENT: { label: 'قيد تسوية', colorClass: 'm3-badge-info' },
 };
 
 const MANUAL_REF_TYPES = new Set(['MANUAL', 'MANUAL_JOURNAL', 'ADJUSTMENT', 'OPENING_BALANCE']);
@@ -1139,13 +1139,9 @@ export const LedgerTab: React.FC = () => {
   const getRefBadge = (refType: string) => {
     const info = REFERENCE_TYPE_LABELS[refType] || {
       label: refType || 'قيد محاسبي',
-      colorClass: 'bg-slate-800 text-slate-300 border-slate-700',
+      colorClass: 'm3-badge-secondary',
     };
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold border ${info.colorClass}`}>
-        {info.label}
-      </span>
-    );
+    return <span className={`m3-badge ${info.colorClass}`}>{info.label}</span>;
   };
 
   const resetJournalFilters = () => {
@@ -1158,40 +1154,43 @@ export const LedgerTab: React.FC = () => {
 
   // ==================== RENDER ====================
   return (
-    <div className="space-y-6 text-right">
+    <div className="space-y-6 text-right" dir="rtl">
       {/* Toast Notification */}
       {toastMsg && (
         <div
-          className={`p-3.5 rounded-xl border text-xs font-bold flex items-center justify-between shadow-lg ${
+          className={`p-3.5 rounded-xl border text-xs font-bold flex items-center justify-between shadow-sm ${
             toastMsg.type === 'success'
-              ? 'bg-emerald-950/90 border-emerald-700 text-emerald-200'
-              : 'bg-rose-950/90 border-rose-700 text-rose-200'
+              ? 'bg-[var(--md-success-container)] border-[var(--md-success)]/40 text-[var(--md-on-success-container)]'
+              : 'bg-[var(--md-error-container)] border-[var(--md-error)]/40 text-[var(--md-on-error-container)]'
           }`}
         >
           <div className="flex items-center gap-2">
             {toastMsg.type === 'success' ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-[var(--md-success)] shrink-0" />
             ) : (
-              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+              <AlertCircle className="w-4 h-4 text-[var(--md-error)] shrink-0" />
             )}
             <span>{toastMsg.text}</span>
           </div>
-          <button onClick={() => setToastMsg(null)} className="p-1 hover:opacity-75">
+          <button
+            onClick={() => setToastMsg(null)}
+            className="p-1 rounded-lg hover:bg-[var(--md-surface-container-high)]/40 transition-colors"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 bg-slate-900 rounded-2xl border border-emerald-900/50 shadow-xl">
+      <div className="m3-card p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2.5 text-white font-bold text-lg mb-1">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500/20 to-amber-500/20 border border-emerald-500/30">
-              <BookOpen className="w-5 h-5 text-emerald-400" />
+          <div className="flex items-center gap-2.5 text-[var(--md-on-surface)] font-bold text-lg mb-1">
+            <div className="p-2 rounded-xl bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/25">
+              <BookOpen className="w-5 h-5" />
             </div>
             <span>المركز المحاسبي ودفتر الأستاذ العام (Accounting Ledger Hub)</span>
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-[var(--md-on-surface-variant)]">
             منظومة القيد المزدوج المتكاملة: دليل الحسابات الشجري، سجل القيود التفصيلية، كشف الأستاذ المساعد (T-Account)، وميزان المراجعة.
           </p>
         </div>
@@ -1200,9 +1199,9 @@ export const LedgerTab: React.FC = () => {
           <button
             onClick={() => fetchData()}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 hover:border-emerald-500/50 text-slate-200 text-xs font-bold transition-colors disabled:opacity-50"
+            className="m3-btn-outlined !min-h-[40px] text-xs disabled:opacity-50"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 text-[var(--md-primary-text)] ${loading ? 'animate-spin' : ''}`} />
             <span>تحديث</span>
           </button>
 
@@ -1211,9 +1210,9 @@ export const LedgerTab: React.FC = () => {
               setJournalFormError(null);
               setShowNewJournalModal(true);
             }}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-l from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-lg shadow-emerald-950/60 border border-emerald-400/30 transition-all"
+            className="m3-btn-primary !min-h-[40px] text-xs"
           >
-            <Plus className="w-4 h-4 text-amber-300" />
+            <Plus className="w-4 h-4" />
             <span>+ قيد يومية مزدوج جديد</span>
           </button>
         </div>
@@ -1221,76 +1220,89 @@ export const LedgerTab: React.FC = () => {
 
       {/* KPI Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <div className="p-4 bg-slate-900 rounded-2xl border border-emerald-900/40 shadow-xl flex items-center justify-between">
+        <div className="m3-card p-4 flex items-center justify-between">
           <div>
-            <span className="text-xs text-slate-400 font-semibold block mb-1">إجمالي الحركات المدينة (Total Debit)</span>
-            <span className="font-mono font-bold text-lg text-emerald-400">
+            <span className="text-xs text-[var(--md-on-surface-variant)] font-semibold block mb-1">
+              إجمالي الحركات المدينة (Total Debit)
+            </span>
+            <span className="font-mono font-bold text-lg text-[var(--md-success)] tabular-nums">
               {formatAmount(summary.totalDebit)} {currency}
             </span>
           </div>
-          <div className="p-3 bg-emerald-950/80 border border-emerald-800 text-emerald-400 rounded-xl">
+          <div className="p-3 bg-[var(--md-success-container)] text-[var(--md-on-success-container)] border border-[var(--md-success)]/25 rounded-xl">
             <TrendingUp className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-4 bg-slate-900 rounded-2xl border border-emerald-900/40 shadow-xl flex items-center justify-between">
+        <div className="m3-card p-4 flex items-center justify-between">
           <div>
-            <span className="text-xs text-slate-400 font-semibold block mb-1">إجمالي الحركات الدائنة (Total Credit)</span>
-            <span className="font-mono font-bold text-lg text-amber-400">
+            <span className="text-xs text-[var(--md-on-surface-variant)] font-semibold block mb-1">
+              إجمالي الحركات الدائنة (Total Credit)
+            </span>
+            <span className="font-mono font-bold text-lg text-[var(--md-warning)] tabular-nums">
               {formatAmount(summary.totalCredit)} {currency}
             </span>
           </div>
-          <div className="p-3 bg-amber-950/60 border border-amber-800/70 text-amber-400 rounded-xl">
+          <div className="p-3 bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)] border border-[var(--md-warning)]/25 rounded-xl">
             <TrendingDown className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-4 bg-slate-900 text-white rounded-2xl border border-emerald-900/40 shadow-xl flex items-center justify-between">
+        <div className="m3-card p-4 flex items-center justify-between">
           <div>
-            <span className="text-xs text-slate-400 font-semibold block mb-1">توازن الدفتر المحاسبي</span>
-            <span className={`font-mono font-bold text-base ${summary.isBalanced ? 'text-emerald-400' : 'text-rose-400'}`}>
+            <span className="text-xs text-[var(--md-on-surface-variant)] font-semibold block mb-1">
+              توازن الدفتر المحاسبي
+            </span>
+            <span
+              className={`font-mono font-bold text-base tabular-nums ${
+                summary.isBalanced ? 'text-[var(--md-success)]' : 'text-[var(--md-error)]'
+              }`}
+            >
               {summary.isBalanced ? 'متوازن 100% (Balanced)' : `غير متوازن (فارق ${formatAmount(summary.difference)})`}
             </span>
           </div>
           <div
             className={`p-3 rounded-xl border ${
               summary.isBalanced
-                ? 'bg-emerald-950/80 border-emerald-800 text-emerald-400'
-                : 'bg-rose-950/80 border-rose-800 text-rose-400'
+                ? 'bg-[var(--md-success-container)] border-[var(--md-success)]/25 text-[var(--md-on-success-container)]'
+                : 'bg-[var(--md-error-container)] border-[var(--md-error)]/25 text-[var(--md-on-error-container)]'
             }`}
           >
             <Scale className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-4 bg-slate-900 text-white rounded-2xl border border-emerald-900/40 shadow-xl flex items-center justify-between">
+        <div className="m3-card p-4 flex items-center justify-between">
           <div>
-            <span className="text-xs text-slate-400 font-semibold block mb-1">القيود الفعالة / الحسابات</span>
-            <span className="font-mono font-bold text-lg text-teal-300">
-              {summary.activeCount} قيد <span className="text-xs text-slate-500">/ {chartOfAccounts.length} حساب</span>
+            <span className="text-xs text-[var(--md-on-surface-variant)] font-semibold block mb-1">
+              القيود الفعالة / الحسابات
+            </span>
+            <span className="font-mono font-bold text-lg text-[var(--md-primary-text)] tabular-nums">
+              {summary.activeCount} قيد{' '}
+              <span className="text-xs text-[var(--md-on-surface-variant)]">/ {chartOfAccounts.length} حساب</span>
             </span>
           </div>
-          <div className="p-3 bg-slate-950 border border-teal-800/70 text-teal-400 rounded-xl">
+          <div className="p-3 bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/25 rounded-xl">
             <GitBranch className="w-5 h-5" />
           </div>
         </div>
       </div>
 
       {error && (
-        <div className="p-3.5 bg-rose-950/80 border border-rose-800 text-rose-300 text-xs rounded-xl flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" />
+        <div className="p-3.5 bg-[var(--md-error-container)] border border-[var(--md-error)]/40 text-[var(--md-on-error-container)] text-xs font-medium rounded-xl flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0 text-[var(--md-error)]" />
           <span>{error}</span>
         </div>
       )}
 
       {/* 3 Main Tabs Bar */}
-      <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-950 rounded-2xl border border-emerald-900/40">
+      <div className="flex flex-wrap items-center gap-2 p-1.5 bg-[var(--md-surface-container-low)] rounded-2xl border border-[var(--md-outline-variant)]">
         <button
           onClick={() => setActiveTab('journal')}
           className={`flex-1 min-w-[200px] flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
             activeTab === 'journal'
-              ? 'bg-gradient-to-l from-emerald-600/30 to-teal-600/20 text-emerald-300 border border-emerald-500/40 shadow-md'
-              : 'text-slate-400 hover:text-white hover:bg-slate-900'
+              ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/35 shadow-sm'
+              : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] border border-transparent'
           }`}
         >
           <Layers className="w-4 h-4" />
@@ -1301,8 +1313,8 @@ export const LedgerTab: React.FC = () => {
           onClick={() => setActiveTab('coa')}
           className={`flex-1 min-w-[200px] flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
             activeTab === 'coa'
-              ? 'bg-gradient-to-l from-emerald-600/30 to-amber-600/20 text-amber-300 border border-amber-500/40 shadow-md'
-              : 'text-slate-400 hover:text-white hover:bg-slate-900'
+              ? 'bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] border border-[var(--md-secondary)]/35 shadow-sm'
+              : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] border border-transparent'
           }`}
         >
           <ListTree className="w-4 h-4" />
@@ -1313,8 +1325,8 @@ export const LedgerTab: React.FC = () => {
           onClick={() => setActiveTab('trial_balance')}
           className={`flex-1 min-w-[200px] flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
             activeTab === 'trial_balance'
-              ? 'bg-gradient-to-l from-amber-600/25 to-emerald-600/25 text-amber-300 border border-amber-500/40 shadow-md'
-              : 'text-slate-400 hover:text-white hover:bg-slate-900'
+              ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/35 shadow-sm'
+              : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] border border-transparent'
           }`}
         >
           <FileSpreadsheet className="w-4 h-4" />
@@ -1324,30 +1336,30 @@ export const LedgerTab: React.FC = () => {
 
       {/* ==================== TAB 1: JOURNAL ENTRIES ==================== */}
       {activeTab === 'journal' && (
-        <div className="bg-slate-900 rounded-2xl border border-emerald-900/50 shadow-xl overflow-hidden">
+        <div className="m3-card overflow-hidden">
           {/* Toolbar & Filters */}
-          <div className="p-4 border-b border-slate-800 bg-slate-950/70 space-y-3">
+          <div className="p-4 border-b border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] space-y-3">
             <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
               <div className="relative flex-1 max-w-md">
-                <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
                   placeholder="بحث في رقم القيد، البيان، المرجع، أو الحساب..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-3 pr-9 py-2 text-xs bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500"
+                  className="m3-input !h-10 !pr-9 text-xs"
                 />
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
                 {/* Detailed vs Summary Toggle */}
-                <div className="inline-flex rounded-xl bg-slate-900 border border-slate-700 p-0.5">
+                <div className="inline-flex rounded-xl bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] p-0.5">
                   <button
                     onClick={() => setJournalViewMode('detailed')}
                     className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors ${
                       journalViewMode === 'detailed'
-                        ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/40'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/35'
+                        : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] border border-transparent'
                     }`}
                   >
                     القيود التفصيلية بالأسطر
@@ -1356,8 +1368,8 @@ export const LedgerTab: React.FC = () => {
                     onClick={() => setJournalViewMode('summary')}
                     className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors ${
                       journalViewMode === 'summary'
-                        ? 'bg-amber-600/25 text-amber-300 border border-amber-500/40'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] border border-[var(--md-secondary)]/35'
+                        : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] border border-transparent'
                     }`}
                   >
                     ملخص القيود
@@ -1373,7 +1385,7 @@ export const LedgerTab: React.FC = () => {
               <select
                 value={accountCodeFilter}
                 onChange={(e) => setAccountCodeFilter(e.target.value)}
-                className="py-2 px-3 text-xs bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500"
+                className="m3-select !h-10 text-xs"
               >
                 <option value="">كل الحسابات المحاسبية</option>
                 {chartOfAccounts.map((acc) => (
@@ -1386,7 +1398,7 @@ export const LedgerTab: React.FC = () => {
               <select
                 value={referenceTypeFilter}
                 onChange={(e) => setReferenceTypeFilter(e.target.value)}
-                className="py-2 px-3 text-xs bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500"
+                className="m3-select !h-10 text-xs"
               >
                 <option value="">كل أنواع المراجع</option>
                 <option value="SALES_INVOICE">فاتورة مبيعات (SALES_INVOICE)</option>
@@ -1403,32 +1415,32 @@ export const LedgerTab: React.FC = () => {
               </select>
 
               <div className="relative flex items-center">
-                <Calendar className="w-3.5 h-3.5 text-slate-400 absolute right-3 pointer-events-none" />
+                <Calendar className="w-3.5 h-3.5 text-[var(--md-on-surface-variant)] absolute right-3 pointer-events-none" />
                 <input
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
                   title="من تاريخ"
-                  className="w-full pr-8 pl-2 py-2 text-xs bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500"
+                  className="m3-input !h-10 !pr-8 !pl-2 text-xs tabular-nums"
                 />
               </div>
 
               <div className="relative flex items-center">
-                <Calendar className="w-3.5 h-3.5 text-slate-400 absolute right-3 pointer-events-none" />
+                <Calendar className="w-3.5 h-3.5 text-[var(--md-on-surface-variant)] absolute right-3 pointer-events-none" />
                 <input
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
                   title="إلى تاريخ"
-                  className="w-full pr-8 pl-2 py-2 text-xs bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500"
+                  className="m3-input !h-10 !pr-8 !pl-2 text-xs tabular-nums"
                 />
               </div>
 
               <button
                 onClick={resetJournalFilters}
-                className="inline-flex items-center justify-center gap-1.5 py-2 px-3 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 rounded-xl transition-colors"
+                className="m3-btn-outlined !min-h-[40px] text-xs w-full"
               >
-                <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                <RotateCcw className="w-3.5 h-3.5 text-[var(--md-secondary)]" />
                 <span>إعادة ضبط الفلاتر</span>
               </button>
             </div>
@@ -1436,17 +1448,17 @@ export const LedgerTab: React.FC = () => {
 
           {/* Journal Entries Content */}
           {loading ? (
-            <div className="p-12 text-center text-slate-400">
-              <Loader2 className="w-7 h-7 animate-spin text-emerald-400 mx-auto mb-2" />
+            <div className="p-12 text-center text-[var(--md-on-surface-variant)]">
+              <Loader2 className="w-7 h-7 animate-spin text-[var(--md-primary-text)] mx-auto mb-2" />
               <span className="text-xs">جاري تحميل القيود اليومية المزدوجة...</span>
             </div>
           ) : filteredJournalEntries.length === 0 ? (
-            <div className="p-12 text-center text-slate-400 text-xs">
+            <div className="p-12 text-center text-[var(--md-on-surface-variant)] text-xs">
               لا توجد قيود محاسبية مطابقة لمعايير البحث الحالية.
             </div>
           ) : journalViewMode === 'detailed' ? (
             /* DETAILED DOUBLE-ENTRY LINES VIEW */
-            <div className="divide-y divide-slate-800">
+            <div className="divide-y divide-[var(--md-outline-variant)]">
               {filteredJournalEntries.map((entry) => {
                 const isCancelled = entry.status === 'CANCELLED';
                 const isManual = MANUAL_REF_TYPES.has(entry.reference_type);
@@ -1454,41 +1466,41 @@ export const LedgerTab: React.FC = () => {
                   <div
                     key={entry.id}
                     className={`p-4 transition-colors ${
-                      isCancelled ? 'bg-rose-950/15 opacity-70' : 'hover:bg-slate-800/30'
+                      isCancelled
+                        ? 'bg-[var(--md-error-container)]/25 opacity-75'
+                        : 'hover:bg-[var(--md-surface-container-low)]/60'
                     }`}
                   >
                     {/* Entry Header */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-800/80">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-3 mb-3 border-b border-[var(--md-outline-variant)]">
                       <div className="flex items-center gap-2.5 flex-wrap">
-                        <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-950 border border-emerald-800/60 text-emerald-300">
+                        <span className="m3-badge m3-badge-primary font-mono text-xs tabular-nums">
                           {entry.entry_number}
                         </span>
-                        <span className="font-mono text-xs text-slate-400">{entry.date}</span>
+                        <span className="font-mono text-xs text-[var(--md-on-surface-variant)] tabular-nums">
+                          {entry.date}
+                        </span>
                         {getRefBadge(entry.reference_type)}
                         {entry.reference_id && (
-                          <span className="font-mono text-[11px] text-amber-300/90 bg-amber-950/40 px-2 py-0.5 rounded border border-amber-800/50">
+                          <span className="m3-badge m3-badge-warning font-mono text-[11px] tabular-nums">
                             #{entry.reference_id}
                           </span>
                         )}
-                        {isCancelled && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-700">
-                            ملغى / معكوس
-                          </span>
-                        )}
+                        {isCancelled && <span className="m3-badge m3-badge-error">ملغى / معكوس</span>}
                       </div>
 
-                      <div className="flex items-center gap-3">
-                        <span className="text-[11px] text-slate-400">
-                          بواسطة: <strong className="text-slate-200">{entry.created_by}</strong>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <span className="text-[11px] text-[var(--md-on-surface-variant)]">
+                          بواسطة: <strong className="text-[var(--md-on-surface)]">{entry.created_by}</strong>
                         </span>
-                        <span className="font-mono text-xs font-bold text-amber-300">
+                        <span className="font-mono text-xs font-bold text-[var(--md-secondary)] tabular-nums">
                           إجمالي القيد: {formatAmount(entry.total_debit)} {currency}
                         </span>
                         {isManual && !isCancelled && (
                           <button
                             onClick={() => setEntryPendingDelete(entry)}
                             title="حذف / عكس القيد اليدوي"
-                            className="p-1.5 rounded-lg bg-rose-950/60 hover:bg-rose-900/80 text-rose-400 border border-rose-800/60 transition-colors"
+                            className="m3-btn-danger !min-h-[32px] !px-2 !py-1.5"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -1496,26 +1508,26 @@ export const LedgerTab: React.FC = () => {
                       </div>
                     </div>
 
-                    <p className="text-xs font-semibold text-slate-200 mb-3">{entry.description}</p>
+                    <p className="text-xs font-semibold text-[var(--md-on-surface)] mb-3">{entry.description}</p>
 
                     {/* Double-Entry Lines Sub-Table */}
-                    <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/70">
-                      <table className="w-full text-right text-xs">
-                        <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
+                    <div className="overflow-x-auto rounded-xl border border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)]">
+                      <table className="m3-table text-right text-xs">
+                        <thead className="m3-thead">
                           <tr>
-                            <th className="p-2.5 w-24">رقم الحساب</th>
-                            <th className="p-2.5">البيان التفصيلي للطرف (من ح/ — إلى ح/)</th>
-                            <th className="p-2.5 w-36">مدين (Debit)</th>
-                            <th className="p-2.5 w-36">دائن (Credit)</th>
-                            <th className="p-2.5">ملاحظة السطر</th>
+                            <th className="m3-th !py-2.5 w-24">رقم الحساب</th>
+                            <th className="m3-th !py-2.5">البيان التفصيلي للطرف (من ح/ — إلى ح/)</th>
+                            <th className="m3-th !py-2.5 w-36">مدين (Debit)</th>
+                            <th className="m3-th !py-2.5 w-36">دائن (Credit)</th>
+                            <th className="m3-th !py-2.5">ملاحظة السطر</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-800/70">
+                        <tbody className="divide-y divide-[var(--md-outline-variant)]">
                           {entry.lines.map((line, idx) => {
                             const isDebitLine = line.debit > 0;
                             return (
-                              <tr key={line.id || idx} className="hover:bg-slate-900/60">
-                                <td className="p-2.5 font-mono font-bold text-amber-400">
+                              <tr key={line.id || idx} className="hover:bg-[var(--md-surface-container-high)]/60">
+                                <td className="p-2.5 font-mono font-bold text-[var(--md-secondary)] tabular-nums">
                                   <button
                                     onClick={() => {
                                       const acc = chartOfAccounts.find((a) => a.code === line.account_code);
@@ -1534,13 +1546,15 @@ export const LedgerTab: React.FC = () => {
                                       if (acc) setSelectedTAccount(acc);
                                     }}
                                     className={`inline-flex items-center gap-1.5 font-bold hover:underline ${
-                                      isDebitLine ? 'text-emerald-300' : 'text-teal-300 pr-5'
+                                      isDebitLine
+                                        ? 'text-[var(--md-success)]'
+                                        : 'text-[var(--md-primary-text)] pr-5'
                                     }`}
                                   >
                                     {isDebitLine ? (
-                                      <ArrowUpRight className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                      <ArrowUpRight className="w-3.5 h-3.5 text-[var(--md-success)] shrink-0" />
                                     ) : (
-                                      <ArrowDownLeft className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                      <ArrowDownLeft className="w-3.5 h-3.5 text-[var(--md-warning)] shrink-0" />
                                     )}
                                     <span>
                                       {isDebitLine ? 'من ح/ ' : 'إلى ح/ '}
@@ -1548,13 +1562,13 @@ export const LedgerTab: React.FC = () => {
                                     </span>
                                   </button>
                                 </td>
-                                <td className="p-2.5 font-mono font-bold text-emerald-400">
+                                <td className="p-2.5 font-mono font-bold text-[var(--md-success)] tabular-nums">
                                   {line.debit > 0 ? `${formatAmount(line.debit)} ${currency}` : '-'}
                                 </td>
-                                <td className="p-2.5 font-mono font-bold text-amber-300">
+                                <td className="p-2.5 font-mono font-bold text-[var(--md-warning)] tabular-nums">
                                   {line.credit > 0 ? `${formatAmount(line.credit)} ${currency}` : '-'}
                                 </td>
-                                <td className="p-2.5 text-slate-400">{line.description || '-'}</td>
+                                <td className="p-2.5 text-[var(--md-on-surface-variant)]">{line.description || '-'}</td>
                               </tr>
                             );
                           })}
@@ -1568,42 +1582,50 @@ export const LedgerTab: React.FC = () => {
           ) : (
             /* SUMMARY VIEW */
             <div className="overflow-x-auto">
-              <table className="w-full text-right text-xs">
-                <thead className="bg-slate-950 text-slate-400 font-bold border-b border-slate-800">
+              <table className="m3-table text-right text-xs">
+                <thead className="m3-thead">
                   <tr>
-                    <th className="p-3.5">التاريخ</th>
-                    <th className="p-3.5">رقم القيد</th>
-                    <th className="p-3.5">المرجع</th>
-                    <th className="p-3.5">الأطراف المحاسبية</th>
-                    <th className="p-3.5">مدين (Debit)</th>
-                    <th className="p-3.5">دائن (Credit)</th>
-                    <th className="p-3.5">البيان العام</th>
-                    <th className="p-3.5">المستخدم</th>
-                    <th className="p-3.5 text-center">إجراءات</th>
+                    <th className="m3-th">التاريخ</th>
+                    <th className="m3-th">رقم القيد</th>
+                    <th className="m3-th">المرجع</th>
+                    <th className="m3-th">الأطراف المحاسبية</th>
+                    <th className="m3-th">مدين (Debit)</th>
+                    <th className="m3-th">دائن (Credit)</th>
+                    <th className="m3-th">البيان العام</th>
+                    <th className="m3-th">المستخدم</th>
+                    <th className="m3-th text-center">إجراءات</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-[var(--md-outline-variant)]">
                   {filteredJournalEntries.map((entry) => {
                     const isExpanded = Boolean(expandedEntryIds[entry.id]);
                     const isManual = MANUAL_REF_TYPES.has(entry.reference_type);
                     const isCancelled = entry.status === 'CANCELLED';
                     return (
                       <React.Fragment key={entry.id}>
-                        <tr className={`hover:bg-slate-800/40 transition-colors ${isCancelled ? 'opacity-60' : ''}`}>
-                          <td className="p-3.5 font-mono text-slate-400">{entry.date}</td>
-                          <td className="p-3.5 font-mono font-bold text-emerald-300">{entry.entry_number}</td>
+                        <tr
+                          className={`hover:bg-[var(--md-surface-container-high)]/60 transition-colors ${
+                            isCancelled ? 'opacity-60' : ''
+                          }`}
+                        >
+                          <td className="p-3.5 font-mono text-[var(--md-on-surface-variant)] tabular-nums">
+                            {entry.date}
+                          </td>
+                          <td className="p-3.5 font-mono font-bold text-[var(--md-primary-text)] tabular-nums">
+                            {entry.entry_number}
+                          </td>
                           <td className="p-3.5">{getRefBadge(entry.reference_type)}</td>
-                          <td className="p-3.5 text-slate-300">
+                          <td className="p-3.5 font-mono text-[var(--md-on-surface-variant)] tabular-nums">
                             {entry.lines.map((l) => l.account_code).join(' ⇄ ') || '-'}
                           </td>
-                          <td className="p-3.5 font-mono font-bold text-emerald-400">
+                          <td className="p-3.5 font-mono font-bold text-[var(--md-success)] tabular-nums">
                             {formatAmount(entry.total_debit)} {currency}
                           </td>
-                          <td className="p-3.5 font-mono font-bold text-amber-300">
+                          <td className="p-3.5 font-mono font-bold text-[var(--md-warning)] tabular-nums">
                             {formatAmount(entry.total_credit)} {currency}
                           </td>
-                          <td className="p-3.5 text-slate-200 max-w-xs truncate">{entry.description}</td>
-                          <td className="p-3.5 text-slate-400">{entry.created_by}</td>
+                          <td className="p-3.5 text-[var(--md-on-surface)] max-w-xs truncate">{entry.description}</td>
+                          <td className="p-3.5 text-[var(--md-on-surface-variant)]">{entry.created_by}</td>
                           <td className="p-3.5">
                             <div className="flex items-center justify-center gap-1.5">
                               <button
@@ -1611,7 +1633,7 @@ export const LedgerTab: React.FC = () => {
                                   setExpandedEntryIds((prev) => ({ ...prev, [entry.id]: !prev[entry.id] }))
                                 }
                                 title="تفاصيل الأسطر"
-                                className="p-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-emerald-400 border border-slate-700"
+                                className="m3-btn-outlined !min-h-[32px] !px-2 !py-1.5 text-[var(--md-primary-text)]"
                               >
                                 <Eye className="w-3.5 h-3.5" />
                               </button>
@@ -1619,7 +1641,7 @@ export const LedgerTab: React.FC = () => {
                                 <button
                                   onClick={() => setEntryPendingDelete(entry)}
                                   title="حذف / عكس القيد اليدوي"
-                                  className="p-1.5 rounded-lg bg-rose-950/60 hover:bg-rose-900/80 text-rose-400 border border-rose-800/60"
+                                  className="m3-btn-danger !min-h-[32px] !px-2 !py-1.5"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>
@@ -1628,22 +1650,24 @@ export const LedgerTab: React.FC = () => {
                           </td>
                         </tr>
                         {isExpanded && (
-                          <tr className="bg-slate-950/80">
+                          <tr className="bg-[var(--md-surface-container-low)]">
                             <td colSpan={9} className="p-3">
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                 {entry.lines.map((l, idx) => (
                                   <div
                                     key={l.id || idx}
-                                    className="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800"
+                                    className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)]"
                                   >
-                                    <span className="text-xs font-bold text-slate-200">
-                                      <span className="font-mono text-amber-400 ml-1.5">{l.account_code}</span>
+                                    <span className="text-xs font-bold text-[var(--md-on-surface)]">
+                                      <span className="font-mono text-[var(--md-secondary)] ml-1.5 tabular-nums">
+                                        {l.account_code}
+                                      </span>
                                       {l.debit > 0 ? 'من ح/ ' : 'إلى ح/ '}
                                       {l.account_name}
                                     </span>
                                     <span
-                                      className={`font-mono font-bold text-xs ${
-                                        l.debit > 0 ? 'text-emerald-400' : 'text-amber-300'
+                                      className={`font-mono font-bold text-xs tabular-nums ${
+                                        l.debit > 0 ? 'text-[var(--md-success)]' : 'text-[var(--md-warning)]'
                                       }`}
                                     >
                                       {l.debit > 0
@@ -1670,20 +1694,20 @@ export const LedgerTab: React.FC = () => {
       {activeTab === 'coa' && (
         <div className="space-y-4">
           {/* COA Toolbar */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 bg-slate-900 rounded-2xl border border-emerald-900/50 shadow-xl">
+          <div className="m3-card p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="relative flex-1 max-w-md">
-              <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder="بحث برقم الحساب أو اسم الحساب..."
                 value={coaSearch}
                 onChange={(e) => setCoaSearch(e.target.value)}
-                className="w-full pl-3 pr-9 py-2 text-xs bg-slate-950 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-amber-500"
+                className="m3-input !h-10 !pr-9 text-xs"
               />
             </div>
 
             <div className="flex items-center gap-2.5">
-              <span className="text-[11px] text-slate-400 hidden md:inline">
+              <span className="text-[11px] text-[var(--md-on-surface-variant)] hidden md:inline">
                 اضغط على أي حساب لفتح كشف الأستاذ المساعد (T-Account)
               </span>
               <button
@@ -1691,7 +1715,7 @@ export const LedgerTab: React.FC = () => {
                   setAccountFormError(null);
                   setShowAddAccountModal(true);
                 }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-l from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 text-xs font-extrabold shadow-lg transition-all"
+                className="m3-btn-primary !min-h-[40px] text-xs"
               >
                 <Plus className="w-4 h-4" />
                 <span>+ إضافة حساب جديد</span>
@@ -1723,91 +1747,93 @@ export const LedgerTab: React.FC = () => {
               return (
                 <div
                   key={group.key}
-                  className={`bg-slate-900 rounded-2xl border ${group.borderClass} shadow-xl overflow-hidden`}
+                  className={`m3-card ${group.borderClass} overflow-hidden`}
                 >
                   <button
                     onClick={() => setCollapsedGroups((prev) => ({ ...prev, [group.key]: !prev[group.key] }))}
-                    className="w-full p-4 bg-slate-950/80 flex items-center justify-between gap-3 hover:bg-slate-950 transition-colors text-right"
+                    className="w-full p-4 bg-[var(--md-surface-container-low)] flex items-center justify-between gap-3 hover:bg-[var(--md-surface-container-high)] transition-colors text-right"
                   >
                     <div className="flex items-center gap-3">
                       {isCollapsed ? (
-                        <ChevronLeft className="w-4 h-4 text-slate-400" />
+                        <ChevronLeft className="w-4 h-4 text-[var(--md-on-surface-variant)]" />
                       ) : (
-                        <ChevronDown className="w-4 h-4 text-emerald-400" />
+                        <ChevronDown className="w-4 h-4 text-[var(--md-primary-text)]" />
                       )}
                       <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-white">{group.title}</span>
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${group.badgeClass}`}>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-bold text-[var(--md-on-surface)]">{group.title}</span>
+                          <span className={`m3-badge ${group.badgeClass} tabular-nums`}>
                             {groupAccounts.length} حساب
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-400 mt-0.5">{group.subtitle}</p>
+                        <p className="text-[11px] text-[var(--md-on-surface-variant)] mt-0.5">{group.subtitle}</p>
                       </div>
                     </div>
 
-                    <div className="text-left">
-                      <span className="text-[10px] text-slate-400 block">إجمالي رصيد المجموعة</span>
-                      <span className="font-mono font-bold text-sm text-amber-300">
+                    <div className="text-left shrink-0">
+                      <span className="text-[10px] text-[var(--md-on-surface-variant)] block">إجمالي رصيد المجموعة</span>
+                      <span className="font-mono font-bold text-sm text-[var(--md-secondary)] tabular-nums">
                         {formatAmount(groupTotalBalance)} {currency}
                       </span>
                     </div>
                   </button>
 
                   {!isCollapsed && (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-right text-xs">
-                        <thead className="bg-slate-950/40 text-slate-400 border-y border-slate-800">
+                    <div className="overflow-x-auto border-t border-[var(--md-outline-variant)]">
+                      <table className="m3-table text-right text-xs">
+                        <thead className="m3-thead">
                           <tr>
-                            <th className="p-3 w-28">رقم الحساب</th>
-                            <th className="p-3">اسم الحساب</th>
-                            <th className="p-3 w-28">الطبيعة</th>
-                            <th className="p-3 w-40">إجمالي المدين</th>
-                            <th className="p-3 w-40">إجمالي الدائن</th>
-                            <th className="p-3 w-44">الرصيد الحالي</th>
-                            <th className="p-3 w-32 text-center">دفتر الأستاذ المساعد</th>
+                            <th className="m3-th w-28">رقم الحساب</th>
+                            <th className="m3-th">اسم الحساب</th>
+                            <th className="m3-th w-28">الطبيعة</th>
+                            <th className="m3-th w-40">إجمالي المدين</th>
+                            <th className="m3-th w-40">إجمالي الدائن</th>
+                            <th className="m3-th w-44">الرصيد الحالي</th>
+                            <th className="m3-th w-32 text-center">دفتر الأستاذ المساعد</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-800/70">
+                        <tbody className="divide-y divide-[var(--md-outline-variant)]">
                           {groupAccounts.map((acc) => (
                             <tr
                               key={acc.code}
                               onClick={() => setSelectedTAccount(acc)}
-                              className="hover:bg-emerald-950/25 cursor-pointer transition-colors"
+                              className="hover:bg-[var(--md-surface-container-high)]/60 cursor-pointer transition-colors"
                             >
-                              <td className="p-3 font-mono font-bold text-amber-400">{acc.code}</td>
+                              <td className="p-3 font-mono font-bold text-[var(--md-secondary)] tabular-nums">
+                                {acc.code}
+                              </td>
                               <td className="p-3">
-                                <div className="font-bold text-slate-100">{acc.name_ar}</div>
+                                <div className="font-bold text-[var(--md-on-surface)]">{acc.name_ar}</div>
                                 {acc.name && acc.name !== acc.name_ar && (
-                                  <div className="text-[10px] text-slate-500 font-mono">{acc.name}</div>
+                                  <div className="text-[10px] text-[var(--md-on-surface-variant)] font-mono">
+                                    {acc.name}
+                                  </div>
                                 )}
                               </td>
                               <td className="p-3">
                                 <span
-                                  className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                                    acc.nature === 'DEBIT'
-                                      ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
-                                      : 'bg-amber-950 text-amber-300 border-amber-800'
+                                  className={`m3-badge ${
+                                    acc.nature === 'DEBIT' ? 'm3-badge-success' : 'm3-badge-warning'
                                   }`}
                                 >
                                   {acc.nature === 'DEBIT' ? 'مدين (DEBIT)' : 'دائن (CREDIT)'}
                                 </span>
                               </td>
-                              <td className="p-3 font-mono text-emerald-400 font-semibold">
+                              <td className="p-3 font-mono text-[var(--md-success)] font-semibold tabular-nums">
                                 {formatAmount(acc.debit_total)} {currency}
                               </td>
-                              <td className="p-3 font-mono text-teal-300 font-semibold">
+                              <td className="p-3 font-mono text-[var(--md-warning)] font-semibold tabular-nums">
                                 {formatAmount(acc.credit_total)} {currency}
                               </td>
                               <td
-                                className={`p-3 font-mono font-bold ${
-                                  acc.balance >= 0 ? 'text-white' : 'text-rose-400'
+                                className={`p-3 font-mono font-bold tabular-nums ${
+                                  acc.balance >= 0 ? 'text-[var(--md-on-surface)]' : 'text-[var(--md-error)]'
                                 }`}
                               >
                                 {formatAmount(acc.balance)} {currency}
                               </td>
                               <td className="p-3 text-center">
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-950 border border-emerald-800/60 text-emerald-300 text-[11px] font-bold">
+                                <span className="m3-badge m3-badge-primary inline-flex items-center gap-1">
                                   <Eye className="w-3 h-3" />
                                   <span>T-Account</span>
                                 </span>
@@ -1827,22 +1853,24 @@ export const LedgerTab: React.FC = () => {
 
       {/* ==================== TAB 3: TRIAL BALANCE ==================== */}
       {activeTab === 'trial_balance' && (
-        <div className="bg-slate-900 rounded-2xl border border-emerald-900/50 shadow-xl overflow-hidden">
-          <div className="p-4 border-b border-slate-800 bg-slate-950/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="m3-card overflow-hidden">
+          <div className="p-4 border-b border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm font-bold text-white">ميزان المراجعة بالأرصدة والمجاميع (Trial Balance)</h3>
-              <p className="text-[11px] text-slate-400">
+              <h3 className="text-sm font-bold text-[var(--md-on-surface)]">
+                ميزان المراجعة بالأرصدة والمجاميع (Trial Balance)
+              </h3>
+              <p className="text-[11px] text-[var(--md-on-surface-variant)]">
                 مطابقة تلقائية لمجاميع الحركات والأرصدة المدينة والدائنة لجميع الحسابات
               </p>
             </div>
 
             <div className="flex items-center gap-3 flex-wrap">
-              <label className="inline-flex items-center gap-2 text-xs text-slate-300 cursor-pointer bg-slate-900 px-3 py-2 rounded-xl border border-slate-700">
+              <label className="inline-flex items-center gap-2 text-xs font-medium text-[var(--md-on-surface)] cursor-pointer bg-[var(--md-surface-container)] px-3 py-2 rounded-xl border border-[var(--md-outline-variant)]">
                 <input
                   type="checkbox"
                   checked={hideZeroTrialRows}
                   onChange={(e) => setHideZeroTrialRows(e.target.checked)}
-                  className="accent-emerald-500 rounded"
+                  className="accent-[var(--md-primary)] rounded"
                 />
                 <span>إخفاء الحسابات الصفرية</span>
               </label>
@@ -1852,68 +1880,66 @@ export const LedgerTab: React.FC = () => {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-right text-xs">
-              <thead className="bg-slate-950 text-slate-400 font-bold border-b border-slate-800">
+            <table className="m3-table text-right text-xs">
+              <thead className="m3-thead">
                 <tr>
-                  <th className="p-3.5">رقم الحساب</th>
-                  <th className="p-3.5">اسم الحساب</th>
-                  <th className="p-3.5">طبيعة الحساب</th>
-                  <th className="p-3.5">إجمالي الحركة المدينة</th>
-                  <th className="p-3.5">إجمالي الحركة الدائنة</th>
-                  <th className="p-3.5">الرصيد المدين</th>
-                  <th className="p-3.5">الرصيد الدائن</th>
+                  <th className="m3-th">رقم الحساب</th>
+                  <th className="m3-th">اسم الحساب</th>
+                  <th className="m3-th">طبيعة الحساب</th>
+                  <th className="m3-th">إجمالي الحركة المدينة</th>
+                  <th className="m3-th">إجمالي الحركة الدائنة</th>
+                  <th className="m3-th">الرصيد المدين</th>
+                  <th className="m3-th">الرصيد الدائن</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
+              <tbody className="divide-y divide-[var(--md-outline-variant)]">
                 {trialBalanceData.rows.map((row) => (
                   <tr
                     key={row.code}
                     onClick={() => setSelectedTAccount(row)}
-                    className="hover:bg-emerald-950/20 cursor-pointer transition-colors"
+                    className="hover:bg-[var(--md-surface-container-high)]/60 cursor-pointer transition-colors"
                   >
-                    <td className="p-3.5 font-mono font-bold text-amber-400">{row.code}</td>
-                    <td className="p-3.5 font-bold text-slate-100">{row.name_ar}</td>
+                    <td className="p-3.5 font-mono font-bold text-[var(--md-secondary)] tabular-nums">{row.code}</td>
+                    <td className="p-3.5 font-bold text-[var(--md-on-surface)]">{row.name_ar}</td>
                     <td className="p-3.5">
                       <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                          row.nature === 'DEBIT'
-                            ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
-                            : 'bg-amber-950 text-amber-300 border-amber-800'
+                        className={`m3-badge ${
+                          row.nature === 'DEBIT' ? 'm3-badge-success' : 'm3-badge-warning'
                         }`}
                       >
                         {row.nature === 'DEBIT' ? 'مدين' : 'دائن'}
                       </span>
                     </td>
-                    <td className="p-3.5 font-mono text-emerald-400">
+                    <td className="p-3.5 font-mono text-[var(--md-success)] tabular-nums">
                       {row.debit_total > 0 ? `${formatAmount(row.debit_total)} ${currency}` : '-'}
                     </td>
-                    <td className="p-3.5 font-mono text-teal-300">
+                    <td className="p-3.5 font-mono text-[var(--md-primary-text)] tabular-nums">
                       {row.credit_total > 0 ? `${formatAmount(row.credit_total)} ${currency}` : '-'}
                     </td>
-                    <td className="p-3.5 font-mono font-bold text-emerald-300">
+                    <td className="p-3.5 font-mono font-bold text-[var(--md-success)] tabular-nums">
                       {row.debitBalance > 0 ? `${formatAmount(row.debitBalance)} ${currency}` : '-'}
                     </td>
-                    <td className="p-3.5 font-mono font-bold text-amber-300">
+                    <td className="p-3.5 font-mono font-bold text-[var(--md-warning)] tabular-nums">
                       {row.creditBalance > 0 ? `${formatAmount(row.creditBalance)} ${currency}` : '-'}
                     </td>
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="bg-slate-950 font-bold border-t-2 border-amber-500/40 text-xs">
+              <tfoot className="bg-[var(--md-surface-container-high)] font-bold border-t-2 border-[var(--md-secondary)]/50 text-xs">
                 <tr>
-                  <td colSpan={3} className="p-4 text-amber-300">
+                  <td colSpan={3} className="p-4 text-[var(--md-on-surface)]">
                     الإجماليات الكلية لميزان المراجعة
                   </td>
-                  <td className="p-4 font-mono text-emerald-400">
+                  <td className="p-4 font-mono text-[var(--md-success)] tabular-nums">
                     {formatAmount(trialBalanceData.sumDebitMovements)} {currency}
                   </td>
-                  <td className="p-4 font-mono text-teal-300">
+                  <td className="p-4 font-mono text-[var(--md-primary-text)] tabular-nums">
                     {formatAmount(trialBalanceData.sumCreditMovements)} {currency}
                   </td>
-                  <td className="p-4 font-mono text-emerald-300">
+                  <td className="p-4 font-mono text-[var(--md-success)] tabular-nums">
                     {formatAmount(trialBalanceData.sumDebitBalances)} {currency}
                   </td>
-                  <td className="p-4 font-mono text-amber-300">
+                  <td className="p-4 font-mono text-[var(--md-warning)] tabular-nums">
                     {formatAmount(trialBalanceData.sumCreditBalances)} {currency}
                   </td>
                 </tr>
@@ -1925,18 +1951,22 @@ export const LedgerTab: React.FC = () => {
           <div
             className={`p-4 border-t flex flex-col sm:flex-row items-center justify-between gap-3 ${
               trialBalanceData.isFullyBalanced
-                ? 'bg-gradient-to-l from-amber-500/15 via-emerald-500/10 to-slate-950 border-amber-500/40'
-                : 'bg-rose-950/50 border-rose-700'
+                ? 'bg-[var(--md-secondary-container)] border-[var(--md-secondary)]/40 text-[var(--md-on-secondary-container)]'
+                : 'bg-[var(--md-error-container)] border-[var(--md-error)]/40 text-[var(--md-on-error-container)]'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <Scale className={`w-5 h-5 ${trialBalanceData.isFullyBalanced ? 'text-amber-400' : 'text-rose-400'}`} />
+              <Scale
+                className={`w-5 h-5 shrink-0 ${
+                  trialBalanceData.isFullyBalanced ? 'text-[var(--md-secondary)]' : 'text-[var(--md-error)]'
+                }`}
+              />
               <div>
-                <div className="text-xs font-extrabold text-amber-300">
+                <div className="text-xs font-extrabold tabular-nums">
                   إجمالي المدين = إجمالي الدائن ({formatAmount(trialBalanceData.sumDebitBalances)} {currency} ={' '}
                   {formatAmount(trialBalanceData.sumCreditBalances)} {currency})
                 </div>
-                <div className="text-[11px] text-slate-400">
+                <div className="text-[11px] opacity-85 tabular-nums">
                   مجموع الحركات: مدين {formatAmount(trialBalanceData.sumDebitMovements)} {currency} | دائن{' '}
                   {formatAmount(trialBalanceData.sumCreditMovements)} {currency}
                 </div>
@@ -1944,10 +1974,8 @@ export const LedgerTab: React.FC = () => {
             </div>
 
             <span
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold border ${
-                trialBalanceData.isFullyBalanced
-                  ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50'
-                  : 'bg-rose-950 text-rose-300 border-rose-600'
+              className={`m3-badge !px-3.5 !py-1.5 !text-xs font-extrabold ${
+                trialBalanceData.isFullyBalanced ? 'm3-badge-success' : 'm3-badge-error'
               }`}
             >
               {trialBalanceData.isFullyBalanced ? 'متوازن 100% ✓' : 'يوجد فارق في التوازن !'}
@@ -1958,20 +1986,20 @@ export const LedgerTab: React.FC = () => {
 
       {/* ==================== MODAL 1: T-ACCOUNT STATEMENT ==================== */}
       {selectedTAccount && tAccountDetails && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-emerald-800/70 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="m3-backdrop p-4" dir="rtl">
+          <div className="m3-modal-surface w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
             {/* Modal Header */}
-            <div className="p-5 bg-slate-950 border-b border-slate-800 flex items-center justify-between gap-3">
+            <div className="p-5 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] flex items-center justify-between gap-3">
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-sm font-extrabold px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/40">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="m3-badge m3-badge-secondary font-mono text-sm font-extrabold tabular-nums">
                     {selectedTAccount.code}
                   </span>
-                  <h3 className="text-base font-bold text-white">
+                  <h3 className="text-base font-bold text-[var(--md-on-surface)]">
                     كشف حركة الحساب (دفتر الأستاذ المساعد - T-Account): {selectedTAccount.name_ar}
                   </h3>
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1">
+                <p className="text-[11px] text-[var(--md-on-surface-variant)] mt-1 tabular-nums">
                   طبيعة الحساب: {selectedTAccount.nature === 'DEBIT' ? 'مدين (Debit)' : 'دائن (Credit)'} | عدد الحركات:{' '}
                   {tAccountDetails.movements.length}
                 </p>
@@ -1981,7 +2009,7 @@ export const LedgerTab: React.FC = () => {
                 <ExportActions getConfig={getTAccountExportConfig} />
                 <button
                   onClick={() => setSelectedTAccount(null)}
-                  className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700"
+                  className="m3-btn-outlined !min-h-[36px] !px-2.5 !py-2"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1991,67 +2019,73 @@ export const LedgerTab: React.FC = () => {
             {/* Modal Body */}
             <div className="p-5 overflow-y-auto space-y-5">
               {/* Visual T-Account Header */}
-              <div className="rounded-2xl border border-amber-500/30 bg-slate-950/80 overflow-hidden">
-                <div className="p-2.5 text-center border-b-2 border-amber-500/50 bg-slate-950 font-bold text-xs text-amber-300">
+              <div className="rounded-2xl border border-[var(--md-secondary)]/45 bg-[var(--md-surface-container-low)] overflow-hidden">
+                <div className="p-2.5 text-center border-b-2 border-[var(--md-secondary)]/50 bg-[var(--md-secondary-container)] font-bold text-xs text-[var(--md-on-secondary-container)] tabular-nums">
                   ح/ {selectedTAccount.name_ar} ({selectedTAccount.code})
                 </div>
-                <div className="grid grid-cols-2 divide-x divide-x-reverse divide-amber-500/40">
+                <div className="grid grid-cols-2 divide-x divide-x-reverse divide-[var(--md-secondary)]/35">
                   <div className="p-4 text-center">
-                    <span className="text-[11px] text-slate-400 block mb-1">الجانب المدين (منه / Debit)</span>
-                    <span className="font-mono text-base font-extrabold text-emerald-400">
+                    <span className="text-[11px] text-[var(--md-on-surface-variant)] block mb-1">
+                      الجانب المدين (منه / Debit)
+                    </span>
+                    <span className="font-mono text-base font-extrabold text-[var(--md-success)] tabular-nums">
                       {formatAmount(tAccountDetails.totalDebit)} {currency}
                     </span>
                   </div>
                   <div className="p-4 text-center">
-                    <span className="text-[11px] text-slate-400 block mb-1">الجانب الدائن (له / Credit)</span>
-                    <span className="font-mono text-base font-extrabold text-amber-300">
+                    <span className="text-[11px] text-[var(--md-on-surface-variant)] block mb-1">
+                      الجانب الدائن (له / Credit)
+                    </span>
+                    <span className="font-mono text-base font-extrabold text-[var(--md-warning)] tabular-nums">
                       {formatAmount(tAccountDetails.totalCredit)} {currency}
                     </span>
                   </div>
                 </div>
-                <div className="p-2.5 text-center bg-emerald-950/40 border-t border-slate-800 text-xs font-bold text-white">
+                <div className="p-2.5 text-center bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border-t border-[var(--md-outline-variant)] text-xs font-bold tabular-nums">
                   الرصيد التراكمي الختامي:{' '}
-                  <span className="font-mono text-emerald-300">
+                  <span className="font-mono font-extrabold">
                     {formatAmount(tAccountDetails.closingBalance)} {currency}
                   </span>
                 </div>
               </div>
 
               {/* Movements Table */}
-              <div className="overflow-x-auto rounded-xl border border-slate-800">
-                <table className="w-full text-right text-xs">
-                  <thead className="bg-slate-950 text-slate-400 font-bold border-b border-slate-800">
+              <div className="overflow-x-auto rounded-xl border border-[var(--md-outline-variant)]">
+                <table className="m3-table text-right text-xs">
+                  <thead className="m3-thead">
                     <tr>
-                      <th className="p-3">التاريخ</th>
-                      <th className="p-3">رقم القيد</th>
-                      <th className="p-3">المرجع</th>
-                      <th className="p-3">البيان</th>
-                      <th className="p-3">مدين</th>
-                      <th className="p-3">دائن</th>
-                      <th className="p-3">الرصيد التراكمي</th>
+                      <th className="m3-th">التاريخ</th>
+                      <th className="m3-th">رقم القيد</th>
+                      <th className="m3-th">المرجع</th>
+                      <th className="m3-th">البيان</th>
+                      <th className="m3-th">مدين</th>
+                      <th className="m3-th">دائن</th>
+                      <th className="m3-th">الرصيد التراكمي</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800">
+                  <tbody className="divide-y divide-[var(--md-outline-variant)]">
                     {tAccountDetails.movements.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="p-8 text-center text-slate-400">
+                        <td colSpan={7} className="p-8 text-center text-[var(--md-on-surface-variant)]">
                           لا توجد حركات مرحلة على هذا الحساب حتى الآن.
                         </td>
                       </tr>
                     ) : (
                       tAccountDetails.movements.map((m) => (
-                        <tr key={m.id} className="hover:bg-slate-800/40">
-                          <td className="p-3 font-mono text-slate-400">{m.date}</td>
-                          <td className="p-3 font-mono font-bold text-emerald-300">{m.entry_number}</td>
+                        <tr key={m.id} className="hover:bg-[var(--md-surface-container-high)]/60">
+                          <td className="p-3 font-mono text-[var(--md-on-surface-variant)] tabular-nums">{m.date}</td>
+                          <td className="p-3 font-mono font-bold text-[var(--md-primary-text)] tabular-nums">
+                            {m.entry_number}
+                          </td>
                           <td className="p-3">{getRefBadge(m.reference_type)}</td>
-                          <td className="p-3 text-slate-200">{m.description}</td>
-                          <td className="p-3 font-mono font-bold text-emerald-400">
+                          <td className="p-3 text-[var(--md-on-surface)]">{m.description}</td>
+                          <td className="p-3 font-mono font-bold text-[var(--md-success)] tabular-nums">
                             {m.debit > 0 ? `${formatAmount(m.debit)} ${currency}` : '-'}
                           </td>
-                          <td className="p-3 font-mono font-bold text-amber-300">
+                          <td className="p-3 font-mono font-bold text-[var(--md-warning)] tabular-nums">
                             {m.credit > 0 ? `${formatAmount(m.credit)} ${currency}` : '-'}
                           </td>
-                          <td className="p-3 font-mono font-bold text-white">
+                          <td className="p-3 font-mono font-bold text-[var(--md-on-surface)] tabular-nums">
                             {formatAmount(m.running_balance)} {currency}
                           </td>
                         </tr>
@@ -2067,26 +2101,26 @@ export const LedgerTab: React.FC = () => {
 
       {/* ==================== MODAL 2: NEW MANUAL DOUBLE-ENTRY JOURNAL ==================== */}
       {showNewJournalModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="m3-backdrop p-4" dir="rtl">
           <form
             onSubmit={handleSaveManualJournal}
-            className="bg-slate-900 border border-emerald-800/70 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden"
+            className="m3-modal-surface w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden"
           >
             {/* Modal Header */}
-            <div className="p-5 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+            <div className="p-5 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Plus className="w-5 h-5 text-emerald-400" />
+                <h3 className="text-base font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                  <Plus className="w-5 h-5 text-[var(--md-primary-text)]" />
                   <span>إضافة قيد يومية مزدوج جديد (New Manual Journal Entry)</span>
                 </h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">
+                <p className="text-[11px] text-[var(--md-on-surface-variant)] mt-0.5">
                   لا يمكن ترحيل القيد إلا عند تطابق إجمالي المدين مع إجمالي الدائن (الفارق = 0)
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowNewJournalModal(false)}
-                className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700"
+                className="m3-btn-outlined !min-h-[36px] !px-2.5 !py-2"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2095,8 +2129,8 @@ export const LedgerTab: React.FC = () => {
             {/* Modal Body */}
             <div className="p-5 overflow-y-auto space-y-4">
               {journalFormError && (
-                <div className="p-3 rounded-xl bg-rose-950/80 border border-rose-700 text-rose-200 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
+                <div className="p-3 rounded-xl bg-[var(--md-error-container)] border border-[var(--md-error)]/40 text-[var(--md-on-error-container)] text-xs font-medium flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-[var(--md-error)]" />
                   <span>{journalFormError}</span>
                 </div>
               )}
@@ -2104,58 +2138,64 @@ export const LedgerTab: React.FC = () => {
               {/* Header Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1">التاريخ *</label>
+                  <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1">
+                    التاريخ *
+                  </label>
                   <input
                     type="date"
                     required
                     value={newJournalDate}
                     onChange={(e) => setNewJournalDate(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500"
+                    className="m3-input !h-10 text-xs tabular-nums"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1">رقم المرجع (اختياري)</label>
+                  <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1">
+                    رقم المرجع (اختياري)
+                  </label>
                   <input
                     type="text"
                     placeholder="مثال: MAN-001"
                     value={newJournalRef}
                     onChange={(e) => setNewJournalRef(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500"
+                    className="m3-input !h-10 text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1">البيان العام للقيد *</label>
+                  <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1">
+                    البيان العام للقيد *
+                  </label>
                   <input
                     type="text"
                     required
                     placeholder="مثال: إثبات رأس مال / تسوية محاسبية..."
                     value={newJournalDesc}
                     onChange={(e) => setNewJournalDesc(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500"
+                    className="m3-input !h-10 text-xs"
                   />
                 </div>
               </div>
 
               {/* Lines Table */}
-              <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/60">
-                <table className="w-full text-right text-xs">
-                  <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
+              <div className="overflow-x-auto rounded-xl border border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)]">
+                <table className="m3-table text-right text-xs">
+                  <thead className="m3-thead">
                     <tr>
-                      <th className="p-2.5 min-w-[220px]">الحساب المحاسبي *</th>
-                      <th className="p-2.5 w-32">مدين (Debit)</th>
-                      <th className="p-2.5 w-32">دائن (Credit)</th>
-                      <th className="p-2.5">بيان السطر</th>
-                      <th className="p-2.5 w-12 text-center">حذف</th>
+                      <th className="m3-th !py-2.5 min-w-[220px]">الحساب المحاسبي *</th>
+                      <th className="m3-th !py-2.5 w-32">مدين (Debit)</th>
+                      <th className="m3-th !py-2.5 w-32">دائن (Credit)</th>
+                      <th className="m3-th !py-2.5">بيان السطر</th>
+                      <th className="m3-th !py-2.5 w-12 text-center">حذف</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/70">
+                  <tbody className="divide-y divide-[var(--md-outline-variant)]">
                     {newJournalLines.map((row) => (
                       <tr key={row.key}>
                         <td className="p-2">
                           <select
                             value={row.account_code}
                             onChange={(e) => handleUpdateJournalRow(row.key, 'account_code', e.target.value)}
-                            className="w-full px-2.5 py-2 text-xs bg-slate-900 border border-slate-700 text-white rounded-lg focus:outline-none focus:border-emerald-500"
+                            className="m3-select !h-9 text-xs"
                           >
                             <option value="">-- اختر الحساب --</option>
                             {chartOfAccounts.map((acc) => (
@@ -2173,7 +2213,7 @@ export const LedgerTab: React.FC = () => {
                             placeholder="0.00"
                             value={row.debit}
                             onChange={(e) => handleUpdateJournalRow(row.key, 'debit', e.target.value)}
-                            className="w-full px-2.5 py-2 text-xs font-mono bg-slate-900 border border-slate-700 text-emerald-300 rounded-lg focus:outline-none focus:border-emerald-500"
+                            className="m3-input !h-9 text-xs font-mono font-bold text-[var(--md-success)] tabular-nums"
                           />
                         </td>
                         <td className="p-2">
@@ -2184,7 +2224,7 @@ export const LedgerTab: React.FC = () => {
                             placeholder="0.00"
                             value={row.credit}
                             onChange={(e) => handleUpdateJournalRow(row.key, 'credit', e.target.value)}
-                            className="w-full px-2.5 py-2 text-xs font-mono bg-slate-900 border border-slate-700 text-amber-300 rounded-lg focus:outline-none focus:border-amber-500"
+                            className="m3-input !h-9 text-xs font-mono font-bold text-[var(--md-warning)] tabular-nums"
                           />
                         </td>
                         <td className="p-2">
@@ -2193,7 +2233,7 @@ export const LedgerTab: React.FC = () => {
                             placeholder="بيان تفصيلي للسطر..."
                             value={row.description}
                             onChange={(e) => handleUpdateJournalRow(row.key, 'description', e.target.value)}
-                            className="w-full px-2.5 py-2 text-xs bg-slate-900 border border-slate-700 text-white rounded-lg focus:outline-none focus:border-emerald-500"
+                            className="m3-input !h-9 text-xs"
                           />
                         </td>
                         <td className="p-2 text-center">
@@ -2201,7 +2241,7 @@ export const LedgerTab: React.FC = () => {
                             type="button"
                             disabled={newJournalLines.length <= 2}
                             onClick={() => handleRemoveJournalRow(row.key)}
-                            className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-950/60 disabled:opacity-30"
+                            className="m3-btn-danger !min-h-[32px] !px-2 !py-1.5 disabled:opacity-30"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -2215,7 +2255,7 @@ export const LedgerTab: React.FC = () => {
               <button
                 type="button"
                 onClick={handleAddJournalRow}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-emerald-800/60 text-emerald-300 text-xs font-bold transition-colors"
+                className="m3-btn-tonal !min-h-[36px] text-xs"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>+ إضافة طرف جديد</span>
@@ -2223,25 +2263,23 @@ export const LedgerTab: React.FC = () => {
             </div>
 
             {/* Live Balance Footer Bar */}
-            <div className="p-4 bg-slate-950 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="p-4 bg-[var(--md-surface-container-low)] border-t border-[var(--md-outline-variant)] flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="flex items-center gap-4 flex-wrap text-xs">
                 <div>
-                  <span className="text-slate-400 ml-1">إجمالي المدين:</span>
-                  <span className="font-mono font-bold text-emerald-400">
+                  <span className="text-[var(--md-on-surface-variant)] ml-1">إجمالي المدين:</span>
+                  <span className="font-mono font-bold text-[var(--md-success)] tabular-nums">
                     {formatAmount(newJournalTotals.totalDebit)} {currency}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 ml-1">إجمالي الدائن:</span>
-                  <span className="font-mono font-bold text-amber-300">
+                  <span className="text-[var(--md-on-surface-variant)] ml-1">إجمالي الدائن:</span>
+                  <span className="font-mono font-bold text-[var(--md-warning)] tabular-nums">
                     {formatAmount(newJournalTotals.totalCredit)} {currency}
                   </span>
                 </div>
                 <div
-                  className={`px-2.5 py-1 rounded-lg border font-mono font-bold ${
-                    newJournalTotals.isBalanced
-                      ? 'bg-emerald-950 text-emerald-300 border-emerald-700'
-                      : 'bg-rose-950 text-rose-300 border-rose-700'
+                  className={`m3-badge font-mono font-bold tabular-nums ${
+                    newJournalTotals.isBalanced ? 'm3-badge-success' : 'm3-badge-error'
                   }`}
                 >
                   الفارق: {formatAmount(newJournalTotals.difference)} {currency}
@@ -2252,14 +2290,14 @@ export const LedgerTab: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowNewJournalModal(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 text-xs font-bold hover:bg-slate-800"
+                  className="m3-btn-outlined !min-h-[40px] text-xs"
                 >
                   إلغاء
                 </button>
                 <button
                   type="submit"
                   disabled={!newJournalTotals.canSave || submittingJournal}
-                  className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-l from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  className="m3-btn-primary !min-h-[40px] text-xs disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {submittingJournal && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>حفظ وترحيل القيد المزدوج</span>
@@ -2272,20 +2310,20 @@ export const LedgerTab: React.FC = () => {
 
       {/* ==================== MODAL 3: ADD SUB-ACCOUNT ==================== */}
       {showAddAccountModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="m3-backdrop p-4" dir="rtl">
           <form
             onSubmit={handleSaveNewAccount}
-            className="bg-slate-900 border border-amber-700/60 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+            className="m3-modal-surface w-full max-w-md overflow-hidden"
           >
-            <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Plus className="w-4 h-4 text-amber-400" />
+            <div className="p-4 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] flex items-center justify-between">
+              <h3 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                <Plus className="w-4 h-4 text-[var(--md-secondary)]" />
                 <span>إضافة حساب فرعي جديد لشجرة الحسابات</span>
               </h3>
               <button
                 type="button"
                 onClick={() => setShowAddAccountModal(false)}
-                className="p-1.5 rounded-lg bg-slate-900 text-slate-300 border border-slate-700"
+                className="m3-btn-outlined !min-h-[32px] !px-2 !py-1.5"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2293,38 +2331,44 @@ export const LedgerTab: React.FC = () => {
 
             <div className="p-5 space-y-3.5">
               {accountFormError && (
-                <div className="p-3 rounded-xl bg-rose-950/80 border border-rose-700 text-rose-200 text-xs">
+                <div className="p-3 rounded-xl bg-[var(--md-error-container)] border border-[var(--md-error)]/40 text-[var(--md-on-error-container)] text-xs font-medium">
                   {accountFormError}
                 </div>
               )}
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1">رقم الحساب (Code) *</label>
+                <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1">
+                  رقم الحساب (Code) *
+                </label>
                 <input
                   type="text"
                   required
                   placeholder="مثال: 1108 أو 5204"
                   value={newAccCode}
                   onChange={(e) => setNewAccCode(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-mono bg-slate-950 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-amber-500"
+                  className="m3-input !h-10 text-xs font-mono tabular-nums"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1">اسم الحساب *</label>
+                <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1">
+                  اسم الحساب *
+                </label>
                 <input
                   type="text"
                   required
                   placeholder="مثال: مصروفات التسويق والإعلان"
                   value={newAccName}
                   onChange={(e) => setNewAccName(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-amber-500"
+                  className="m3-input !h-10 text-xs"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1">تصنيف الحساب *</label>
+                  <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1">
+                    تصنيف الحساب *
+                  </label>
                   <select
                     value={newAccType}
                     onChange={(e) => {
@@ -2332,7 +2376,7 @@ export const LedgerTab: React.FC = () => {
                       setNewAccType(val);
                       setNewAccNature(val === 'ASSET' || val === 'EXPENSE' ? 'DEBIT' : 'CREDIT');
                     }}
-                    className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-amber-500"
+                    className="m3-select !h-10 text-xs"
                   >
                     <option value="ASSET">1000 — الأصول (ASSET)</option>
                     <option value="LIABILITY">2000 — الالتزامات (LIABILITY)</option>
@@ -2343,11 +2387,13 @@ export const LedgerTab: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1">طبيعة الحساب *</label>
+                  <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1">
+                    طبيعة الحساب *
+                  </label>
                   <select
                     value={newAccNature}
                     onChange={(e) => setNewAccNature(e.target.value as 'DEBIT' | 'CREDIT')}
-                    className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-amber-500"
+                    className="m3-select !h-10 text-xs"
                   >
                     <option value="DEBIT">مدين (DEBIT)</option>
                     <option value="CREDIT">دائن (CREDIT)</option>
@@ -2356,18 +2402,18 @@ export const LedgerTab: React.FC = () => {
               </div>
             </div>
 
-            <div className="p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-end gap-2.5">
+            <div className="p-4 bg-[var(--md-surface-container-low)] border-t border-[var(--md-outline-variant)] flex items-center justify-end gap-2.5">
               <button
                 type="button"
                 onClick={() => setShowAddAccountModal(false)}
-                className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 text-xs font-bold"
+                className="m3-btn-outlined !min-h-[38px] text-xs"
               >
                 إلغاء
               </button>
               <button
                 type="submit"
                 disabled={submittingAccount}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold disabled:opacity-50"
+                className="m3-btn-primary !min-h-[38px] text-xs disabled:opacity-50"
               >
                 {submittingAccount && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 <span>حفظ الحساب الجديد</span>
@@ -2379,41 +2425,44 @@ export const LedgerTab: React.FC = () => {
 
       {/* ==================== MODAL 4: CONFIRM DELETE MANUAL ENTRY ==================== */}
       {entryPendingDelete && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-rose-700/70 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="p-4 bg-rose-950/60 border-b border-rose-800/60 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-rose-200 flex items-center gap-2">
-                <Trash2 className="w-4 h-4 text-rose-400" />
+        <div className="m3-backdrop p-4" dir="rtl">
+          <div className="m3-modal-surface w-full max-w-md overflow-hidden">
+            <div className="p-4 bg-[var(--md-error-container)] border-b border-[var(--md-error)]/30 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-[var(--md-on-error-container)] flex items-center gap-2">
+                <Trash2 className="w-4 h-4 text-[var(--md-error)]" />
                 <span>تأكيد حذف / عكس القيد اليدوي</span>
               </h3>
               <button
                 onClick={() => setEntryPendingDelete(null)}
-                className="p-1 rounded-lg text-slate-300 hover:bg-slate-800"
+                className="p-1.5 rounded-lg text-[var(--md-on-error-container)] hover:bg-[var(--md-error)]/15 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="p-5 space-y-2 text-xs text-slate-300">
+            <div className="p-5 space-y-2 text-xs text-[var(--md-on-surface)]">
               <p>
                 هل أنت متأكد من حذف القيد المحاسبي رقم{' '}
-                <strong className="font-mono text-amber-300">{entryPendingDelete.entry_number}</strong>؟
+                <strong className="font-mono text-[var(--md-secondary)] tabular-nums">
+                  {entryPendingDelete.entry_number}
+                </strong>
+                ؟
               </p>
-              <p className="text-slate-400">{entryPendingDelete.description}</p>
-              <p className="text-[11px] text-amber-300/90 pt-1">
+              <p className="text-[var(--md-on-surface-variant)]">{entryPendingDelete.description}</p>
+              <p className="text-[11px] text-[var(--md-warning)] font-semibold pt-1">
                 سيتم إعادة احتساب أرصدة جميع الحسابات وميزان المراجعة تلقائياً فور الحذف.
               </p>
             </div>
-            <div className="p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-end gap-2.5">
+            <div className="p-4 bg-[var(--md-surface-container-low)] border-t border-[var(--md-outline-variant)] flex items-center justify-end gap-2.5">
               <button
                 onClick={() => setEntryPendingDelete(null)}
-                className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 text-xs font-bold"
+                className="m3-btn-outlined !min-h-[38px] text-xs"
               >
                 تراجع
               </button>
               <button
                 onClick={handleConfirmDeleteEntry}
                 disabled={deletingEntry}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold disabled:opacity-50"
+                className="m3-btn-danger !min-h-[38px] text-xs disabled:opacity-50"
               >
                 {deletingEntry && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 <span>تأكيد الحذف وإعادة الاحتساب</span>

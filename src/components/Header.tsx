@@ -174,56 +174,56 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <>
-      <header className="h-16 bg-slate-900/85 backdrop-blur-md border-b border-slate-800 px-4 sm:px-6 flex items-center justify-between flex-shrink-0 z-10 select-none">
-        {/* Title / Current Tab Indicator & Profile Switcher */}
-        <div className="flex items-center gap-2.5">
-          <div className="hidden lg:flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-bold text-slate-200">نظام المحاسبي الذكي ERP</span>
+      <header className="h-16 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] px-4 sm:px-6 flex items-center justify-between gap-4 flex-shrink-0 z-10 select-none">
+        {/* Right Zone (RTL Start): Title, Activity Profile, Exchange Rate & Updater */}
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="hidden xl:flex items-center gap-2 pl-2 border-l border-[var(--md-outline-variant)] shrink-0">
+            <span className="text-xs font-bold text-[var(--md-on-surface)] whitespace-nowrap">
+              نظام المحاسبي الذكي ERP
+            </span>
           </div>
 
           {/* Business Activity Profile Selector Dropdown */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <button
               type="button"
               onClick={() => setShowPresetMenu((prev) => !prev)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
+              className="m3-btn-tonal h-10 px-3 text-xs"
               title="تغيير نشاط المنشأة وتخصيص شاشات النظام فورياً"
             >
               <span>{currentPresetObj.icon}</span>
               <span className="hidden sm:inline font-bold">نشاط: {currentPresetObj.short}</span>
               <span className="sm:hidden font-bold">{currentPresetObj.short}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-indigo-400" />
+              <ChevronDown className="w-3.5 h-3.5 shrink-0" />
             </button>
 
             {showPresetMenu && (
-              <div className="absolute right-0 mt-2 w-72 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-2 z-50 space-y-1 text-right">
-                <div className="text-[11px] font-bold text-slate-400 px-3 py-1.5 border-b border-slate-800 flex items-center justify-between">
+              <div className="m3-card-elevated absolute right-0 mt-2 w-72 p-2 z-50 space-y-1 text-right">
+                <div className="text-[11px] font-bold text-[var(--md-on-surface-variant)] px-3 py-2 border-b border-[var(--md-outline-variant)] flex items-center justify-between">
                   <span>تخصيص النظام حسب نشاط المنشأة:</span>
-                  <Sparkles className="w-3 h-3 text-amber-400" />
+                  <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--md-secondary)' }} />
                 </div>
                 {PRIMARY_PRESETS.map((preset) => {
                   const isSelected = settings.activePreset === preset.key;
                   return (
                     <button
                       key={preset.key}
+                      type="button"
                       onClick={() => {
                         applyPreset(preset.key);
                         setShowPresetMenu(false);
                       }}
-                      className={`w-full flex items-center justify-between p-2 rounded-xl text-xs font-medium transition-all text-right cursor-pointer ${
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors text-right cursor-pointer ${
                         isSelected
-                          ? 'bg-indigo-600/20 text-indigo-200 border border-indigo-500/40 font-bold'
-                          : 'text-slate-300 hover:bg-slate-800/70'
+                          ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] font-bold'
+                          : 'text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)]'
                       }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="text-base">{preset.icon}</span>
-                        <div className="text-right">
-                          <div className="font-bold text-white text-[11px]">{preset.label}</div>
-                        </div>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-base shrink-0">{preset.icon}</span>
+                        <span className="truncate text-xs">{preset.label}</span>
                       </div>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
+                      {isSelected && <Check className="w-3.5 h-3.5 shrink-0" />}
                     </button>
                   );
                 })}
@@ -235,12 +235,17 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={() => setIsRatesOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold transition-all cursor-pointer"
+            className="m3-btn-outlined h-10 px-3 text-xs shrink-0"
+            style={{
+              backgroundColor: 'var(--md-secondary-container)',
+              borderColor: 'var(--md-outline-variant)',
+              color: 'var(--md-on-secondary-container)',
+            }}
             title="فتح نشرة أسعار الصرف اليومية وحاسبة العملات"
           >
-            <Coins className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden md:inline">الصرف:</span>
-            <span className="font-mono text-[11px] text-amber-200">
+            <Coins className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--md-secondary)' }} />
+            <span className="hidden md:inline font-semibold">الصرف:</span>
+            <span className="font-mono tabular-nums text-xs font-bold">
               1 SAR = {formatNumber(exchangeConfig.rates.SAR.accountingRate)}
             </span>
           </button>
@@ -249,226 +254,267 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={() => setIsUpdateCenterOpen(true)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm ${
+            className="m3-btn-outlined h-10 px-3 text-xs shrink-0"
+            style={
               hasUpdateAvailable
-                ? 'bg-gradient-to-r from-amber-500/20 to-emerald-500/20 text-amber-300 border-2 border-amber-400 shadow-amber-500/20 animate-pulse'
-                : 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30'
-            }`}
+                ? {
+                    backgroundColor: 'var(--md-secondary-container)',
+                    borderColor: 'var(--md-secondary)',
+                    color: 'var(--md-on-secondary-container)',
+                  }
+                : undefined
+            }
             title="مركز التحديثات التلقائية المعتمدة (Tauri Auto-Updater)"
           >
-            <Sparkles className={`w-3.5 h-3.5 ${hasUpdateAvailable ? 'text-amber-400' : 'text-blue-400'}`} />
-            <span className="hidden xl:inline">التحديثات:</span>
-            <span className="font-mono text-[11px] text-blue-200">v{currentAppVersion}</span>
+            <Sparkles
+              className="w-3.5 h-3.5 shrink-0"
+              style={{ color: hasUpdateAvailable ? 'var(--md-secondary)' : 'var(--md-primary)' }}
+            />
+            <span className="hidden xl:inline font-semibold">التحديثات:</span>
+            <span className="font-mono tabular-nums text-xs">v{currentAppVersion}</span>
             {hasUpdateAvailable && (
-              <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-amber-400 text-slate-950 shadow">
-                تحديث {availableVersion ? `v${availableVersion}` : 'متاح'}!
+              <span
+                className="m3-badge"
+                style={{
+                  backgroundColor: 'var(--md-secondary)',
+                  color: 'var(--md-on-secondary)',
+                  borderColor: 'transparent',
+                }}
+              >
+                تحديث {availableVersion ? `v${availableVersion}` : 'متاح'}
               </span>
             )}
           </button>
         </div>
 
-      {/* Quick Search & Switchers */}
-      <div className="flex items-center gap-3">
-        {/* Search trigger */}
-        <button
-          onClick={onOpenSearch}
-          className="flex items-center gap-2 bg-slate-800/80 hover:bg-slate-800 text-slate-300 px-3.5 py-1.5 rounded-xl border border-slate-700/60 text-xs transition-all w-52 md:w-64 justify-between"
-          title="بحث سريع (Ctrl+K)"
-        >
-          <div className="flex items-center gap-2">
-            <Search className="w-3.5 h-3.5 text-slate-400" />
-            <span>بحث في النظام (Ctrl+K)...</span>
-          </div>
-          <kbd className="hidden sm:inline-block bg-slate-700/60 px-1.5 py-0.5 rounded text-[10px] text-slate-400 font-mono">
-            ⌘K
-          </kbd>
-        </button>
-
-        {/* Theme Mode Toggle (Dark / Light) */}
-        {onToggleTheme && (
+        {/* Left Zone (RTL End): Search, Theme, Accent, Sync, Account, Lock, Logout */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Search trigger */}
           <button
             type="button"
-            onClick={onToggleTheme}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-sm ${
-              themeMode === 'dark'
-                ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30'
-                : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500/40 shadow-emerald-950/20'
-            }`}
-            title={themeMode === 'dark' ? 'التحويل إلى الوضع الفاتح (Light Mode)' : 'التحويل إلى الوضع المظلم (Dark Mode)'}
+            onClick={onOpenSearch}
+            className="h-10 flex items-center justify-between gap-2 bg-[var(--md-surface-container)] hover:bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] px-3.5 rounded-xl border border-[var(--md-outline-variant)] text-xs transition-colors w-44 md:w-60 cursor-pointer shrink-0"
+            title="بحث سريع (Ctrl+K)"
           >
-            {themeMode === 'dark' ? (
-              <>
-                <Sun className="w-4 h-4 text-amber-400" />
-                <span className="hidden sm:inline">الوضع الفاتح</span>
-              </>
-            ) : (
-              <>
-                <Moon className="w-4 h-4 text-amber-300" />
-                <span className="hidden sm:inline">الوضع المظلم</span>
-              </>
-            )}
-          </button>
-        )}
-
-        {/* 4 Accent Colors Palette Switcher */}
-        {onChangeAccent && (
-          <div className="relative">
-            <button
-              onClick={() => setShowColorPalette((prev) => !prev)}
-              className="p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition-colors border border-slate-700/60 flex items-center gap-1.5"
-              title="تخصيص لون هوية النظام"
-            >
-              <Palette className="w-4 h-4" />
-              <span className={`w-2.5 h-2.5 rounded-full ${colorThemes.find(c => c.id === accentColor)?.bgClass}`} />
-            </button>
-
-            {showColorPalette && (
-              <div className="absolute left-0 mt-2 w-48 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-2 z-50 space-y-1">
-                <div className="text-[11px] font-semibold text-slate-400 px-2 py-1 border-b border-slate-800 mb-1">
-                  اختر لون هوية المنشأة:
-                </div>
-                {colorThemes.map((theme) => (
-                  <button
-                    key={theme.id}
-                    onClick={() => {
-                      onChangeAccent(theme.id);
-                      setShowColorPalette(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                      accentColor === theme.id ? 'bg-slate-800 text-white font-bold' : 'text-slate-300 hover:bg-slate-800/60'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className={`w-3.5 h-3.5 rounded-full ${theme.bgClass}`} />
-                      <span>{theme.name}</span>
-                    </div>
-                    {accentColor === theme.id && <Check className="w-3.5 h-3.5 text-emerald-400" />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="h-6 w-px bg-slate-800 mx-1 hidden sm:block" />
-
-        {/* CONTROL GROUP: Synchronization Status, Store & Account Badge, Lock System, Logout */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Interactive Synchronization Status Pill (CR-2026-TAURI-OFFLINE-SYNC-001) */}
-          <button
-            type="button"
-            onClick={() => setIsSyncCenterOpen(true)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-sm ${
-              conflictCount > 0
-                ? 'bg-rose-500/10 border-rose-500/30 text-rose-300 hover:bg-rose-500/20'
-                : !isOnline || pendingSyncCount > 0
-                ? 'bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20'
-                : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
-            }`}
-            title="مركز المزامنة السيادية وقاعدة البيانات المحلية (اضغط لفتح المركز)"
-          >
-            {conflictCount > 0 ? (
-              <>
-                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-                <span className="hidden sm:inline">⚠️ تعارض يتطلب المراجعة:</span>
-                <span className="font-mono font-black text-rose-300">{conflictCount}</span>
-              </>
-            ) : !isOnline ? (
-              <>
-                <span className="w-2 h-2 rounded-full bg-amber-500" />
-                <span className="hidden sm:inline">أوفلاين معلق:</span>
-                <span className="font-mono font-bold text-amber-300">{pendingSyncCount} حركة</span>
-              </>
-            ) : pendingSyncCount > 0 ? (
-              <>
-                <RefreshCw className="w-3 h-3 text-amber-400 animate-spin" />
-                <span className="hidden sm:inline">بانتظار المزامنة:</span>
-                <span className="font-mono font-bold text-amber-300">{pendingSyncCount} حركة</span>
-              </>
-            ) : (
-              <>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="hidden sm:inline">متصل - متزامن</span>
-              </>
-            )}
+            <div className="flex items-center gap-2 min-w-0">
+              <Search className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">بحث في النظام (Ctrl+K)...</span>
+            </div>
+            <kbd className="hidden sm:inline-block bg-[var(--md-surface-container-lowest)] border border-[var(--md-outline-variant)] px-1.5 py-0.5 rounded-md text-[10px] text-[var(--md-on-surface-variant)] font-mono shrink-0">
+              ⌘K
+            </kbd>
           </button>
 
-          {/* 1. Store Name & Account Badge / Login Button */}
-          {isAuthenticated && user ? (
+          {/* Theme Mode Toggle (Dark / Light) */}
+          {onToggleTheme && (
             <button
-              onClick={onOpenAuth}
               type="button"
-              className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-800/80 hover:bg-slate-800 border border-indigo-500/30 rounded-xl transition-all text-xs cursor-pointer max-w-[210px] truncate"
-              title="إدارة بيانات المحل والحساب الدائم"
+              onClick={onToggleTheme}
+              className="m3-btn-outlined h-10 px-3 text-xs shrink-0"
+              title={themeMode === 'dark' ? 'التحويل إلى الوضع الفاتح (Light Mode)' : 'التحويل إلى الوضع المظلم (Dark Mode)'}
             >
-              <div className="w-6 h-6 rounded-lg bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-[10px] font-bold text-indigo-300 shrink-0">
-                <Building2 className="w-3.5 h-3.5" />
-              </div>
-              <div className="text-right truncate hidden sm:block">
-                <div className="font-bold text-white text-[11px] truncate leading-tight">
-                  {company?.name || 'المؤسسة التجارية'}
-                </div>
-                <div className="text-[10px] text-slate-400 truncate">
-                  {user.full_name || 'المدير العام'}
-                </div>
-              </div>
-            </button>
-          ) : (
-            <button
-              onClick={onOpenAuth}
-              type="button"
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 rounded-xl transition-all text-xs font-bold cursor-pointer"
-              title="تسجيل الدخول أو إنشاء حساب محل تجاري جديد"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>تسجيل الدخول / إنشاء حساب</span>
+              {themeMode === 'dark' ? (
+                <>
+                  <Sun className="w-4 h-4 shrink-0" style={{ color: 'var(--md-secondary)' }} />
+                  <span className="hidden sm:inline">الوضع الفاتح</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-4 h-4 shrink-0" style={{ color: 'var(--md-primary)' }} />
+                  <span className="hidden sm:inline">الوضع المظلم</span>
+                </>
+              )}
             </button>
           )}
 
-          {/* 2. System Lock Button (🔒 قفل النظام) */}
-          <button
-            onClick={lockSystem}
-            type="button"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-xl transition-all text-xs font-bold cursor-pointer shadow-sm"
-            title="🔒 قفل النظام لحماية البيانات والخصوصية"
-          >
-            <Lock className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden md:inline">قفل النظام</span>
-          </button>
+          {/* 4 Accent Colors Palette Switcher */}
+          {onChangeAccent && (
+            <div className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowColorPalette((prev) => !prev)}
+                className="m3-btn-outlined h-10 px-2.5"
+                title="تخصيص لون هوية النظام"
+                aria-label="تخصيص لون هوية النظام"
+              >
+                <Palette className="w-4 h-4 text-[var(--md-on-surface-variant)]" />
+                <span className={`w-2.5 h-2.5 rounded-full ${colorThemes.find(c => c.id === accentColor)?.bgClass}`} />
+              </button>
 
-          {/* 3. Logout Button (🚪 تسجيل الخروج) */}
-          {isAuthenticated && (
-            <button
-              onClick={logout}
-              type="button"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-xl transition-all text-xs font-bold cursor-pointer shadow-sm"
-              title="🚪 تسجيل الخروج من النظام"
-            >
-              <LogOut className="w-3.5 h-3.5 text-rose-400" />
-              <span className="hidden lg:inline">خروج</span>
-            </button>
+              {showColorPalette && (
+                <div className="m3-card-elevated absolute left-0 mt-2 w-48 p-2 z-50 space-y-1 text-right">
+                  <div className="text-[11px] font-semibold text-[var(--md-on-surface-variant)] px-2.5 py-1.5 border-b border-[var(--md-outline-variant)] mb-1">
+                    اختر لون هوية المنشأة:
+                  </div>
+                  {colorThemes.map((theme) => (
+                    <button
+                      key={theme.id}
+                      type="button"
+                      onClick={() => {
+                        onChangeAccent(theme.id);
+                        setShowColorPalette(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                        accentColor === theme.id
+                          ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] font-bold'
+                          : 'text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={`w-3.5 h-3.5 rounded-full ${theme.bgClass}`} />
+                        <span>{theme.name}</span>
+                      </div>
+                      {accentColor === theme.id && <Check className="w-3.5 h-3.5 shrink-0" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
+
+          <div className="h-6 w-px bg-[var(--md-outline-variant)] mx-0.5 hidden sm:block shrink-0" />
+
+          {/* CONTROL GROUP: Synchronization Status, Store & Account Badge, Lock System, Logout */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Interactive Synchronization Status */}
+            <button
+              type="button"
+              onClick={() => setIsSyncCenterOpen(true)}
+              className="m3-btn-outlined h-10 px-3 text-xs shrink-0"
+              style={
+                conflictCount > 0
+                  ? {
+                      backgroundColor: 'var(--md-error-container)',
+                      borderColor: 'var(--md-error)',
+                      color: 'var(--md-on-error-container)',
+                    }
+                  : !isOnline || pendingSyncCount > 0
+                  ? {
+                      backgroundColor: 'var(--md-warning-container)',
+                      borderColor: 'var(--md-warning)',
+                      color: 'var(--md-on-warning-container)',
+                    }
+                  : {
+                      backgroundColor: 'var(--md-success-container)',
+                      borderColor: 'var(--md-outline-variant)',
+                      color: 'var(--md-on-success-container)',
+                    }
+              }
+              title="مركز المزامنة السيادية وقاعدة البيانات المحلية (اضغط لفتح المركز)"
+            >
+              {conflictCount > 0 ? (
+                <>
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: 'var(--md-error)' }} />
+                  <span className="hidden sm:inline">تعارض يتطلب المراجعة:</span>
+                  <span className="font-mono tabular-nums font-bold">{conflictCount}</span>
+                </>
+              ) : !isOnline ? (
+                <>
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: 'var(--md-warning)' }} />
+                  <span className="hidden sm:inline">أوفلاين معلق:</span>
+                  <span className="font-mono tabular-nums font-bold">{pendingSyncCount} حركة</span>
+                </>
+              ) : pendingSyncCount > 0 ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden sm:inline">بانتظار المزامنة:</span>
+                  <span className="font-mono tabular-nums font-bold">{pendingSyncCount} حركة</span>
+                </>
+              ) : (
+                <>
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: 'var(--md-success)' }} />
+                  <span className="hidden sm:inline">متصل - متزامن</span>
+                </>
+              )}
+            </button>
+
+            {/* 1. Store Name & Account Badge / Login Button */}
+            {isAuthenticated && user ? (
+              <button
+                onClick={onOpenAuth}
+                type="button"
+                className="h-10 flex items-center gap-2 px-3 bg-[var(--md-surface-container)] hover:bg-[var(--md-surface-container-high)] border border-[var(--md-outline-variant)] rounded-xl transition-colors text-xs cursor-pointer max-w-[210px] truncate shrink-0"
+                title="إدارة بيانات المحل والحساب الدائم"
+              >
+                <div
+                  className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                  style={{
+                    backgroundColor: 'var(--md-primary-container)',
+                    color: 'var(--md-on-primary-container)',
+                  }}
+                >
+                  <Building2 className="w-3.5 h-3.5" />
+                </div>
+                <div className="text-right truncate hidden sm:block">
+                  <div className="font-bold text-[var(--md-on-surface)] text-[11px] truncate leading-tight">
+                    {company?.name || 'المؤسسة التجارية'}
+                  </div>
+                  <div className="text-[10px] text-[var(--md-on-surface-variant)] truncate">
+                    {user.full_name || 'المدير العام'}
+                  </div>
+                </div>
+              </button>
+            ) : (
+              <button
+                onClick={onOpenAuth}
+                type="button"
+                className="m3-btn-primary h-10 px-3 text-xs shrink-0"
+                title="تسجيل الدخول أو إنشاء حساب محل تجاري جديد"
+              >
+                <LogIn className="w-3.5 h-3.5 shrink-0" />
+                <span>تسجيل الدخول / إنشاء حساب</span>
+              </button>
+            )}
+
+            {/* 2. System Lock Button */}
+            <button
+              onClick={lockSystem}
+              type="button"
+              className="m3-btn-outlined h-10 px-3 text-xs shrink-0"
+              title="🔒 قفل النظام لحماية البيانات والخصوصية"
+            >
+              <Lock className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--md-secondary)' }} />
+              <span className="hidden md:inline">قفل النظام</span>
+            </button>
+
+            {/* 3. Logout Button (Semantically separated error styling) */}
+            {isAuthenticated && (
+              <button
+                onClick={logout}
+                type="button"
+                className="m3-btn-outlined h-10 px-3 text-xs shrink-0"
+                style={{
+                  backgroundColor: 'var(--md-error-container)',
+                  borderColor: 'transparent',
+                  color: 'var(--md-on-error-container)',
+                }}
+                title="🚪 تسجيل الخروج من النظام"
+              >
+                <LogOut className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--md-error)' }} />
+                <span className="hidden lg:inline">خروج</span>
+              </button>
+            )}
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
 
-    <DailyExchangeRateModal
-      isOpen={isRatesOpen}
-      onClose={() => setIsRatesOpen(false)}
-    />
+      <DailyExchangeRateModal
+        isOpen={isRatesOpen}
+        onClose={() => setIsRatesOpen(false)}
+      />
 
-    <SyncCenterModal
-      isOpen={isSyncCenterOpen}
-      onClose={() => {
-        setIsSyncCenterOpen(false);
-        refreshSyncStats();
-      }}
-    />
+      <SyncCenterModal
+        isOpen={isSyncCenterOpen}
+        onClose={() => {
+          setIsSyncCenterOpen(false);
+          refreshSyncStats();
+        }}
+      />
 
-    <UpdateCenterModal
-      isOpen={isUpdateCenterOpen}
-      onClose={() => setIsUpdateCenterOpen(false)}
-    />
-  </>
-);
+      <UpdateCenterModal
+        isOpen={isUpdateCenterOpen}
+        onClose={() => setIsUpdateCenterOpen(false)}
+      />
+    </>
+  );
 };

@@ -202,104 +202,104 @@ export const WhatsAppRemindersTab: React.FC<WhatsAppRemindersTabProps> = ({
   };
 
   return (
-    <div id="whatsapp-reminders-section" className="space-y-6">
+    <div id="whatsapp-reminders-section" dir="rtl" className="space-y-6">
       
       {/* Feedback banner */}
       {feedback && (
         <div
-          className={`p-4 rounded-2xl text-xs font-semibold flex items-center justify-between gap-3 border shadow-md animate-fade-in ${
+          className={`p-4 rounded-2xl text-xs font-semibold flex items-center justify-between gap-3 border animate-fade-in ${
             feedback.type === 'success'
-              ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
-              : 'bg-rose-500/10 text-rose-300 border-rose-500/30'
+              ? 'bg-[var(--md-success-container)] text-[var(--md-on-success-container)] border-[var(--md-success)]/30'
+              : 'bg-[var(--md-error-container)] text-[var(--md-on-error-container)] border-[var(--md-error)]/30'
           }`}
         >
           <div className="flex items-center gap-2">
             {feedback.type === 'success' ? (
-              <CheckCheck className="w-4 h-4 text-emerald-400" />
+              <CheckCheck className="w-4 h-4 text-[var(--md-success)]" />
             ) : (
-              <AlertCircle className="w-4 h-4 text-rose-400" />
+              <AlertCircle className="w-4 h-4 text-[var(--md-error)]" />
             )}
             <span>{feedback.msg}</span>
           </div>
-          <button onClick={() => setFeedback(null)} className="text-[11px] font-bold underline">
+          <button onClick={() => setFeedback(null)} className="m3-btn-text !min-h-[28px] !px-2 !py-1 text-[11px] font-bold underline">
             إغلاق
           </button>
         </div>
       )}
 
       {/* 1. Outstanding Debtors Section (مديونيات العملاء المستحقة) */}
-      <div className="bg-[#091511] rounded-2xl border border-emerald-500/30 p-5 shadow-xl space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-500/20 pb-4">
+      <div className="m3-card p-5 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--md-outline-variant)] pb-4">
           <div className="space-y-1">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <Users className="w-5 h-5 text-amber-400" />
+            <h2 className="text-base font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+              <Users className="w-5 h-5 text-[var(--md-warning)]" />
               <span>تذكيرات مديونيات العملاء والذمم المستحقة</span>
             </h2>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[var(--md-on-surface-variant)]">
               متابعة ديون العملاء وإرسال إشعارات رسمية بالرصيد القائم مباشرة من داخل النظام.
             </p>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30">
+            <span className="m3-badge m3-badge-warning px-3 py-1 text-xs font-bold tabular-nums">
               {debtors.length} عملاء عليهم مديونيات
             </span>
 
             <button
               onClick={handleBatchSend}
               disabled={isSendingBatch || debtors.length === 0}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-bold text-xs transition-all shadow-md shadow-amber-950/40 active:scale-95 cursor-pointer disabled:opacity-50"
+              className="m3-btn-tonal !bg-[var(--md-warning-container)] !text-[var(--md-on-warning-container)] border border-[var(--md-warning)]/30 text-xs cursor-pointer disabled:opacity-50"
             >
               {isSendingBatch ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-              <span>إرسال جماعي لكافة المتأخرين ({debtors.length})</span>
+              <span className="tabular-nums">إرسال جماعي لكافة المتأخرين ({debtors.length})</span>
             </button>
           </div>
         </div>
 
         {debtors.length === 0 ? (
-          <div className="p-8 text-center text-slate-500 space-y-2">
-            <CheckCheck className="w-8 h-8 text-emerald-400 mx-auto" />
-            <p className="text-sm font-semibold text-slate-300">لا توجد ديون مستحقة على العملاء حالياً</p>
-            <p className="text-xs text-slate-500">كافة حسابات العملاء مسددة وخالصة بالكامل.</p>
+          <div className="p-8 text-center text-[var(--md-on-surface-variant)] space-y-2">
+            <CheckCheck className="w-8 h-8 text-[var(--md-success)] mx-auto" />
+            <p className="text-sm font-semibold text-[var(--md-on-surface)]">لا توجد ديون مستحقة على العملاء حالياً</p>
+            <p className="text-xs text-[var(--md-on-surface-variant)]">كافة حسابات العملاء مسددة وخالصة بالكامل.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-right text-xs">
-              <thead className="bg-[#06120d] text-slate-300 font-bold border-b border-emerald-500/20">
+          <div className="overflow-x-auto rounded-xl border border-[var(--md-outline-variant)]">
+            <table className="m3-table w-full text-right text-xs">
+              <thead className="m3-thead">
                 <tr>
-                  <th className="p-3">اسم العميل</th>
-                  <th className="p-3">رقم الهاتف</th>
-                  <th className="p-3">رقم الحساب</th>
-                  <th className="p-3">الرصيد المستحق القائم</th>
-                  <th className="p-3 text-center">إجراء الإرسال المباشر</th>
+                  <th className="m3-th">اسم العميل</th>
+                  <th className="m3-th">رقم الهاتف</th>
+                  <th className="m3-th">رقم الحساب</th>
+                  <th className="m3-th">الرصيد المستحق القائم</th>
+                  <th className="m3-th text-center">إجراء الإرسال المباشر</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-emerald-950/40 text-slate-300">
+              <tbody className="divide-y divide-[var(--md-outline-variant)] text-[var(--md-on-surface)]">
                 {debtors.map((cust) => {
                   const bal = parseFloat(cust.current_balance || cust.balance || 0);
                   const isSendingThis = sendingCustId === cust.id;
                   const phone = (cust.phone || cust._phone || '').replace(/[^0-9+]/g, '');
 
                   return (
-                    <tr key={cust.id} className="hover:bg-[#0c2419] transition-colors">
-                      <td className="p-3 font-bold text-white flex items-center gap-2">
-                        <User className="w-3.5 h-3.5 text-emerald-400" />
+                    <tr key={cust.id} className="hover:bg-[var(--md-surface-container-high)]/60 transition-colors">
+                      <td className="p-3 font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                        <User className="w-3.5 h-3.5 text-[var(--md-primary-text)] shrink-0" />
                         <span>{cust.name}</span>
                       </td>
-                      <td className="p-3 font-mono text-slate-400" dir="ltr">
+                      <td className="p-3 font-mono tabular-nums text-[var(--md-on-surface-variant)]" dir="ltr">
                         {phone || 'بدون هاتف'}
                       </td>
-                      <td className="p-3 font-mono text-slate-400">
+                      <td className="p-3 font-mono tabular-nums text-[var(--md-on-surface-variant)]">
                         #ACC-{String(cust.id).slice(-6)}
                       </td>
-                      <td className="p-3 font-mono font-bold text-amber-300">
+                      <td className="p-3 font-mono tabular-nums font-bold text-[var(--md-warning)]">
                         {toEnglishDigits(formatNumber(bal))} {cust.currency || 'YER'}
                       </td>
                       <td className="p-3 text-center">
                         <button
                           onClick={() => handleSendDebtReminder(cust)}
                           disabled={isSendingThis || !phone}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all shadow-md shadow-emerald-950 cursor-pointer disabled:opacity-40"
+                          className="m3-btn-primary !min-h-[32px] !px-3.5 !py-1.5 text-xs cursor-pointer disabled:opacity-40"
                         >
                           {isSendingThis ? (
                             <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -319,43 +319,43 @@ export const WhatsAppRemindersTab: React.FC<WhatsAppRemindersTabProps> = ({
       </div>
 
       {/* 2. Pending Invoices Section (فواتير المبيعات المعلقة) */}
-      <div className="bg-[#091511] rounded-2xl border border-emerald-500/30 p-5 shadow-xl space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-500/20 pb-4">
+      <div className="m3-card p-5 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--md-outline-variant)] pb-4">
           <div className="space-y-1">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <FileText className="w-5 h-5 text-emerald-400" />
+            <h2 className="text-base font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+              <FileText className="w-5 h-5 text-[var(--md-primary-text)]" />
               <span>تذكيرات فواتير المبيعات المعلقة</span>
             </h2>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[var(--md-on-surface-variant)]">
               إرسال تذكير رسمي فوري للعميل يتضمن تفاصيل الفاتورة والمبلغ المتبقي ورقم السجل.
             </p>
           </div>
 
-          <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30">
+          <span className="m3-badge m3-badge-primary px-3 py-1 text-xs font-bold tabular-nums">
             {pendingInvoices.length} فواتير آجلة بانتظار السداد
           </span>
         </div>
 
         {pendingInvoices.length === 0 ? (
-          <div className="p-8 text-center text-slate-500 space-y-2">
-            <CheckCheck className="w-8 h-8 text-emerald-400 mx-auto" />
-            <p className="text-sm font-semibold text-slate-300">لا توجد فواتير معلقة حالياً</p>
-            <p className="text-xs text-slate-500">جميع فواتير المبيعات مسددة بالكامل.</p>
+          <div className="p-8 text-center text-[var(--md-on-surface-variant)] space-y-2">
+            <CheckCheck className="w-8 h-8 text-[var(--md-success)] mx-auto" />
+            <p className="text-sm font-semibold text-[var(--md-on-surface)]">لا توجد فواتير معلقة حالياً</p>
+            <p className="text-xs text-[var(--md-on-surface-variant)]">جميع فواتير المبيعات مسددة بالكامل.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-right text-xs">
-              <thead className="bg-[#06120d] text-slate-300 font-bold border-b border-emerald-500/20">
+          <div className="overflow-x-auto rounded-xl border border-[var(--md-outline-variant)]">
+            <table className="m3-table w-full text-right text-xs">
+              <thead className="m3-thead">
                 <tr>
-                  <th className="p-3">رقم الفاتورة</th>
-                  <th className="p-3">العميل</th>
-                  <th className="p-3">إجمالي الفاتورة</th>
-                  <th className="p-3">المبلغ المتبقي</th>
-                  <th className="p-3">تاريخ الفاتورة</th>
-                  <th className="p-3 text-center">إجراء التذكير عبر واتساب</th>
+                  <th className="m3-th">رقم الفاتورة</th>
+                  <th className="m3-th">العميل</th>
+                  <th className="m3-th">إجمالي الفاتورة</th>
+                  <th className="m3-th">المبلغ المتبقي</th>
+                  <th className="m3-th">تاريخ الفاتورة</th>
+                  <th className="m3-th text-center">إجراء التذكير عبر واتساب</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-emerald-950/40 text-slate-300">
+              <tbody className="divide-y divide-[var(--md-outline-variant)] text-[var(--md-on-surface)]">
                 {pendingInvoices.map((inv) => {
                   const cust = safeCustomers.find((c) => c.id === inv.customer_id);
                   const phone = (inv.customer_phone || cust?.phone || '').replace(/[^0-9+]/g, '');
@@ -364,25 +364,25 @@ export const WhatsAppRemindersTab: React.FC<WhatsAppRemindersTabProps> = ({
                   const rem = parseFloat(inv.remaining_amount !== undefined ? inv.remaining_amount : total);
 
                   return (
-                    <tr key={inv.id} className="hover:bg-[#0c2419] transition-colors">
-                      <td className="p-3 font-mono font-bold text-white">#{inv.invoice_number || inv.id}</td>
-                      <td className="p-3 font-medium text-slate-100">
+                    <tr key={inv.id} className="hover:bg-[var(--md-surface-container-high)]/60 transition-colors">
+                      <td className="p-3 font-mono tabular-nums font-bold text-[var(--md-on-surface)]">#{inv.invoice_number || inv.id}</td>
+                      <td className="p-3 font-medium text-[var(--md-on-surface)]">
                         {inv.customer_name || inv.customer || cust?.name || 'عميل'}
                       </td>
-                      <td className="p-3 font-mono font-semibold text-slate-200">
+                      <td className="p-3 font-mono tabular-nums font-semibold text-[var(--md-on-surface)]">
                         {toEnglishDigits(formatNumber(total))} {inv.currency || 'YER'}
                       </td>
-                      <td className="p-3 font-mono font-bold text-amber-300">
+                      <td className="p-3 font-mono tabular-nums font-bold text-[var(--md-warning)]">
                         {toEnglishDigits(formatNumber(rem))} {inv.currency || 'YER'}
                       </td>
-                      <td className="p-3 text-slate-400 font-mono">
+                      <td className="p-3 text-[var(--md-on-surface-variant)] font-mono tabular-nums">
                         {inv.date || 'اليوم'}
                       </td>
                       <td className="p-3 text-center">
                         <button
                           onClick={() => handleSendInvoice(inv)}
                           disabled={isSendingThis || !phone}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition-all shadow-md cursor-pointer disabled:opacity-40"
+                          className="m3-btn-primary !min-h-[32px] !px-3 !py-1.5 text-xs cursor-pointer disabled:opacity-40"
                           title={phone ? `إرسال إلى ${phone}` : 'لا يوجد رقم هاتف مسجل'}
                         >
                           {isSendingThis ? (

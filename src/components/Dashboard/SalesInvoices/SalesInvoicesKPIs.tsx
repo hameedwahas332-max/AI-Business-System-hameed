@@ -88,83 +88,83 @@ export const SalesInvoicesKPIs: React.FC<SalesInvoicesKPIsProps> = ({ invoices, 
     <div className="space-y-3 mb-6" id="sales-invoices-kpi-grid">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* 1. Total Sales */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-sm">
+        <div className="m3-card p-4 flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-slate-400 mb-1">إجمالي المبيعات المعتمدة</p>
-            <h3 className="text-xl font-black text-white tracking-tight font-mono" dir="ltr">
-              {formatEnglishNum(totalSales)} <span className="text-xs font-bold text-blue-400">{currSymbol}</span>
+            <p className="text-xs font-medium text-[var(--md-on-surface-variant)] mb-1">إجمالي المبيعات المعتمدة</p>
+            <h3 className="text-xl font-black text-[var(--md-on-surface)] tracking-tight font-mono tabular-nums" dir="ltr">
+              {formatEnglishNum(totalSales)} <span className="text-xs font-bold text-[var(--md-info)]">{currSymbol}</span>
             </h3>
-            <p className="text-xs text-slate-500 mt-1 font-mono">
+            <p className="text-xs text-[var(--md-on-surface-variant)] mt-1 font-mono tabular-nums">
               {invoices.length} فواتير مسجلة
             </p>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+          <div className="w-12 h-12 rounded-xl bg-[var(--md-info-container)] border border-[var(--md-info)]/25 flex items-center justify-center text-[var(--md-info)]">
             <FileText className="w-6 h-6" />
           </div>
         </div>
 
         {/* 2. Collected Amount */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-sm">
+        <div className="m3-card p-4 flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-emerald-400 mb-1">إجمالي المحصل (النقد والبنك)</p>
-            <h3 className="text-xl font-black text-emerald-400 tracking-tight font-mono" dir="ltr">
-              {formatEnglishNum(totalPaid)} <span className="text-xs font-bold text-emerald-400">{currSymbol}</span>
+            <p className="text-xs font-medium text-[var(--md-success)] mb-1">إجمالي المحصل (النقد والبنك)</p>
+            <h3 className="text-xl font-black text-[var(--md-success)] tracking-tight font-mono tabular-nums" dir="ltr">
+              {formatEnglishNum(totalPaid)} <span className="text-xs font-bold text-[var(--md-success)]">{currSymbol}</span>
             </h3>
-            <p className="text-xs text-slate-500 mt-1 font-mono">
+            <p className="text-xs text-[var(--md-on-surface-variant)] mt-1 font-mono tabular-nums">
               {paidCount} مسددة | {partialCount} جزئي
             </p>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+          <div className="w-12 h-12 rounded-xl bg-[var(--md-success-container)] border border-[var(--md-success)]/25 flex items-center justify-center text-[var(--md-success)]">
             <CheckCircle2 className="w-6 h-6" />
           </div>
         </div>
 
         {/* 3. Remaining Receivables */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-sm">
+        <div className="m3-card p-4 flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-amber-400 mb-1">المتبقي (الذمم المدينة على العملاء)</p>
-            <h3 className="text-xl font-black text-amber-400 tracking-tight font-mono" dir="ltr">
-              {formatEnglishNum(totalRemaining)} <span className="text-xs font-bold text-amber-400">{currSymbol}</span>
+            <p className="text-xs font-medium text-[var(--md-warning)] mb-1">المتبقي (الذمم المدينة على العملاء)</p>
+            <h3 className="text-xl font-black text-[var(--md-warning)] tracking-tight font-mono tabular-nums" dir="ltr">
+              {formatEnglishNum(totalRemaining)} <span className="text-xs font-bold text-[var(--md-warning)]">{currSymbol}</span>
             </h3>
-            <p className="text-xs text-slate-500 mt-1 font-mono">
+            <p className="text-xs text-[var(--md-on-surface-variant)] mt-1 font-mono tabular-nums">
               {pendingCount + partialCount} فواتير آجلة
             </p>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+          <div className="w-12 h-12 rounded-xl bg-[var(--md-warning-container)] border border-[var(--md-warning)]/25 flex items-center justify-center text-[var(--md-warning)]">
             <Clock className="w-6 h-6" />
           </div>
         </div>
 
         {/* 4. Overdue Invoices */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-sm">
+        <div className="m3-card p-4 flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-rose-400 mb-1">مستحقات متجاوزة تاريخ الاستحقاق</p>
-            <h3 className="text-xl font-black text-rose-400 tracking-tight font-mono" dir="ltr">
-              {formatEnglishNum(overdueAmount)} <span className="text-xs font-bold text-rose-400">{currSymbol}</span>
+            <p className="text-xs font-medium text-[var(--md-error)] mb-1">مستحقات متجاوزة تاريخ الاستحقاق</p>
+            <h3 className="text-xl font-black text-[var(--md-error)] tracking-tight font-mono tabular-nums" dir="ltr">
+              {formatEnglishNum(overdueAmount)} <span className="text-xs font-bold text-[var(--md-error)]">{currSymbol}</span>
             </h3>
-            <p className="text-xs text-rose-400/80 mt-1 font-mono">
+            <p className="text-xs text-[var(--md-error)]/80 mt-1 font-mono tabular-nums">
               {overdueCount} فواتير متأخرة
             </p>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+          <div className="w-12 h-12 rounded-xl bg-[var(--md-error-container)] border border-[var(--md-error)]/25 flex items-center justify-center text-[var(--md-error)]">
             <AlertTriangle className="w-6 h-6" />
           </div>
         </div>
       </div>
 
       {/* Multi-Currency Consolidated Bar */}
-      <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl px-4 py-2 flex flex-wrap items-center justify-between text-xs text-slate-400 gap-2">
-        <span className="font-semibold text-slate-300">إجمالي المبيعات حسب العملة (English Digits):</span>
-        <div className="flex items-center gap-4 flex-wrap font-mono" dir="ltr">
-          <span className="text-emerald-400">
+      <div className="bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl px-4 py-2 flex flex-wrap items-center justify-between text-xs text-[var(--md-on-surface-variant)] gap-2">
+        <span className="font-semibold text-[var(--md-on-surface)]">إجمالي المبيعات حسب العملة (English Digits):</span>
+        <div className="flex items-center gap-4 flex-wrap font-mono tabular-nums" dir="ltr">
+          <span className="text-[var(--md-primary-text)]">
             <strong>{getActiveCurrencySymbol('YER')} (YER):</strong> {formatEnglishNum(currencyTotals.YER.sales)}
           </span>
-          <span className="text-slate-600">|</span>
-          <span className="text-amber-300">
+          <span className="text-[var(--md-outline)]">|</span>
+          <span className="text-[var(--md-warning)]">
             <strong>{getActiveCurrencySymbol('SAR')} (SAR):</strong> {formatEnglishNum(currencyTotals.SAR.sales)}
           </span>
-          <span className="text-slate-600">|</span>
-          <span className="text-blue-400">
+          <span className="text-[var(--md-outline)]">|</span>
+          <span className="text-[var(--md-info)]">
             <strong>{getActiveCurrencySymbol('USD')} (USD):</strong> {formatEnglishNum(currencyTotals.USD.sales)}
           </span>
         </div>

@@ -639,24 +639,22 @@ export const FuelStationTab: React.FC = () => {
   const totalVariance = totalActualReceived - totalExpectedRevenue;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-[var(--md-on-surface)]" dir="rtl">
       {/* Top Banner & Station Stats */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
-        
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+      <div className="m3-card-elevated p-6 relative overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--md-outline-variant)] pb-5">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <div className="w-12 h-12 rounded-2xl bg-[var(--md-warning-container)] border border-[var(--md-warning)]/30 flex items-center justify-center text-[var(--md-on-warning-container)] shrink-0">
               <Fuel className="w-6 h-6" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-white">محطة الوقود والغاز المركزية</h1>
-                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl font-bold text-[var(--md-on-surface)]">محطة الوقود والغاز المركزية</h1>
+                <span className="m3-badge m3-badge-warning text-[11px]">
                   إدارة العدادات والخزانات
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-[var(--md-on-surface-variant)] mt-1">
                 سجل الجرد اليومي لعدادات الطرمبات، متابعة منسوب الخزانات الأرضية، ومطابقة عهدة العمال اليومية
               </p>
             </div>
@@ -667,16 +665,16 @@ export const FuelStationTab: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsRefillModalOpen(true)}
-              className="flex items-center gap-2 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-teal-300 rounded-xl text-xs font-bold border border-teal-500/30 transition-all cursor-pointer shadow-sm"
+              className="m3-btn-tonal text-xs cursor-pointer"
             >
-              <Droplets className="w-4 h-4 text-teal-400" />
+              <Droplets className="w-4 h-4" />
               <span>تفريغ ناقلة وقود (وايت)</span>
             </button>
 
             <button
               type="button"
               onClick={() => setIsNewEntryOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs transition-all cursor-pointer shadow-md shadow-amber-500/20"
+              className="m3-btn-primary text-xs cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>تسجيل قراءة عداد طرمبة</span>
@@ -685,7 +683,7 @@ export const FuelStationTab: React.FC = () => {
             <button
               type="button"
               onClick={handlePrintDailyReport}
-              className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700 cursor-pointer"
+              className="m3-btn-outlined text-xs cursor-pointer"
             >
               <Printer className="w-4 h-4" />
               <span>طباعة الجرد A4</span>
@@ -696,10 +694,10 @@ export const FuelStationTab: React.FC = () => {
             <button
               type="button"
               onClick={handleResetAllFuelStation}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-xl text-xs font-bold border border-rose-500/30 transition-all cursor-pointer shadow-sm"
+              className="m3-btn-danger text-xs cursor-pointer"
               title="مسح كافة سجلات الجرد وتصفير الخزانات للبدء من جديد"
             >
-              <Trash2 className="w-4 h-4 text-rose-400" />
+              <Trash2 className="w-4 h-4" />
               <span>حذف الكل والبدء من جديد</span>
             </button>
           </div>
@@ -707,35 +705,35 @@ export const FuelStationTab: React.FC = () => {
 
         {/* Global Station Metrics Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-5">
-          <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3.5 space-y-1">
-            <span className="text-[11px] text-slate-400">إجمالي المعبأ لليوم (لتر)</span>
-            <div className="text-lg font-bold text-white font-mono flex items-center justify-between">
+          <div className="bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl p-3.5 space-y-1">
+            <span className="text-[11px] text-[var(--md-on-surface-variant)]">إجمالي المعبأ لليوم (لتر)</span>
+            <div className="text-lg font-bold text-[var(--md-on-surface)] font-mono tabular-nums flex items-center justify-between">
               <span>{formatNumber(totalLitersDispensed)} لتر</span>
-              <Gauge className="w-4 h-4 text-amber-400" />
+              <Gauge className="w-4 h-4 text-[var(--md-warning)]" />
             </div>
           </div>
 
-          <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3.5 space-y-1">
-            <span className="text-[11px] text-slate-400">الإيراد الدفتري المطلوب</span>
-            <div className="text-lg font-bold text-emerald-400 font-mono">
+          <div className="bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl p-3.5 space-y-1">
+            <span className="text-[11px] text-[var(--md-on-surface-variant)]">الإيراد الدفتري المطلوب</span>
+            <div className="text-lg font-bold text-[var(--md-success)] font-mono tabular-nums">
               {formatAmount(totalExpectedRevenue, 'YER')}
             </div>
           </div>
 
-          <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3.5 space-y-1">
-            <span className="text-[11px] text-slate-400">المبلغ المسلم فعلياً (نقد وشبكة)</span>
-            <div className="text-lg font-bold text-blue-400 font-mono">
+          <div className="bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl p-3.5 space-y-1">
+            <span className="text-[11px] text-[var(--md-on-surface-variant)]">المبلغ المسلم فعلياً (نقد وشبكة)</span>
+            <div className="text-lg font-bold text-[var(--md-info)] font-mono tabular-nums">
               {formatAmount(totalActualReceived, 'YER')}
             </div>
           </div>
 
-          <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3.5 space-y-1">
-            <span className="text-[11px] text-slate-400">الفارق المالي لعمال الوردية</span>
-            <div className={`text-lg font-bold font-mono flex items-center gap-1 ${
-              totalVariance >= 0 ? 'text-emerald-400' : 'text-rose-400'
+          <div className="bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl p-3.5 space-y-1">
+            <span className="text-[11px] text-[var(--md-on-surface-variant)]">الفارق المالي لعمال الوردية</span>
+            <div className={`text-lg font-bold font-mono tabular-nums flex items-center gap-1 ${
+              totalVariance >= 0 ? 'text-[var(--md-success)]' : 'text-[var(--md-error)]'
             }`}>
               {totalVariance === 0 ? (
-                <span className="text-emerald-400">مطابق تماماً (0)</span>
+                <span className="text-[var(--md-success)]">مطابق تماماً (0)</span>
               ) : totalVariance > 0 ? (
                 <span>+{formatNumber(totalVariance)} YER (فائض)</span>
               ) : (
@@ -748,21 +746,19 @@ export const FuelStationTab: React.FC = () => {
 
       {/* Success Notification Alert */}
       {successMessage && (
-        <div className="p-3.5 bg-emerald-950/80 border border-emerald-700/60 rounded-xl text-xs text-emerald-200 flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="p-3.5 bg-[var(--md-success-container)] border border-[var(--md-success)]/30 rounded-xl text-xs text-[var(--md-on-success-container)] flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-[var(--md-success)] shrink-0" />
           <span>{successMessage}</span>
         </div>
       )}
 
       {/* Section Sub-Tabs Navigation */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+      <div className="flex flex-wrap items-center gap-2 border-b border-[var(--md-outline-variant)] pb-3">
         <button
           type="button"
           onClick={() => setActiveTab('meters')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-            activeTab === 'meters'
-              ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+          className={`text-xs cursor-pointer ${
+            activeTab === 'meters' ? 'm3-btn-primary' : 'm3-btn-outlined'
           }`}
         >
           <Gauge className="w-4 h-4" />
@@ -772,10 +768,8 @@ export const FuelStationTab: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('tanks')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-            activeTab === 'tanks'
-              ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+          className={`text-xs cursor-pointer ${
+            activeTab === 'tanks' ? 'm3-btn-primary' : 'm3-btn-outlined'
           }`}
         >
           <Fuel className="w-4 h-4" />
@@ -789,25 +783,25 @@ export const FuelStationTab: React.FC = () => {
       {activeTab === 'meters' && (
         <div className="space-y-4">
           {/* Shift Filter Controls */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-3.5 rounded-xl text-xs">
-            <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="m3-card flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 text-xs">
+            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
               <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-slate-400" />
-                <span className="text-slate-400">تاريخ الجرد:</span>
+                <Calendar className="w-4 h-4 text-[var(--md-on-surface-variant)]" />
+                <span className="text-[var(--md-on-surface-variant)]">تاريخ الجرد:</span>
                 <input
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="bg-slate-950 border border-slate-700 text-white rounded-lg px-2.5 py-1 text-xs font-mono"
+                  className="m3-input !h-9 !w-auto !px-2.5 text-xs font-mono tabular-nums"
                 />
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-slate-400">الوردية:</span>
+                <span className="text-[var(--md-on-surface-variant)]">الوردية:</span>
                 <select
                   value={selectedShift}
                   onChange={(e) => setSelectedShift(e.target.value as any)}
-                  className="bg-slate-950 border border-slate-700 text-white rounded-lg px-2.5 py-1 text-xs"
+                  className="m3-select !h-9 !w-auto !px-2.5 text-xs"
                 >
                   <option value="MORNING">الوردية الصباحية</option>
                   <option value="EVENING">الوردية المسائية</option>
@@ -816,35 +810,35 @@ export const FuelStationTab: React.FC = () => {
               </div>
             </div>
 
-            <div className="text-[11px] text-slate-400">
+            <div className="text-[11px] text-[var(--md-on-surface-variant)]">
               يتم ترحيل الكميات فورياً لتحديث أرصدة الخزانات الأرضية والدفتر المالي
             </div>
           </div>
 
           {/* Meter Records Table */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+          <div className="m3-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-right text-xs text-slate-300">
-                <thead className="bg-slate-950 text-slate-400 font-semibold border-b border-slate-800 text-[11px] uppercase tracking-wider">
+              <table className="m3-table text-right text-xs" dir="rtl">
+                <thead className="m3-thead text-[11px] uppercase tracking-wider">
                   <tr>
-                    <th className="p-3.5">الطرمبة / المسدس</th>
-                    <th className="p-3.5">العامل والوردية</th>
-                    <th className="p-3.5 font-mono text-center">العداد السابق</th>
-                    <th className="p-3.5 font-mono text-center">العداد الحالي</th>
-                    <th className="p-3.5 font-mono text-center">المعايرة</th>
-                    <th className="p-3.5 font-mono text-center text-amber-400">المعبأ اليوم (لتر)</th>
-                    <th className="p-3.5 font-mono text-left">سعر اللتر</th>
-                    <th className="p-3.5 font-mono text-left">المطلوب دفترياً</th>
-                    <th className="p-3.5 font-mono text-left">المسلم فعلياً</th>
-                    <th className="p-3.5 text-center">الفارق المالي</th>
-                    <th className="p-3.5 text-center">الحالة</th>
-                    <th className="p-3.5 text-center">إجراءات</th>
+                    <th className="m3-th">الطرمبة / المسدس</th>
+                    <th className="m3-th">العامل والوردية</th>
+                    <th className="m3-th font-mono text-center">العداد السابق</th>
+                    <th className="m3-th font-mono text-center">العداد الحالي</th>
+                    <th className="m3-th font-mono text-center">المعايرة</th>
+                    <th className="m3-th font-mono text-center">المعبأ اليوم (لتر)</th>
+                    <th className="m3-th font-mono text-left">سعر اللتر</th>
+                    <th className="m3-th font-mono text-left">المطلوب دفترياً</th>
+                    <th className="m3-th font-mono text-left">المسلم فعلياً</th>
+                    <th className="m3-th text-center">الفارق المالي</th>
+                    <th className="m3-th text-center">الحالة</th>
+                    <th className="m3-th text-center">إجراءات</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60 font-medium">
+                <tbody className="divide-y divide-[var(--md-outline-variant)] font-medium">
                   {records.length === 0 ? (
                     <tr>
-                      <td colSpan={12} className="p-8 text-center text-slate-500">
+                      <td colSpan={12} className="p-8 text-center text-[var(--md-on-surface-variant)]">
                         لا توجد قراءات عدادات مسجلة لهذا التاريخ. اضغط على زر "تسجيل قراءة عداد طرمبة" للبدء.
                       </td>
                     </tr>
@@ -852,10 +846,10 @@ export const FuelStationTab: React.FC = () => {
                     records.map((rec) => {
                       const totalActualTendered = rec.actualCashReceived + rec.actualElectronicReceived + rec.actualCreditSales;
                       return (
-                        <tr key={rec.id} className="hover:bg-slate-800/40 transition-colors">
+                        <tr key={rec.id} className="hover:bg-[var(--md-surface-container-low)] transition-colors">
                           <td className="p-3.5">
-                            <div className="font-bold text-white">{rec.nozzleLabel}</div>
-                            <div className="text-[10px] text-amber-400/90 font-medium mt-0.5">
+                            <div className="font-bold text-[var(--md-on-surface)]">{rec.nozzleLabel}</div>
+                            <div className="text-[10px] text-[var(--md-warning)] font-semibold mt-0.5">
                               {rec.fuelType === 'petrol_91' && 'بنزين ممتاز 91'}
                               {rec.fuelType === 'petrol_95' && 'بنزين سوبر 95'}
                               {rec.fuelType === 'diesel' && 'ديزل سولار'}
@@ -864,61 +858,61 @@ export const FuelStationTab: React.FC = () => {
                           </td>
 
                           <td className="p-3.5">
-                            <div className="font-semibold text-slate-200">{rec.operatorName}</div>
-                            <div className="text-[10px] text-slate-400">
+                            <div className="font-semibold text-[var(--md-on-surface)]">{rec.operatorName}</div>
+                            <div className="text-[10px] text-[var(--md-on-surface-variant)]">
                               {rec.shift === 'MORNING' ? 'وردية صباحية' : rec.shift === 'EVENING' ? 'وردية مسائية' : 'يوم كامل'}
                             </div>
                           </td>
 
-                          <td className="p-3.5 font-mono text-center text-slate-400">
+                          <td className="p-3.5 font-mono tabular-nums text-center text-[var(--md-on-surface-variant)]">
                             {formatNumber(rec.previousMeter)}
                           </td>
 
-                          <td className="p-3.5 font-mono text-center text-slate-200 font-bold">
+                          <td className="p-3.5 font-mono tabular-nums text-center text-[var(--md-on-surface)] font-bold">
                             {formatNumber(rec.currentMeter)}
                           </td>
 
-                          <td className="p-3.5 font-mono text-center text-slate-400">
+                          <td className="p-3.5 font-mono tabular-nums text-center text-[var(--md-on-surface-variant)]">
                             {formatNumber(rec.calibrationLiters)}
                           </td>
 
-                          <td className="p-3.5 font-mono text-center font-bold text-amber-400 text-sm bg-amber-500/5">
+                          <td className="p-3.5 font-mono tabular-nums text-center font-bold text-[var(--md-on-warning-container)] text-sm bg-[var(--md-warning-container)]/40">
                             {formatNumber(rec.dispensedLiters)} لتر
                           </td>
 
-                          <td className="p-3.5 font-mono text-left text-slate-400">
+                          <td className="p-3.5 font-mono tabular-nums text-left text-[var(--md-on-surface-variant)]">
                             {formatAmount(rec.pricePerLiter, 'YER')}
                           </td>
 
-                          <td className="p-3.5 font-mono text-left font-bold text-emerald-400">
+                          <td className="p-3.5 font-mono tabular-nums text-left font-bold text-[var(--md-success)]">
                             {formatAmount(rec.expectedRevenue, 'YER')}
                           </td>
 
-                          <td className="p-3.5 font-mono text-left text-blue-300">
+                          <td className="p-3.5 font-mono tabular-nums text-left text-[var(--md-info)] font-semibold">
                             {formatAmount(totalActualTendered, 'YER')}
-                            <div className="text-[9px] text-slate-500">
+                            <div className="text-[10px] text-[var(--md-on-surface-variant)] font-normal">
                               نقد: {formatNumber(rec.actualCashReceived)} | شبكة: {formatNumber(rec.actualElectronicReceived)}
                             </div>
                           </td>
 
                           <td className="p-3.5 text-center">
                             {rec.varianceAmount === 0 ? (
-                              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/50">
+                              <span className="m3-badge m3-badge-success text-[10px] font-mono tabular-nums">
                                 مطابق (0)
                               </span>
                             ) : rec.varianceAmount > 0 ? (
-                              <span className="text-[10px] font-bold text-emerald-300 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/50">
+                              <span className="m3-badge m3-badge-success text-[10px] font-mono tabular-nums">
                                 +{formatNumber(rec.varianceAmount)} فائض
                               </span>
                             ) : (
-                              <span className="text-[10px] font-bold text-rose-300 bg-rose-950/80 px-2 py-0.5 rounded border border-rose-800/50">
+                              <span className="m3-badge m3-badge-error text-[10px] font-mono tabular-nums">
                                 {formatNumber(rec.varianceAmount)} عجز
                               </span>
                             )}
                           </td>
 
                           <td className="p-3.5 text-center">
-                            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                            <span className="m3-badge m3-badge-success text-[10px]">
                               معتمد ومرحل
                             </span>
                           </td>
@@ -927,7 +921,7 @@ export const FuelStationTab: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => handleDeleteMeterRecord(rec)}
-                              className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center"
+                              className="m3-btn-danger !min-h-[32px] !p-1.5 cursor-pointer inline-flex items-center justify-center"
                               title="حذف سجل الجرد وإعادة الكمية للخزان"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -957,19 +951,19 @@ export const FuelStationTab: React.FC = () => {
             return (
               <div
                 key={tank.id}
-                className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4 relative overflow-hidden"
+                className="m3-card p-5 space-y-4 relative overflow-hidden"
               >
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)] border border-[var(--md-warning)]/30 flex items-center justify-center shrink-0">
                       <Fuel className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-white text-sm">{tank.name}</h3>
-                      <div className="text-[11px] text-slate-400 font-mono flex items-center gap-2 mt-0.5">
+                      <h3 className="font-bold text-[var(--md-on-surface)] text-sm">{tank.name}</h3>
+                      <div className="text-[11px] text-[var(--md-on-surface-variant)] font-mono tabular-nums flex items-center gap-2 mt-0.5">
                         <span>{tank.tankNumber}</span>
                         <span>•</span>
-                        <span className="text-emerald-400 font-bold">
+                        <span className="text-[var(--md-success)] font-bold">
                           سعر البيع: {formatAmount(tank.unitPrice, tank.currency)} / لتر
                         </span>
                       </div>
@@ -978,12 +972,12 @@ export const FuelStationTab: React.FC = () => {
 
                   <div className="flex items-center gap-2">
                     <span
-                      className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
+                      className={`m3-badge text-xs font-mono tabular-nums ${
                         isLow
-                          ? 'bg-rose-500/10 text-rose-300 border-rose-500/30'
+                          ? 'm3-badge-error'
                           : fillPercentage > 75
-                          ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'
-                          : 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                          ? 'm3-badge-success'
+                          : 'm3-badge-warning'
                       }`}
                     >
                       {fillPercentage}% من السعة
@@ -992,7 +986,7 @@ export const FuelStationTab: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => handleResetSingleTank(tank.id)}
-                      className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg transition-colors cursor-pointer"
+                      className="m3-btn-danger !min-h-[30px] !p-1.5 cursor-pointer"
                       title="تصفير هذا الخزان وحذف سجلات الجرد المرتبطة به"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
@@ -1002,14 +996,14 @@ export const FuelStationTab: React.FC = () => {
 
                 {/* Visual Gauge Bar */}
                 <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs text-slate-400 font-mono">
-                    <span>الرصيد الفعلي: <strong className="text-white">{formatNumber(tank.currentStockLiters)}</strong> لتر</span>
+                  <div className="flex items-center justify-between text-xs text-[var(--md-on-surface-variant)] font-mono tabular-nums">
+                    <span>الرصيد الفعلي: <strong className="text-[var(--md-on-surface)]">{formatNumber(tank.currentStockLiters)}</strong> لتر</span>
                     <span>السعة الكلية: {formatNumber(tank.capacityLiters)} لتر</span>
                   </div>
-                  <div className="h-3 w-full bg-slate-950 rounded-full overflow-hidden border border-slate-800 p-0.5">
+                  <div className="h-3 w-full bg-[var(--md-surface-container-highest)] rounded-full overflow-hidden border border-[var(--md-outline-variant)] p-0.5">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
-                        isLow ? 'bg-rose-500' : fillPercentage > 75 ? 'bg-emerald-500' : 'bg-amber-500'
+                        isLow ? 'bg-[var(--md-error)]' : fillPercentage > 75 ? 'bg-[var(--md-success)]' : 'bg-[var(--md-warning)]'
                       }`}
                       style={{ width: `${fillPercentage === 0 ? 0 : Math.min(100, Math.max(2, fillPercentage))}%` }}
                     />
@@ -1017,30 +1011,30 @@ export const FuelStationTab: React.FC = () => {
                 </div>
 
                 {/* Tank Metrics Details */}
-                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800 text-[11px]">
-                  <div className="bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
-                    <span className="text-slate-400 block">رصيد الأمس</span>
-                    <strong className="text-white font-mono">{formatNumber(tank.previousBalanceLiters)} لتر</strong>
+                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[var(--md-outline-variant)] text-[11px]">
+                  <div className="bg-[var(--md-surface-container-low)] p-2.5 rounded-lg border border-[var(--md-outline-variant)]">
+                    <span className="text-[var(--md-on-surface-variant)] block">رصيد الأمس</span>
+                    <strong className="text-[var(--md-on-surface)] font-mono tabular-nums">{formatNumber(tank.previousBalanceLiters)} لتر</strong>
                   </div>
 
-                  <div className="bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
-                    <span className="text-slate-400 block">تفريغ اليوم</span>
-                    <strong className="text-teal-400 font-mono">+{formatNumber(tank.todayRefillLiters)} لتر</strong>
+                  <div className="bg-[var(--md-surface-container-low)] p-2.5 rounded-lg border border-[var(--md-outline-variant)]">
+                    <span className="text-[var(--md-on-surface-variant)] block">تفريغ اليوم</span>
+                    <strong className="text-[var(--md-primary-text)] font-mono tabular-nums">+{formatNumber(tank.todayRefillLiters)} لتر</strong>
                   </div>
 
-                  <div className="bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
-                    <span className="text-slate-400 block">قياس المسطرة (Dip)</span>
-                    <strong className="text-slate-200 font-mono">{formatNumber(tank.actualDipReadingLiters)} لتر</strong>
+                  <div className="bg-[var(--md-surface-container-low)] p-2.5 rounded-lg border border-[var(--md-outline-variant)]">
+                    <span className="text-[var(--md-on-surface-variant)] block">قياس المسطرة (Dip)</span>
+                    <strong className="text-[var(--md-on-surface)] font-mono tabular-nums">{formatNumber(tank.actualDipReadingLiters)} لتر</strong>
                   </div>
                 </div>
 
                 {/* Evaporation & Dip Variance */}
-                <div className="flex items-center justify-between text-[11px] bg-slate-950/80 p-2.5 rounded-xl border border-slate-800">
-                  <span className="text-slate-400 flex items-center gap-1.5">
-                    <Info className="w-3.5 h-3.5 text-blue-400" />
+                <div className="flex items-center justify-between text-[11px] bg-[var(--md-surface-container-low)] p-2.5 rounded-xl border border-[var(--md-outline-variant)]">
+                  <span className="text-[var(--md-on-surface-variant)] flex items-center gap-1.5">
+                    <Info className="w-3.5 h-3.5 text-[var(--md-info)]" />
                     <span>فارق القياس والتبخر اليومي:</span>
                   </span>
-                  <span className={`font-bold font-mono ${variance === 0 ? 'text-emerald-400' : variance > 0 ? 'text-emerald-300' : 'text-rose-400'}`}>
+                  <span className={`font-bold font-mono tabular-nums ${variance === 0 ? 'text-[var(--md-success)]' : variance > 0 ? 'text-[var(--md-success)]' : 'text-[var(--md-error)]'}`}>
                     {variance === 0 ? 'مطابق دفترياً (0)' : `${variance > 0 ? '+' : ''}${formatNumber(variance)} لتر`}
                   </span>
                 </div>
@@ -1054,17 +1048,17 @@ export const FuelStationTab: React.FC = () => {
       {/* MODAL 1: تسجيل قراءة عداد طرمبة جديدة (New Pump Meter Reading Modal)       */}
       {/* ========================================================================= */}
       {isNewEntryOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
+        <div className="fixed inset-0 z-50 m3-backdrop flex items-center justify-center p-4">
+          <div className="m3-modal-surface w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-4 border-b border-[var(--md-outline-variant)] flex items-center justify-between bg-[var(--md-surface-container-low)]">
               <div className="flex items-center gap-2">
-                <Gauge className="w-5 h-5 text-amber-400" />
-                <h3 className="font-bold text-white text-sm">تسجيل قراءة عداد طرمبة الوقود والغاز</h3>
+                <Gauge className="w-5 h-5 text-[var(--md-warning)]" />
+                <h3 className="font-bold text-[var(--md-on-surface)] text-sm">تسجيل قراءة عداد طرمبة الوقود والغاز</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setIsNewEntryOpen(false)}
-                className="text-slate-400 hover:text-white text-lg font-bold"
+                className="m3-btn-text !min-h-[32px] !px-2 text-base font-bold cursor-pointer"
               >
                 ✕
               </button>
@@ -1073,13 +1067,13 @@ export const FuelStationTab: React.FC = () => {
             <form onSubmit={handleSaveMeterRecord} className="p-5 space-y-4 overflow-y-auto custom-scrollbar">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                  <label className="block text-[11px] font-semibold text-[var(--md-on-surface-variant)] mb-1">
                     الخزان المصدر المرتبط
                   </label>
                   <select
                     value={entryTankId}
                     onChange={(e) => handleTankChange(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    className="m3-select !h-10 text-xs"
                   >
                     {tanks.map((t) => (
                       <option key={t.id} value={t.id}>
@@ -1090,39 +1084,39 @@ export const FuelStationTab: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                  <label className="block text-[11px] font-semibold text-[var(--md-on-surface-variant)] mb-1">
                     الطرمبة / المسدس
                   </label>
                   <input
                     type="text"
                     value={entryPump}
                     onChange={(e) => setEntryPump(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    className="m3-input !h-10 text-xs"
                     placeholder="طرمبة 1 - مسدس A"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                  <label className="block text-[11px] font-semibold text-[var(--md-on-surface-variant)] mb-1">
                     اسم عامل الطرمبة
                   </label>
                   <input
                     type="text"
                     value={entryOperator}
                     onChange={(e) => setEntryOperator(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    className="m3-input !h-10 text-xs"
                     placeholder="اسم العامل المسؤول"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                  <label className="block text-[11px] font-semibold text-[var(--md-on-surface-variant)] mb-1">
                     الوردية
                   </label>
                   <select
                     value={selectedShift}
                     onChange={(e) => setSelectedShift(e.target.value as any)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    className="m3-select !h-10 text-xs"
                   >
                     <option value="MORNING">الوردية الصباحية</option>
                     <option value="EVENING">الوردية المسائية</option>
@@ -1132,15 +1126,15 @@ export const FuelStationTab: React.FC = () => {
               </div>
 
               {/* Meter Readings Row */}
-              <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3">
-                <div className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+              <div className="bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl p-4 space-y-3">
+                <div className="text-xs font-bold text-[var(--md-warning)] flex items-center gap-1.5">
                   <Gauge className="w-4 h-4" />
                   <span>قراءات العدادات بالأرقام الإنجليزية (0-9)</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">
+                    <label className="block text-[11px] text-[var(--md-on-surface-variant)] mb-1">
                       العداد السابق (الإغلاق)
                     </label>
                     <input
@@ -1150,12 +1144,12 @@ export const FuelStationTab: React.FC = () => {
                       lang="en"
                       value={entryPrevMeter}
                       onChange={(e) => setEntryPrevMeter(toEnglishDigits(e.target.value))}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-300 font-mono font-bold focus:border-amber-400"
+                      className="m3-input !h-10 text-xs font-mono tabular-nums font-bold"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] text-amber-300 font-bold mb-1">
+                    <label className="block text-[11px] text-[var(--md-warning)] font-bold mb-1">
                       العداد الحالي الآن *
                     </label>
                     <input
@@ -1165,14 +1159,14 @@ export const FuelStationTab: React.FC = () => {
                       lang="en"
                       value={entryCurrMeter}
                       onChange={(e) => setEntryCurrMeter(toEnglishDigits(e.target.value))}
-                      className="w-full bg-slate-900 border border-amber-500 rounded-xl px-3 py-2 text-xs text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-amber-500"
+                      className="m3-input !h-10 !border-[var(--md-warning)] text-xs font-mono tabular-nums font-bold"
                       placeholder="0.0"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">
+                    <label className="block text-[11px] text-[var(--md-on-surface-variant)] mb-1">
                       لترات الفحص والمعايرة
                     </label>
                     <input
@@ -1182,35 +1176,35 @@ export const FuelStationTab: React.FC = () => {
                       lang="en"
                       value={entryCalibration}
                       onChange={(e) => setEntryCalibration(toEnglishDigits(e.target.value))}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-300 font-mono"
+                      className="m3-input !h-10 text-xs font-mono tabular-nums"
                       placeholder="0"
                     />
                   </div>
                 </div>
 
                 {/* Live Computed Liters & Revenue */}
-                <div className="p-3 bg-slate-900 rounded-lg border border-slate-800 flex items-center justify-between text-xs">
+                <div className="p-3 bg-[var(--md-surface-container)] rounded-lg border border-[var(--md-outline-variant)] flex flex-wrap items-center justify-between gap-2 text-xs">
                   <div>
-                    <span className="text-slate-400">كم لتر عبأ اليوم: </span>
-                    <strong className="text-amber-400 font-mono text-sm">{formatNumber(netDispensed)} لتر</strong>
+                    <span className="text-[var(--md-on-surface-variant)]">كم لتر عبأ اليوم: </span>
+                    <strong className="text-[var(--md-warning)] font-mono tabular-nums text-sm">{formatNumber(netDispensed)} لتر</strong>
                   </div>
                   <div>
-                    <span className="text-slate-400">إجمالي المبلغ المطلوب دفترياً: </span>
-                    <strong className="text-emerald-400 font-mono text-sm">{formatAmount(expectedTotal, 'YER')}</strong>
+                    <span className="text-[var(--md-on-surface-variant)]">إجمالي المبلغ المطلوب دفترياً: </span>
+                    <strong className="text-[var(--md-success)] font-mono tabular-nums text-sm">{formatAmount(expectedTotal, 'YER')}</strong>
                   </div>
                 </div>
               </div>
 
               {/* Cash Reconciliation Breakdown */}
-              <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3">
-                <div className="text-xs font-bold text-blue-400 flex items-center gap-1.5">
+              <div className="bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl p-4 space-y-3">
+                <div className="text-xs font-bold text-[var(--md-info)] flex items-center gap-1.5">
                   <DollarSign className="w-4 h-4" />
                   <span>المطابقة المالية لعهدة عامل الطرمبة</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-[11px] text-slate-300 mb-1">النقد المسلم فعلياً (Cash)</label>
+                    <label className="block text-[11px] text-[var(--md-on-surface-variant)] mb-1">النقد المسلم فعلياً (Cash)</label>
                     <input
                       type="text"
                       inputMode="decimal"
@@ -1218,13 +1212,13 @@ export const FuelStationTab: React.FC = () => {
                       lang="en"
                       value={entryCashReceived}
                       onChange={(e) => setEntryCashReceived(toEnglishDigits(e.target.value))}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono font-bold"
+                      className="m3-input !h-10 text-xs font-mono tabular-nums font-bold"
                       placeholder="0"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] text-slate-300 mb-1">مدفوعات شبكة ومحافظ (POS/Wallets)</label>
+                    <label className="block text-[11px] text-[var(--md-on-surface-variant)] mb-1">مدفوعات شبكة ومحافظ (POS/Wallets)</label>
                     <input
                       type="text"
                       inputMode="decimal"
@@ -1232,13 +1226,13 @@ export const FuelStationTab: React.FC = () => {
                       lang="en"
                       value={entryElectronicReceived}
                       onChange={(e) => setEntryElectronicReceived(toEnglishDigits(e.target.value))}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono"
+                      className="m3-input !h-10 text-xs font-mono tabular-nums"
                       placeholder="0"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] text-slate-300 mb-1">مبيعات آجلة (فواتير معتمدة)</label>
+                    <label className="block text-[11px] text-[var(--md-on-surface-variant)] mb-1">مبيعات آجلة (فواتير معتمدة)</label>
                     <input
                       type="text"
                       inputMode="decimal"
@@ -1246,22 +1240,22 @@ export const FuelStationTab: React.FC = () => {
                       lang="en"
                       value={entryCreditSales}
                       onChange={(e) => setEntryCreditSales(toEnglishDigits(e.target.value))}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono"
+                      className="m3-input !h-10 text-xs font-mono tabular-nums"
                       placeholder="0"
                     />
                   </div>
                 </div>
 
                 {/* Variance Live Badge */}
-                <div className="p-3 bg-slate-900 rounded-lg border border-slate-800 flex items-center justify-between text-xs">
+                <div className="p-3 bg-[var(--md-surface-container)] rounded-lg border border-[var(--md-outline-variant)] flex flex-wrap items-center justify-between gap-2 text-xs">
                   <div>
-                    <span className="text-slate-400">إجمالي المسلم من العامل: </span>
-                    <strong className="text-white font-mono">{formatAmount(totalActual, 'YER')}</strong>
+                    <span className="text-[var(--md-on-surface-variant)]">إجمالي المسلم من العامل: </span>
+                    <strong className="text-[var(--md-on-surface)] font-mono tabular-nums">{formatAmount(totalActual, 'YER')}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-400">الفارق المالي: </span>
-                    <strong className={`font-mono text-sm ${
-                      cashVariance === 0 ? 'text-emerald-400' : cashVariance > 0 ? 'text-emerald-300' : 'text-rose-400'
+                    <span className="text-[var(--md-on-surface-variant)]">الفارق المالي: </span>
+                    <strong className={`font-mono tabular-nums text-sm ${
+                      cashVariance === 0 ? 'text-[var(--md-success)]' : cashVariance > 0 ? 'text-[var(--md-success)]' : 'text-[var(--md-error)]'
                     }`}>
                       {cashVariance === 0 ? 'مطابق تماماً (0)' : `${cashVariance > 0 ? '+' : ''}${formatNumber(cashVariance)} YER`}
                     </strong>
@@ -1270,17 +1264,17 @@ export const FuelStationTab: React.FC = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[var(--md-outline-variant)]">
                 <button
                   type="button"
                   onClick={() => setIsNewEntryOpen(false)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold"
+                  className="m3-btn-outlined text-xs cursor-pointer"
                 >
                   إلغاء
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs transition-all shadow-md shadow-amber-500/20"
+                  className="m3-btn-primary text-xs cursor-pointer"
                 >
                   اعتماد جرد الطرمبة وترحيل المخزون
                 </button>
@@ -1294,17 +1288,17 @@ export const FuelStationTab: React.FC = () => {
       {/* MODAL 2: تفريغ شحنة وقود في الخزان (Tank Refill Modal)                    */}
       {/* ========================================================================= */}
       {isRefillModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
+        <div className="fixed inset-0 z-50 m3-backdrop flex items-center justify-center p-4">
+          <div className="m3-modal-surface w-full max-w-md overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-[var(--md-outline-variant)] flex items-center justify-between bg-[var(--md-surface-container-low)]">
               <div className="flex items-center gap-2">
-                <Droplets className="w-5 h-5 text-teal-400" />
-                <h3 className="font-bold text-white text-sm">تسجيل تفريغ شحنة وقود (وايت / ناقلة)</h3>
+                <Droplets className="w-5 h-5 text-[var(--md-primary-text)]" />
+                <h3 className="font-bold text-[var(--md-on-surface)] text-sm">تسجيل تفريغ شحنة وقود (وايت / ناقلة)</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setIsRefillModalOpen(false)}
-                className="text-slate-400 hover:text-white text-lg font-bold"
+                className="m3-btn-text !min-h-[32px] !px-2 text-base font-bold cursor-pointer"
               >
                 ✕
               </button>
@@ -1312,13 +1306,13 @@ export const FuelStationTab: React.FC = () => {
 
             <form onSubmit={handleSaveRefill} className="p-5 space-y-4">
               <div>
-                <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                <label className="block text-[11px] font-semibold text-[var(--md-on-surface-variant)] mb-1">
                   الخزان المستلم للشحنة *
                 </label>
                 <select
                   value={refillTankId}
                   onChange={(e) => setRefillTankId(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                  className="m3-select !h-10 text-xs"
                 >
                   {tanks.map((t) => (
                     <option key={t.id} value={t.id}>
@@ -1329,7 +1323,7 @@ export const FuelStationTab: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                <label className="block text-[11px] font-semibold text-[var(--md-on-surface-variant)] mb-1">
                   الكمية المفرغة باللتر *
                 </label>
                 <input
@@ -1339,35 +1333,35 @@ export const FuelStationTab: React.FC = () => {
                   lang="en"
                   value={refillLiters}
                   onChange={(e) => setRefillLiters(toEnglishDigits(e.target.value))}
-                  className="w-full bg-slate-950 border border-teal-500 rounded-xl px-3 py-2 text-xs text-white font-mono font-bold"
+                  className="m3-input !h-10 !border-[var(--md-primary)] text-xs font-mono tabular-nums font-bold"
                   placeholder="مثال: 10000"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                <label className="block text-[11px] font-semibold text-[var(--md-on-surface-variant)] mb-1">
                   المورد / بيانات الناقلة أو السائق
                 </label>
                 <input
                   type="text"
                   value={refillSupplier}
                   onChange={(e) => setRefillSupplier(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                  className="m3-input !h-10 text-xs"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[var(--md-outline-variant)]">
                 <button
                   type="button"
                   onClick={() => setIsRefillModalOpen(false)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold"
+                  className="m3-btn-outlined text-xs cursor-pointer"
                 >
                   إلغاء
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold rounded-xl text-xs transition-all shadow-md shadow-teal-500/20"
+                  className="m3-btn-primary text-xs cursor-pointer"
                 >
                   تأكيد التوريد وتحديث الرصيد
                 </button>

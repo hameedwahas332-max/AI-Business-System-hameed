@@ -44,17 +44,17 @@ export const SalesInvoicesFilterBar: React.FC<SalesInvoicesFilterBarProps> = ({
   onReset,
 }) => {
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+    <div className="m3-card p-4 space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         {/* Search */}
         <div className="relative lg:col-span-1">
-          <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-[var(--md-on-surface-variant)]" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="بحث برقم الفاتورة، العميل، رقم الصنف/القطعة، أو السيريال..."
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl pr-9 pl-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 font-sans"
+            className="m3-input w-full pr-9 pl-3 py-2 text-xs font-sans"
           />
         </div>
 
@@ -63,7 +63,7 @@ export const SalesInvoicesFilterBar: React.FC<SalesInvoicesFilterBarProps> = ({
           <select
             value={statusFilter}
             onChange={(e) => onStatusChange(e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+            className="m3-select w-full px-3 py-2 text-xs"
           >
             <option value="">جميع الحالات (All Statuses)</option>
             <option value="PAID">مدفوعة بالكامل (PAID)</option>
@@ -79,7 +79,7 @@ export const SalesInvoicesFilterBar: React.FC<SalesInvoicesFilterBarProps> = ({
           <select
             value={selectedCustomerId}
             onChange={(e) => onCustomerChange(e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+            className="m3-select w-full px-3 py-2 text-xs"
           >
             <option value="">جميع العملاء (All Customers)</option>
             {customers.map((c) => (
@@ -95,7 +95,7 @@ export const SalesInvoicesFilterBar: React.FC<SalesInvoicesFilterBarProps> = ({
           <select
             value={selectedCurrency}
             onChange={(e) => onCurrencyChange(e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+            className="m3-select w-full px-3 py-2 text-xs"
           >
             <option value="">جميع العملات (YER / SAR / USD)</option>
             <option value="YER">ريال يمني (YER)</option>
@@ -109,7 +109,7 @@ export const SalesInvoicesFilterBar: React.FC<SalesInvoicesFilterBarProps> = ({
           <select
             value={selectedPriceTier}
             onChange={(e) => onPriceTierChange && onPriceTierChange(e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+            className="m3-select w-full px-3 py-2 text-xs"
           >
             <option value="">جميع فئات التسعير (All Tiers)</option>
             <option value="retail">تجزئة (Retail)</option>
@@ -121,35 +121,35 @@ export const SalesInvoicesFilterBar: React.FC<SalesInvoicesFilterBarProps> = ({
       </div>
 
       {/* Date Ranges & Quick Filter Toggles */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800/80 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[var(--md-outline-variant)] text-xs">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 bg-slate-800/80 border border-slate-700/80 rounded-xl px-2.5 py-1.5">
-            <span className="text-[11px] text-slate-400">من:</span>
+          <div className="flex items-center gap-1.5 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl px-2.5 py-1.5">
+            <span className="text-[11px] text-[var(--md-on-surface-variant)]">من:</span>
             <input
               type="date"
               value={startDate}
               onChange={(e) => onStartDateChange(e.target.value)}
-              className="bg-transparent text-white text-xs focus:outline-none"
+              className="bg-transparent text-[var(--md-on-surface)] text-xs focus:outline-none"
             />
           </div>
 
-          <div className="flex items-center gap-1.5 bg-slate-800/80 border border-slate-700/80 rounded-xl px-2.5 py-1.5">
-            <span className="text-[11px] text-slate-400">إلى:</span>
+          <div className="flex items-center gap-1.5 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl px-2.5 py-1.5">
+            <span className="text-[11px] text-[var(--md-on-surface-variant)]">إلى:</span>
             <input
               type="date"
               value={endDate}
               onChange={(e) => onEndDateChange(e.target.value)}
-              className="bg-transparent text-white text-xs focus:outline-none"
+              className="bg-transparent text-[var(--md-on-surface)] text-xs focus:outline-none"
             />
           </div>
 
           <button
             type="button"
             onClick={() => onOverdueToggle(!isOverdueOnly)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-bold transition-all cursor-pointer ${
               isOverdueOnly
-                ? 'bg-rose-500/20 border-rose-500 text-rose-400'
-                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+                ? 'bg-[var(--md-error-container)] border-[var(--md-error)] text-[var(--md-on-error-container)]'
+                : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             <AlertCircle className="w-3.5 h-3.5" />
@@ -160,7 +160,7 @@ export const SalesInvoicesFilterBar: React.FC<SalesInvoicesFilterBarProps> = ({
         <button
           type="button"
           onClick={onReset}
-          className="flex items-center gap-1 text-slate-400 hover:text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition-colors"
+          className="m3-btn-text flex items-center gap-1 px-2.5 py-1 text-xs"
         >
           <RotateCcw className="w-3.5 h-3.5" />
           <span>إعادة ضبط الفلاتر</span>

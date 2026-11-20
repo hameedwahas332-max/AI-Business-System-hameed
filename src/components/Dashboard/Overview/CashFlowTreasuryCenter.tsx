@@ -75,8 +75,8 @@ export const CashFlowTreasuryCenter: React.FC<CashFlowTreasuryCenterProps> = ({
       balance: cashOnHand,
       type: 'CASH',
       pct: cashPct,
-      color: 'bg-emerald-500',
-      textClass: 'text-emerald-400',
+      color: 'bg-[var(--md-primary)]',
+      iconTone: 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)]',
       icon: Coins,
       badge: 'فوري',
     },
@@ -87,8 +87,8 @@ export const CashFlowTreasuryCenter: React.FC<CashFlowTreasuryCenterProps> = ({
       balance: bankAccounts,
       type: 'BANK',
       pct: bankPct,
-      color: 'bg-blue-500',
-      textClass: 'text-blue-400',
+      color: 'bg-[var(--md-info)]',
+      iconTone: 'bg-[var(--md-info-container)] text-[var(--md-on-info-container)]',
       icon: Landmark,
       badge: 'جاري',
     },
@@ -99,45 +99,45 @@ export const CashFlowTreasuryCenter: React.FC<CashFlowTreasuryCenterProps> = ({
       balance: eWallets,
       type: 'WALLET',
       pct: walletPct,
-      color: 'bg-amber-400',
-      textClass: 'text-amber-400',
+      color: 'bg-[var(--md-secondary)]',
+      iconTone: 'bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)]',
       icon: Smartphone,
       badge: 'رقمي',
     },
   ];
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 text-right flex flex-col justify-between h-full">
+    <div className="m3-card p-5 sm:p-6 space-y-4 text-right flex flex-col justify-between h-full">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--md-outline-variant)] pb-3">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-400 border border-blue-500/30 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-[var(--md-info-container)] text-[var(--md-on-info-container)] flex items-center justify-center shrink-0">
             <Wallet className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white">مركز الخزينة وإدارة السيولة</h3>
-            <p className="text-[11px] text-slate-400">الصناديق • البنوك • المحافظ • حركة اليوم</p>
+            <h3 className="text-sm font-bold text-[var(--md-on-surface)]">مركز الخزينة وإدارة السيولة</h3>
+            <p className="text-[11px] text-[var(--md-on-surface-variant)]">الصناديق • البنوك • المحافظ • حركة اليوم</p>
           </div>
         </div>
 
         {/* View Switcher */}
-        <div className="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700">
+        <div className="flex items-center bg-[var(--md-surface-container)] p-1 rounded-xl border border-[var(--md-outline-variant)]">
           <button
             onClick={() => setActiveSubTab('balances')}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               activeSubTab === 'balances'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] shadow-sm'
+                : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             أرصدة الخزينة
           </button>
           <button
             onClick={() => setActiveSubTab('daily_movement')}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               activeSubTab === 'daily_movement'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] shadow-sm'
+                : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             حركة اليوم
@@ -146,27 +146,27 @@ export const CashFlowTreasuryCenter: React.FC<CashFlowTreasuryCenterProps> = ({
       </div>
 
       {/* Total Balance Card */}
-      <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-900/90 border border-slate-700/80 space-y-2">
+      <div className="p-4 rounded-2xl bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-slate-400 font-semibold">إجمالي السيولة النقدية والبنكية المتاحة</span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+          <span className="text-xs text-[var(--md-on-surface-variant)] font-semibold">إجمالي السيولة النقدية والبنكية المتاحة</span>
+          <span className="m3-badge m3-badge-success">
             جاهزية فورية
           </span>
         </div>
         <div className="flex items-baseline gap-2">
-          <span className="text-2xl sm:text-3xl font-black text-white font-mono tabular-nums">
+          <span className="text-2xl sm:text-3xl font-black text-[var(--md-on-surface)] font-mono tabular-nums">
             {formatAmount(totalLiquidity > 0 ? totalLiquidity : (cashOnHand + bankAccounts + eWallets))}
           </span>
-          <span className="text-xs font-bold text-emerald-400 font-mono">
+          <span className="text-xs font-bold text-[var(--md-primary-text)] font-mono">
             {currency}
           </span>
         </div>
-        <div className="pt-1.5 border-t border-slate-800/80 text-[11px] text-slate-400 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono">
-          <span>نقد بالصندوق: <strong className="text-emerald-400 font-bold">{formatAmount(cashOnHand)}</strong> ({cashPct}%)</span>
-          <span className="text-slate-600">•</span>
-          <span>البنوك: <strong className="text-blue-400 font-bold">{formatAmount(bankAccounts)}</strong> ({bankPct}%)</span>
-          <span className="text-slate-600">•</span>
-          <span>المحافظ: <strong className="text-amber-400 font-bold">{formatAmount(eWallets)}</strong> ({walletPct}%)</span>
+        <div className="pt-1.5 border-t border-[var(--md-outline-variant)] text-[11px] text-[var(--md-on-surface-variant)] flex flex-wrap items-center gap-x-2 gap-y-1 font-mono tabular-nums">
+          <span>نقد بالصندوق: <strong className="text-[var(--md-primary-text)] font-bold">{formatAmount(cashOnHand)}</strong> ({cashPct}%)</span>
+          <span>•</span>
+          <span>البنوك: <strong className="text-[var(--md-info)] font-bold">{formatAmount(bankAccounts)}</strong> ({bankPct}%)</span>
+          <span>•</span>
+          <span>المحافظ: <strong className="text-[var(--md-secondary)] font-bold">{formatAmount(eWallets)}</strong> ({walletPct}%)</span>
         </div>
       </div>
 
@@ -179,31 +179,31 @@ export const CashFlowTreasuryCenter: React.FC<CashFlowTreasuryCenterProps> = ({
             return (
               <div
                 key={item.id}
-                className="p-3 rounded-2xl bg-slate-800/40 border border-slate-800/80 space-y-2 hover:border-slate-700 transition-colors"
+                className="p-3 rounded-xl bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] space-y-2 hover:border-[var(--md-outline)] transition-colors"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className={`w-7 h-7 rounded-lg bg-slate-900 flex items-center justify-center ${item.textClass}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${item.iconTone}`}>
                       <Icon className="w-3.5 h-3.5" />
                     </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-slate-200">{item.name}</h4>
-                      <span className="text-[10px] text-slate-400">{item.subtitle}</span>
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-bold text-[var(--md-on-surface)] truncate">{item.name}</h4>
+                      <span className="text-[10px] text-[var(--md-on-surface-variant)] block truncate">{item.subtitle}</span>
                     </div>
                   </div>
 
-                  <div className="text-left">
-                    <span className="text-sm font-black text-white font-mono tabular-nums block">
+                  <div className="text-left shrink-0">
+                    <span className="text-sm font-black text-[var(--md-on-surface)] font-mono tabular-nums block">
                       {formatAmount(item.balance)} {currency}
                     </span>
-                    <span className="text-[10px] font-mono font-semibold text-slate-400">
+                    <span className="text-[10px] font-mono font-semibold text-[var(--md-on-surface-variant)] tabular-nums">
                       {item.pct}% من السيولة
                     </span>
                   </div>
                 </div>
 
                 {/* Individual mini progress */}
-                <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-[var(--md-surface-container-high)] rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full ${item.color}`}
                     style={{ width: `${item.pct}%` }}
@@ -217,66 +217,66 @@ export const CashFlowTreasuryCenter: React.FC<CashFlowTreasuryCenterProps> = ({
         /* Daily Receipts vs Disbursements vs Expenses */
         <div className="space-y-3 flex-1">
           {/* Receipts */}
-          <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between">
+          <div className="p-3 rounded-xl bg-[var(--md-success-container)] border border-[color-mix(in_srgb,var(--md-success)_30%,transparent)] flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-[var(--md-surface-container-lowest)] text-[var(--md-success)] flex items-center justify-center">
                 <ArrowDownLeft className="w-4 h-4" />
               </div>
               <div>
-                <span className="text-xs font-bold text-white block">سندات القبض اليوم</span>
-                <span className="text-[10px] text-slate-400">تحصيلات عملاء ومبيعات نقدية</span>
+                <span className="text-xs font-bold text-[var(--md-on-success-container)] block">سندات القبض اليوم</span>
+                <span className="text-[10px] text-[var(--md-on-success-container)] opacity-80">تحصيلات عملاء ومبيعات نقدية</span>
               </div>
             </div>
             <div className="text-left">
-              <span className="text-sm font-black font-mono tabular-nums text-emerald-400 block">
+              <span className="text-sm font-black font-mono tabular-nums text-[var(--md-on-success-container)] block">
                 +{formatAmount(todayReceipts)} {currency}
               </span>
-              <span className="text-[10px] text-slate-400 font-mono">وارد للخزينة</span>
+              <span className="text-[10px] text-[var(--md-on-success-container)] opacity-80 font-mono">وارد للخزينة</span>
             </div>
           </div>
 
           {/* Disbursements */}
-          <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/25 flex items-center justify-between">
+          <div className="p-3 rounded-xl bg-[var(--md-error-container)] border border-[color-mix(in_srgb,var(--md-error)_30%,transparent)] flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-[var(--md-surface-container-lowest)] text-[var(--md-error)] flex items-center justify-center">
                 <ArrowUpRight className="w-4 h-4" />
               </div>
               <div>
-                <span className="text-xs font-bold text-white block">سندات الصرف للموردين</span>
-                <span className="text-[10px] text-slate-400">سداد فواتير مشتريات ودفعات</span>
+                <span className="text-xs font-bold text-[var(--md-on-error-container)] block">سندات الصرف للموردين</span>
+                <span className="text-[10px] text-[var(--md-on-error-container)] opacity-80">سداد فواتير مشتريات ودفعات</span>
               </div>
             </div>
             <div className="text-left">
-              <span className="text-sm font-black font-mono tabular-nums text-rose-400 block">
+              <span className="text-sm font-black font-mono tabular-nums text-[var(--md-on-error-container)] block">
                 -{formatAmount(todayDisbursements)} {currency}
               </span>
-              <span className="text-[10px] text-slate-400 font-mono">منصرف للموردين</span>
+              <span className="text-[10px] text-[var(--md-on-error-container)] opacity-80 font-mono">منصرف للموردين</span>
             </div>
           </div>
 
           {/* Expenses */}
-          <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between">
+          <div className="p-3 rounded-xl bg-[var(--md-warning-container)] border border-[color-mix(in_srgb,var(--md-warning)_30%,transparent)] flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-[var(--md-surface-container-lowest)] text-[var(--md-warning)] flex items-center justify-center">
                 <Receipt className="w-4 h-4" />
               </div>
               <div>
-                <span className="text-xs font-bold text-white block">المصروفات اليومية</span>
-                <span className="text-[10px] text-slate-400">نثريات، وقود، وضيافة</span>
+                <span className="text-xs font-bold text-[var(--md-on-warning-container)] block">المصروفات اليومية</span>
+                <span className="text-[10px] text-[var(--md-on-warning-container)] opacity-80">نثريات، وقود، وضيافة</span>
               </div>
             </div>
             <div className="text-left">
-              <span className="text-sm font-black font-mono tabular-nums text-amber-300 block">
+              <span className="text-sm font-black font-mono tabular-nums text-[var(--md-on-warning-container)] block">
                 -{formatAmount(todayExpenses)} {currency}
               </span>
-              <span className="text-[10px] text-slate-400 font-mono">مصاريف تشغيل</span>
+              <span className="text-[10px] text-[var(--md-on-warning-container)] opacity-80 font-mono">مصاريف تشغيل</span>
             </div>
           </div>
 
           {/* Net Movement Summary */}
-          <div className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/80 flex items-center justify-between text-xs">
-            <span className="text-slate-300 font-bold">صافي التدفق اليومي:</span>
-            <span className={`font-mono font-black tabular-nums ${todayNetCashFlow >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+          <div className="p-2.5 rounded-xl bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] flex items-center justify-between text-xs">
+            <span className="text-[var(--md-on-surface)] font-bold">صافي التدفق اليومي:</span>
+            <span className={`font-mono font-black tabular-nums ${todayNetCashFlow >= 0 ? 'text-[var(--md-success)]' : 'text-[var(--md-error)]'}`}>
               {todayNetCashFlow >= 0 ? `+${formatAmount(todayNetCashFlow)}` : formatAmount(todayNetCashFlow)} {currency}
             </span>
           </div>
@@ -284,21 +284,21 @@ export const CashFlowTreasuryCenter: React.FC<CashFlowTreasuryCenterProps> = ({
       )}
 
       {/* Quick Action Link to Payments / Vouchers */}
-      <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-2">
+      <div className="pt-2 border-t border-[var(--md-outline-variant)] flex items-center justify-between gap-2">
         <button
           onClick={() => onNavigate && onNavigate('payments')}
-          className="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700/80 text-slate-200 text-xs font-bold border border-slate-700 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+          className="m3-btn-outlined flex-1 text-xs"
         >
           <span>سندات القبض والصرف</span>
-          <ArrowUpRight className="w-3.5 h-3.5 text-blue-400" />
+          <ArrowUpRight className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
         </button>
 
         <button
           onClick={() => onNavigate && onNavigate('cashflow_forecast')}
-          className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700/80 text-slate-300 text-xs font-bold border border-slate-700 transition-all flex items-center justify-center gap-1 cursor-pointer"
+          className="m3-btn-tonal text-xs"
           title="التنبؤ بالسيولة"
         >
-          <PiggyBank className="w-3.5 h-3.5 text-emerald-400" />
+          <PiggyBank className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">تنبؤ السيولة</span>
         </button>
       </div>

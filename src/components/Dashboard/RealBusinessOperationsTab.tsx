@@ -1561,29 +1561,26 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
   };
 
   return (
-    <div className="space-y-6 text-right text-slate-100 font-sans" dir="rtl">
+    <div className="space-y-6 text-right text-[var(--md-on-surface)] font-sans" dir="rtl">
       {/* Top Banner & Title */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-transparent rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-
+      <div className="m3-card p-5 sm:p-6 relative overflow-hidden">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
           <div className="space-y-1">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shadow-lg shrink-0">
+              <div className="w-11 h-11 rounded-xl bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/25 flex items-center justify-center shrink-0">
                 <Briefcase className="w-5 h-5" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex flex-wrap items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black text-[var(--md-on-surface)] tracking-tight flex flex-wrap items-center gap-2">
                   <span>مركز عمليات الأعمال وبداية التشغيل</span>
-                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-mono">
+                  <span className="m3-badge m3-badge-primary text-[10px] font-mono">
                     Operations Hub
                   </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-950 text-slate-300 border border-slate-800 font-mono">
+                  <span className="m3-badge m3-badge-secondary text-[10px] font-mono">
                     {currCode} ({currSym})
                   </span>
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-400 font-medium">
+                <p className="text-xs sm:text-sm text-[var(--md-on-surface-variant)] font-medium">
                   شاشة التأسيس اليومية، الاستيراد الآمن، الأرصدة الافتتاحية، المطابقة البنكية ومراقبة دفتر الأستاذ
                 </p>
               </div>
@@ -1591,19 +1588,19 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            <div className="flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-2 rounded-xl text-xs font-mono">
-              <span className={`w-2 h-2 rounded-full ${dataMode === 'PRODUCTION' ? 'bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400/50' : 'bg-amber-400'}`} />
-              <span className="text-slate-400">وضع البيانات:</span>
-              <span className="font-bold text-white">{dataMode === 'PRODUCTION' ? 'إنتاجي حقيقي' : 'تجريبي'}</span>
+            <div className="flex items-center gap-2 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] px-3 py-2 rounded-xl text-xs font-mono">
+              <span className={`w-2 h-2 rounded-full ${dataMode === 'PRODUCTION' ? 'bg-[var(--md-success)]' : 'bg-[var(--md-warning)]'}`} />
+              <span className="text-[var(--md-on-surface-variant)]">وضع البيانات:</span>
+              <span className="font-bold text-[var(--md-on-surface)]">{dataMode === 'PRODUCTION' ? 'إنتاجي حقيقي' : 'تجريبي'}</span>
             </div>
 
             <button
               type="button"
               onClick={handleToggleDefaultStartup}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors border cursor-pointer ${
                 isDefaultStartup
-                  ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/25'
-                  : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800 hover:text-white'
+                  ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border-[var(--md-primary)]/30 hover:opacity-90'
+                  : 'm3-btn-outlined'
               }`}
               title="تحديد ما إذا كانت هذه الشاشة تفتح تلقائياً عند تشغيل النظام"
             >
@@ -1620,9 +1617,9 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                 fetchExpenses();
                 fetchReconciliations();
               }}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all border border-slate-700/80 cursor-pointer"
+              className="m3-btn-outlined flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold cursor-pointer"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-emerald-400' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[var(--md-primary-text)]' : ''}`} />
               <span>تحديث</span>
             </button>
           </div>
@@ -1632,24 +1629,24 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
       {/* Global Feedback Banner */}
       {feedback && (
         <div
-          className={`p-4 rounded-xl border flex items-center justify-between transition-all shadow-lg ${
+          className={`p-4 rounded-xl border flex items-center justify-between transition-all ${
             feedback.type === 'success'
-              ? 'bg-emerald-950/50 border-emerald-500/40 text-emerald-300'
-              : 'bg-rose-950/50 border-rose-500/40 text-rose-300'
+              ? 'bg-[var(--md-success-container)] border-[var(--md-success)]/35 text-[var(--md-on-success-container)]'
+              : 'bg-[var(--md-error-container)] border-[var(--md-error)]/35 text-[var(--md-on-error-container)]'
           }`}
         >
           <div className="flex items-center gap-2.5 text-xs sm:text-sm font-medium">
-            {feedback.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> : <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />}
+            {feedback.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-[var(--md-success)] shrink-0" /> : <AlertCircle className="w-4 h-4 text-[var(--md-error)] shrink-0" />}
             <span>{feedback.message}</span>
           </div>
-          <button type="button" onClick={() => setFeedback(null)} className="text-xs opacity-70 hover:opacity-100 cursor-pointer">
+          <button type="button" onClick={() => setFeedback(null)} className="text-xs opacity-75 hover:opacity-100 cursor-pointer font-bold">
             إغلاق
           </button>
         </div>
       )}
 
       {/* Navigation Subtabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-slate-800">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-[var(--md-outline-variant)]">
         {[
           { id: 'dashboard', label: 'لوحة العمليات اليومية', icon: TrendingUp },
           { id: 'import', label: 'محرك الاستيراد الآمن (CSV/Excel)', icon: UploadCloud },
@@ -1678,10 +1675,10 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                 if (tab.id === 'documents') fetchDocuments();
                 if (tab.id === 'sales_reps') fetchRepsLiveData();
               }}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors border cursor-pointer ${
                 isActive
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-950/60 border border-emerald-500/40'
-                  : 'bg-slate-900 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-800'
+                  ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] border-[var(--md-primary)]'
+                  : 'bg-[var(--md-surface-container-low)] text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)] border-[var(--md-outline-variant)]'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -1697,32 +1694,31 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
       {activeSubTab === 'dashboard' && (
         <div className="space-y-6">
           {/* System Startup & Onboarding Workflow Bar */}
-          <div className="relative overflow-hidden bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-blue-500 to-indigo-500" />
+          <div className="m3-card p-5 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                <h2 className="text-sm font-bold text-white">
+                <span className="w-2.5 h-2.5 rounded-full bg-[var(--md-primary)]" />
+                <h2 className="text-sm font-bold text-[var(--md-on-surface)]">
                   شريط خطوات بداية تشغيل النظام (System Startup & Onboarding Workflow)
                 </h2>
               </div>
-              <span className="text-[11px] text-slate-400 font-mono">
+              <span className="text-[11px] text-[var(--md-on-surface-variant)] font-mono">
                 5 خطوات متسلسلة لتجهيز التشغيل والانطلاق الكامل
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
               {/* Step 1 */}
-              <div className="bg-slate-950/80 border border-slate-800 hover:border-emerald-500/40 rounded-xl p-3.5 flex flex-col justify-between gap-3 transition-all">
+              <div className="bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] hover:border-[var(--md-primary)]/40 rounded-xl p-3.5 flex flex-col justify-between gap-3 transition-colors">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                    <span className="m3-badge m3-badge-primary text-[10px] font-mono">
                       الخطوة 1
                     </span>
-                    <Scale className="w-4 h-4 text-emerald-400" />
+                    <Scale className="w-4 h-4 text-[var(--md-primary-text)]" />
                   </div>
-                  <h3 className="text-xs font-bold text-white">الأرصدة الافتتاحية ورأس المال</h3>
-                  <p className="text-[11px] text-slate-400">ترحيل الصناديق والبنوك والذمم ({openingBalances.length} سجل)</p>
+                  <h3 className="text-xs font-bold text-[var(--md-on-surface)]">الأرصدة الافتتاحية ورأس المال</h3>
+                  <p className="text-[11px] text-[var(--md-on-surface-variant)]">ترحيل الصناديق والبنوك والذمم ({openingBalances.length} سجل)</p>
                 </div>
                 <button
                   type="button"
@@ -1730,7 +1726,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                     setActiveSubTab('opening_balances');
                     fetchOpeningBalances();
                   }}
-                  className="w-full py-1.5 px-2.5 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                  className="m3-btn-tonal w-full py-1.5 px-2.5 text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer"
                 >
                   <span>فتح الأرصدة الافتتاحية</span>
                   <ArrowUpRight className="w-3.5 h-3.5" />
@@ -1738,29 +1734,29 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
               </div>
 
               {/* Step 2 */}
-              <div className="bg-slate-950/80 border border-slate-800 hover:border-blue-500/40 rounded-xl p-3.5 flex flex-col justify-between gap-3 transition-all">
+              <div className="bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] hover:border-[var(--md-info)]/40 rounded-xl p-3.5 flex flex-col justify-between gap-3 transition-colors">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30">
+                    <span className="m3-badge m3-badge-info text-[10px] font-mono">
                       الخطوة 2
                     </span>
-                    <Boxes className="w-4 h-4 text-blue-400" />
+                    <Boxes className="w-4 h-4 text-[var(--md-info)]" />
                   </div>
-                  <h3 className="text-xs font-bold text-white">استيراد أو إضافة الأصناف والمخزون</h3>
-                  <p className="text-[11px] text-slate-400">المسجلة حالياً: {formatNumber(productsList.length)} صنف</p>
+                  <h3 className="text-xs font-bold text-[var(--md-on-surface)]">استيراد أو إضافة الأصناف والمخزون</h3>
+                  <p className="text-[11px] text-[var(--md-on-surface-variant)] tabular-nums">المسجلة حالياً: {formatNumber(productsList.length)} صنف</p>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => setActiveSubTab('import')}
-                    className="flex-1 py-1.5 px-2 bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/30 rounded-lg text-[11px] font-bold transition-all cursor-pointer"
+                    className="flex-1 py-1.5 px-2 bg-[var(--md-info-container)] text-[var(--md-on-info-container)] border border-[var(--md-info)]/30 hover:opacity-90 rounded-lg text-[11px] font-bold transition-opacity cursor-pointer"
                   >
                     استيراد CSV
                   </button>
                   <button
                     type="button"
                     onClick={() => onNavigate && onNavigate('products')}
-                    className="flex-1 py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                    className="m3-btn-outlined flex-1 py-1.5 px-2 text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer"
                   >
                     <span>الأصناف</span>
                     <ArrowUpRight className="w-3 h-3" />
@@ -1769,16 +1765,16 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
               </div>
 
               {/* Step 3 */}
-              <div className="bg-slate-950/80 border border-slate-800 hover:border-amber-500/40 rounded-xl p-3.5 flex flex-col justify-between gap-3 transition-all">
+              <div className="bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] hover:border-[var(--md-warning)]/40 rounded-xl p-3.5 flex flex-col justify-between gap-3 transition-colors">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                    <span className="m3-badge m3-badge-warning text-[10px] font-mono">
                       الخطوة 3
                     </span>
-                    <Users className="w-4 h-4 text-amber-400" />
+                    <Users className="w-4 h-4 text-[var(--md-warning)]" />
                   </div>
-                  <h3 className="text-xs font-bold text-white">تسجيل العملاء والموردين</h3>
-                  <p className="text-[11px] text-slate-400">
+                  <h3 className="text-xs font-bold text-[var(--md-on-surface)]">تسجيل العملاء والموردين</h3>
+                  <p className="text-[11px] text-[var(--md-on-surface-variant)] tabular-nums">
                     {formatNumber(customersList.length)} عميل • {formatNumber(suppliersList.length)} مورد
                   </p>
                 </div>
@@ -1786,7 +1782,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                   <button
                     type="button"
                     onClick={() => onNavigate && onNavigate('customers')}
-                    className="flex-1 py-1.5 px-2 bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white border border-amber-500/30 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                    className="flex-1 py-1.5 px-2 bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)] border border-[var(--md-warning)]/30 hover:opacity-90 rounded-lg text-[11px] font-bold transition-opacity flex items-center justify-center gap-1 cursor-pointer"
                   >
                     <span>العملاء</span>
                     <ArrowUpRight className="w-3 h-3" />
@@ -1794,7 +1790,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                   <button
                     type="button"
                     onClick={() => onNavigate && onNavigate('suppliers')}
-                    className="flex-1 py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                    className="m3-btn-outlined flex-1 py-1.5 px-2 text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer"
                   >
                     <span>الموردين</span>
                     <ArrowUpRight className="w-3 h-3" />
@@ -1803,22 +1799,22 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
               </div>
 
               {/* Step 4 */}
-              <div className="bg-slate-950/80 border border-slate-800 hover:border-purple-500/40 rounded-xl p-3.5 flex flex-col justify-between gap-3 transition-all">
+              <div className="bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] hover:border-[var(--md-secondary)]/40 rounded-xl p-3.5 flex flex-col justify-between gap-3 transition-colors">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                    <span className="m3-badge m3-badge-secondary text-[10px] font-mono">
                       الخطوة 4
                     </span>
-                    <Receipt className="w-4 h-4 text-purple-400" />
+                    <Receipt className="w-4 h-4 text-[var(--md-secondary)]" />
                   </div>
-                  <h3 className="text-xs font-bold text-white">إصدار الفواتير ونقاط البيع</h3>
-                  <p className="text-[11px] text-slate-400">البيع المباشر POS وفواتير المبيعات</p>
+                  <h3 className="text-xs font-bold text-[var(--md-on-surface)]">إصدار الفواتير ونقاط البيع</h3>
+                  <p className="text-[11px] text-[var(--md-on-surface-variant)]">البيع المباشر POS وفواتير المبيعات</p>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => onNavigate && onNavigate('pos')}
-                    className="flex-1 py-1.5 px-2 bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/30 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                    className="flex-1 py-1.5 px-2 bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] border border-[var(--md-secondary)]/30 hover:opacity-90 rounded-lg text-[11px] font-bold transition-opacity flex items-center justify-center gap-1 cursor-pointer"
                   >
                     <span>POS</span>
                     <ArrowUpRight className="w-3 h-3" />
@@ -1826,7 +1822,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                   <button
                     type="button"
                     onClick={() => onNavigate && onNavigate('invoices')}
-                    className="flex-1 py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                    className="m3-btn-outlined flex-1 py-1.5 px-2 text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer"
                   >
                     <span>الفواتير</span>
                     <ArrowUpRight className="w-3 h-3" />
@@ -1835,22 +1831,22 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
               </div>
 
               {/* Step 5 */}
-              <div className="bg-slate-950/80 border border-slate-800 hover:border-cyan-500/40 rounded-xl p-3.5 flex flex-col justify-between gap-3 transition-all">
+              <div className="bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] hover:border-[var(--md-primary)]/40 rounded-xl p-3.5 flex flex-col justify-between gap-3 transition-colors">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                    <span className="m3-badge m3-badge-success text-[10px] font-mono">
                       الخطوة 5
                     </span>
-                    <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                    <ShieldCheck className="w-4 h-4 text-[var(--md-success)]" />
                   </div>
-                  <h3 className="text-xs font-bold text-white">سندات الخزينة ومطابقة الأستاذ العام</h3>
-                  <p className="text-[11px] text-slate-400">تدقيق القيود والمطابقة المستمرة</p>
+                  <h3 className="text-xs font-bold text-[var(--md-on-surface)]">سندات الخزينة ومطابقة الأستاذ العام</h3>
+                  <p className="text-[11px] text-[var(--md-on-surface-variant)]">تدقيق القيود والمطابقة المستمرة</p>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => onNavigate && onNavigate('payments')}
-                    className="flex-1 py-1.5 px-2 bg-cyan-600/20 hover:bg-cyan-600 text-cyan-300 hover:text-white border border-cyan-500/30 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                    className="flex-1 py-1.5 px-2 bg-[var(--md-success-container)] text-[var(--md-on-success-container)] border border-[var(--md-success)]/30 hover:opacity-90 rounded-lg text-[11px] font-bold transition-opacity flex items-center justify-center gap-1 cursor-pointer"
                   >
                     <span>السندات</span>
                     <ArrowUpRight className="w-3 h-3" />
@@ -1858,7 +1854,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                   <button
                     type="button"
                     onClick={() => onNavigate && onNavigate('ledger')}
-                    className="flex-1 py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                    className="m3-btn-outlined flex-1 py-1.5 px-2 text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer"
                   >
                     <span>الأستاذ العام</span>
                     <ArrowUpRight className="w-3 h-3" />
@@ -1871,11 +1867,11 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
           {/* 12 Live Operational KPI Cards matching KpiCardsGrid */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--md-on-surface-variant)] flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[var(--md-primary)]" />
                 <span>مؤشرات التشغيل اللحظية والأرصدة الحقيقية (12 Live Operational KPIs)</span>
               </h2>
-              <span className="text-[11px] text-slate-500 font-mono font-medium">
+              <span className="text-[11px] text-[var(--md-on-surface-variant)] font-mono font-medium">
                 100% Synced with Comprehensive GL & Treasuries
               </span>
             </div>
@@ -1889,10 +1885,9 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                   valueText: formatAmount(operatingData?.todaySales || 0),
                   unit: currSym,
                   icon: ArrowUpRight,
-                  accentBorder: 'from-emerald-500 via-teal-500 to-emerald-600',
-                  iconBg: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30',
+                  iconBg: 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/25',
                   badge: (operatingData?.todaySales || 0) > 0 ? 'مبيعات نشطة اليوم' : 'بانتظار فواتير اليوم',
-                  badgeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+                  badgeClass: 'm3-badge m3-badge-success',
                   targetTab: 'invoices',
                 },
                 {
@@ -1902,10 +1897,9 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                   valueText: formatAmount(operatingData?.todayCollections || 0),
                   unit: currSym,
                   icon: Wallet,
-                  accentBorder: 'from-blue-500 via-cyan-500 to-indigo-500',
-                  iconBg: 'bg-blue-500/15 text-blue-400 border border-blue-500/30',
+                  iconBg: 'bg-[var(--md-info-container)] text-[var(--md-on-info-container)] border border-[var(--md-info)]/25',
                   badge: (operatingData?.todayCollections || 0) > 0 ? 'تدفق داخل للخزينة' : 'لا توجد تحصيلات اليوم',
-                  badgeClass: 'bg-blue-500/15 text-blue-300 border-blue-500/30',
+                  badgeClass: 'm3-badge m3-badge-info',
                   targetTab: 'payments',
                 },
                 {
@@ -1915,10 +1909,9 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                   valueText: formatAmount(operatingData?.todayPurchases || 0),
                   unit: currSym,
                   icon: ArrowDownLeft,
-                  accentBorder: 'from-amber-400 via-orange-500 to-amber-600',
-                  iconBg: 'bg-amber-500/15 text-amber-400 border border-amber-500/30',
+                  iconBg: 'bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)] border border-[var(--md-warning)]/25',
                   badge: (operatingData?.todayPurchases || 0) > 0 ? 'توريدات مخزنية اليوم' : 'لا توجد مشتريات اليوم',
-                  badgeClass: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+                  badgeClass: 'm3-badge m3-badge-warning',
                   targetTab: 'purchase_invoices',
                 },
                 {
@@ -1928,10 +1921,9 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                   valueText: formatAmount((operatingData?.todayPayments || 0) + (operatingData?.todayExpenses || 0)),
                   unit: currSym,
                   icon: DollarSign,
-                  accentBorder: 'from-rose-500 via-pink-500 to-rose-600',
-                  iconBg: 'bg-rose-500/15 text-rose-400 border border-rose-500/30',
+                  iconBg: 'bg-[var(--md-error-container)] text-[var(--md-on-error-container)] border border-[var(--md-error)]/25',
                   badge: ((operatingData?.todayPayments || 0) + (operatingData?.todayExpenses || 0)) > 0 ? 'منصرفات مسجلة' : 'لا توجد منصرفات اليوم',
-                  badgeClass: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
+                  badgeClass: 'm3-badge m3-badge-error',
                   targetTab: 'expenses',
                 },
                 {
@@ -1941,10 +1933,9 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                   valueText: formatAmount(operatingData?.cashBalance || 0),
                   unit: currSym,
                   icon: Coins,
-                  accentBorder: 'from-emerald-400 via-green-500 to-teal-500',
-                  iconBg: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30',
+                  iconBg: 'bg-[var(--md-success-container)] text-[var(--md-on-success-container)] border border-[var(--md-success)]/25',
                   badge: (operatingData?.cashBalance || 0) > 0 ? 'سيولة نقدية متاحة' : 'الرصيد 0',
-                  badgeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+                  badgeClass: 'm3-badge m3-badge-success',
                   targetTab: 'payments',
                 },
                 {
@@ -1954,10 +1945,9 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                   valueText: formatAmount(operatingData?.bankBalance || 0),
                   unit: currSym,
                   icon: Landmark,
-                  accentBorder: 'from-cyan-500 via-blue-500 to-indigo-600',
-                  iconBg: 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30',
+                  iconBg: 'bg-[var(--md-info-container)] text-[var(--md-on-info-container)] border border-[var(--md-info)]/25',
                   badge: (operatingData?.bankBalance || 0) > 0 ? 'أرصدة مصرفية متاحة' : 'الرصيد 0',
-                  badgeClass: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30',
+                  badgeClass: 'm3-badge m3-badge-info',
                   targetTab: 'payments',
                 },
                 {
@@ -1967,10 +1957,9 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                   valueText: formatAmount(operatingData?.walletBalance || 0),
                   unit: currSym,
                   icon: Smartphone,
-                  accentBorder: 'from-violet-500 via-purple-500 to-fuchsia-600',
-                  iconBg: 'bg-violet-500/15 text-violet-400 border border-violet-500/30',
+                  iconBg: 'bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] border border-[var(--md-secondary)]/25',
                   badge: (operatingData?.walletBalance || 0) > 0 ? 'محافظ نشطة' : 'الرصيد 0',
-                  badgeClass: 'bg-violet-500/15 text-violet-300 border-violet-500/30',
+                  badgeClass: 'm3-badge m3-badge-secondary',
                   targetTab: 'payments',
                 },
                 {
@@ -1980,10 +1969,9 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                   valueText: formatAmount(operatingData?.receivables || 0),
                   unit: currSym,
                   icon: Users,
-                  accentBorder: 'from-amber-400 via-yellow-500 to-amber-600',
-                  iconBg: 'bg-amber-500/15 text-amber-400 border border-amber-500/30',
+                  iconBg: 'bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)] border border-[var(--md-warning)]/25',
                   badge: (operatingData?.receivables || 0) > 0 ? `${customersList.length} عميل مسجل` : 'لا توجد مديونيات',
-                  badgeClass: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+                  badgeClass: 'm3-badge m3-badge-warning',
                   targetTab: 'customers',
                 },
                 {
@@ -1993,10 +1981,9 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                   valueText: formatAmount(operatingData?.payables || 0),
                   unit: currSym,
                   icon: Building2,
-                  accentBorder: 'from-rose-500 via-red-500 to-orange-500',
-                  iconBg: 'bg-rose-500/15 text-rose-400 border border-rose-500/30',
+                  iconBg: 'bg-[var(--md-error-container)] text-[var(--md-on-error-container)] border border-[var(--md-error)]/25',
                   badge: (operatingData?.payables || 0) > 0 ? `${suppliersList.length} مورد مسجل` : 'لا توجد مستحقات',
-                  badgeClass: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
+                  badgeClass: 'm3-badge m3-badge-error',
                   targetTab: 'suppliers',
                 },
                 {
@@ -2006,10 +1993,9 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                   valueText: formatAmount(operatingData?.inventoryValuation || 0),
                   unit: currSym,
                   icon: Boxes,
-                  accentBorder: 'from-purple-500 via-indigo-500 to-cyan-500',
-                  iconBg: 'bg-purple-500/15 text-purple-400 border border-purple-500/30',
+                  iconBg: 'bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] border border-[var(--md-secondary)]/25',
                   badge: `${productsList.length} صنف بالمستودعات`,
-                  badgeClass: 'bg-purple-500/15 text-purple-300 border-purple-500/30',
+                  badgeClass: 'm3-badge m3-badge-secondary',
                   targetTab: 'inventory',
                 },
                 {
@@ -2019,12 +2005,11 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                   valueText: formatNumber(operatingData?.lowStockCount || 0),
                   unit: 'صنف',
                   icon: AlertTriangle,
-                  accentBorder: 'from-amber-500 via-orange-500 to-rose-500',
-                  iconBg: 'bg-amber-500/15 text-amber-400 border border-amber-500/30',
+                  iconBg: 'bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)] border border-[var(--md-warning)]/25',
                   badge: (operatingData?.lowStockCount || 0) > 0 ? 'بحاجة لإعادة طلب' : 'المخزون آمن',
                   badgeClass: (operatingData?.lowStockCount || 0) > 0
-                    ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                    : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+                    ? 'm3-badge m3-badge-warning'
+                    : 'm3-badge m3-badge-success',
                   targetTab: 'products',
                 },
                 {
@@ -2037,22 +2022,18 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                       : `${operatingData?.openReconciliationIssues || 1} تنبيه`,
                   unit: '',
                   icon: ShieldCheck,
-                  accentBorder:
-                    operatingData?.glBalanced !== false && (operatingData?.openReconciliationIssues || 0) === 0
-                      ? 'from-emerald-500 via-teal-400 to-cyan-500'
-                      : 'from-rose-500 via-amber-500 to-rose-600',
                   iconBg:
                     operatingData?.glBalanced !== false && (operatingData?.openReconciliationIssues || 0) === 0
-                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                      : 'bg-rose-500/15 text-rose-400 border border-rose-500/30',
+                      ? 'bg-[var(--md-success-container)] text-[var(--md-on-success-container)] border border-[var(--md-success)]/25'
+                      : 'bg-[var(--md-error-container)] text-[var(--md-on-error-container)] border border-[var(--md-error)]/25',
                   badge:
                     operatingData?.glBalanced !== false && (operatingData?.openReconciliationIssues || 0) === 0
                       ? 'القيد المزدوج متوازن ✓'
                       : 'يتطلب مراجعة التسوية',
                   badgeClass:
                     operatingData?.glBalanced !== false && (operatingData?.openReconciliationIssues || 0) === 0
-                      ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                      : 'bg-rose-500/15 text-rose-300 border-rose-500/30',
+                      ? 'm3-badge m3-badge-success'
+                      : 'm3-badge m3-badge-error',
                   targetTab: 'ledger',
                 },
               ].map((card) => {
@@ -2060,16 +2041,14 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                 return (
                   <div
                     key={card.id}
-                    className="relative overflow-hidden bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl hover:border-slate-700 transition-all duration-200 group flex flex-col justify-between space-y-3"
+                    className="m3-card p-5 hover:border-[var(--md-primary)]/40 transition-colors group flex flex-col justify-between space-y-3"
                   >
-                    <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${card.accentBorder}`} />
-
                     <div className="flex items-start justify-between gap-2">
                       <div className="space-y-0.5 text-right flex-1 min-w-0">
-                        <h3 className="text-xs font-bold text-slate-300 group-hover:text-white transition-colors truncate">
+                        <h3 className="text-xs font-bold text-[var(--md-on-surface-variant)] group-hover:text-[var(--md-on-surface)] transition-colors truncate">
                           {card.title}
                         </h3>
-                        <span className="text-[10px] text-slate-500 font-mono block truncate">
+                        <span className="text-[10px] text-[var(--md-on-surface-variant)]/75 font-mono block truncate">
                           {card.subtext}
                         </span>
                       </div>
@@ -2079,24 +2058,24 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                     </div>
 
                     <div className="flex items-baseline gap-2 justify-start flex-wrap pt-1">
-                      <span className="text-2xl font-black text-white font-mono tabular-nums tracking-tight">
+                      <span className="text-2xl font-black text-[var(--md-on-surface)] font-mono tabular-nums tracking-tight">
                         {card.valueText}
                       </span>
                       {card.unit && (
-                        <span className="text-xs font-bold text-slate-400 font-mono">
+                        <span className="text-xs font-bold text-[var(--md-on-surface-variant)] font-mono">
                           {card.unit}
                         </span>
                       )}
                     </div>
 
-                    <div className="flex items-center justify-between pt-2.5 border-t border-slate-800/80 gap-2">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border truncate ${card.badgeClass}`}>
+                    <div className="flex items-center justify-between pt-2.5 border-t border-[var(--md-outline-variant)] gap-2">
+                      <span className={`text-[10px] truncate ${card.badgeClass}`}>
                         {card.badge}
                       </span>
                       <button
                         type="button"
                         onClick={() => onNavigate && onNavigate(card.targetTab)}
-                        className="text-[11px] text-slate-300 hover:text-emerald-400 flex items-center gap-0.5 font-bold transition-colors shrink-0 cursor-pointer"
+                        className="text-[11px] text-[var(--md-on-surface-variant)] hover:text-[var(--md-primary-text)] flex items-center gap-0.5 font-bold transition-colors shrink-0 cursor-pointer"
                       >
                         <span>انتقال للقائمة ↗</span>
                       </button>
@@ -2113,28 +2092,27 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
       {/* 2. SUBTAB: SAFE IMPORT ENGINE */}
       {/* ========================================================================= */}
       {activeSubTab === 'import' && (
-        <div className="relative overflow-hidden bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6 text-slate-100">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-emerald-500" />
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800 gap-4">
+        <div className="m3-card p-6 space-y-6 text-[var(--md-on-surface)]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[var(--md-outline-variant)] gap-4">
             <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <UploadCloud className="w-5 h-5 text-cyan-400" />
+              <h2 className="text-base font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                <UploadCloud className="w-5 h-5 text-[var(--md-info)]" />
                 <span>محرك استيراد ونقل البيانات المؤسسي الآمن</span>
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-[var(--md-on-surface-variant)] mt-0.5">
                 استيراد جماعي مع التدقيق الصارم والتراجع التلقائي عند أي خطأ مالي والربط الفوري بقوائم النظام
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-slate-400 font-semibold">نوع الكيان:</span>
+              <span className="text-xs text-[var(--md-on-surface-variant)] font-semibold">نوع الكيان:</span>
               <select
                 value={importEntityType}
                 onChange={(e) => {
                   setImportEntityType(e.target.value);
                   setImportPreview(null);
                 }}
-                className="text-xs px-3 py-2 bg-slate-950 border border-slate-800 text-white rounded-xl font-medium focus:border-emerald-500 focus:outline-none"
+                className="m3-select text-xs px-3 py-2 w-auto"
               >
                 <option value="CUSTOMERS">العملاء (Customers)</option>
                 <option value="SUPPLIERS">الموردين (Suppliers)</option>
@@ -2150,7 +2128,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                   else if (importEntityType === 'SUPPLIERS' || importEntityType === 'SUPPLIER_BALANCES') onNavigate?.('suppliers');
                   else onNavigate?.('customers');
                 }}
-                className="px-3 py-2 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-emerald-400 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                className="m3-btn-outlined px-3 py-2 text-xs font-bold cursor-pointer"
               >
                 فتح القائمة المستهدفة ↗
               </button>
@@ -2158,10 +2136,10 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
           </div>
 
           {/* Sample CSV Template Hints */}
-          <div className="bg-slate-950/70 p-4 rounded-xl border border-slate-800/80 text-xs space-y-2">
-            <div className="flex items-center justify-between font-semibold text-slate-200">
+          <div className="bg-[var(--md-surface-container-low)] p-4 rounded-xl border border-[var(--md-outline-variant)] text-xs space-y-2">
+            <div className="flex items-center justify-between font-semibold text-[var(--md-on-surface)]">
               <span className="flex items-center gap-1.5">
-                <FileSpreadsheet className="w-4 h-4 text-cyan-400" />
+                <FileSpreadsheet className="w-4 h-4 text-[var(--md-info)]" />
                 <span>نموذج الترويسة المطلوب لـ ({importEntityType}):</span>
               </span>
               <button
@@ -2175,12 +2153,12 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                     setImportCsvText(`name,sku,barcode,category,unit,purchase_price,selling_price,current_stock\nلابتوب ديل للأعمال,SKU-DELL-01,62810001,أجهزة,حبة,320000,410000,10\nطابعة ليزرية كانون,SKU-CAN-02,62810002,طابعات,حبة,85000,115000,5`);
                   }
                 }}
-                className="px-3 py-1 bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 rounded-lg font-bold transition-all cursor-pointer"
+                className="px-3 py-1 bg-[var(--md-info-container)] text-[var(--md-on-info-container)] border border-[var(--md-info)]/30 hover:opacity-90 rounded-lg font-bold transition-opacity cursor-pointer"
               >
                 تحميل نموذج تجريبي
               </button>
             </div>
-            <p className="text-[11px] text-slate-400 font-mono dir-ltr text-left">
+            <p className="text-[11px] text-[var(--md-on-surface-variant)] font-mono dir-ltr text-left">
               {(importEntityType === 'CUSTOMERS' || importEntityType === 'CUSTOMER_BALANCES') && 'name, phone, email, address, opening_balance'}
               {(importEntityType === 'SUPPLIERS' || importEntityType === 'SUPPLIER_BALANCES') && 'name, phone, email, address, opening_balance'}
               {importEntityType === 'PRODUCTS' && 'name, sku, barcode, category, unit, purchase_price, selling_price, current_stock'}
@@ -2189,7 +2167,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
 
           {/* Textarea for CSV */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-slate-300 block">
+            <label className="text-xs font-semibold text-[var(--md-on-surface)] block">
               محتوى ملف CSV (الصق البيانات هنا أو استخدم النموذج الجاهز):
             </label>
             <textarea
@@ -2197,7 +2175,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
               value={importCsvText}
               onChange={(e) => setImportCsvText(e.target.value)}
               placeholder="name,phone,opening_balance..."
-              className="w-full text-xs font-mono p-3.5 bg-slate-950 border border-slate-800 text-white placeholder-slate-500 rounded-xl focus:border-emerald-500 focus:outline-none dir-ltr"
+              className="m3-input w-full text-xs font-mono p-3.5 dir-ltr"
             />
           </div>
 
@@ -2207,7 +2185,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
               type="button"
               onClick={handlePreviewImport}
               disabled={loading || !importCsvText.trim()}
-              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl disabled:opacity-50 transition-all shadow-lg cursor-pointer"
+              className="m3-btn-tonal flex items-center gap-2 px-4 py-2.5 text-xs font-bold disabled:opacity-50 cursor-pointer"
             >
               <Search className="w-4 h-4" />
               <span>فحص وتدقيق البيانات (Validation & Preview)</span>
@@ -2218,7 +2196,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                 type="button"
                 onClick={handleCommitImport}
                 disabled={importCommitting || importPreview.validRows === 0}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold rounded-xl disabled:opacity-50 transition-all shadow-lg cursor-pointer"
+                className="m3-btn-primary flex items-center gap-2 px-5 py-2.5 text-xs font-bold disabled:opacity-50 cursor-pointer"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 <span>{importCommitting ? 'جاري الاعتماد والترحيل...' : `اعتماد وترحيل (${importPreview.validRows}) سجل في النظام`}</span>
@@ -2228,23 +2206,23 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
 
           {/* Preview Results Panel */}
           {importPreview && (
-            <div className="space-y-4 pt-4 border-t border-slate-800">
+            <div className="space-y-4 pt-4 border-t border-[var(--md-outline-variant)]">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                <div className="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800">
-                  <span className="text-slate-400 block mb-1">إجمالي الصفوف:</span>
-                  <span className="text-base font-bold font-mono text-white">{importPreview.totalRows}</span>
+                <div className="bg-[var(--md-surface-container-low)] p-3.5 rounded-xl border border-[var(--md-outline-variant)]">
+                  <span className="text-[var(--md-on-surface-variant)] block mb-1">إجمالي الصفوف:</span>
+                  <span className="text-base font-bold font-mono tabular-nums text-[var(--md-on-surface)]">{importPreview.totalRows}</span>
                 </div>
-                <div className="bg-emerald-950/40 p-3.5 rounded-xl border border-emerald-500/30">
-                  <span className="text-emerald-300 block mb-1">الصفوف الصالحة:</span>
-                  <span className="text-base font-bold font-mono text-emerald-400">{importPreview.validRows}</span>
+                <div className="bg-[var(--md-success-container)] p-3.5 rounded-xl border border-[var(--md-success)]/30">
+                  <span className="text-[var(--md-on-success-container)] block mb-1">الصفوف الصالحة:</span>
+                  <span className="text-base font-bold font-mono tabular-nums text-[var(--md-on-success-container)]">{importPreview.validRows}</span>
                 </div>
-                <div className="bg-rose-950/40 p-3.5 rounded-xl border border-rose-500/30">
-                  <span className="text-rose-300 block mb-1">صفوف بها أخطاء:</span>
-                  <span className="text-base font-bold font-mono text-rose-400">{importPreview.invalidRows}</span>
+                <div className="bg-[var(--md-error-container)] p-3.5 rounded-xl border border-[var(--md-error)]/30">
+                  <span className="text-[var(--md-on-error-container)] block mb-1">صفوف بها أخطاء:</span>
+                  <span className="text-base font-bold font-mono tabular-nums text-[var(--md-on-error-container)]">{importPreview.invalidRows}</span>
                 </div>
-                <div className="bg-amber-950/40 p-3.5 rounded-xl border border-amber-500/30">
-                  <span className="text-amber-300 block mb-1">المبالغ المالية المستوردة:</span>
-                  <span className="text-base font-bold font-mono text-amber-400">
+                <div className="bg-[var(--md-warning-container)] p-3.5 rounded-xl border border-[var(--md-warning)]/30">
+                  <span className="text-[var(--md-on-warning-container)] block mb-1">المبالغ المالية المستوردة:</span>
+                  <span className="text-base font-bold font-mono tabular-nums text-[var(--md-on-warning-container)]">
                     {formatAmount(importPreview.financialTotal)} {currSym}
                   </span>
                 </div>
@@ -2252,15 +2230,15 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
 
               {/* Errors List if any */}
               {importPreview.errors?.length > 0 && (
-                <div className="p-4 bg-rose-950/40 rounded-xl border border-rose-500/30 space-y-2">
-                  <h4 className="text-xs font-bold text-rose-300 flex items-center gap-1.5">
-                    <AlertTriangle className="w-4 h-4 text-rose-400" />
+                <div className="p-4 bg-[var(--md-error-container)] rounded-xl border border-[var(--md-error)]/30 space-y-2">
+                  <h4 className="text-xs font-bold text-[var(--md-on-error-container)] flex items-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4 text-[var(--md-error)]" />
                     <span>سجل أخطاء التدقيق الصارم:</span>
                   </h4>
-                  <ul className="text-xs text-rose-200 space-y-1">
+                  <ul className="text-xs text-[var(--md-on-error-container)] space-y-1">
                     {importPreview.errors.map((err: any, idx: number) => (
                       <li key={idx} className="flex items-center gap-2">
-                        <span className="font-mono bg-rose-500/20 text-rose-300 border border-rose-500/30 px-1.5 py-0.5 rounded text-[10px]">
+                        <span className="m3-badge m3-badge-error font-mono text-[10px]">
                           سطر {err.row}
                         </span>
                         <span className="font-semibold">[{err.field}]:</span>
@@ -2281,19 +2259,18 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
       {activeSubTab === 'opening_balances' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Post Opening Balance Form */}
-          <div className="relative overflow-hidden bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl space-y-4">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-blue-500" />
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <Scale className="w-4 h-4 text-emerald-400" />
+          <div className="m3-card p-6 space-y-4">
+            <h2 className="text-base font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+              <Scale className="w-4 h-4 text-[var(--md-primary-text)]" />
               <span>تسجيل رصيد افتتاحي معتمد</span>
             </h2>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[var(--md-on-surface-variant)]">
               يتم إنشاء قيد مزدوج متوازن تلقائياً وإقفال الفارق بحساب رأس المال / الأرصدة الافتتاحية (3101)
             </p>
 
             <form onSubmit={handlePostOpeningBalance} className="space-y-3 text-xs">
               <div>
-                <label className="font-semibold text-slate-300 block mb-1">نوع الحساب:</label>
+                <label className="font-semibold text-[var(--md-on-surface)] block mb-1">نوع الحساب:</label>
                 <select
                   value={newOpBal.balanceType}
                   onChange={(e) => {
@@ -2305,7 +2282,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                       entrySide: bType === 'SUPPLIER' ? 'CREDIT' : 'DEBIT',
                     });
                   }}
-                  className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white rounded-xl focus:border-emerald-500 focus:outline-none"
+                  className="m3-select w-full p-2.5"
                 >
                   <option value="CUSTOMER">عميل (Accounts Receivable - 1103)</option>
                   <option value="SUPPLIER">مورد (Accounts Payable - 2101)</option>
@@ -2319,12 +2296,12 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
               {/* Target Entity Selector */}
               {newOpBal.balanceType === 'CUSTOMER' && (
                 <div>
-                  <label className="font-semibold text-slate-300 block mb-1">العميل المستهدف:</label>
+                  <label className="font-semibold text-[var(--md-on-surface)] block mb-1">العميل المستهدف:</label>
                   <select
                     value={newOpBal.entityId}
                     onChange={(e) => setNewOpBal({ ...newOpBal, entityId: e.target.value })}
                     required
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white rounded-xl focus:border-emerald-500 focus:outline-none"
+                    className="m3-select w-full p-2.5"
                   >
                     <option value="">-- اختر العميل --</option>
                     {(customersList || []).map((c) => (
@@ -2338,12 +2315,12 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
 
               {newOpBal.balanceType === 'SUPPLIER' && (
                 <div>
-                  <label className="font-semibold text-slate-300 block mb-1">المورد المستهدف:</label>
+                  <label className="font-semibold text-[var(--md-on-surface)] block mb-1">المورد المستهدف:</label>
                   <select
                     value={newOpBal.entityId}
                     onChange={(e) => setNewOpBal({ ...newOpBal, entityId: e.target.value })}
                     required
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white rounded-xl focus:border-emerald-500 focus:outline-none"
+                    className="m3-select w-full p-2.5"
                   >
                     <option value="">-- اختر المورد --</option>
                     {(suppliersList || []).map((s) => (
@@ -2357,12 +2334,12 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
 
               {newOpBal.balanceType === 'CASH' && (
                 <div>
-                  <label className="font-semibold text-slate-300 block mb-1">الصندوق المستهدف (1101):</label>
+                  <label className="font-semibold text-[var(--md-on-surface)] block mb-1">الصندوق المستهدف (1101):</label>
                   <select
                     value={newOpBal.entityId}
                     onChange={(e) => setNewOpBal({ ...newOpBal, entityId: e.target.value })}
                     required={cashAccounts.length > 0}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white rounded-xl focus:border-emerald-500 focus:outline-none"
+                    className="m3-select w-full p-2.5"
                   >
                     <option value="">-- اختر الصندوق النقدي --</option>
                     {cashAccounts.map((a) => (
@@ -2376,12 +2353,12 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
 
               {newOpBal.balanceType === 'BANK' && (
                 <div>
-                  <label className="font-semibold text-slate-300 block mb-1">الحساب البنكي (1102):</label>
+                  <label className="font-semibold text-[var(--md-on-surface)] block mb-1">الحساب البنكي (1102):</label>
                   <select
                     value={newOpBal.entityId}
                     onChange={(e) => setNewOpBal({ ...newOpBal, entityId: e.target.value })}
                     required={bankAccounts.length > 0}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white rounded-xl focus:border-emerald-500 focus:outline-none"
+                    className="m3-select w-full p-2.5"
                   >
                     <option value="">-- اختر الحساب البنكي --</option>
                     {bankAccounts.map((b) => (
@@ -2394,20 +2371,20 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
               )}
 
               {newOpBal.balanceType === 'WALLET' && (
-                <div className="p-3 bg-slate-950/70 border border-violet-500/30 rounded-xl text-violet-300 flex items-center gap-2">
-                  <Smartphone className="w-4 h-4 shrink-0 text-violet-400" />
+                <div className="p-3 bg-[var(--md-secondary-container)] border border-[var(--md-secondary)]/30 rounded-xl text-[var(--md-on-secondary-container)] flex items-center gap-2">
+                  <Smartphone className="w-4 h-4 shrink-0" />
                   <span>سيتم ترحيل الرصيد مباشرة إلى حساب المحافظ الإلكترونية والشبكات (1107)</span>
                 </div>
               )}
 
               {newOpBal.balanceType === 'INVENTORY' && (
                 <div>
-                  <label className="font-semibold text-slate-300 block mb-1">المنتج / الصنف (1104):</label>
+                  <label className="font-semibold text-[var(--md-on-surface)] block mb-1">المنتج / الصنف (1104):</label>
                   <select
                     value={newOpBal.entityId}
                     onChange={(e) => setNewOpBal({ ...newOpBal, entityId: e.target.value })}
                     required
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white rounded-xl focus:border-emerald-500 focus:outline-none"
+                    className="m3-select w-full p-2.5"
                   >
                     <option value="">-- اختر المنتج --</option>
                     {(productsList || []).map((p) => (
@@ -2421,24 +2398,24 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="font-semibold text-slate-300 block mb-1">المبلغ ({currSym}):</label>
+                  <label className="font-semibold text-[var(--md-on-surface)] block mb-1">المبلغ ({currSym}):</label>
                   <input
                     type="number"
                     step="0.01"
                     required
                     value={newOpBal.amount}
                     onChange={(e) => setNewOpBal({ ...newOpBal, amount: e.target.value })}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white placeholder-slate-500 rounded-xl font-mono focus:border-emerald-500 focus:outline-none"
+                    className="m3-input w-full p-2.5 font-mono tabular-nums"
                     placeholder="0.00"
                   />
                 </div>
 
                 <div>
-                  <label className="font-semibold text-slate-300 block mb-1">طبيعة القيد:</label>
+                  <label className="font-semibold text-[var(--md-on-surface)] block mb-1">طبيعة القيد:</label>
                   <select
                     value={newOpBal.entrySide}
                     onChange={(e) => setNewOpBal({ ...newOpBal, entrySide: e.target.value as any })}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white rounded-xl focus:border-emerald-500 focus:outline-none"
+                    className="m3-select w-full p-2.5"
                   >
                     <option value="DEBIT">مدين (Debit)</option>
                     <option value="CREDIT">دائن (Credit)</option>
@@ -2447,31 +2424,31 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
               </div>
 
               <div>
-                <label className="font-semibold text-slate-300 block mb-1">تاريخ القيد الافتتاحي:</label>
+                <label className="font-semibold text-[var(--md-on-surface)] block mb-1">تاريخ القيد الافتتاحي:</label>
                 <input
                   type="date"
                   required
                   value={newOpBal.accountingDate}
                   onChange={(e) => setNewOpBal({ ...newOpBal, accountingDate: e.target.value })}
-                  className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white rounded-xl focus:border-emerald-500 focus:outline-none"
+                  className="m3-input w-full p-2.5"
                 />
               </div>
 
               <div>
-                <label className="font-semibold text-slate-300 block mb-1">البيان والملاحظات:</label>
+                <label className="font-semibold text-[var(--md-on-surface)] block mb-1">البيان والملاحظات:</label>
                 <input
                   type="text"
                   value={newOpBal.notes}
                   onChange={(e) => setNewOpBal({ ...newOpBal, notes: e.target.value })}
                   placeholder="رصيد افتتاحي معتمد..."
-                  className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white placeholder-slate-500 rounded-xl focus:border-emerald-500 focus:outline-none"
+                  className="m3-input w-full p-2.5"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl disabled:opacity-50 transition-all shadow-lg cursor-pointer"
+                className="m3-btn-primary w-full py-2.5 font-bold disabled:opacity-50 cursor-pointer"
               >
                 ترحيل القيد الافتتاحي
               </button>
@@ -2479,42 +2456,42 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
           </div>
 
           {/* Opening Balances List & Status */}
-          <div className="lg:col-span-2 relative overflow-hidden bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl space-y-4">
+          <div className="lg:col-span-2 m3-card p-6 space-y-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <h3 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
                   <span>سجل الأرصدة الافتتاحية المرحلة</span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                  <span className="m3-badge m3-badge-primary text-[10px] font-mono">
                     {openingBalances.length} سجل
                   </span>
                 </h3>
-                <p className="text-xs text-slate-400">ترحيل فوري إلى شجرة الحسابات ودفتر الأستاذ العام</p>
+                <p className="text-xs text-[var(--md-on-surface-variant)]">ترحيل فوري إلى شجرة الحسابات ودفتر الأستاذ العام</p>
               </div>
               <button
                 type="button"
                 onClick={() => onNavigate && onNavigate('ledger')}
-                className="px-3 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-emerald-400 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                className="m3-btn-outlined px-3 py-1.5 text-xs font-bold cursor-pointer"
               >
                 عرض في دفتر الأستاذ ↗
               </button>
             </div>
 
-            <div className="overflow-x-auto rounded-xl border border-slate-800/80">
-              <table className="w-full text-xs text-right">
-                <thead className="bg-slate-950 text-slate-400 font-semibold border-b border-slate-800">
+            <div className="overflow-x-auto rounded-xl border border-[var(--md-outline-variant)]">
+              <table className="m3-table w-full text-xs text-right">
+                <thead className="m3-thead">
                   <tr>
-                    <th className="p-3">النوع والحساب</th>
-                    <th className="p-3">الكيان / البيان</th>
-                    <th className="p-3">المبلغ</th>
-                    <th className="p-3">الجانب</th>
-                    <th className="p-3">التاريخ</th>
-                    <th className="p-3">الحالة</th>
+                    <th className="m3-th">النوع والحساب</th>
+                    <th className="m3-th">الكيان / البيان</th>
+                    <th className="m3-th">المبلغ</th>
+                    <th className="m3-th">الجانب</th>
+                    <th className="m3-th">التاريخ</th>
+                    <th className="m3-th">الحالة</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-[var(--md-outline-variant)]">
                   {openingBalances.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="text-center py-8 text-slate-400">
+                      <td colSpan={6} className="text-center py-8 text-[var(--md-on-surface-variant)]">
                         لا توجد أرصدة افتتاحية مسجلة حتى الآن. أضف الرصيد من النموذج الجانبي للبدء.
                       </td>
                     </tr>
@@ -2531,26 +2508,26 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                       const bType = String(ob.balance_type || ob.balanceType || 'ACCOUNT').toUpperCase();
                       const side = String(ob.entry_side || ob.entrySide || 'DEBIT').toUpperCase();
                       return (
-                        <tr key={ob.id} className="hover:bg-slate-800/40 transition-colors">
-                          <td className="p-3 font-bold text-slate-200">{typeMap[bType] || bType}</td>
-                          <td className="p-3 text-slate-300">{ob.entity_name || ob.notes || ob.reference_no || '—'}</td>
-                          <td className="p-3 font-mono font-bold text-emerald-400">
-                            {formatAmount(ob.amount)} <span className="text-slate-400 text-[10px]">{currSym}</span>
+                        <tr key={ob.id} className="hover:bg-[var(--md-surface-container-low)] transition-colors">
+                          <td className="p-3 font-bold text-[var(--md-on-surface)]">{typeMap[bType] || bType}</td>
+                          <td className="p-3 text-[var(--md-on-surface-variant)]">{ob.entity_name || ob.notes || ob.reference_no || '—'}</td>
+                          <td className="p-3 font-mono font-bold text-[var(--md-primary-text)] tabular-nums">
+                            {formatAmount(ob.amount)} <span className="text-[var(--md-on-surface-variant)] text-[10px]">{currSym}</span>
                           </td>
                           <td className="p-3">
                             <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                              className={`m3-badge text-[10px] ${
                                 side === 'DEBIT'
-                                  ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
-                                  : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                                  ? 'm3-badge-info'
+                                  : 'm3-badge-warning'
                               }`}
                             >
                               {side === 'DEBIT' ? 'مدين' : 'دائن'}
                             </span>
                           </td>
-                          <td className="p-3 font-mono text-slate-400">{ob.accounting_date || ob.accountingDate || '—'}</td>
+                          <td className="p-3 font-mono text-[var(--md-on-surface-variant)]">{ob.accounting_date || ob.accountingDate || '—'}</td>
                           <td className="p-3">
-                            <span className="bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                            <span className="m3-badge m3-badge-success text-[10px]">
                               {ob.status === 'POSTED' ? 'مرحّل ✓' : (ob.status || 'مرحّل')}
                             </span>
                           </td>
@@ -2625,30 +2602,29 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
               {reconSummaryCards.map((item) => (
                 <div
                   key={item.title}
-                  className="relative overflow-hidden bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-2"
+                  className="m3-card p-4 space-y-2"
                 >
-                  <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${item.matched ? 'from-emerald-500 to-teal-500' : 'from-amber-500 to-rose-500'}`} />
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-slate-200">{item.title}</span>
+                    <span className="text-xs font-bold text-[var(--md-on-surface)]">{item.title}</span>
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                      className={`m3-badge text-[10px] ${
                         item.matched
-                          ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                          : 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+                          ? 'm3-badge-success'
+                          : 'm3-badge-error'
                       }`}
                     >
                       {item.matched ? 'مطابق ✓' : 'فارق'}
                     </span>
                   </div>
-                  <div className="text-sm font-black font-mono text-white">
-                    {formatAmount(item.glVal)} <span className="text-[10px] text-slate-400">{currSym}</span>
+                  <div className="text-sm font-black font-mono tabular-nums text-[var(--md-on-surface)]">
+                    {formatAmount(item.glVal)} <span className="text-[10px] text-[var(--md-on-surface-variant)]">{currSym}</span>
                   </div>
-                  <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-800/80">
-                    <span className="font-mono">الفرعي: {formatAmount(item.subVal)}</span>
+                  <div className="flex items-center justify-between text-[10px] text-[var(--md-on-surface-variant)] pt-1 border-t border-[var(--md-outline-variant)]">
+                    <span className="font-mono tabular-nums">الفرعي: {formatAmount(item.subVal)}</span>
                     <button
                       type="button"
                       onClick={() => onNavigate && onNavigate(item.tab)}
-                      className="text-emerald-400 hover:text-emerald-300 font-bold cursor-pointer"
+                      className="text-[var(--md-primary-text)] hover:opacity-80 font-bold cursor-pointer"
                     >
                       القائمة ↗
                     </button>
@@ -2657,29 +2633,28 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
               ))}
 
               {/* Double-Entry Balance Card */}
-              <div className="relative overflow-hidden bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-2">
-                <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${glBalanced ? 'from-cyan-500 to-emerald-500' : 'from-rose-500 to-red-600'}`} />
+              <div className="m3-card p-4 space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-bold text-slate-200">توازن القيد المزدوج</span>
+                  <span className="text-xs font-bold text-[var(--md-on-surface)]">توازن القيد المزدوج</span>
                   <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                    className={`m3-badge text-[10px] ${
                       glBalanced
-                        ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                        : 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+                        ? 'm3-badge-success'
+                        : 'm3-badge-error'
                     }`}
                   >
                     {glBalanced ? 'متزن 100%' : 'غير متزن'}
                   </span>
                 </div>
-                <div className="text-sm font-black font-mono text-white">
-                  فارق: {formatAmount(operatingData?.trialBalanceDifference || 0)} <span className="text-[10px] text-slate-400">{currSym}</span>
+                <div className="text-sm font-black font-mono tabular-nums text-[var(--md-on-surface)]">
+                  فارق: {formatAmount(operatingData?.trialBalanceDifference || 0)} <span className="text-[10px] text-[var(--md-on-surface-variant)]">{currSym}</span>
                 </div>
-                <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-800/80">
+                <div className="flex items-center justify-between text-[10px] text-[var(--md-on-surface-variant)] pt-1 border-t border-[var(--md-outline-variant)]">
                   <span>ميزان المراجعة</span>
                   <button
                     type="button"
                     onClick={() => onNavigate && onNavigate('ledger')}
-                    className="text-emerald-400 hover:text-emerald-300 font-bold cursor-pointer"
+                    className="text-[var(--md-primary-text)] hover:opacity-80 font-bold cursor-pointer"
                   >
                     الأستاذ العام ↗
                   </button>
@@ -2688,14 +2663,14 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
             </div>
 
             {/* Automated Audit Discrepancies Panel */}
-            <div className="relative overflow-hidden bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl space-y-4">
+            <div className="m3-card p-6 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-base font-bold text-white flex items-center gap-2">
-                    <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                  <h2 className="text-base font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-[var(--md-primary-text)]" />
                     <span>محرك المطابقات والتسويات المالية الشاملة</span>
                   </h2>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-[var(--md-on-surface-variant)] mt-0.5">
                     تدقيق آلي للأرصدة (العملاء vs الأستاذ، الموردين vs الأستاذ، المخزون، الفواتير vs التحصيلات، توازن الأستاذ العام)
                   </p>
                 </div>
@@ -2704,7 +2679,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                   type="button"
                   onClick={runFullReconciliation}
                   disabled={reconRunning}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg cursor-pointer"
+                  className="m3-btn-primary flex items-center gap-2 px-4 py-2.5 text-xs font-bold cursor-pointer"
                 >
                   <RefreshCw className={`w-4 h-4 ${reconRunning ? 'animate-spin' : ''}`} />
                   <span>{reconRunning ? 'جاري فحص وتدقيق القيود...' : 'تشغيل فحص المطابقة والتدقيق الآن'}</span>
@@ -2712,57 +2687,57 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
               </div>
 
               {/* Discrepancies Table */}
-              <div className="overflow-x-auto rounded-xl border border-slate-800/80">
-                <table className="w-full text-xs text-right">
-                  <thead className="bg-slate-950 text-slate-400 font-semibold border-b border-slate-800">
+              <div className="overflow-x-auto rounded-xl border border-[var(--md-outline-variant)]">
+                <table className="m3-table w-full text-xs text-right">
+                  <thead className="m3-thead">
                     <tr>
-                      <th className="p-3">الكيان / الحساب</th>
-                      <th className="p-3">القيمة المتوقعة</th>
-                      <th className="p-3">القيمة الفعلية</th>
-                      <th className="p-3">الفارق</th>
-                      <th className="p-3">الخطورة</th>
-                      <th className="p-3">التفاصيل</th>
-                      <th className="p-3">الحالة</th>
+                      <th className="m3-th">الكيان / الحساب</th>
+                      <th className="m3-th">القيمة المتوقعة</th>
+                      <th className="m3-th">القيمة الفعلية</th>
+                      <th className="m3-th">الفارق</th>
+                      <th className="m3-th">الخطورة</th>
+                      <th className="m3-th">التفاصيل</th>
+                      <th className="m3-th">الحالة</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60">
+                  <tbody className="divide-y divide-[var(--md-outline-variant)]">
                     {reconciliations.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="text-center py-8 text-emerald-400 font-semibold">
+                        <td colSpan={7} className="text-center py-8 text-[var(--md-primary-text)] font-semibold">
                           ✓ جميع الحركات والأرصدة المحاسبية متطابقة تماماً بنسبة 100% ولا توجد أي فروقات عالقة
                         </td>
                       </tr>
                     ) : (
                       reconciliations.map((rec) => (
-                        <tr key={rec.id} className="hover:bg-slate-800/40 transition-colors">
-                          <td className="p-3 font-bold text-white">{rec.entity_type}</td>
-                          <td className="p-3 font-mono text-slate-300">
+                        <tr key={rec.id} className="hover:bg-[var(--md-surface-container-low)] transition-colors">
+                          <td className="p-3 font-bold text-[var(--md-on-surface)]">{rec.entity_type}</td>
+                          <td className="p-3 font-mono tabular-nums text-[var(--md-on-surface-variant)]">
                             {formatAmount(rec.expected_value)} {currSym}
                           </td>
-                          <td className="p-3 font-mono text-slate-300">
+                          <td className="p-3 font-mono tabular-nums text-[var(--md-on-surface-variant)]">
                             {formatAmount(rec.actual_value)} {currSym}
                           </td>
-                          <td className="p-3 font-mono font-bold text-rose-400">
+                          <td className="p-3 font-mono tabular-nums font-bold text-[var(--md-error)]">
                             {formatAmount(rec.difference)} {currSym}
                           </td>
                           <td className="p-3">
                             <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                              className={`m3-badge text-[10px] ${
                                 rec.severity === 'CRITICAL'
-                                  ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
-                                  : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                                  ? 'm3-badge-error'
+                                  : 'm3-badge-warning'
                               }`}
                             >
                               {rec.severity}
                             </span>
                           </td>
-                          <td className="p-3 text-slate-400 max-w-xs truncate">
+                          <td className="p-3 text-[var(--md-on-surface-variant)] max-w-xs truncate">
                             {typeof rec.details === 'object' && rec.details !== null
                               ? rec.details.message || rec.details.description || JSON.stringify(rec.details)
                               : String(rec.details || '—')}
                           </td>
                           <td className="p-3">
-                            <span className="bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded-full text-[10px]">
+                            <span className="m3-badge m3-badge-secondary text-[10px]">
                               {rec.status}
                             </span>
                           </td>
@@ -2775,16 +2750,16 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
             </div>
 
             {/* Cash & Bank Statement Reconciliation Module */}
-            <div className="relative overflow-hidden bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl space-y-4">
+            <div className="m3-card p-6 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Landmark className="w-4 h-4 text-cyan-400" />
+                <h3 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                  <Landmark className="w-4 h-4 text-[var(--md-info)]" />
                   <span>مطابقة كشف الحساب البنكي / الصندوق (Bank & Cash Statement Reconciliation)</span>
                 </h3>
                 <button
                   type="button"
                   onClick={() => onNavigate && onNavigate('payments')}
-                  className="px-3 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-emerald-400 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  className="m3-btn-outlined px-3 py-1.5 text-xs font-bold cursor-pointer"
                 >
                   السندات والخزينة ↗
                 </button>
@@ -2792,11 +2767,11 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
 
               <form onSubmit={handleBankReconcile} className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
                 <div>
-                  <label className="font-semibold text-slate-300 block mb-1">نوع الحساب:</label>
+                  <label className="font-semibold text-[var(--md-on-surface)] block mb-1">نوع الحساب:</label>
                   <select
                     value={bankReconData.accountType}
                     onChange={(e) => setBankReconData({ ...bankReconData, accountType: e.target.value, accountId: '' })}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white rounded-xl focus:border-emerald-500 focus:outline-none"
+                    className="m3-select w-full p-2.5"
                   >
                     <option value="BANK">حساب بنكي / محفظة إلكترونية</option>
                     <option value="CASH">صندوق نقدي</option>
@@ -2804,14 +2779,14 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                 </div>
 
                 <div>
-                  <label className="font-semibold text-slate-300 block mb-1">
+                  <label className="font-semibold text-[var(--md-on-surface)] block mb-1">
                     {bankReconData.accountType === 'CASH' ? 'الصندوق النقدي:' : 'الحساب البنكي / المحفظة:'}
                   </label>
                   <select
                     value={bankReconData.accountId}
                     onChange={(e) => setBankReconData({ ...bankReconData, accountId: e.target.value })}
                     required
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white rounded-xl focus:border-emerald-500 focus:outline-none"
+                    className="m3-select w-full p-2.5"
                   >
                     <option value="">
                       {bankReconData.accountType === 'CASH' ? '-- اختر الصندوق النقدي --' : '-- اختر الحساب البنكي --'}
@@ -2826,7 +2801,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                 </div>
 
                 <div>
-                  <label className="font-semibold text-slate-300 block mb-1">رصيد الجرد / الكشف الفعلي ({currSym}):</label>
+                  <label className="font-semibold text-[var(--md-on-surface)] block mb-1">رصيد الجرد / الكشف الفعلي ({currSym}):</label>
                   <input
                     type="number"
                     step="0.01"
@@ -2834,51 +2809,51 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                     value={bankReconData.statementClosingBalance}
                     onChange={(e) => setBankReconData({ ...bankReconData, statementClosingBalance: e.target.value })}
                     placeholder="0.00"
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white placeholder-slate-500 rounded-xl font-mono focus:border-emerald-500 focus:outline-none"
+                    className="m3-input w-full p-2.5 font-mono tabular-nums"
                   />
                 </div>
 
                 <div>
-                  <label className="font-semibold text-slate-300 block mb-1">شيكات صادرة لم تصرف بعد (Unpresented):</label>
+                  <label className="font-semibold text-[var(--md-on-surface)] block mb-1">شيكات صادرة لم تصرف بعد (Unpresented):</label>
                   <input
                     type="number"
                     step="0.01"
                     value={bankReconData.unpresentedChecks}
                     onChange={(e) => setBankReconData({ ...bankReconData, unpresentedChecks: e.target.value })}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white placeholder-slate-500 rounded-xl font-mono focus:border-emerald-500 focus:outline-none"
+                    className="m3-input w-full p-2.5 font-mono tabular-nums"
                   />
                 </div>
 
                 <div>
-                  <label className="font-semibold text-slate-300 block mb-1">إيداعات قيد التحصيل (Deposits in Transit):</label>
+                  <label className="font-semibold text-[var(--md-on-surface)] block mb-1">إيداعات قيد التحصيل (Deposits in Transit):</label>
                   <input
                     type="number"
                     step="0.01"
                     value={bankReconData.depositsInTransit}
                     onChange={(e) => setBankReconData({ ...bankReconData, depositsInTransit: e.target.value })}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white placeholder-slate-500 rounded-xl font-mono focus:border-emerald-500 focus:outline-none"
+                    className="m3-input w-full p-2.5 font-mono tabular-nums"
                   />
                 </div>
 
                 <div>
-                  <label className="font-semibold text-slate-300 block mb-1">رسوم ومصاريف بنكية مقتطعة ({currSym}):</label>
+                  <label className="font-semibold text-[var(--md-on-surface)] block mb-1">رسوم ومصاريف بنكية مقتطعة ({currSym}):</label>
                   <input
                     type="number"
                     step="0.01"
                     value={bankReconData.bankCharges}
                     onChange={(e) => setBankReconData({ ...bankReconData, bankCharges: e.target.value })}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white placeholder-slate-500 rounded-xl font-mono focus:border-emerald-500 focus:outline-none"
+                    className="m3-input w-full p-2.5 font-mono tabular-nums"
                   />
                 </div>
 
                 <div>
-                  <label className="font-semibold text-slate-300 block mb-1">أرباح / فوائد دائنة مستحقة ({currSym}):</label>
+                  <label className="font-semibold text-[var(--md-on-surface)] block mb-1">أرباح / فوائد دائنة مستحقة ({currSym}):</label>
                   <input
                     type="number"
                     step="0.01"
                     value={bankReconData.interestEarned}
                     onChange={(e) => setBankReconData({ ...bankReconData, interestEarned: e.target.value })}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white placeholder-slate-500 rounded-xl font-mono focus:border-emerald-500 focus:outline-none"
+                    className="m3-input w-full p-2.5 font-mono tabular-nums"
                   />
                 </div>
 
@@ -2886,7 +2861,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                   <button
                     type="submit"
                     disabled={loading || !bankReconData.accountId}
-                    className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl disabled:opacity-50 transition-all shadow-lg cursor-pointer"
+                    className="m3-btn-primary px-6 py-2.5 font-bold disabled:opacity-50 cursor-pointer"
                   >
                     تنفيذ مطابقة كشف الحساب
                   </button>
@@ -2894,29 +2869,29 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
               </form>
 
               {bankReconResult && (
-                <div className="p-4 bg-slate-950/70 rounded-xl border border-slate-800/80 mt-4 text-xs space-y-2">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono">
+                <div className="p-4 bg-[var(--md-surface-container-low)] rounded-xl border border-[var(--md-outline-variant)] mt-4 text-xs space-y-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono tabular-nums">
                     <div>
-                      <span className="text-slate-400 block mb-0.5">الرصيد الدفتري:</span>
-                      <span className="font-bold text-white">
+                      <span className="text-[var(--md-on-surface-variant)] block mb-0.5 font-sans">الرصيد الدفتري:</span>
+                      <span className="font-bold text-[var(--md-on-surface)]">
                         {formatAmount(bankReconResult.bookBalance)} {currSym}
                       </span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block mb-0.5">رصيد كشف الحساب:</span>
-                      <span className="font-bold text-white">
+                      <span className="text-[var(--md-on-surface-variant)] block mb-0.5 font-sans">رصيد كشف الحساب:</span>
+                      <span className="font-bold text-[var(--md-on-surface)]">
                         {formatAmount(bankReconResult.statementClosingBalance)} {currSym}
                       </span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block mb-0.5">الفارق بعد التسوية:</span>
-                      <span className={`font-bold ${bankReconResult.status === 'MATCHED' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      <span className="text-[var(--md-on-surface-variant)] block mb-0.5 font-sans">الفارق بعد التسوية:</span>
+                      <span className={`font-bold ${bankReconResult.status === 'MATCHED' ? 'text-[var(--md-primary-text)]' : 'text-[var(--md-error)]'}`}>
                         {formatAmount(bankReconResult.difference)} {currSym}
                       </span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block mb-0.5">نتيجة المطابقة:</span>
-                      <span className={`font-bold ${bankReconResult.status === 'MATCHED' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      <span className="text-[var(--md-on-surface-variant)] block mb-0.5 font-sans">نتيجة المطابقة:</span>
+                      <span className={`font-bold font-sans ${bankReconResult.status === 'MATCHED' ? 'text-[var(--md-primary-text)]' : 'text-[var(--md-error)]'}`}>
                         {bankReconResult.status === 'MATCHED' ? '✓ متطابق تماماً' : '⚠ يوجد فارق معلق'}
                       </span>
                     </div>
@@ -2933,23 +2908,22 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
       {/* ========================================================================= */}
       {activeSubTab === 'expenses' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="relative overflow-hidden bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl space-y-4">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 via-amber-500 to-orange-500" />
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-rose-400" />
+          <div className="m3-card p-6 space-y-4">
+            <h2 className="text-base font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-[var(--md-error)]" />
               <span>تسجيل مصروف تشغيلي</span>
             </h2>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[var(--md-on-surface-variant)]">
               تسجيل المصروف وترحيل القيد المزدوج وخصم المبلغ مباشرة من الصندوق أو البنك أو المحفظة
             </p>
 
             <form onSubmit={handleRecordExpense} className="space-y-3 text-xs">
               <div>
-                <label className="font-semibold text-slate-300 block mb-1">تصنيف المصروف:</label>
+                <label className="font-semibold text-[var(--md-on-surface)] block mb-1">تصنيف المصروف:</label>
                 <select
                   value={newExpense.category}
                   onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}
-                  className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white rounded-xl focus:border-emerald-500 focus:outline-none"
+                  className="m3-select w-full p-2.5"
                 >
                   <option value="إيجار ومرافق">إيجار ومرافق</option>
                   <option value="رواتب وأجور">رواتب وأجور</option>
@@ -2962,20 +2936,20 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
               </div>
 
               <div>
-                <label className="font-semibold text-slate-300 block mb-1">وصف المصروف:</label>
+                <label className="font-semibold text-[var(--md-on-surface)] block mb-1">وصف المصروف:</label>
                 <input
                   type="text"
                   required
                   value={newExpense.description}
                   onChange={(e) => setNewExpense({ ...newExpense, description: e.target.value })}
                   placeholder="وصف تفصيلي للمصروف..."
-                  className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white placeholder-slate-500 rounded-xl focus:border-emerald-500 focus:outline-none"
+                  className="m3-input w-full p-2.5"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="font-semibold text-slate-300 block mb-1">المبلغ الأساسي ({currSym}):</label>
+                  <label className="font-semibold text-[var(--md-on-surface)] block mb-1">المبلغ الأساسي ({currSym}):</label>
                   <input
                     type="number"
                     step="0.01"
@@ -2983,30 +2957,30 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                     value={newExpense.amount}
                     onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
                     placeholder="0.00"
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white placeholder-slate-500 rounded-xl font-mono focus:border-emerald-500 focus:outline-none"
+                    className="m3-input w-full p-2.5 font-mono tabular-nums"
                   />
                 </div>
 
                 <div>
-                  <label className="font-semibold text-slate-300 block mb-1">ضريبة القيمة المضافة ({currSym}):</label>
+                  <label className="font-semibold text-[var(--md-on-surface)] block mb-1">ضريبة القيمة المضافة ({currSym}):</label>
                   <input
                     type="number"
                     step="0.01"
                     value={newExpense.taxAmount}
                     onChange={(e) => setNewExpense({ ...newExpense, taxAmount: e.target.value })}
                     placeholder="0.00"
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white placeholder-slate-500 rounded-xl font-mono focus:border-emerald-500 focus:outline-none"
+                    className="m3-input w-full p-2.5 font-mono tabular-nums"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="font-semibold text-slate-300 block mb-1">طريقة السداد:</label>
+                  <label className="font-semibold text-[var(--md-on-surface)] block mb-1">طريقة السداد:</label>
                   <select
                     value={newExpense.paymentMethod}
                     onChange={(e) => setNewExpense({ ...newExpense, paymentMethod: e.target.value as any, paymentAccountId: '' })}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white rounded-xl focus:border-emerald-500 focus:outline-none"
+                    className="m3-select w-full p-2.5"
                   >
                     <option value="CASH">نقداً من الصندوق</option>
                     <option value="BANK">تحويل بنكي</option>
@@ -3016,25 +2990,25 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                 </div>
 
                 <div>
-                  <label className="font-semibold text-slate-300 block mb-1">تاريخ الصرف:</label>
+                  <label className="font-semibold text-[var(--md-on-surface)] block mb-1">تاريخ الصرف:</label>
                   <input
                     type="date"
                     required
                     value={newExpense.expenseDate}
                     onChange={(e) => setNewExpense({ ...newExpense, expenseDate: e.target.value })}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white rounded-xl focus:border-emerald-500 focus:outline-none"
+                    className="m3-input w-full p-2.5"
                   />
                 </div>
               </div>
 
               {newExpense.paymentMethod === 'BANK' && (
                 <div>
-                  <label className="font-semibold text-slate-300 block mb-1">خصم من الحساب البنكي:</label>
+                  <label className="font-semibold text-[var(--md-on-surface)] block mb-1">خصم من الحساب البنكي:</label>
                   <select
                     value={newExpense.paymentAccountId}
                     onChange={(e) => setNewExpense({ ...newExpense, paymentAccountId: e.target.value })}
                     required={bankAccounts.length > 0}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white rounded-xl focus:border-emerald-500 focus:outline-none"
+                    className="m3-select w-full p-2.5"
                   >
                     <option value="">-- اختر الحساب البنكي --</option>
                     {bankAccounts.map((b) => (
@@ -3048,12 +3022,12 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
 
               {newExpense.paymentMethod === 'CASH' && (
                 <div>
-                  <label className="font-semibold text-slate-300 block mb-1">خصم من الصندوق النقدي:</label>
+                  <label className="font-semibold text-[var(--md-on-surface)] block mb-1">خصم من الصندوق النقدي:</label>
                   <select
                     value={newExpense.paymentAccountId}
                     onChange={(e) => setNewExpense({ ...newExpense, paymentAccountId: e.target.value })}
                     required={cashAccounts.length > 0}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 text-white rounded-xl focus:border-emerald-500 focus:outline-none"
+                    className="m3-select w-full p-2.5"
                   >
                     <option value="">-- اختر الصندوق --</option>
                     {cashAccounts.map((c) => (
@@ -3068,25 +3042,25 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 bg-gradient-to-r from-rose-600 to-orange-600 hover:from-rose-500 hover:to-orange-500 text-white font-bold rounded-xl disabled:opacity-50 transition-all shadow-lg cursor-pointer"
+                className="m3-btn-danger w-full py-2.5 font-bold disabled:opacity-50 cursor-pointer"
               >
                 تسجيل وصرف المصروف
               </button>
             </form>
           </div>
 
-          <div className="lg:col-span-2 relative overflow-hidden bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl space-y-4">
+          <div className="lg:col-span-2 m3-card p-6 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <h3 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
                   <span>سجل المصروفات التشغيلية المعتمدة</span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30">
+                  <span className="m3-badge m3-badge-error text-[10px] font-mono">
                     {expenses.length} مصروف
                   </span>
                 </h3>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-[var(--md-on-surface-variant)]">
                   الإجمالي المسجل:{' '}
-                  <span className="font-mono font-bold text-rose-400">
+                  <span className="font-mono tabular-nums font-bold text-[var(--md-error)]">
                     {formatAmount(expenses.reduce((s, x) => s + Number(x.totalAmount ?? x.total_amount ?? x.amount ?? 0), 0))} {currSym}
                   </span>
                 </p>
@@ -3095,29 +3069,29 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
               <button
                 type="button"
                 onClick={() => onNavigate && onNavigate('expenses')}
-                className="px-3 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-emerald-400 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                className="m3-btn-outlined px-3 py-1.5 text-xs font-bold cursor-pointer"
               >
                 إدارة المصروفات الكاملة ↗
               </button>
             </div>
 
-            <div className="overflow-x-auto rounded-xl border border-slate-800/80">
-              <table className="w-full text-xs text-right">
-                <thead className="bg-slate-950 text-slate-400 font-semibold border-b border-slate-800">
+            <div className="overflow-x-auto rounded-xl border border-[var(--md-outline-variant)]">
+              <table className="m3-table w-full text-xs text-right">
+                <thead className="m3-thead">
                   <tr>
-                    <th className="p-3">رقم المصروف</th>
-                    <th className="p-3">التصنيف</th>
-                    <th className="p-3">البيان</th>
-                    <th className="p-3">المبلغ</th>
-                    <th className="p-3">طريقة الدفع</th>
-                    <th className="p-3">التاريخ</th>
-                    <th className="p-3">الحالة</th>
+                    <th className="m3-th">رقم المصروف</th>
+                    <th className="m3-th">التصنيف</th>
+                    <th className="m3-th">البيان</th>
+                    <th className="m3-th">المبلغ</th>
+                    <th className="m3-th">طريقة الدفع</th>
+                    <th className="m3-th">التاريخ</th>
+                    <th className="m3-th">الحالة</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-[var(--md-outline-variant)]">
                   {expenses.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-8 text-slate-400">
+                      <td colSpan={7} className="text-center py-8 text-[var(--md-on-surface-variant)]">
                         لا توجد مصروفات تشغيلية مسجلة حالياً. سجل مصروفاً جديداً ليظهر فوراً في الدفاتر والأرباح والخسائر.
                       </td>
                     </tr>
@@ -3133,20 +3107,20 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                           ? 'بطاقة / شبكة'
                           : 'نقدي (صندوق)';
                       return (
-                        <tr key={exp.id || idx} className="hover:bg-slate-800/40 transition-colors">
-                          <td className="p-3 font-mono font-bold text-slate-200">
+                        <tr key={exp.id || idx} className="hover:bg-[var(--md-surface-container-low)] transition-colors">
+                          <td className="p-3 font-mono font-bold text-[var(--md-on-surface)]">
                             {exp.expenseNumber || exp.voucher_number || exp.reference || `EXP-${idx + 1}`}
                           </td>
-                          <td className="p-3 text-amber-300 font-semibold">{exp.category || 'تشغيلي'}</td>
-                          <td className="p-3 text-slate-300 max-w-xs truncate">{exp.description || exp.notes || '—'}</td>
-                          <td className="p-3 font-mono font-bold text-rose-400">
+                          <td className="p-3 text-[var(--md-secondary)] font-semibold">{exp.category || 'تشغيلي'}</td>
+                          <td className="p-3 text-[var(--md-on-surface-variant)] max-w-xs truncate">{exp.description || exp.notes || '—'}</td>
+                          <td className="p-3 font-mono tabular-nums font-bold text-[var(--md-error)]">
                             {formatAmount(exp.totalAmount ?? exp.total_amount ?? exp.amount ?? 0)}{' '}
-                            <span className="text-slate-400 text-[10px]">{currSym}</span>
+                            <span className="text-[var(--md-on-surface-variant)] text-[10px]">{currSym}</span>
                           </td>
-                          <td className="p-3 text-slate-300">{payLabel}</td>
-                          <td className="p-3 font-mono text-slate-400">{exp.expenseDate || exp.expense_date || exp.date || '—'}</td>
+                          <td className="p-3 text-[var(--md-on-surface)]">{payLabel}</td>
+                          <td className="p-3 font-mono text-[var(--md-on-surface-variant)]">{exp.expenseDate || exp.expense_date || exp.date || '—'}</td>
                           <td className="p-3">
-                            <span className="bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                            <span className="m3-badge m3-badge-success text-[10px]">
                               مدفوع ومعتمد
                             </span>
                           </td>
@@ -3166,15 +3140,14 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
       {/* ========================================================================= */}
       {activeSubTab === 'returns' && (
         <div className="space-y-6">
-          <div className="relative overflow-hidden bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-500" />
+          <div className="m3-card p-6 space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h2 className="text-base font-bold text-white flex items-center gap-2">
-                  <RotateCcw className="w-5 h-5 text-blue-400" />
+                <h2 className="text-base font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                  <RotateCcw className="w-5 h-5 text-[var(--md-info)]" />
                   <span>إدارة مردودات المبيعات والمشتريات (إشعارات دائنة ومدينة)</span>
                 </h2>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-[var(--md-on-surface-variant)] mt-1">
                   تسجيل مردودات المبيعات والمشتريات مع تحديث كمية المخزون آلياً، تعديل ذمة العميل/المورد، وترحيل القيود في دفتر الأستاذ العام
                 </p>
               </div>
@@ -3182,7 +3155,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                 <button
                   type="button"
                   onClick={() => onNavigate?.('invoices')}
-                  className="px-3 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-xl text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                  className="m3-btn-outlined px-3 py-1.5 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
                 >
                   <span>فواتير المبيعات</span>
                   <ExternalLink className="w-3 h-3" />
@@ -3190,7 +3163,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                 <button
                   type="button"
                   onClick={() => onNavigate?.('purchase_invoices')}
-                  className="px-3 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-xl text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                  className="m3-btn-outlined px-3 py-1.5 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
                 >
                   <span>فواتير المشتريات</span>
                   <ExternalLink className="w-3 h-3" />
@@ -3209,18 +3182,18 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                     supplierId: '',
                   }))
                 }
-                className={`p-4 rounded-xl border text-right transition-all cursor-pointer flex items-start gap-3 ${
+                className={`p-4 rounded-xl border text-right transition-colors cursor-pointer flex items-start gap-3 ${
                   newReturn.type === 'SALES'
-                    ? 'bg-emerald-500/10 border-emerald-500/50 text-white shadow-lg shadow-emerald-950/30'
-                    : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                    ? 'bg-[var(--md-primary-container)] border-[var(--md-primary)]/50 text-[var(--md-on-primary-container)]'
+                    : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)] hover:border-[var(--md-outline)]'
                 }`}
               >
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${newReturn.type === 'SALES' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-900 text-slate-500'}`}>
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${newReturn.type === 'SALES' ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]' : 'bg-[var(--md-surface-container)] text-[var(--md-on-surface-variant)]'}`}>
                   <ArrowUpRight className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="text-xs font-bold">مردود مبيعات — إشعار دائن للعميل</div>
-                  <div className="text-[11px] text-slate-400 mt-0.5">إعادة البضاعة إلى المخزون وتخفيض رصيد العميل أو رد النقدية</div>
+                  <div className="text-[11px] opacity-80 mt-0.5">إعادة البضاعة إلى المخزون وتخفيض رصيد العميل أو رد النقدية</div>
                 </div>
               </button>
 
@@ -3233,31 +3206,31 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                     customerId: '',
                   }))
                 }
-                className={`p-4 rounded-xl border text-right transition-all cursor-pointer flex items-start gap-3 ${
+                className={`p-4 rounded-xl border text-right transition-colors cursor-pointer flex items-start gap-3 ${
                   newReturn.type === 'PURCHASE'
-                    ? 'bg-amber-500/10 border-amber-500/50 text-white shadow-lg shadow-amber-950/30'
-                    : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                    ? 'bg-[var(--md-warning-container)] border-[var(--md-warning)]/50 text-[var(--md-on-warning-container)]'
+                    : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)] hover:border-[var(--md-outline)]'
                 }`}
               >
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${newReturn.type === 'PURCHASE' ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-900 text-slate-500'}`}>
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${newReturn.type === 'PURCHASE' ? 'bg-[var(--md-warning)] text-[var(--md-on-primary)]' : 'bg-[var(--md-surface-container)] text-[var(--md-on-surface-variant)]'}`}>
                   <ArrowDownLeft className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="text-xs font-bold">مردود مشتريات — إشعار مدين للمورد</div>
-                  <div className="text-[11px] text-slate-400 mt-0.5">خصم الكمية المرتجعة من المخزون وتخفيض مستحقات المورد أو استرداد النقدية</div>
+                  <div className="text-[11px] opacity-80 mt-0.5">خصم الكمية المرتجعة من المخزون وتخفيض مستحقات المورد أو استرداد النقدية</div>
                 </div>
               </button>
             </div>
 
             {/* Return Entry Form */}
-            <form onSubmit={handleCreateReturn} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-slate-950/70 p-4 rounded-xl border border-slate-800">
+            <form onSubmit={handleCreateReturn} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-[var(--md-surface-container-low)] p-4 rounded-xl border border-[var(--md-outline-variant)]">
               {newReturn.type === 'SALES' ? (
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1.5">العميل (اختياري للنقدي / إلزامي للآجل):</label>
+                  <label className="block text-[11px] font-bold text-[var(--md-on-surface)] mb-1.5">العميل (اختياري للنقدي / إلزامي للآجل):</label>
                   <select
                     value={newReturn.customerId}
                     onChange={(e) => setNewReturn({ ...newReturn, customerId: e.target.value })}
-                    className="w-full text-xs p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:border-emerald-500"
+                    className="m3-select w-full text-xs p-2.5"
                   >
                     <option value="">-- عميل عام / نقدي --</option>
                     {customersList.map((c: any) => (
@@ -3269,11 +3242,11 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                 </div>
               ) : (
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1.5">المورد:</label>
+                  <label className="block text-[11px] font-bold text-[var(--md-on-surface)] mb-1.5">المورد:</label>
                   <select
                     value={newReturn.supplierId}
                     onChange={(e) => setNewReturn({ ...newReturn, supplierId: e.target.value })}
-                    className="w-full text-xs p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:border-amber-500"
+                    className="m3-select w-full text-xs p-2.5"
                   >
                     <option value="">-- مورد عام / نقدي --</option>
                     {suppliersList.map((s: any) => (
@@ -3286,7 +3259,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
               )}
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1.5">الصنف المسترجع:</label>
+                <label className="block text-[11px] font-bold text-[var(--md-on-surface)] mb-1.5">الصنف المسترجع:</label>
                 <select
                   required
                   value={newReturn.items[0]?.productId || ''}
@@ -3303,7 +3276,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                       items: [{ ...prev.items[0], productId: pid, priceOrCost: String(defaultPrice) }],
                     }));
                   }}
-                  className="w-full text-xs p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:border-blue-500"
+                  className="m3-select w-full text-xs p-2.5"
                 >
                   <option value="">-- اختر الصنف --</option>
                   {productsList.map((p: any) => (
@@ -3315,11 +3288,11 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1.5">طريقة التسوية المالية:</label>
+                <label className="block text-[11px] font-bold text-[var(--md-on-surface)] mb-1.5">طريقة التسوية المالية:</label>
                 <select
                   value={newReturn.refundMethod}
                   onChange={(e) => setNewReturn({ ...newReturn, refundMethod: e.target.value })}
-                  className="w-full text-xs p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:border-blue-500"
+                  className="m3-select w-full text-xs p-2.5"
                 >
                   <option value="CREDIT_NOTE">خصم من رصيد الحساب الآجل (إشعار دائن/مدين)</option>
                   <option value="CASH">استرداد / توريد نقدي في الصندوق</option>
@@ -3328,7 +3301,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1.5">الكمية المرتجعة:</label>
+                <label className="block text-[11px] font-bold text-[var(--md-on-surface)] mb-1.5">الكمية المرتجعة:</label>
                 <input
                   type="number"
                   step="0.01"
@@ -3341,12 +3314,12 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                       items: [{ ...prev.items[0], quantity: e.target.value }],
                     }))
                   }
-                  className="w-full text-xs p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 font-mono focus:outline-none focus:border-blue-500"
+                  className="m3-input w-full text-xs p-2.5 font-mono tabular-nums"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1.5">
+                <label className="block text-[11px] font-bold text-[var(--md-on-surface)] mb-1.5">
                   {newReturn.type === 'SALES' ? `سعر البيع للوحدة (${currSym}):` : `سعر التكلفة للوحدة (${currSym}):`}
                 </label>
                 <input
@@ -3361,25 +3334,25 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                       items: [{ ...prev.items[0], priceOrCost: e.target.value }],
                     }))
                   }
-                  className="w-full text-xs p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 font-mono focus:outline-none focus:border-blue-500"
+                  className="m3-input w-full text-xs p-2.5 font-mono tabular-nums"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1.5">سبب المردود / رقم الفاتورة المرجعية:</label>
+                <label className="block text-[11px] font-bold text-[var(--md-on-surface)] mb-1.5">سبب المردود / رقم الفاتورة المرجعية:</label>
                 <input
                   type="text"
                   value={newReturn.reason}
                   onChange={(e) => setNewReturn({ ...newReturn, reason: e.target.value })}
                   placeholder="مثال: تلف أثناء الشحن / فاتورة #INV-102"
-                  className="w-full text-xs p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:border-blue-500"
+                  className="m3-input w-full text-xs p-2.5"
                 />
               </div>
 
-              <div className="md:col-span-2 lg:col-span-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-800">
-                <div className="text-xs text-slate-300">
+              <div className="md:col-span-2 lg:col-span-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-[var(--md-outline-variant)]">
+                <div className="text-xs text-[var(--md-on-surface-variant)]">
                   إجمالي قيمة المردود المحتسبة:{' '}
-                  <span className="font-mono font-black text-emerald-400 text-sm">
+                  <span className="font-mono tabular-nums font-black text-[var(--md-primary-text)] text-sm">
                     {formatNumber(
                       (parseFloat(newReturn.items[0]?.quantity || '0') || 0) *
                         (parseFloat(newReturn.items[0]?.priceOrCost || '0') || 0)
@@ -3390,7 +3363,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-950/60 flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
+                  className="m3-btn-primary px-6 py-2.5 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   <span>اعتماد وترحيل المردود</span>
@@ -3400,34 +3373,34 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
           </div>
 
           {/* Returns Log Table */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+          <div className="m3-card p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-indigo-400" />
+              <h3 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                <Receipt className="w-4 h-4 text-[var(--md-primary-text)]" />
                 <span>سجل مردودات المبيعات والمشتريات ({salesReturns.length + purchaseReturns.length})</span>
               </h3>
-              <span className="text-[11px] font-mono text-slate-400">
+              <span className="text-[11px] font-mono text-[var(--md-on-surface-variant)]">
                 مبيعات: {salesReturns.length} • مشتريات: {purchaseReturns.length}
               </span>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-right border-collapse">
-                <thead>
-                  <tr className="bg-slate-950 text-slate-400 border-b border-slate-800 text-[11px]">
-                    <th className="py-3 px-3 font-bold">رقم المردود</th>
-                    <th className="py-3 px-3 font-bold">النوع</th>
-                    <th className="py-3 px-3 font-bold">الطرف (عميل / مورد)</th>
-                    <th className="py-3 px-3 font-bold">التفاصيل / السبب</th>
-                    <th className="py-3 px-3 font-bold text-center">طريقة التسوية</th>
-                    <th className="py-3 px-3 font-bold text-center">الإجمالي ({currSym})</th>
-                    <th className="py-3 px-3 font-bold text-center">التاريخ</th>
+            <div className="overflow-x-auto rounded-xl border border-[var(--md-outline-variant)]">
+              <table className="m3-table w-full text-xs text-right border-collapse">
+                <thead className="m3-thead">
+                  <tr>
+                    <th className="m3-th">رقم المردود</th>
+                    <th className="m3-th">النوع</th>
+                    <th className="m3-th">الطرف (عميل / مورد)</th>
+                    <th className="m3-th">التفاصيل / السبب</th>
+                    <th className="m3-th text-center">طريقة التسوية</th>
+                    <th className="m3-th text-center">الإجمالي ({currSym})</th>
+                    <th className="m3-th text-center">التاريخ</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-[var(--md-outline-variant)]">
                   {salesReturns.length === 0 && purchaseReturns.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-slate-400 text-xs">
+                      <td colSpan={7} className="py-8 text-center text-[var(--md-on-surface-variant)] text-xs">
                         لا توجد مردودات مبيعات أو مشتريات مسجلة حتى الآن.
                       </td>
                     </tr>
@@ -3450,36 +3423,36 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                         const totalVal = Number(ret.total_amount ?? ret.total ?? ret.refundAmount ?? 0);
                         const itemCount = Array.isArray(ret.items) ? ret.items.reduce((s: number, it: any) => s + Number(it.quantity || 1), 0) : 1;
                         return (
-                          <tr key={ret.id} className="hover:bg-slate-800/40 transition-colors">
-                            <td className="py-3 px-3 font-mono font-bold text-white">
+                          <tr key={ret.id} className="hover:bg-[var(--md-surface-container-low)] transition-colors">
+                            <td className="py-3 px-3 font-mono font-bold text-[var(--md-on-surface)]">
                               {ret.return_number || ret.returnNumber || ret.id}
                             </td>
                             <td className="py-3 px-3">
                               <span
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                className={`m3-badge text-[10px] ${
                                   isSales
-                                    ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
-                                    : 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                                    ? 'm3-badge-success'
+                                    : 'm3-badge-warning'
                                 }`}
                               >
                                 {isSales ? 'مردود مبيعات' : 'مردود مشتريات'}
                               </span>
                             </td>
-                            <td className="py-3 px-3 text-slate-200 font-medium">{entityLabel}</td>
-                            <td className="py-3 px-3 text-slate-400">
+                            <td className="py-3 px-3 text-[var(--md-on-surface)] font-medium">{entityLabel}</td>
+                            <td className="py-3 px-3 text-[var(--md-on-surface-variant)]">
                               {ret.reason || 'مردود بضاعة'} ({itemCount} وحدة)
                             </td>
-                            <td className="py-3 px-3 text-center text-slate-300">
+                            <td className="py-3 px-3 text-center text-[var(--md-on-surface-variant)]">
                               {ret.refund_method === 'CASH'
                                 ? 'نقدي (صندوق)'
                                 : ret.refund_method === 'BANK'
                                 ? 'تحويل بنكي'
                                 : 'إشعار حساب آجل'}
                             </td>
-                            <td className="py-3 px-3 text-center font-mono font-bold text-emerald-400">
+                            <td className="py-3 px-3 text-center font-mono tabular-nums font-bold text-[var(--md-primary-text)]">
                               {formatNumber(totalVal)} {currSym}
                             </td>
-                            <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-400">
+                            <td className="py-3 px-3 text-center font-mono text-[11px] text-[var(--md-on-surface-variant)]">
                               {String(ret.created_at || ret.date || '').split('T')[0]}
                             </td>
                           </tr>
@@ -3499,17 +3472,16 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
       {activeSubTab === 'period_close' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Periods List */}
-          <div className="relative overflow-hidden bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-cyan-500" />
+          <div className="m3-card p-6 space-y-4">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-blue-400" />
+              <h2 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-[var(--md-info)]" />
                 <span>الفترات المحاسبية</span>
               </h2>
               <button
                 type="button"
                 onClick={() => setIsNewPeriodOpen((v) => !v)}
-                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-all"
+                className="m3-btn-primary px-3 py-1.5 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>فتح فترة محاسبية جديدة</span>
@@ -3517,37 +3489,37 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
             </div>
 
             {isNewPeriodOpen && (
-              <form onSubmit={handleCreatePeriod} className="p-3.5 bg-slate-950 border border-emerald-500/30 rounded-xl space-y-2.5 text-xs">
+              <form onSubmit={handleCreatePeriod} className="p-3.5 bg-[var(--md-surface-container-low)] border border-[var(--md-primary)]/30 rounded-xl space-y-2.5 text-xs">
                 <div>
-                  <label className="block text-[10px] text-slate-400 mb-1">اسم الفترة المحاسبية:</label>
+                  <label className="block text-[10px] text-[var(--md-on-surface-variant)] mb-1">اسم الفترة المحاسبية:</label>
                   <input
                     type="text"
                     required
                     value={newPeriodForm.name}
                     onChange={(e) => setNewPeriodForm({ ...newPeriodForm, name: e.target.value })}
-                    className="w-full px-2.5 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100"
+                    className="m3-input w-full px-2.5 py-2"
                     placeholder="مثال: فترة ديسمبر 2026"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-[10px] text-slate-400 mb-1">من تاريخ:</label>
+                    <label className="block text-[10px] text-[var(--md-on-surface-variant)] mb-1">من تاريخ:</label>
                     <input
                       type="date"
                       required
                       value={newPeriodForm.startDate}
                       onChange={(e) => setNewPeriodForm({ ...newPeriodForm, startDate: e.target.value })}
-                      className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-mono"
+                      className="m3-input w-full px-2 py-1.5 font-mono"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-slate-400 mb-1">إلى تاريخ:</label>
+                    <label className="block text-[10px] text-[var(--md-on-surface-variant)] mb-1">إلى تاريخ:</label>
                     <input
                       type="date"
                       required
                       value={newPeriodForm.endDate}
                       onChange={(e) => setNewPeriodForm({ ...newPeriodForm, endDate: e.target.value })}
-                      className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-mono"
+                      className="m3-input w-full px-2 py-1.5 font-mono"
                     />
                   </div>
                 </div>
@@ -3555,14 +3527,14 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                   <button
                     type="button"
                     onClick={() => setIsNewPeriodOpen(false)}
-                    className="px-3 py-1.5 bg-slate-800 text-slate-300 rounded-lg text-[11px] font-bold cursor-pointer"
+                    className="m3-btn-outlined px-3 py-1.5 text-[11px] font-bold cursor-pointer"
                   >
                     إلغاء
                   </button>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[11px] font-bold cursor-pointer"
+                    className="m3-btn-primary px-3.5 py-1.5 text-[11px] font-bold cursor-pointer"
                   >
                     حفظ وفتح الفترة
                   </button>
@@ -3583,25 +3555,25 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                       setActivePeriodId(p.id);
                       fetchChecklist(p.id);
                     }}
-                    className={`p-3.5 rounded-xl border text-xs cursor-pointer transition-all space-y-2 ${
+                    className={`p-3.5 rounded-xl border text-xs cursor-pointer transition-colors space-y-2 ${
                       isSelected
-                        ? 'bg-blue-500/10 border-blue-500/50 text-white shadow-md'
-                        : 'bg-slate-950/70 border-slate-800 text-slate-300 hover:border-slate-700'
+                        ? 'bg-[var(--md-primary-container)] border-[var(--md-primary)]/50 text-[var(--md-on-primary-container)]'
+                        : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] text-[var(--md-on-surface)] hover:border-[var(--md-outline)]'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-bold">{p.name}</span>
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                        className={`m3-badge text-[10px] ${
                           isClosed
-                            ? 'bg-slate-800 text-slate-300 border-slate-700'
-                            : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                            ? 'm3-badge-secondary'
+                            : 'm3-badge-success'
                         }`}
                       >
                         {isClosed ? 'مغلقة ومعتمدة' : 'فترة مفتوحة'}
                       </span>
                     </div>
-                    <div className="text-[11px] text-slate-400 font-mono">
+                    <div className="text-[11px] opacity-80 font-mono">
                       {startDateStr} إلى {endDateStr}
                     </div>
                   </div>
@@ -3611,21 +3583,20 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
           </div>
 
           {/* Month-End Close 12-Step Checklist */}
-          <div className="lg:col-span-2 relative overflow-hidden bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-5">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-blue-500" />
+          <div className="lg:col-span-2 m3-card p-6 space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-bold text-white">قائمة فحص واعتماد الإقفال الشهري (12 خطوة)</h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <h3 className="text-sm font-bold text-[var(--md-on-surface)]">قائمة فحص واعتماد الإقفال الشهري (12 خطوة)</h3>
+                <p className="text-xs text-[var(--md-on-surface-variant)] mt-0.5">
                   إجراءات المراجعة الدقيقة لضمان توازن القوائم المالية قبل إغلاق الفترة وترحيل الأرباح المحتجزة
                 </p>
               </div>
 
               <div className="flex items-center gap-3">
                 {checklist && (
-                  <div className="text-left font-mono bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl">
-                    <span className="text-[10px] text-slate-400 block">نسبة الإنجاز:</span>
-                    <span className="text-base font-black text-emerald-400">{checklist.completion_percentage}%</span>
+                  <div className="text-left font-mono bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] px-3 py-1.5 rounded-xl">
+                    <span className="text-[10px] text-[var(--md-on-surface-variant)] block font-sans">نسبة الإنجاز:</span>
+                    <span className="text-base font-black text-[var(--md-primary-text)] tabular-nums">{checklist.completion_percentage}%</span>
                   </div>
                 )}
 
@@ -3639,9 +3610,9 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                         type="button"
                         onClick={() => handleTogglePeriodStatus(activePeriod, 'OPEN')}
                         disabled={loading}
-                        className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                        className="m3-btn-outlined px-3.5 py-2 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
                       >
-                        <Unlock className="w-3.5 h-3.5 text-amber-400" />
+                        <Unlock className="w-3.5 h-3.5 text-[var(--md-warning)]" />
                         <span>إعادة فتح الفترة</span>
                       </button>
                     );
@@ -3653,14 +3624,14 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                           type="button"
                           onClick={() => handleTogglePeriodStatus(activePeriod, 'CLOSE')}
                           disabled={loading}
-                          className="px-3.5 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold cursor-pointer"
+                          className="m3-btn-danger px-3.5 py-2 text-xs font-bold cursor-pointer"
                         >
                           تأكيد الإغلاق النهائي ✓
                         </button>
                         <button
                           type="button"
                           onClick={() => setConfirmClosePeriodId(null)}
-                          className="px-2.5 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold cursor-pointer"
+                          className="m3-btn-outlined px-2.5 py-2 text-xs font-bold cursor-pointer"
                         >
                           تراجع
                         </button>
@@ -3671,7 +3642,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                     <button
                       type="button"
                       onClick={() => setConfirmClosePeriodId(activePeriod.id)}
-                      className="px-4 py-2 bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white rounded-xl text-xs font-bold shadow-lg flex items-center gap-1.5 cursor-pointer"
+                      className="m3-btn-danger px-4 py-2 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
                     >
                       <Lock className="w-3.5 h-3.5" />
                       <span>إغلاق الفترة الحالية وترحيل الأرباح</span>
@@ -3691,10 +3662,10 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                   <div
                     key={it.id}
                     onClick={() => handleToggleChecklist(it.id, it.completed)}
-                    className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all text-xs ${
+                    className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition-colors text-xs ${
                       it.completed
-                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                        : 'bg-slate-950/70 border-slate-800 text-slate-200 hover:border-slate-700'
+                        ? 'bg-[var(--md-success-container)] border-[var(--md-success)]/35 text-[var(--md-on-success-container)]'
+                        : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] text-[var(--md-on-surface)] hover:border-[var(--md-outline)]'
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -3702,14 +3673,14 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                         type="checkbox"
                         checked={Boolean(it.completed)}
                         onChange={() => {}}
-                        className="rounded border-slate-600 bg-slate-900 text-emerald-500 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                        className="rounded border-[var(--md-outline)] bg-[var(--md-surface-container-lowest)] accent-[var(--md-primary)] w-4 h-4 cursor-pointer"
                       />
                       <span className={`font-medium ${it.completed ? 'line-through opacity-80' : ''}`}>
                         {it.title || it.task}
                       </span>
                     </div>
 
-                    <span className="text-[10px] text-slate-400 font-mono">خطوة #{it.id}</span>
+                    <span className="text-[10px] opacity-75 font-mono">خطوة #{it.id}</span>
                   </div>
                 ))}
             </div>
@@ -3722,37 +3693,37 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
       {/* ========================================================================= */}
       {activeSubTab === 'documents' && (
         <div className="space-y-6">
-          <div className="relative overflow-hidden bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-5">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-blue-500 to-emerald-500" />
+          <div className="m3-card-elevated relative overflow-hidden p-6 space-y-5">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-[var(--md-primary)]" />
             <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <FileCheck className="w-5 h-5 text-blue-400" />
+              <h2 className="text-base font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                <FileCheck className="w-5 h-5 text-[var(--md-primary-text)]" />
                 <span>خزينة المستندات والمرفقات الرسمية (Business Documents Vault)</span>
               </h2>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-[var(--md-on-surface-variant)] mt-1">
                 حفظ وأرشفة العقود، السجلات التجارية، الشهادات الضريبية، مرفقات الفواتير، ومحاضر الجرد بحد أقصى 10 ميجابايت مع إمكانية المعاينة والطباعة الفورية
               </p>
             </div>
 
-            <form onSubmit={handleUploadDocument} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-950/70 p-4 rounded-xl border border-slate-800">
+            <form onSubmit={handleUploadDocument} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-[var(--md-surface-container-low)] p-4 rounded-xl border border-[var(--md-outline-variant)]">
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1.5">عنوان المستند:</label>
+                <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1.5">عنوان المستند:</label>
                 <input
                   type="text"
                   required
                   value={docForm.title}
                   onChange={(e) => setDocForm({ ...docForm, title: e.target.value })}
                   placeholder="مثال: السجل التجاري 2026"
-                  className="w-full text-xs p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:border-blue-500"
+                  className="m3-input w-full text-xs"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1.5">تصنيف المستند:</label>
+                <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1.5">تصنيف المستند:</label>
                 <select
                   value={docForm.category}
                   onChange={(e) => setDocForm({ ...docForm, category: e.target.value })}
-                  className="w-full text-xs p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:border-blue-500"
+                  className="m3-select w-full text-xs"
                 >
                   <option value="عقد">عقد واتفاقية</option>
                   <option value="سجل تجاري وضريبي">سجل تجاري وبطاقة ضريبية</option>
@@ -3764,33 +3735,33 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1.5">رقم المرجع / الربط (اختياري):</label>
+                <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1.5">رقم المرجع / الربط (اختياري):</label>
                 <input
                   type="text"
                   value={docForm.referenceNo}
                   onChange={(e) => setDocForm({ ...docForm, referenceNo: e.target.value })}
                   placeholder="مثال: INV-2026-01 أو CR-4421"
-                  className="w-full text-xs p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 font-mono focus:outline-none focus:border-blue-500"
+                  className="m3-input w-full text-xs font-mono"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1.5">اختيار الملف (PDF / صورة / مستند):</label>
-                <label className="w-full flex items-center justify-between gap-2 text-xs p-2.5 bg-slate-900 border border-dashed border-slate-600 hover:border-blue-500 rounded-xl text-slate-300 cursor-pointer transition-colors">
+                <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1.5">اختيار الملف (PDF / صورة / مستند):</label>
+                <label className="w-full flex items-center justify-between gap-2 text-xs p-2.5 bg-[var(--md-surface-container-lowest)] border border-dashed border-[var(--md-outline)] hover:border-[var(--md-primary)] rounded-xl text-[var(--md-on-surface-variant)] cursor-pointer transition-colors">
                   <span className="truncate">{docForm.fileName || 'اضغط لاختيار ملف من الجهاز...'}</span>
-                  <Paperclip className="w-4 h-4 text-blue-400 shrink-0" />
+                  <Paperclip className="w-4 h-4 text-[var(--md-primary-text)] shrink-0" />
                   <input type="file" onChange={handleDocFileChange} className="hidden" />
                 </label>
               </div>
 
               <div className="md:col-span-2 lg:col-span-3">
-                <label className="block text-[11px] font-bold text-slate-300 mb-1.5">ملاحظات وتفاصيل الأرشفة:</label>
+                <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1.5">ملاحظات وتفاصيل الأرشفة:</label>
                 <input
                   type="text"
                   value={docForm.notes}
                   onChange={(e) => setDocForm({ ...docForm, notes: e.target.value })}
                   placeholder="تفاصيل تاريخ الانتهاء، الجهة المصدرة، أو وصف المحتوى..."
-                  className="w-full text-xs p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:border-blue-500"
+                  className="m3-input w-full text-xs"
                 />
               </div>
 
@@ -3798,7 +3769,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-2.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
+                  className="m3-btn-primary w-full py-2.5 px-4 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <UploadCloud className="w-4 h-4" />
                   <span>حفظ وأرشفة المستند</span>
@@ -3808,54 +3779,54 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
           </div>
 
           {/* Documents Archive Table */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+          <div className="m3-card p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <FileText className="w-4 h-4 text-emerald-400" />
+              <h3 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                <FileText className="w-4 h-4 text-[var(--md-primary-text)]" />
                 <span>المستندات المؤرشفة ({documentsList.length})</span>
               </h3>
-              <span className="text-[11px] font-mono text-slate-400">معزولة ومؤمّنة بالكامل للشركة</span>
+              <span className="text-[11px] font-mono text-[var(--md-on-surface-variant)]">معزولة ومؤمّنة بالكامل للشركة</span>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-xs text-right border-collapse">
-                <thead>
-                  <tr className="bg-slate-950 text-slate-400 border-b border-slate-800 text-[11px]">
-                    <th className="py-3 px-3 font-bold">عنوان المستند</th>
-                    <th className="py-3 px-3 font-bold">التصنيف</th>
-                    <th className="py-3 px-3 font-bold">المرجع / الملاحظات</th>
-                    <th className="py-3 px-3 font-bold">الملف والحجم</th>
-                    <th className="py-3 px-3 font-bold text-center">تاريخ الأرشفة</th>
-                    <th className="py-3 px-3 font-bold text-center">إجراءات</th>
+              <table className="m3-table w-full text-xs text-right border-collapse">
+                <thead className="m3-thead">
+                  <tr>
+                    <th className="m3-th py-3 px-3 font-bold">عنوان المستند</th>
+                    <th className="m3-th py-3 px-3 font-bold">التصنيف</th>
+                    <th className="m3-th py-3 px-3 font-bold">المرجع / الملاحظات</th>
+                    <th className="m3-th py-3 px-3 font-bold">الملف والحجم</th>
+                    <th className="m3-th py-3 px-3 font-bold text-center">تاريخ الأرشفة</th>
+                    <th className="m3-th py-3 px-3 font-bold text-center">إجراءات</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-[var(--md-outline-variant)]">
                   {documentsList.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-slate-400 text-xs">
+                      <td colSpan={6} className="py-8 text-center text-[var(--md-on-surface-variant)] text-xs">
                         لا توجد مستندات مؤرشفة بعد. ارفع أول مستند من النموذج أعلاه.
                       </td>
                     </tr>
                   ) : (
                     documentsList.map((doc: any) => (
-                      <tr key={doc.id} className="hover:bg-slate-800/40 transition-colors">
-                        <td className="py-3 px-3 font-bold text-white">{doc.title}</td>
+                      <tr key={doc.id} className="hover:bg-[var(--md-surface-container-low)] transition-colors">
+                        <td className="py-3 px-3 font-bold text-[var(--md-on-surface)]">{doc.title}</td>
                         <td className="py-3 px-3">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-300 border border-blue-500/30">
+                          <span className="m3-badge m3-badge-info text-[10px]">
                             {doc.category}
                           </span>
                         </td>
-                        <td className="py-3 px-3 text-slate-400">
+                        <td className="py-3 px-3 text-[var(--md-on-surface-variant)]">
                           {doc.reference_no || doc.entity_id ? (
-                            <span className="font-mono text-emerald-400 ml-2">#{doc.reference_no || doc.entity_id}</span>
+                            <span className="font-mono text-[var(--md-primary-text)] ml-2">#{doc.reference_no || doc.entity_id}</span>
                           ) : null}
                           <span>{doc.notes || '—'}</span>
                         </td>
-                        <td className="py-3 px-3 font-mono text-[11px] text-slate-300">
+                        <td className="py-3 px-3 font-mono text-[11px] text-[var(--md-on-surface)] tabular-nums">
                           <div>{doc.file_name}</div>
-                          <div className="text-slate-500">{formatFileSize(doc.file_size)}</div>
+                          <div className="text-[var(--md-on-surface-variant)]">{formatFileSize(doc.file_size)}</div>
                         </td>
-                        <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-400">
+                        <td className="py-3 px-3 text-center font-mono text-[11px] text-[var(--md-on-surface-variant)] tabular-nums">
                           {String(doc.uploaded_at || '').split('T')[0]}
                         </td>
                         <td className="py-3 px-3 text-center">
@@ -3863,15 +3834,15 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                             <button
                               type="button"
                               onClick={() => setPreviewDoc(doc)}
-                              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                              className="m3-btn-outlined px-2.5 py-1.5 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
                             >
-                              <Eye className="w-3.5 h-3.5 text-blue-400" />
+                              <Eye className="w-3.5 h-3.5 text-[var(--md-info)]" />
                               <span>معاينة</span>
                             </button>
                             <button
                               type="button"
                               onClick={() => handlePrintDocument(doc)}
-                              className="px-2.5 py-1.5 bg-emerald-950/60 hover:bg-emerald-800 text-emerald-300 hover:text-white border border-emerald-700/40 rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                              className="m3-btn-tonal px-2.5 py-1.5 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
                             >
                               <Printer className="w-3.5 h-3.5" />
                               <span>طباعة</span>
@@ -3879,7 +3850,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                             <button
                               type="button"
                               onClick={() => handleDeleteDocument(doc.id)}
-                              className="p-1.5 bg-rose-950/50 hover:bg-rose-900 border border-rose-800/40 text-rose-400 hover:text-rose-200 rounded-lg cursor-pointer"
+                              className="m3-btn-danger p-1.5 rounded-lg cursor-pointer"
                               title="حذف المستند"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -3896,45 +3867,45 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
 
           {/* Document Preview Modal */}
           {previewDoc && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-              <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden">
-                <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <FileCheck className="w-4 h-4 text-blue-400" />
+            <div className="m3-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="m3-modal-surface w-full max-w-2xl overflow-hidden">
+                <div className="p-4 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                    <FileCheck className="w-4 h-4 text-[var(--md-primary-text)]" />
                     <span>{previewDoc.title}</span>
                   </h3>
-                  <button type="button" onClick={() => setPreviewDoc(null)} className="text-slate-400 hover:text-white p-1">
+                  <button type="button" onClick={() => setPreviewDoc(null)} className="m3-btn-text p-1.5 rounded-lg cursor-pointer">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
                 <div className="p-5 space-y-4 text-xs">
-                  <div className="grid grid-cols-2 gap-3 bg-slate-950 p-3.5 rounded-xl border border-slate-800">
-                    <div><span className="text-slate-400">التصنيف:</span> <span className="font-bold text-white">{previewDoc.category}</span></div>
-                    <div><span className="text-slate-400">المرجع:</span> <span className="font-mono text-emerald-400">{previewDoc.reference_no || previewDoc.entity_id || '—'}</span></div>
-                    <div><span className="text-slate-400">اسم الملف:</span> <span className="font-mono text-slate-200">{previewDoc.file_name}</span></div>
-                    <div><span className="text-slate-400">الحجم:</span> <span className="font-mono text-slate-200">{formatFileSize(previewDoc.file_size)}</span></div>
+                  <div className="grid grid-cols-2 gap-3 bg-[var(--md-surface-container-low)] p-3.5 rounded-xl border border-[var(--md-outline-variant)]">
+                    <div><span className="text-[var(--md-on-surface-variant)]">التصنيف:</span> <span className="font-bold text-[var(--md-on-surface)]">{previewDoc.category}</span></div>
+                    <div><span className="text-[var(--md-on-surface-variant)]">المرجع:</span> <span className="font-mono text-[var(--md-primary-text)]">{previewDoc.reference_no || previewDoc.entity_id || '—'}</span></div>
+                    <div><span className="text-[var(--md-on-surface-variant)]">اسم الملف:</span> <span className="font-mono text-[var(--md-on-surface)]">{previewDoc.file_name}</span></div>
+                    <div><span className="text-[var(--md-on-surface-variant)]">الحجم:</span> <span className="font-mono text-[var(--md-on-surface)] tabular-nums">{formatFileSize(previewDoc.file_size)}</span></div>
                     {previewDoc.notes && (
-                      <div className="col-span-2"><span className="text-slate-400">ملاحظات:</span> <span className="text-slate-200">{previewDoc.notes}</span></div>
+                      <div className="col-span-2"><span className="text-[var(--md-on-surface-variant)]">ملاحظات:</span> <span className="text-[var(--md-on-surface)]">{previewDoc.notes}</span></div>
                     )}
                   </div>
 
                   {previewDoc.data_url && String(previewDoc.mime_type || '').startsWith('image/') ? (
-                    <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex justify-center">
+                    <div className="bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl p-3 flex justify-center">
                       <img src={previewDoc.data_url} alt={previewDoc.title} className="max-h-96 object-contain rounded-lg" />
                     </div>
                   ) : previewDoc.data_url && String(previewDoc.mime_type || '').includes('pdf') ? (
-                    <iframe src={previewDoc.data_url} title={previewDoc.title} className="w-full h-96 rounded-xl border border-slate-800 bg-white" />
+                    <iframe src={previewDoc.data_url} title={previewDoc.title} className="w-full h-96 rounded-xl border border-[var(--md-outline-variant)] bg-white" />
                   ) : (
-                    <div className="p-6 text-center bg-slate-950 border border-dashed border-slate-700 rounded-xl text-slate-400">
-                      ملف مرفق: <span className="font-mono text-slate-200">{previewDoc.file_name}</span> — يمكنك استخدام زر «طباعة» لتوليد وثيقة الأرشفة الرسمية.
+                    <div className="p-6 text-center bg-[var(--md-surface-container-low)] border border-dashed border-[var(--md-outline)] rounded-xl text-[var(--md-on-surface-variant)]">
+                      ملف مرفق: <span className="font-mono text-[var(--md-on-surface)]">{previewDoc.file_name}</span> — يمكنك استخدام زر «طباعة» لتوليد وثيقة الأرشفة الرسمية.
                     </div>
                   )}
 
-                  <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                  <div className="flex justify-end gap-2 pt-2 border-t border-[var(--md-outline-variant)]">
                     <button
                       type="button"
                       onClick={() => handlePrintDocument(previewDoc)}
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                      className="m3-btn-primary px-4 py-2 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
                     >
                       <Printer className="w-3.5 h-3.5" />
                       <span>طباعة الوثيقة</span>
@@ -3942,7 +3913,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                     <button
                       type="button"
                       onClick={() => setPreviewDoc(null)}
-                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold cursor-pointer"
+                      className="m3-btn-outlined px-4 py-2 text-xs font-bold cursor-pointer"
                     >
                       إغلاق
                     </button>
@@ -3960,20 +3931,20 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
       {activeSubTab === 'search_mode' && (
         <div className="space-y-6">
           {/* Global Multi-Entity Search */}
-          <div className="relative overflow-hidden bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-5">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-500" />
+          <div className="m3-card-elevated relative overflow-hidden p-6 space-y-5">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-[var(--md-primary)]" />
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <h2 className="text-base font-bold text-white flex items-center gap-2">
-                  <Search className="w-5 h-5 text-blue-400" />
+                <h2 className="text-base font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                  <Search className="w-5 h-5 text-[var(--md-primary-text)]" />
                   <span>البحث الشامل في كافة سجلات الشركة (Global Multi-Entity Search)</span>
                 </h2>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-[var(--md-on-surface-variant)] mt-1">
                   بحث فوري موحد عبر العملاء، الموردين، الأصناف، فواتير المبيعات، فواتير المشتريات، وسندات الخزينة
                 </p>
               </div>
               {searchResults && (
-                <span className="text-xs font-mono px-3 py-1 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30">
+                <span className="m3-badge m3-badge-info text-xs font-mono tabular-nums">
                   إجمالي النتائج: {searchResults.totalHits ?? 0}
                 </span>
               )}
@@ -3985,12 +3956,12 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="ابحث بالاسم، رقم الفاتورة، الباركود، رقم الهاتف، أو رقم السند..."
-                className="flex-1 text-xs p-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                className="m3-input flex-1 text-xs py-3"
               />
               <button
                 type="submit"
                 disabled={loading || !searchQuery.trim()}
-                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg cursor-pointer disabled:opacity-50"
+                className="m3-btn-primary px-6 py-3 text-xs font-bold cursor-pointer disabled:opacity-50"
               >
                 بحث شامل
               </button>
@@ -4002,16 +3973,16 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                 {searchResults.customers?.length > 0 && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-bold text-emerald-300">العملاء المطابقون ({searchResults.customers.length})</h4>
-                      <button type="button" onClick={() => onNavigate?.('customers')} className="text-[11px] text-blue-400 hover:text-blue-300 flex items-center gap-1 cursor-pointer">
+                      <h4 className="font-bold text-[var(--md-success)]">العملاء المطابقون ({searchResults.customers.length})</h4>
+                      <button type="button" onClick={() => onNavigate?.('customers')} className="text-[11px] text-[var(--md-primary-text)] hover:underline flex items-center gap-1 cursor-pointer">
                         <span>فتح القائمة ↗</span>
                       </button>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                       {searchResults.customers.map((c: any) => (
-                        <div key={c.id} onClick={() => onNavigate?.('customers')} className="p-3 bg-slate-950/80 hover:border-emerald-500/40 rounded-xl border border-slate-800 cursor-pointer transition-all">
-                          <div className="font-bold text-white">{c.name}</div>
-                          <div className="text-[11px] text-slate-400 font-mono mt-1">
+                        <div key={c.id} onClick={() => onNavigate?.('customers')} className="p-3 bg-[var(--md-surface-container-low)] hover:border-[var(--md-primary)]/50 rounded-xl border border-[var(--md-outline-variant)] cursor-pointer transition-all">
+                          <div className="font-bold text-[var(--md-on-surface)]">{c.name}</div>
+                          <div className="text-[11px] text-[var(--md-on-surface-variant)] font-mono tabular-nums mt-1">
                             الرصيد: {formatNumber(Number(c.current_balance ?? c.balance ?? 0))} {currSym}
                             {c.phone ? ` • ${c.phone}` : ''}
                           </div>
@@ -4025,16 +3996,16 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                 {searchResults.suppliers?.length > 0 && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-bold text-amber-300">الموردون المطابقون ({searchResults.suppliers.length})</h4>
-                      <button type="button" onClick={() => onNavigate?.('suppliers')} className="text-[11px] text-blue-400 hover:text-blue-300 flex items-center gap-1 cursor-pointer">
+                      <h4 className="font-bold text-[var(--md-warning)]">الموردون المطابقون ({searchResults.suppliers.length})</h4>
+                      <button type="button" onClick={() => onNavigate?.('suppliers')} className="text-[11px] text-[var(--md-primary-text)] hover:underline flex items-center gap-1 cursor-pointer">
                         <span>فتح القائمة ↗</span>
                       </button>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                       {searchResults.suppliers.map((s: any) => (
-                        <div key={s.id} onClick={() => onNavigate?.('suppliers')} className="p-3 bg-slate-950/80 hover:border-amber-500/40 rounded-xl border border-slate-800 cursor-pointer transition-all">
-                          <div className="font-bold text-white">{s.name}</div>
-                          <div className="text-[11px] text-slate-400 font-mono mt-1">
+                        <div key={s.id} onClick={() => onNavigate?.('suppliers')} className="p-3 bg-[var(--md-surface-container-low)] hover:border-[var(--md-warning)]/50 rounded-xl border border-[var(--md-outline-variant)] cursor-pointer transition-all">
+                          <div className="font-bold text-[var(--md-on-surface)]">{s.name}</div>
+                          <div className="text-[11px] text-[var(--md-on-surface-variant)] font-mono tabular-nums mt-1">
                             الرصيد: {formatNumber(Number(s.current_balance ?? s.balance ?? 0))} {currSym}
                             {s.phone ? ` • ${s.phone}` : ''}
                           </div>
@@ -4048,16 +4019,16 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                 {searchResults.products?.length > 0 && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-bold text-indigo-300">الأصناف والمخزون ({searchResults.products.length})</h4>
-                      <button type="button" onClick={() => onNavigate?.('products')} className="text-[11px] text-blue-400 hover:text-blue-300 flex items-center gap-1 cursor-pointer">
+                      <h4 className="font-bold text-[var(--md-primary-text)]">الأصناف والمخزون ({searchResults.products.length})</h4>
+                      <button type="button" onClick={() => onNavigate?.('products')} className="text-[11px] text-[var(--md-primary-text)] hover:underline flex items-center gap-1 cursor-pointer">
                         <span>فتح القائمة ↗</span>
                       </button>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                       {searchResults.products.map((p: any) => (
-                        <div key={p.id} onClick={() => onNavigate?.('products')} className="p-3 bg-slate-950/80 hover:border-indigo-500/40 rounded-xl border border-slate-800 cursor-pointer transition-all">
-                          <div className="font-bold text-white">{p.name}</div>
-                          <div className="text-[11px] text-slate-400 font-mono mt-1">
+                        <div key={p.id} onClick={() => onNavigate?.('products')} className="p-3 bg-[var(--md-surface-container-low)] hover:border-[var(--md-primary)]/50 rounded-xl border border-[var(--md-outline-variant)] cursor-pointer transition-all">
+                          <div className="font-bold text-[var(--md-on-surface)]">{p.name}</div>
+                          <div className="text-[11px] text-[var(--md-on-surface-variant)] font-mono tabular-nums mt-1">
                             المخزون: {formatNumber(Number(p.current_stock ?? p.stock ?? p.qty ?? 0))} | السعر: {formatNumber(Number(p.selling_price ?? p.sale_price ?? p.price ?? 0))} {currSym}
                           </div>
                         </div>
@@ -4070,17 +4041,17 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                 {searchResults.invoices?.length > 0 && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-bold text-blue-300">فواتير المبيعات ({searchResults.invoices.length})</h4>
-                      <button type="button" onClick={() => onNavigate?.('invoices')} className="text-[11px] text-blue-400 hover:text-blue-300 flex items-center gap-1 cursor-pointer">
+                      <h4 className="font-bold text-[var(--md-info)]">فواتير المبيعات ({searchResults.invoices.length})</h4>
+                      <button type="button" onClick={() => onNavigate?.('invoices')} className="text-[11px] text-[var(--md-primary-text)] hover:underline flex items-center gap-1 cursor-pointer">
                         <span>فتح القائمة ↗</span>
                       </button>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                       {searchResults.invoices.map((inv: any) => (
-                        <div key={inv.id} onClick={() => onNavigate?.('invoices')} className="p-3 bg-slate-950/80 hover:border-blue-500/40 rounded-xl border border-slate-800 cursor-pointer transition-all">
-                          <div className="font-bold text-white font-mono">#{inv.invoice_number || inv.invoiceNumber || inv.id}</div>
-                          <div className="text-[11px] text-slate-300 mt-0.5">{inv.customer_name || inv.customerName || 'عميل نقدي'}</div>
-                          <div className="text-[11px] text-emerald-400 font-mono mt-1">
+                        <div key={inv.id} onClick={() => onNavigate?.('invoices')} className="p-3 bg-[var(--md-surface-container-low)] hover:border-[var(--md-info)]/50 rounded-xl border border-[var(--md-outline-variant)] cursor-pointer transition-all">
+                          <div className="font-bold text-[var(--md-on-surface)] font-mono">#{inv.invoice_number || inv.invoiceNumber || inv.id}</div>
+                          <div className="text-[11px] text-[var(--md-on-surface-variant)] mt-0.5">{inv.customer_name || inv.customerName || 'عميل نقدي'}</div>
+                          <div className="text-[11px] text-[var(--md-success)] font-mono tabular-nums mt-1">
                             الإجمالي: {formatNumber(Number(inv.total ?? inv.total_amount ?? 0))} {currSym}
                           </div>
                         </div>
@@ -4093,17 +4064,17 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                 {searchResults.purchaseInvoices?.length > 0 && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-bold text-cyan-300">فواتير المشتريات ({searchResults.purchaseInvoices.length})</h4>
-                      <button type="button" onClick={() => onNavigate?.('purchase_invoices')} className="text-[11px] text-blue-400 hover:text-blue-300 flex items-center gap-1 cursor-pointer">
+                      <h4 className="font-bold text-[var(--md-secondary)]">فواتير المشتريات ({searchResults.purchaseInvoices.length})</h4>
+                      <button type="button" onClick={() => onNavigate?.('purchase_invoices')} className="text-[11px] text-[var(--md-primary-text)] hover:underline flex items-center gap-1 cursor-pointer">
                         <span>فتح القائمة ↗</span>
                       </button>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                       {searchResults.purchaseInvoices.map((pur: any) => (
-                        <div key={pur.id} onClick={() => onNavigate?.('purchase_invoices')} className="p-3 bg-slate-950/80 hover:border-cyan-500/40 rounded-xl border border-slate-800 cursor-pointer transition-all">
-                          <div className="font-bold text-white font-mono">#{pur.invoice_number || pur.invoiceNumber || pur.id}</div>
-                          <div className="text-[11px] text-slate-300 mt-0.5">{pur.supplier_name || pur.supplierName || 'مورد عام'}</div>
-                          <div className="text-[11px] text-amber-400 font-mono mt-1">
+                        <div key={pur.id} onClick={() => onNavigate?.('purchase_invoices')} className="p-3 bg-[var(--md-surface-container-low)] hover:border-[var(--md-secondary)]/50 rounded-xl border border-[var(--md-outline-variant)] cursor-pointer transition-all">
+                          <div className="font-bold text-[var(--md-on-surface)] font-mono">#{pur.invoice_number || pur.invoiceNumber || pur.id}</div>
+                          <div className="text-[11px] text-[var(--md-on-surface-variant)] mt-0.5">{pur.supplier_name || pur.supplierName || 'مورد عام'}</div>
+                          <div className="text-[11px] text-[var(--md-warning)] font-mono tabular-nums mt-1">
                             الإجمالي: {formatNumber(Number(pur.total ?? pur.total_amount ?? 0))} {currSym}
                           </div>
                         </div>
@@ -4116,17 +4087,17 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                 {searchResults.payments?.length > 0 && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-bold text-teal-300">سندات الخزينة والبنك ({searchResults.payments.length})</h4>
-                      <button type="button" onClick={() => onNavigate?.('payments')} className="text-[11px] text-blue-400 hover:text-blue-300 flex items-center gap-1 cursor-pointer">
+                      <h4 className="font-bold text-[var(--md-primary-text)]">سندات الخزينة والبنك ({searchResults.payments.length})</h4>
+                      <button type="button" onClick={() => onNavigate?.('payments')} className="text-[11px] text-[var(--md-primary-text)] hover:underline flex items-center gap-1 cursor-pointer">
                         <span>فتح القائمة ↗</span>
                       </button>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                       {searchResults.payments.map((pmt: any) => (
-                        <div key={pmt.id} onClick={() => onNavigate?.('payments')} className="p-3 bg-slate-950/80 hover:border-teal-500/40 rounded-xl border border-slate-800 cursor-pointer transition-all">
-                          <div className="font-bold text-white font-mono">#{pmt.voucher_number || pmt.payment_number || pmt.id}</div>
-                          <div className="text-[11px] text-slate-300 mt-0.5">{pmt.customer_name || pmt.supplier_name || pmt.party_name || pmt.description || 'سند مالي'}</div>
-                          <div className="text-[11px] text-teal-400 font-mono mt-1">
+                        <div key={pmt.id} onClick={() => onNavigate?.('payments')} className="p-3 bg-[var(--md-surface-container-low)] hover:border-[var(--md-primary)]/50 rounded-xl border border-[var(--md-outline-variant)] cursor-pointer transition-all">
+                          <div className="font-bold text-[var(--md-on-surface)] font-mono">#{pmt.voucher_number || pmt.payment_number || pmt.id}</div>
+                          <div className="text-[11px] text-[var(--md-on-surface-variant)] mt-0.5">{pmt.customer_name || pmt.supplier_name || pmt.party_name || pmt.description || 'سند مالي'}</div>
+                          <div className="text-[11px] text-[var(--md-primary-text)] font-mono tabular-nums mt-1">
                             المبلغ: {formatNumber(Number(pmt.amount || 0))} {currSym}
                           </div>
                         </div>
@@ -4136,7 +4107,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                 )}
 
                 {(searchResults.totalHits ?? 0) === 0 && (
-                  <div className="p-6 text-center bg-slate-950 border border-slate-800 rounded-xl text-slate-400">
+                  <div className="p-6 text-center bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl text-[var(--md-on-surface-variant)]">
                     لم يتم العثور على سجلات مطابقة لعبارة البحث «{searchQuery}».
                   </div>
                 )}
@@ -4146,31 +4117,31 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
 
           {/* Data Mode Management & Quick ERP Menus Launcher */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Database className="w-4 h-4 text-emerald-400" />
+            <div className="m3-card p-6 space-y-4">
+              <h3 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                <Database className="w-4 h-4 text-[var(--md-primary-text)]" />
                 <span>إدارة وضع بيانات التشغيل (إنتاجي حقيقي / تجريبي)</span>
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-[var(--md-on-surface-variant)]">
                 التحكم في نمط تشغيل النظام ومراقبة جاهزية القوائم الأساسية للعمل الفعلي بدون أي بيانات افتراضية
               </p>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center font-mono">
-                <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl">
-                  <div className="text-[10px] text-slate-400">العملاء</div>
-                  <div className="text-base font-black text-emerald-400">{customersList.length}</div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center font-mono tabular-nums">
+                <div className="p-3 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl">
+                  <div className="text-[10px] text-[var(--md-on-surface-variant)] font-sans">العملاء</div>
+                  <div className="text-base font-black text-[var(--md-success)]">{customersList.length}</div>
                 </div>
-                <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl">
-                  <div className="text-[10px] text-slate-400">الموردون</div>
-                  <div className="text-base font-black text-amber-400">{suppliersList.length}</div>
+                <div className="p-3 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl">
+                  <div className="text-[10px] text-[var(--md-on-surface-variant)] font-sans">الموردون</div>
+                  <div className="text-base font-black text-[var(--md-warning)]">{suppliersList.length}</div>
                 </div>
-                <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl">
-                  <div className="text-[10px] text-slate-400">الأصناف</div>
-                  <div className="text-base font-black text-blue-400">{productsList.length}</div>
+                <div className="p-3 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl">
+                  <div className="text-[10px] text-[var(--md-on-surface-variant)] font-sans">الأصناف</div>
+                  <div className="text-base font-black text-[var(--md-info)]">{productsList.length}</div>
                 </div>
-                <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl">
-                  <div className="text-[10px] text-slate-400">توازن GL</div>
-                  <div className={`text-sm font-black mt-0.5 ${operatingData?.glBalanced !== false ? 'text-emerald-400' : 'text-rose-400'}`}>
+                <div className="p-3 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl">
+                  <div className="text-[10px] text-[var(--md-on-surface-variant)] font-sans">توازن GL</div>
+                  <div className={`text-sm font-black mt-0.5 font-sans ${operatingData?.glBalanced !== false ? 'text-[var(--md-success)]' : 'text-[var(--md-error)]'}`}>
                     {operatingData?.glBalanced !== false ? 'متوازن ✓' : 'غير متوازن'}
                   </div>
                 </div>
@@ -4183,8 +4154,8 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                   disabled={loading}
                   className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                     dataMode === 'PRODUCTION'
-                      ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg'
-                      : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-emerald-500/50'
+                      ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] border-[var(--md-primary)]'
+                      : 'bg-[var(--md-surface-container-low)] text-[var(--md-on-surface)] border-[var(--md-outline-variant)] hover:border-[var(--md-primary)]/50'
                   }`}
                 >
                   اعتماد وضع الإنتاج الحقيقي (Production)
@@ -4195,8 +4166,8 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                   disabled={loading}
                   className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                     dataMode === 'DEMO'
-                      ? 'bg-amber-600 text-white border-amber-500 shadow-lg'
-                      : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-amber-500/50'
+                      ? 'bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)] border-[var(--md-warning)]/40'
+                      : 'bg-[var(--md-surface-container-low)] text-[var(--md-on-surface)] border-[var(--md-outline-variant)] hover:border-[var(--md-warning)]/50'
                   }`}
                 >
                   وضع المعاينة والتجريب (Demo)
@@ -4204,9 +4175,9 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
               </div>
             </div>
 
-            <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <ExternalLink className="w-4 h-4 text-blue-400" />
+            <div className="m3-card p-6 space-y-4">
+              <h3 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                <ExternalLink className="w-4 h-4 text-[var(--md-primary-text)]" />
                 <span>الانتقال السريع لقوائم النظام الرئيسية</span>
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
@@ -4225,10 +4196,10 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                     key={nav.id}
                     type="button"
                     onClick={() => onNavigate?.(nav.id)}
-                    className="p-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-blue-500/40 text-slate-200 rounded-xl text-right font-bold flex items-center justify-between cursor-pointer transition-all"
+                    className="p-2.5 bg-[var(--md-surface-container-low)] hover:bg-[var(--md-surface-container-high)] border border-[var(--md-outline-variant)] hover:border-[var(--md-primary)]/40 text-[var(--md-on-surface)] rounded-xl text-right font-bold flex items-center justify-between cursor-pointer transition-all"
                   >
                     <span>{nav.label}</span>
-                    <ArrowUpRight className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                    <ArrowUpRight className="w-3.5 h-3.5 text-[var(--md-primary-text)] shrink-0" />
                   </button>
                 ))}
               </div>
@@ -4243,16 +4214,16 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
       {activeSubTab === 'sales_reps' && (
         <div className="space-y-6">
           {/* Header Banner */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="m3-card p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Users className="w-5 h-5 text-emerald-400" />
+              <h2 className="text-base font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                <Users className="w-5 h-5 text-[var(--md-primary-text)]" />
                 <span>إدارة مناديب التوزيع الميداني والأهداف والعمولات</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono">
+                <span className="m3-badge m3-badge-primary text-[10px] font-mono tabular-nums">
                   {salesReps.length} مناديب
                 </span>
               </h2>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-[var(--md-on-surface-variant)] mt-1">
                 ربط حي مع فواتير المبيعات وسندات القبض، متابعة خطوط السير وتحقيق التارجت، وتوريد التحصيلات للخزينة آلياً
               </p>
             </div>
@@ -4261,7 +4232,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
               {salesReps.length > 0 && (
                 <button
                   onClick={handleClearAllReps}
-                  className="px-3 py-2.5 bg-rose-950/60 hover:bg-rose-900 border border-rose-800/60 text-rose-300 hover:text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shrink-0"
+                  className="m3-btn-danger px-3 py-2.5 text-xs font-bold flex items-center gap-1.5 cursor-pointer shrink-0"
                   title="تصفير وحذف كافة مناديب التوزيع"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -4270,7 +4241,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
               )}
               <button
                 onClick={handleOpenCreateRep}
-                className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-950/60 flex items-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
+                className="m3-btn-primary px-4 py-2.5 text-xs font-bold flex items-center gap-2 cursor-pointer active:scale-95 shrink-0"
               >
                 <Plus className="w-4 h-4" />
                 <span>+ تسجيل مندوب جديد</span>
@@ -4294,35 +4265,35 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
             );
             return (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl flex flex-col justify-between">
-                  <span className="text-slate-400 text-[11px] font-bold">إجمالي مبيعات المناديب:</span>
-                  <div className="text-lg font-bold font-mono text-emerald-400 mt-1">
+                <div className="m3-card p-4 flex flex-col justify-between">
+                  <span className="text-[var(--md-on-surface-variant)] text-[11px] font-bold">إجمالي مبيعات المناديب:</span>
+                  <div className="text-lg font-bold font-mono tabular-nums text-[var(--md-success)] mt-1">
                     {formatNumber(liveTotals.sales)}
-                    <span className="text-[10px] text-slate-400 mr-1">{currSym}</span>
+                    <span className="text-[10px] text-[var(--md-on-surface-variant)] mr-1">{currSym}</span>
                   </div>
                 </div>
 
-                <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl flex flex-col justify-between">
-                  <span className="text-slate-400 text-[11px] font-bold">إجمالي النقدية الموردة:</span>
-                  <div className="text-lg font-bold font-mono text-blue-400 mt-1">
+                <div className="m3-card p-4 flex flex-col justify-between">
+                  <span className="text-[var(--md-on-surface-variant)] text-[11px] font-bold">إجمالي النقدية الموردة:</span>
+                  <div className="text-lg font-bold font-mono tabular-nums text-[var(--md-info)] mt-1">
                     {formatNumber(liveTotals.collected)}
-                    <span className="text-[10px] text-slate-400 mr-1">{currSym}</span>
+                    <span className="text-[10px] text-[var(--md-on-surface-variant)] mr-1">{currSym}</span>
                   </div>
                 </div>
 
-                <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl flex flex-col justify-between">
-                  <span className="text-slate-400 text-[11px] font-bold">الذمم الآجلة المعلقة:</span>
-                  <div className="text-lg font-bold font-mono text-amber-400 mt-1">
+                <div className="m3-card p-4 flex flex-col justify-between">
+                  <span className="text-[var(--md-on-surface-variant)] text-[11px] font-bold">الذمم الآجلة المعلقة:</span>
+                  <div className="text-lg font-bold font-mono tabular-nums text-[var(--md-warning)] mt-1">
                     {formatNumber(liveTotals.pending)}
-                    <span className="text-[10px] text-slate-400 mr-1">{currSym}</span>
+                    <span className="text-[10px] text-[var(--md-on-surface-variant)] mr-1">{currSym}</span>
                   </div>
                 </div>
 
-                <div className="p-4 bg-gradient-to-br from-[#132d22] to-slate-900 border border-emerald-500/30 rounded-xl flex flex-col justify-between">
-                  <span className="text-emerald-300 text-[11px] font-bold">إجمالي العمولات المستحقة:</span>
-                  <div className="text-lg font-bold font-mono text-emerald-300 mt-1">
+                <div className="p-4 bg-[var(--md-primary-container)] border border-[var(--md-primary)]/30 rounded-2xl flex flex-col justify-between">
+                  <span className="text-[var(--md-on-primary-container)] text-[11px] font-bold">إجمالي العمولات المستحقة:</span>
+                  <div className="text-lg font-bold font-mono tabular-nums text-[var(--md-on-primary-container)] mt-1">
                     {formatNumber(liveTotals.commission)}
-                    <span className="text-[10px] text-emerald-400/80 mr-1">{currSym}</span>
+                    <span className="text-[10px] opacity-80 mr-1">{currSym}</span>
                   </div>
                 </div>
               </div>
@@ -4330,28 +4301,28 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
           })()}
 
           {/* Reps Table */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+          <div className="m3-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-xs text-right">
-                <thead>
-                  <tr className="bg-slate-950/80 text-slate-400 border-b border-slate-800 text-[11px]">
-                    <th className="py-3 px-4 font-bold">المندوب</th>
-                    <th className="py-3 px-4 font-bold">خط السير والسيارة</th>
-                    <th className="py-3 px-4 font-bold text-center">الهدف الشهري</th>
-                    <th className="py-3 px-4 font-bold text-center">المبيعات المحققة</th>
-                    <th className="py-3 px-4 font-bold text-center">نسبة الإنجاز</th>
-                    <th className="py-3 px-4 font-bold text-center">التحصيل النقدي</th>
-                    <th className="py-3 px-4 font-bold text-center">الذمم المعلقة</th>
-                    <th className="py-3 px-4 font-bold text-center">نسبة العمولة</th>
-                    <th className="py-3 px-4 font-bold text-center">صافي العمولة</th>
-                    <th className="py-3 px-4 font-bold text-center">الحالة</th>
-                    <th className="py-3 px-4 font-bold text-center">إجراءات</th>
+              <table className="m3-table w-full text-xs text-right">
+                <thead className="m3-thead">
+                  <tr>
+                    <th className="m3-th py-3 px-4 font-bold">المندوب</th>
+                    <th className="m3-th py-3 px-4 font-bold">خط السير والسيارة</th>
+                    <th className="m3-th py-3 px-4 font-bold text-center">الهدف الشهري</th>
+                    <th className="m3-th py-3 px-4 font-bold text-center">المبيعات المحققة</th>
+                    <th className="m3-th py-3 px-4 font-bold text-center">نسبة الإنجاز</th>
+                    <th className="m3-th py-3 px-4 font-bold text-center">التحصيل النقدي</th>
+                    <th className="m3-th py-3 px-4 font-bold text-center">الذمم المعلقة</th>
+                    <th className="m3-th py-3 px-4 font-bold text-center">نسبة العمولة</th>
+                    <th className="m3-th py-3 px-4 font-bold text-center">صافي العمولة</th>
+                    <th className="m3-th py-3 px-4 font-bold text-center">الحالة</th>
+                    <th className="m3-th py-3 px-4 font-bold text-center">إجراءات</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60 font-mono">
+                <tbody className="divide-y divide-[var(--md-outline-variant)] font-mono tabular-nums">
                   {salesReps.length === 0 ? (
                     <tr>
-                      <td colSpan={11} className="py-8 text-center text-slate-400 text-xs font-sans">
+                      <td colSpan={11} className="py-8 text-center text-[var(--md-on-surface-variant)] text-xs font-sans">
                         لا يوجد مناديب توزيع مسجلين حالياً. اضغط على «+ تسجيل مندوب جديد» لإضافة مندوب ميداني.
                       </td>
                     </tr>
@@ -4360,68 +4331,68 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                       const live = getRepLiveMetrics(rep);
                       const achievementPct = rep.monthlyTarget > 0 ? (live.effectiveSales / rep.monthlyTarget) * 100 : 0;
                       return (
-                        <tr key={rep.id} className="hover:bg-slate-800/40 transition-colors">
+                        <tr key={rep.id} className="hover:bg-[var(--md-surface-container-low)] transition-colors">
                           <td className="py-3.5 px-4 font-sans">
-                            <div className="font-bold text-white text-xs">{rep.name}</div>
-                            <div className="text-[10px] text-slate-400 font-mono">
+                            <div className="font-bold text-[var(--md-on-surface)] text-xs">{rep.name}</div>
+                            <div className="text-[10px] text-[var(--md-on-surface-variant)] font-mono">
                               {rep.code} • {rep.phone}
                             </div>
                             {(live.invoiceCount > 0 || live.receiptCount > 0) && (
-                              <div className="text-[10px] text-emerald-400 font-mono mt-0.5">
+                              <div className="text-[10px] text-[var(--md-primary-text)] font-mono mt-0.5">
                                 ربط حي: {live.invoiceCount} فاتورة • {live.receiptCount} سند
                               </div>
                             )}
                           </td>
 
                           <td className="py-3.5 px-4 font-sans">
-                            <div className="text-slate-200">{rep.territory}</div>
-                            <div className="text-[10px] text-slate-400">{rep.vehicle}</div>
+                            <div className="text-[var(--md-on-surface)]">{rep.territory}</div>
+                            <div className="text-[10px] text-[var(--md-on-surface-variant)]">{rep.vehicle}</div>
                           </td>
 
-                          <td className="py-3.5 px-4 text-center font-bold text-slate-300">
+                          <td className="py-3.5 px-4 text-center font-bold text-[var(--md-on-surface-variant)]">
                             {formatNumber(rep.monthlyTarget)}
                           </td>
 
-                          <td className="py-3.5 px-4 text-center font-bold text-emerald-400">
+                          <td className="py-3.5 px-4 text-center font-bold text-[var(--md-success)]">
                             {formatNumber(live.effectiveSales)}
                           </td>
 
                           <td className="py-3.5 px-4 text-center">
                             <div className="space-y-1">
-                              <span className="font-bold text-[11px] text-slate-200">
+                              <span className="font-bold text-[11px] text-[var(--md-on-surface)]">
                                 {achievementPct.toFixed(1)}%
                               </span>
-                              <div className="w-16 h-1.5 bg-slate-800 rounded-full mx-auto overflow-hidden">
+                              <div className="w-16 h-1.5 bg-[var(--md-surface-container-highest)] rounded-full mx-auto overflow-hidden">
                                 <div
                                   style={{ width: `${Math.min(100, achievementPct)}%` }}
-                                  className="h-full bg-emerald-500 rounded-full"
+                                  className="h-full bg-[var(--md-primary)] rounded-full"
                                 />
                               </div>
                             </div>
                           </td>
 
-                          <td className="py-3.5 px-4 text-center text-blue-300 font-bold">
+                          <td className="py-3.5 px-4 text-center text-[var(--md-info)] font-bold">
                             {formatNumber(live.effectiveCollected)}
                           </td>
 
-                          <td className="py-3.5 px-4 text-center text-amber-300 font-bold">
+                          <td className="py-3.5 px-4 text-center text-[var(--md-warning)] font-bold">
                             {formatNumber(rep.pendingReceivables)}
                           </td>
 
-                          <td className="py-3.5 px-4 text-center text-slate-300 font-bold">
+                          <td className="py-3.5 px-4 text-center text-[var(--md-on-surface-variant)] font-bold">
                             {rep.commissionRate}%
                           </td>
 
-                          <td className="py-3.5 px-4 text-center text-emerald-300 font-black text-xs">
+                          <td className="py-3.5 px-4 text-center text-[var(--md-primary-text)] font-black text-xs">
                             {formatNumber(live.effectiveCommission)} {currSym}
                           </td>
 
                           <td className="py-3.5 px-4 text-center font-sans">
                             <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              className={`m3-badge text-[10px] ${
                                 rep.status === 'ACTIVE'
-                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                  : 'bg-slate-800 text-slate-400'
+                                  ? 'm3-badge-success'
+                                  : 'bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)]'
                               }`}
                             >
                               {rep.status === 'ACTIVE' ? 'نشط في الميدان' : 'متوقف'}
@@ -4433,7 +4404,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                               <button
                                 onClick={() => handleOpenRemitModal(rep)}
                                 title="توريد تحصيل نقدي أو بنكي من المندوب للخزينة"
-                                className="px-2 py-1.5 bg-blue-950/70 hover:bg-blue-700 text-blue-300 hover:text-white rounded-lg border border-blue-700/40 transition-colors cursor-pointer flex items-center gap-1 text-[10px] font-bold"
+                                className="m3-btn-tonal px-2 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-[10px] font-bold"
                               >
                                 <Send className="w-3 h-3" />
                                 <span>توريد للخزينة</span>
@@ -4441,7 +4412,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                               <button
                                 onClick={() => handleOpenEditRep(rep)}
                                 title="تعديل بيانات المندوب والهدف"
-                                className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
+                                className="m3-btn-outlined px-2 py-1.5 rounded-lg text-[10px] font-bold transition-colors cursor-pointer"
                               >
                                 تعديل
                               </button>
@@ -4455,7 +4426,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                                   })
                                 }
                                 title="طباعة كشف أداء وتصفية عمولة المندوب"
-                                className="p-1.5 bg-emerald-950/60 hover:bg-emerald-800 text-emerald-300 hover:text-white rounded-lg border border-emerald-700/40 transition-colors cursor-pointer flex items-center gap-1"
+                                className="m3-btn-outlined px-2 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-[var(--md-primary-text)]"
                               >
                                 <Printer className="w-3.5 h-3.5" />
                                 <span className="text-[10px]">كشف</span>
@@ -4463,7 +4434,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                               <button
                                 onClick={() => handleDeleteRep(rep.id, rep.name)}
                                 title="حذف مندوب المبيعات"
-                                className="p-1.5 bg-rose-950/50 hover:bg-rose-900 border border-rose-800/40 text-rose-400 hover:text-rose-200 rounded-lg transition-colors cursor-pointer"
+                                className="m3-btn-danger p-1.5 rounded-lg transition-colors cursor-pointer"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -4484,28 +4455,28 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
       {/* MODAL: توريد تحصيل مندوب للخزينة (Treasury Remittance Modal)              */}
       {/* ========================================================================= */}
       {remittingRep && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border border-blue-500/30 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
-            <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Wallet className="w-4 h-4 text-blue-400" />
+        <div className="m3-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="m3-modal-surface w-full max-w-md overflow-hidden">
+            <div className="p-4 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] flex items-center justify-between">
+              <h3 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                <Wallet className="w-4 h-4 text-[var(--md-primary-text)]" />
                 <span>توريد تحصيل للخزينة — {remittingRep.name}</span>
               </h3>
-              <button type="button" onClick={() => setRemittingRep(null)} className="text-slate-400 hover:text-white p-1">
+              <button type="button" onClick={() => setRemittingRep(null)} className="m3-btn-text p-1.5 rounded-lg cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleSubmitRemit} className="p-5 space-y-4 text-xs">
-              <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between">
-                <span className="text-slate-400">الذمم المعلقة الحالية على المندوب:</span>
-                <span className="font-mono font-bold text-amber-400">
+              <div className="p-3 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl flex items-center justify-between">
+                <span className="text-[var(--md-on-surface-variant)]">الذمم المعلقة الحالية على المندوب:</span>
+                <span className="font-mono tabular-nums font-bold text-[var(--md-warning)]">
                   {formatNumber(remittingRep.pendingReceivables)} {currSym}
                 </span>
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1.5">المبلغ المورد للخزينة ({currSym}):</label>
+                <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1.5">المبلغ المورد للخزينة ({currSym}):</label>
                 <input
                   type="number"
                   step="0.01"
@@ -4513,17 +4484,17 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                   required
                   value={remitForm.amount}
                   onChange={(e) => setRemitForm({ ...remitForm, amount: e.target.value })}
-                  className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 font-mono focus:outline-none focus:border-blue-500"
+                  className="m3-input w-full font-mono tabular-nums"
                   placeholder="أدخل مبلغ التحصيل"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1.5">قناة التوريد:</label>
+                <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1.5">قناة التوريد:</label>
                 <select
                   value={remitForm.paymentMethod}
                   onChange={(e) => setRemitForm({ ...remitForm, paymentMethod: e.target.value })}
-                  className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:border-blue-500"
+                  className="m3-select w-full"
                 >
                   <option value="CASH">الخزينة الرئيسية (نقداً)</option>
                   <option value="BANK">الحساب البنكي (تحويل / إيداع)</option>
@@ -4532,27 +4503,27 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1.5">البيان / الملاحظات:</label>
+                <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1.5">البيان / الملاحظات:</label>
                 <input
                   type="text"
                   value={remitForm.notes}
                   onChange={(e) => setRemitForm({ ...remitForm, notes: e.target.value })}
-                  className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:border-blue-500"
+                  className="m3-input w-full"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--md-outline-variant)]">
                 <button
                   type="button"
                   onClick={() => setRemittingRep(null)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold cursor-pointer"
+                  className="m3-btn-outlined px-4 py-2 font-bold cursor-pointer"
                 >
                   إلغاء
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-5 py-2 bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 text-white rounded-xl font-bold shadow-lg cursor-pointer"
+                  className="m3-btn-primary px-5 py-2 font-bold cursor-pointer"
                 >
                   اعتماد سند القبض والتوريد ✓
                 </button>
@@ -4566,16 +4537,16 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
       {/* MODAL: إضافة / تعديل مندوب مبيعات (Add/Edit Sales Rep Modal)               */}
       {/* ========================================================================= */}
       {isRepModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
-            <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Users className="w-4 h-4 text-emerald-400" />
+        <div className="m3-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="m3-modal-surface w-full max-w-lg overflow-hidden">
+            <div className="p-4 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] flex items-center justify-between">
+              <h3 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                <Users className="w-4 h-4 text-[var(--md-primary-text)]" />
                 <span>{editingRep ? 'تعديل بيانات مندوب المبيعات' : 'تسجيل مندوب مبيعات وتوزيع جديد'}</span>
               </h3>
               <button
                 onClick={() => setIsRepModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg"
+                className="m3-btn-text p-1.5 rounded-lg cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -4584,23 +4555,23 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
             <form onSubmit={handleSaveRep} className="p-5 space-y-3.5 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-300 mb-1">اسم المندوب:</label>
+                  <label className="block text-[11px] font-medium text-[var(--md-on-surface-variant)] mb-1">اسم المندوب:</label>
                   <input
                     type="text"
                     required
                     value={repFormData.name}
                     onChange={(e) => setRepFormData({ ...repFormData, name: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 focus:outline-none focus:border-emerald-500"
+                    className="m3-input w-full"
                     placeholder="مثال: أحمد ناصر العمري"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-300 mb-1">كود المندوب:</label>
+                  <label className="block text-[11px] font-medium text-[var(--md-on-surface-variant)] mb-1">كود المندوب:</label>
                   <input
                     type="text"
                     value={repFormData.code}
                     onChange={(e) => setRepFormData({ ...repFormData, code: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 font-mono focus:outline-none"
+                    className="m3-input w-full font-mono"
                     placeholder="REP-01"
                   />
                 </div>
@@ -4608,17 +4579,17 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-300 mb-1">رقم الهاتف:</label>
+                  <label className="block text-[11px] font-medium text-[var(--md-on-surface-variant)] mb-1">رقم الهاتف:</label>
                   <input
                     type="text"
                     value={repFormData.phone}
                     onChange={(e) => setRepFormData({ ...repFormData, phone: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 font-mono focus:outline-none"
+                    className="m3-input w-full font-mono"
                     placeholder="771234567"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-300 mb-1">نسبة العمولة (%):</label>
+                  <label className="block text-[11px] font-medium text-[var(--md-on-surface-variant)] mb-1">نسبة العمولة (%):</label>
                   <input
                     type="number"
                     step="0.1"
@@ -4626,7 +4597,7 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
                     max="100"
                     value={repFormData.commissionRate}
                     onChange={(e) => setRepFormData({ ...repFormData, commissionRate: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 font-mono focus:outline-none"
+                    className="m3-input w-full font-mono tabular-nums"
                     placeholder="3.5"
                   />
                 </div>
@@ -4634,22 +4605,22 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-300 mb-1">منطقة وخط السير:</label>
+                  <label className="block text-[11px] font-medium text-[var(--md-on-surface-variant)] mb-1">منطقة وخط السير:</label>
                   <input
                     type="text"
                     value={repFormData.territory}
                     onChange={(e) => setRepFormData({ ...repFormData, territory: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 focus:outline-none"
+                    className="m3-input w-full"
                     placeholder="صنعاء الوسطى وحدّة"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-300 mb-1">سيارة التوزيع / وسيلة النقل:</label>
+                  <label className="block text-[11px] font-medium text-[var(--md-on-surface-variant)] mb-1">سيارة التوزيع / وسيلة النقل:</label>
                   <input
                     type="text"
                     value={repFormData.vehicle}
                     onChange={(e) => setRepFormData({ ...repFormData, vehicle: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 focus:outline-none"
+                    className="m3-input w-full"
                     placeholder="هايلوكس غمارتين #3421"
                   />
                 </div>
@@ -4657,38 +4628,38 @@ export const RealBusinessOperationsTab: React.FC<RealBusinessOperationsTabProps>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-300 mb-1">الهدف اليومي ({currSym}):</label>
+                  <label className="block text-[11px] font-medium text-[var(--md-on-surface-variant)] mb-1">الهدف اليومي ({currSym}):</label>
                   <input
                     type="number"
                     value={repFormData.dailyTarget}
                     onChange={(e) => setRepFormData({ ...repFormData, dailyTarget: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 font-mono focus:outline-none"
+                    className="m3-input w-full font-mono tabular-nums"
                     placeholder="250000"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-300 mb-1">الهدف الشهري ({currSym}):</label>
+                  <label className="block text-[11px] font-medium text-[var(--md-on-surface-variant)] mb-1">الهدف الشهري ({currSym}):</label>
                   <input
                     type="number"
                     value={repFormData.monthlyTarget}
                     onChange={(e) => setRepFormData({ ...repFormData, monthlyTarget: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 font-mono focus:outline-none"
+                    className="m3-input w-full font-mono tabular-nums"
                     placeholder="6500000"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--md-outline-variant)]">
                 <button
                   type="button"
                   onClick={() => setIsRepModalOpen(false)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold"
+                  className="m3-btn-outlined px-4 py-2 text-xs font-bold cursor-pointer"
                 >
                   إلغاء
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold shadow-md"
+                  className="m3-btn-primary px-5 py-2 text-xs font-bold cursor-pointer"
                 >
                   حفظ البيانات ✅
                 </button>

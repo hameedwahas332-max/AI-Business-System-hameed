@@ -101,39 +101,39 @@ export const WhatsAppScheduledTab: React.FC<WhatsAppScheduledTabProps> = ({
   };
 
   return (
-    <div id="whatsapp-scheduled-section" className="space-y-6 text-right">
+    <div id="whatsapp-scheduled-section" dir="rtl" className="space-y-6 text-right">
       
       {/* Feedback Banner */}
       {feedback && (
         <div
-          className={`p-4 rounded-2xl text-xs font-semibold flex items-center justify-between gap-3 border shadow-md animate-fade-in ${
+          className={`p-4 rounded-2xl text-xs font-semibold flex items-center justify-between gap-3 border animate-fade-in ${
             feedback.type === 'success'
-              ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
-              : 'bg-rose-500/10 text-rose-300 border-rose-500/30'
+              ? 'bg-[var(--md-success-container)] text-[var(--md-on-success-container)] border-[var(--md-success)]/30'
+              : 'bg-[var(--md-error-container)] text-[var(--md-on-error-container)] border-[var(--md-error)]/30'
           }`}
         >
           <div className="flex items-center gap-2">
             {feedback.type === 'success' ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <CheckCircle2 className="w-4 h-4 text-[var(--md-success)]" />
             ) : (
-              <AlertCircle className="w-4 h-4 text-rose-400" />
+              <AlertCircle className="w-4 h-4 text-[var(--md-error)]" />
             )}
             <span>{feedback.msg}</span>
           </div>
-          <button onClick={() => setFeedback(null)} className="text-[11px] font-bold underline">
+          <button onClick={() => setFeedback(null)} className="m3-btn-text !min-h-[28px] !px-2 !py-1 text-[11px] font-bold underline">
             إغلاق
           </button>
         </div>
       )}
 
       {/* Header */}
-      <div className="bg-[#091511] rounded-2xl border border-emerald-500/30 p-5 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="m3-card p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h2 className="text-base font-bold text-white flex items-center gap-2">
-            <Clock className="w-5 h-5 text-emerald-400" />
+          <h2 className="text-base font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+            <Clock className="w-5 h-5 text-[var(--md-primary-text)]" />
             <span>الرسائل المجدولة والتذكيرات الآجلة</span>
           </h2>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-[var(--md-on-surface-variant)]">
             إدارة الرسائل المجدولة للإرسال في تواريخ ومواعيد مستقبلية محددة مع إمكانية التعديل والإرسال الفوري.
           </p>
         </div>
@@ -141,7 +141,7 @@ export const WhatsAppScheduledTab: React.FC<WhatsAppScheduledTabProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={onOpenScheduleModal}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs transition-all shadow-md shadow-emerald-950 active:scale-95 shrink-0 cursor-pointer"
+            className="m3-btn-primary text-xs shrink-0 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>+ جدولة رسالة جديدة</span>
@@ -150,33 +150,27 @@ export const WhatsAppScheduledTab: React.FC<WhatsAppScheduledTabProps> = ({
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 text-xs">
+      <div className="flex items-center gap-2 text-xs flex-wrap">
         <button
           onClick={() => setFilterStatus('ALL')}
-          className={`px-3 py-1.5 rounded-xl font-bold cursor-pointer transition-all ${
-            filterStatus === 'ALL'
-              ? 'bg-emerald-600 text-white shadow-md'
-              : 'bg-[#091511] text-slate-400 hover:text-white border border-emerald-500/20'
+          className={`!min-h-[34px] !px-3.5 !py-1.5 text-xs font-bold tabular-nums cursor-pointer ${
+            filterStatus === 'ALL' ? 'm3-btn-primary' : 'm3-btn-outlined'
           }`}
         >
           الكل ({safeList.length})
         </button>
         <button
           onClick={() => setFilterStatus('SCHEDULED')}
-          className={`px-3 py-1.5 rounded-xl font-bold cursor-pointer transition-all ${
-            filterStatus === 'SCHEDULED'
-              ? 'bg-emerald-600 text-white shadow-md'
-              : 'bg-[#091511] text-slate-400 hover:text-white border border-emerald-500/20'
+          className={`!min-h-[34px] !px-3.5 !py-1.5 text-xs font-bold tabular-nums cursor-pointer ${
+            filterStatus === 'SCHEDULED' ? 'm3-btn-primary' : 'm3-btn-outlined'
           }`}
         >
           مجدولة ({safeList.filter((s) => s.status === 'SCHEDULED').length})
         </button>
         <button
           onClick={() => setFilterStatus('SENT')}
-          className={`px-3 py-1.5 rounded-xl font-bold cursor-pointer transition-all ${
-            filterStatus === 'SENT'
-              ? 'bg-emerald-600 text-white shadow-md'
-              : 'bg-[#091511] text-slate-400 hover:text-white border border-emerald-500/20'
+          className={`!min-h-[34px] !px-3.5 !py-1.5 text-xs font-bold tabular-nums cursor-pointer ${
+            filterStatus === 'SENT' ? 'm3-btn-primary' : 'm3-btn-outlined'
           }`}
         >
           مرسلة ({safeList.filter((s) => s.status === 'SENT').length})
@@ -184,42 +178,42 @@ export const WhatsAppScheduledTab: React.FC<WhatsAppScheduledTabProps> = ({
       </div>
 
       {/* Table of Scheduled Messages */}
-      <div className="bg-[#091511] rounded-2xl border border-emerald-500/30 shadow-xl overflow-hidden">
+      <div className="m3-card overflow-hidden">
         {filtered.length === 0 ? (
-          <div className="p-12 text-center text-slate-500 space-y-2">
-            <Clock className="w-8 h-8 mx-auto text-emerald-400/40" />
-            <p className="text-sm font-semibold text-white">لا توجد رسائل مجدولة حالياً</p>
-            <p className="text-xs text-slate-400">اضغط على زر "+ جدولة رسالة جديدة" لبرمجة إرسال رسالة في موعد محدد.</p>
+          <div className="p-12 text-center text-[var(--md-on-surface-variant)] space-y-2">
+            <Clock className="w-8 h-8 mx-auto text-[var(--md-primary-text)] opacity-50" />
+            <p className="text-sm font-semibold text-[var(--md-on-surface)]">لا توجد رسائل مجدولة حالياً</p>
+            <p className="text-xs text-[var(--md-on-surface-variant)]">اضغط على زر "+ جدولة رسالة جديدة" لبرمجة إرسال رسالة في موعد محدد.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-right text-xs">
-              <thead className="bg-[#06120d] text-slate-300 font-bold border-b border-emerald-500/20">
+            <table className="m3-table w-full text-right text-xs">
+              <thead className="m3-thead">
                 <tr>
-                  <th className="p-3.5">المستلم</th>
-                  <th className="p-3.5">رقم الهاتف</th>
-                  <th className="p-3.5">نص الرسالة</th>
-                  <th className="p-3.5">موعد الإرسال المجدول</th>
-                  <th className="p-3.5">الحالة</th>
-                  <th className="p-3.5 text-center">الإجراءات</th>
+                  <th className="m3-th">المستلم</th>
+                  <th className="m3-th">رقم الهاتف</th>
+                  <th className="m3-th">نص الرسالة</th>
+                  <th className="m3-th">موعد الإرسال المجدول</th>
+                  <th className="m3-th">الحالة</th>
+                  <th className="m3-th text-center">الإجراءات</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-emerald-950/40 text-slate-300">
+              <tbody className="divide-y divide-[var(--md-outline-variant)] text-[var(--md-on-surface)]">
                 {filtered.map((msg) => {
                   const isBusy = processingId === msg.id;
                   return (
-                    <tr key={msg.id} className="hover:bg-[#0c2419] transition-colors">
-                      <td className="p-3.5 font-bold text-white flex items-center gap-2">
-                        <User className="w-3.5 h-3.5 text-emerald-400" />
+                    <tr key={msg.id} className="hover:bg-[var(--md-surface-container-high)]/60 transition-colors">
+                      <td className="p-3.5 font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                        <User className="w-3.5 h-3.5 text-[var(--md-primary-text)] shrink-0" />
                         <span>{msg.recipient_name || 'جهة اتصال'}</span>
                       </td>
-                      <td className="p-3.5 font-mono text-slate-400" dir="ltr">
+                      <td className="p-3.5 font-mono tabular-nums text-[var(--md-on-surface-variant)]" dir="ltr">
                         {msg.recipient_phone}
                       </td>
-                      <td className="p-3.5 max-w-xs truncate font-sans text-slate-200">
+                      <td className="p-3.5 max-w-xs truncate font-sans text-[var(--md-on-surface)]">
                         {msg.message_body}
                       </td>
-                      <td className="p-3.5 font-mono text-emerald-400">
+                      <td className="p-3.5 font-mono tabular-nums text-[var(--md-primary-text)] font-semibold">
                         {new Date(msg.scheduled_at).toLocaleString('en-US', {
                           year: 'numeric',
                           month: 'short',
@@ -230,12 +224,12 @@ export const WhatsAppScheduledTab: React.FC<WhatsAppScheduledTabProps> = ({
                       </td>
                       <td className="p-3.5">
                         <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                          className={`m3-badge text-[10px] font-bold ${
                             msg.status === 'SENT'
-                              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                              ? 'm3-badge-success'
                               : msg.status === 'FAILED'
-                              ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
-                              : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                              ? 'm3-badge-error'
+                              : 'm3-badge-warning'
                           }`}
                         >
                           {msg.status === 'SENT' ? 'تم الإرسال' : msg.status === 'FAILED' ? 'فشل' : 'مجدولة'}
@@ -247,7 +241,7 @@ export const WhatsAppScheduledTab: React.FC<WhatsAppScheduledTabProps> = ({
                             <button
                               onClick={() => handleSendNow(msg)}
                               disabled={isBusy}
-                              className="px-2.5 py-1 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white rounded-lg font-bold border border-emerald-500/30 transition-all flex items-center gap-1 cursor-pointer"
+                              className="m3-btn-tonal !min-h-[30px] !px-2.5 !py-1 text-xs cursor-pointer disabled:opacity-50"
                               title="إرسال فوري الآن"
                             >
                               <Send className="w-3 h-3" />
@@ -257,7 +251,7 @@ export const WhatsAppScheduledTab: React.FC<WhatsAppScheduledTabProps> = ({
                           <button
                             onClick={() => handleCancel(msg.id)}
                             disabled={isBusy}
-                            className="p-1.5 bg-[#06120d] hover:bg-rose-600/30 text-rose-400 rounded-lg border border-rose-500/20 transition-all cursor-pointer"
+                            className="p-1.5 bg-[var(--md-error-container)] hover:opacity-85 text-[var(--md-on-error-container)] rounded-lg border border-[var(--md-error)]/25 transition-all cursor-pointer disabled:opacity-50"
                             title="إلغاء الجدولة وحذف الرسالة"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

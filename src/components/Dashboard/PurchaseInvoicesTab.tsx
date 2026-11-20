@@ -765,38 +765,36 @@ export const PurchaseInvoicesTab: React.FC = () => {
   const getStatusBadge = (st: string) => {
     switch (st) {
       case 'PAID':
-        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800/60">مسددة للمورد</span>;
+        return <span className="m3-badge m3-badge-success text-[10px] font-bold">مسددة للمورد</span>;
       case 'PARTIALLY_PAID':
-        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-teal-950 text-teal-300 border border-teal-800/60">مسددة جزئياً</span>;
+        return <span className="m3-badge m3-badge-info text-[10px] font-bold">مسددة جزئياً</span>;
       case 'PENDING':
-        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-800/60">مستحقة للمورد</span>;
+        return <span className="m3-badge m3-badge-warning text-[10px] font-bold">مستحقة للمورد</span>;
       case 'DRAFT':
-        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700/60">مسودة</span>;
+        return <span className="m3-badge bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] border border-[var(--md-outline-variant)] text-[10px] font-bold">مسودة</span>;
       default:
-        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400">{st}</span>;
+        return <span className="m3-badge bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] text-[10px] font-bold">{st}</span>;
     }
   };
 
   return (
-    <div className="space-y-6 text-right text-slate-100 font-sans" dir="rtl">
+    <div className="space-y-6 text-right text-[var(--md-on-surface)] font-sans" dir="rtl">
       {/* Header */}
-      <div className="bg-slate-900 border border-emerald-900/40 rounded-2xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-transparent rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-
+      <div className="m3-card p-5 sm:p-6 relative overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
           <div className="space-y-1">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center shadow-lg shadow-emerald-950/50 shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-outline-variant)] flex items-center justify-center shrink-0">
                 <ShoppingBag className="w-5 h-5" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black text-[var(--md-on-surface)] tracking-tight flex items-center gap-2 flex-wrap">
                   <span>إدارة فواتير المشتريات</span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
+                  <span className="m3-badge m3-badge-primary text-[10px] font-bold font-mono">
                     Purchase Invoices
                   </span>
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-400 font-medium">
+                <p className="text-xs sm:text-sm text-[var(--md-on-surface-variant)] font-medium">
                   تسجيل فواتير المشتريات من الموردين، زيادة المخزون تلقائياً، وإضافة الالتزامات المالية في الشجرة المحاسبية
                 </p>
               </div>
@@ -805,7 +803,7 @@ export const PurchaseInvoicesTab: React.FC = () => {
 
           <button
             onClick={handleOpenBuilder}
-            className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-bold text-xs sm:text-sm shadow-lg shadow-emerald-950/60 border border-emerald-500/40 flex items-center gap-2 transition-all active:scale-95 shrink-0 cursor-pointer"
+            className="m3-btn-primary px-4 py-2.5 font-bold text-xs sm:text-sm flex items-center gap-2 transition-all active:scale-95 shrink-0 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>تسجيل فاتورة مشتريات جديدة</span>
@@ -815,30 +813,30 @@ export const PurchaseInvoicesTab: React.FC = () => {
 
       {/* Notifications */}
       {error && (
-        <div className="p-4 bg-red-950/40 border border-red-800/60 rounded-xl text-red-300 text-xs sm:text-sm flex items-center gap-2.5 shadow-lg">
-          <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+        <div className="p-4 bg-[var(--md-error-container)] border border-[var(--md-error)]/30 rounded-xl text-[var(--md-on-error-container)] text-xs sm:text-sm flex items-center gap-2.5">
+          <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {success && (
-        <div className="p-4 bg-emerald-950/40 border border-emerald-800/60 rounded-xl text-emerald-300 text-xs sm:text-sm flex items-center gap-2.5 shadow-lg">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="p-4 bg-[var(--md-success-container)] border border-[var(--md-success)]/30 rounded-xl text-[var(--md-on-success-container)] text-xs sm:text-sm flex items-center gap-2.5">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
           <span>{success}</span>
         </div>
       )}
 
       {/* Invoices List */}
-      <div className="bg-slate-900 border border-slate-800/80 rounded-2xl overflow-hidden shadow-xl">
-        <div className="p-4 border-b border-slate-800 bg-slate-900/50 flex flex-col md:flex-row items-center justify-between gap-3">
+      <div className="m3-card overflow-hidden">
+        <div className="p-4 border-b border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] flex flex-col md:flex-row items-center justify-between gap-3">
           <div className="relative flex-1 w-full max-w-md">
-            <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute right-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="البحث برقم المشتريات، اسم المورد..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(normalizeScannedBarcode(e.target.value))}
-              className="w-full pl-3 pr-9 py-2 text-xs bg-slate-950 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
+              className="m3-input w-full pl-3 pr-9 py-2 text-xs"
             />
           </div>
 
@@ -846,7 +844,7 @@ export const PurchaseInvoicesTab: React.FC = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="py-2 px-3 text-xs bg-slate-950 border border-slate-700/80 rounded-xl text-slate-200 focus:outline-none focus:border-emerald-500"
+              className="m3-select py-2 px-3 text-xs"
             >
               <option value="">جميع الحالات</option>
               <option value="PENDING">مستحقة (PENDING)</option>
@@ -859,85 +857,85 @@ export const PurchaseInvoicesTab: React.FC = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-right text-xs text-slate-300">
-            <thead className="bg-slate-950 text-slate-400 font-semibold border-b border-slate-800 text-[11px] uppercase tracking-wider">
+          <table className="m3-table w-full text-right text-xs">
+            <thead className="m3-thead font-semibold text-[11px] uppercase tracking-wider">
               <tr>
-                <th className="p-3.5">رقم الفاتورة</th>
-                <th className="p-3.5">المورد</th>
-                <th className="p-3.5">التاريخ</th>
-                <th className="p-3.5">الإجمالي</th>
-                <th className="p-3.5">المسدد للمورد</th>
-                <th className="p-3.5">المتبقي للمورد</th>
-                <th className="p-3.5">الحالة</th>
-                <th className="p-3.5 text-center">الإجراءات</th>
+                <th className="m3-th p-3.5">رقم الفاتورة</th>
+                <th className="m3-th p-3.5">المورد</th>
+                <th className="m3-th p-3.5">التاريخ</th>
+                <th className="m3-th p-3.5">الإجمالي</th>
+                <th className="m3-th p-3.5">المسدد للمورد</th>
+                <th className="m3-th p-3.5">المتبقي للمورد</th>
+                <th className="m3-th p-3.5">الحالة</th>
+                <th className="m3-th p-3.5 text-center">الإجراءات</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 font-medium">
+            <tbody className="divide-y divide-[var(--md-outline-variant)] font-medium">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-400">
+                  <td colSpan={8} className="p-8 text-center text-[var(--md-on-surface-variant)]">
                     <div className="flex flex-col items-center justify-center gap-2">
-                      <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
+                      <Loader2 className="w-6 h-6 animate-spin text-[var(--md-primary)]" />
                       <span>جاري تحميل فواتير المشتريات...</span>
                     </div>
                   </td>
                 </tr>
               ) : invoices.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-500">
+                  <td colSpan={8} className="p-8 text-center text-[var(--md-on-surface-variant)]">
                     لا توجد فواتير مشتريات مسجلة.
                   </td>
                 </tr>
               ) : (
                 invoices.map((inv) => (
-                  <tr key={inv.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="p-3.5 font-bold font-mono text-emerald-400 dir-ltr text-right">
+                  <tr key={inv.id} className="hover:bg-[var(--md-surface-container-low)] transition-colors">
+                    <td className="p-3.5 font-bold font-mono text-[var(--md-primary-text)] dir-ltr text-right tabular-nums">
                       {inv.invoice_number}
                     </td>
-                    <td className="p-3.5 font-bold text-white">{inv.supplier_name || '-'}</td>
-                    <td className="p-3.5 text-slate-400 font-mono text-[11px]">
+                    <td className="p-3.5 font-bold text-[var(--md-on-surface)]">{inv.supplier_name || '-'}</td>
+                    <td className="p-3.5 text-[var(--md-on-surface-variant)] font-mono text-[11px] tabular-nums">
                       {inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString('ar-YE') : '-'}
                     </td>
-                    <td className="p-3.5 font-mono font-bold text-white">
+                    <td className="p-3.5 font-mono font-bold text-[var(--md-on-surface)] tabular-nums">
                       <div className="flex items-center gap-1">
                         <span>{formatAmount(inv.total)}</span>
-                        <span className="text-xs font-semibold text-slate-400">{inv.currency || 'YER'}</span>
+                        <span className="text-xs font-semibold text-[var(--md-on-surface-variant)]">{inv.currency || 'YER'}</span>
                       </div>
                       {Number(inv.discount) > 0 && (
-                        <div className="text-[10px] text-amber-400 font-normal">
+                        <div className="text-[10px] text-[var(--md-warning)] font-normal tabular-nums">
                           خصم: -{formatAmount(inv.discount)} {inv.currency || 'YER'}
                         </div>
                       )}
                       {Number(inv.total_received_quantity) > 0 && (
-                        <div className="text-[10px] text-emerald-400 font-normal flex items-center gap-1">
+                        <div className="text-[10px] text-[var(--md-success)] font-normal flex items-center gap-1 tabular-nums">
                           <Gift className="w-2.5 h-2.5" />
                           <span>المخزن: {inv.total_received_quantity} قطعة</span>
                         </div>
                       )}
                       {inv.currency && inv.currency !== 'YER' && inv.exchange_rate && inv.exchange_rate !== 1 && (
-                        <div className="text-[10px] text-teal-400 font-normal">
+                        <div className="text-[10px] text-[var(--md-primary-text)] font-normal tabular-nums">
                           ≈ {formatAmount(Number(inv.total) * Number(inv.exchange_rate))} YER
                         </div>
                       )}
                     </td>
-                    <td className="p-3.5 font-mono text-emerald-400 font-bold">
+                    <td className="p-3.5 font-mono text-[var(--md-success)] font-bold tabular-nums">
                       {formatAmount(inv.paid_amount)} {inv.currency || 'YER'}
                     </td>
-                    <td className="p-3.5 font-mono text-amber-400 font-bold">
+                    <td className="p-3.5 font-mono text-[var(--md-warning)] font-bold tabular-nums">
                       {formatAmount(inv.remaining_amount)} {inv.currency || 'YER'}
                     </td>
                     <td className="p-3.5">{getStatusBadge(inv.status)}</td>
                     <td className="p-3.5 text-center flex items-center justify-center gap-1">
                       <button
                         onClick={() => handleViewInvoiceDetails(inv.id)}
-                        className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                        className="p-1.5 text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] rounded-lg transition-colors cursor-pointer"
                         title="عرض تفاصيل الفاتورة"
                       >
                         <Eye className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handlePrintSinglePurchase(inv)}
-                        className="p-1.5 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/60 rounded-lg transition-colors cursor-pointer"
+                        className="p-1.5 text-[var(--md-primary-text)] hover:bg-[var(--md-primary-container)] rounded-lg transition-colors cursor-pointer"
                         title="طباعة الفاتورة / PDF"
                       >
                         <Printer className="w-4 h-4" />
@@ -953,25 +951,25 @@ export const PurchaseInvoicesTab: React.FC = () => {
 
       {/* CREATE PURCHASE INVOICE MODAL */}
       {isBuilderOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-150" dir="rtl">
-          <div className="bg-slate-900 rounded-2xl border border-slate-800 shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden text-right text-slate-100">
-            <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-950/60">
-              <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                <ShoppingBag className="w-4 h-4 text-emerald-400" />
+        <div className="m3-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-150" dir="rtl">
+          <div className="m3-modal-surface rounded-2xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden text-right text-[var(--md-on-surface)]">
+            <div className="flex items-center justify-between p-4 border-b border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)]">
+              <h3 className="font-bold text-[var(--md-on-surface)] text-sm flex items-center gap-2">
+                <ShoppingBag className="w-4 h-4 text-[var(--md-primary-text)]" />
                 <span>تسجيل فاتورة مشتريات وتوريد للمخزن</span>
               </h3>
               <button
                 onClick={() => setIsBuilderOpen(false)}
-                className="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-slate-800"
+                className="text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] p-1 rounded-lg hover:bg-[var(--md-surface-container-high)] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleSaveInvoice} className="p-5 space-y-4 text-xs overflow-y-auto flex-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-[var(--md-surface-container-low)] p-3.5 rounded-xl border border-[var(--md-outline-variant)]">
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">المورد <span className="text-red-400">*</span></label>
+                  <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">المورد <span className="text-[var(--md-error)]">*</span></label>
                   <select
                     required
                     value={selectedSupplierId}
@@ -984,7 +982,7 @@ export const PurchaseInvoicesTab: React.FC = () => {
                         if (supp.currency === 'YER') setExchangeRate('1.0');
                       }
                     }}
-                    className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:border-emerald-500"
+                    className="m3-select w-full p-2"
                   >
                     <option value="">-- اختر المورد --</option>
                     {suppliers.map((s) => (
@@ -996,7 +994,7 @@ export const PurchaseInvoicesTab: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">العملة</label>
+                  <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">العملة</label>
                   <select
                     value={currency}
                     onChange={(e) => {
@@ -1004,7 +1002,7 @@ export const PurchaseInvoicesTab: React.FC = () => {
                       setCurrency(cur);
                       setExchangeRate(String(getAccountingRate(cur)));
                     }}
-                    className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:border-emerald-500"
+                    className="m3-select w-full p-2"
                   >
                     <option value="YER">YER (ريال يمني)</option>
                     <option value="SAR">SAR (ريال سعودي)</option>
@@ -1013,11 +1011,11 @@ export const PurchaseInvoicesTab: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1 flex items-center justify-between">
+                  <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1 flex items-center justify-between">
                     <span>
-                      سعر الصرف {currency !== 'YER' && <span className="text-[10px] text-amber-400 font-normal">(مقابل YER)</span>}
+                      سعر الصرف {currency !== 'YER' && <span className="text-[10px] text-[var(--md-warning)] font-normal">(مقابل YER)</span>}
                     </span>
-                    <span className="text-[10px] text-amber-400 font-mono">0-9 EN</span>
+                    <span className="text-[10px] text-[var(--md-warning)] font-mono">0-9 EN</span>
                   </label>
                   <input
                     type="text"
@@ -1027,28 +1025,28 @@ export const PurchaseInvoicesTab: React.FC = () => {
                     disabled={currency === 'YER'}
                     value={currency === 'YER' ? '1.0' : exchangeRate}
                     onChange={(e) => setExchangeRate(toEnglishDigits(e.target.value).replace(/[^0-9.]/g, ''))}
-                    className={`w-full p-2 border rounded-xl font-mono text-left ${
-                      currency === 'YER' ? 'bg-slate-800 text-slate-500 border-slate-700' : 'bg-slate-900 border-slate-700 text-slate-100 focus:border-emerald-500'
+                    className={`m3-input w-full p-2 font-mono text-left tabular-nums ${
+                      currency === 'YER' ? 'opacity-50' : ''
                     }`}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">تاريخ الفاتورة</label>
+                  <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">تاريخ الفاتورة</label>
                   <input
                     type="date"
                     required
                     value={invoiceDate}
                     onChange={(e) => setInvoiceDate(e.target.value)}
-                    className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:border-emerald-500 font-mono"
+                    className="m3-input w-full p-2 font-mono tabular-nums"
                   />
                 </div>
               </div>
 
               {calculatedTotal > 0 && currency !== 'YER' && (
-                <div className="bg-slate-950 border border-emerald-900/60 rounded-xl p-2.5 text-xs text-emerald-300 flex items-center justify-between">
+                <div className="bg-[var(--md-primary-container)]/40 border border-[var(--md-primary)]/30 rounded-xl p-2.5 text-xs text-[var(--md-on-primary-container)] flex items-center justify-between">
                   <span className="font-semibold text-[11px]">المعادل بالعملة الأساسية (YER):</span>
-                  <span className="font-mono font-bold text-sm">
+                  <span className="font-mono font-bold text-sm tabular-nums">
                     {formatAmount(calculatedTotal * (parseFloat(exchangeRate) || 1))} YER
                   </span>
                 </div>
@@ -1057,14 +1055,14 @@ export const PurchaseInvoicesTab: React.FC = () => {
               {/* Items Section */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-bold text-white flex items-center gap-1.5">
-                    <Boxes className="w-4 h-4 text-emerald-400" />
+                  <span className="font-bold text-[var(--md-on-surface)] flex items-center gap-1.5">
+                    <Boxes className="w-4 h-4 text-[var(--md-primary-text)]" />
                     <span>أصناف المشتريات الموردة للمستودع</span>
                   </span>
                   <button
                     type="button"
                     onClick={handleAddItem}
-                    className="px-3 py-1.5 bg-emerald-950 text-emerald-300 border border-emerald-800/60 hover:bg-emerald-900/60 rounded-xl font-semibold flex items-center gap-1.5 transition-colors cursor-pointer text-xs"
+                    className="m3-btn-tonal px-3 py-1.5 font-semibold flex items-center gap-1.5 cursor-pointer text-xs"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>إضافة صنف</span>
@@ -1072,13 +1070,13 @@ export const PurchaseInvoicesTab: React.FC = () => {
                 </div>
 
                 {/* Barcode Quick Scan Bar for Purchasing */}
-                <div className="mb-3 p-3 bg-slate-950/80 border border-emerald-900/60 rounded-xl space-y-2">
+                <div className="mb-3 p-3 bg-[var(--md-surface-container-low)] border border-[var(--md-primary)]/30 rounded-xl space-y-2">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-emerald-400 flex items-center gap-1.5">
+                    <span className="font-semibold text-[var(--md-primary-text)] flex items-center gap-1.5">
                       <Barcode className="w-4 h-4" />
                       <span>مسح الباركود السريع لإضافة صنف تلقائياً لفاتورة المشتريات:</span>
                     </span>
-                    <span className="text-[10px] text-slate-400 font-mono">USB / HID Normalizer</span>
+                    <span className="text-[10px] text-[var(--md-on-surface-variant)] font-mono">USB / HID Normalizer</span>
                   </div>
                   <div className="flex gap-2">
                     <input
@@ -1092,18 +1090,18 @@ export const PurchaseInvoicesTab: React.FC = () => {
                         }
                       }}
                       placeholder="امسح الباركود بجهاز المسح أو اكتب كود الصنف واضغط Enter..."
-                      className="flex-1 p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 text-xs focus:border-emerald-500 font-mono"
+                      className="m3-input flex-1 p-2 text-xs font-mono"
                     />
                     <button
                       type="button"
                       onClick={() => handleScanPurchaseItem(scannerQuery)}
-                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all cursor-pointer"
+                      className="m3-btn-primary px-3 py-1.5 text-xs font-bold cursor-pointer"
                     >
                       إضافة
                     </button>
                   </div>
                   {scannerNotice && (
-                    <div className="text-[11px] font-bold text-amber-300 animate-in fade-in">
+                    <div className="text-[11px] font-bold text-[var(--md-warning)] animate-in fade-in">
                       {scannerNotice}
                     </div>
                   )}
@@ -1115,16 +1113,16 @@ export const PurchaseInvoicesTab: React.FC = () => {
                     return (
                       <div
                         key={index}
-                        className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2 hover:border-slate-700/80 transition-colors"
+                        className="p-3 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl space-y-2 transition-colors"
                       >
                         <div className="grid grid-cols-12 gap-2 items-center">
                           {/* Product Selection */}
                           <div className="col-span-12 sm:col-span-3">
-                            <label className="block text-[10px] text-slate-400 mb-0.5">الصنف / رقم القطعة</label>
+                            <label className="block text-[10px] text-[var(--md-on-surface-variant)] mb-0.5">الصنف / رقم القطعة</label>
                             <select
                               value={item.product_id}
                               onChange={(e) => handleProductChange(index, e.target.value)}
-                              className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 focus:border-emerald-500 text-xs"
+                              className="m3-select w-full p-2 text-xs"
                             >
                               <option value="">-- اختر صنف --</option>
                               {products.map((p) => (
@@ -1137,9 +1135,9 @@ export const PurchaseInvoicesTab: React.FC = () => {
 
                           {/* Paid Quantity */}
                           <div className="col-span-6 sm:col-span-2">
-                            <label className="block text-[10px] text-slate-400 mb-0.5 flex items-center justify-between">
+                            <label className="block text-[10px] text-[var(--md-on-surface-variant)] mb-0.5 flex items-center justify-between">
                               <span>الكمية المشتراة</span>
-                              <span className="text-[9px] text-amber-400 font-mono">0-9 EN</span>
+                              <span className="text-[9px] text-[var(--md-warning)] font-mono">0-9 EN</span>
                             </label>
                             <input
                               type="text"
@@ -1153,18 +1151,18 @@ export const PurchaseInvoicesTab: React.FC = () => {
                                 setBuilderItems(updated);
                               }}
                               placeholder="1"
-                              className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg font-mono text-xs text-slate-100 focus:border-emerald-500 text-center font-bold"
+                              className="m3-input w-full p-2 font-mono text-xs text-center font-bold tabular-nums"
                             />
                           </div>
 
                           {/* Free / Bonus Quantity */}
                           <div className="col-span-6 sm:col-span-2">
-                            <label className="block text-[10px] text-emerald-400 font-semibold mb-0.5 flex items-center justify-between">
+                            <label className="block text-[10px] text-[var(--md-success)] font-semibold mb-0.5 flex items-center justify-between">
                               <span className="flex items-center gap-1">
-                                <Gift className="w-3 h-3 text-emerald-400" />
+                                <Gift className="w-3 h-3 text-[var(--md-success)]" />
                                 <span>بونص مجاني 🎁</span>
                               </span>
-                              <span className="text-[9px] text-emerald-400 font-mono">0-9 EN</span>
+                              <span className="text-[9px] text-[var(--md-success)] font-mono">0-9 EN</span>
                             </label>
                             <input
                               type="text"
@@ -1180,15 +1178,15 @@ export const PurchaseInvoicesTab: React.FC = () => {
                                 setBuilderItems(updated);
                               }}
                               placeholder="0"
-                              className="w-full p-2 bg-emerald-950/40 border border-emerald-800/60 rounded-lg font-mono text-xs text-emerald-300 focus:border-emerald-500 text-center font-bold"
+                              className="m3-input w-full p-2 bg-[var(--md-success-container)]/35 border-[var(--md-success)]/40 font-mono text-xs text-[var(--md-success)] text-center font-bold tabular-nums"
                             />
                           </div>
 
                           {/* Unit Cost */}
                           <div className="col-span-6 sm:col-span-2">
-                            <label className="block text-[10px] text-slate-400 mb-0.5 flex items-center justify-between">
+                            <label className="block text-[10px] text-[var(--md-on-surface-variant)] mb-0.5 flex items-center justify-between">
                               <span>سعر الوحدة ({currency})</span>
-                              <span className="text-[9px] text-amber-400 font-mono">0-9 EN</span>
+                              <span className="text-[9px] text-[var(--md-warning)] font-mono">0-9 EN</span>
                             </label>
                             <input
                               type="text"
@@ -1204,15 +1202,15 @@ export const PurchaseInvoicesTab: React.FC = () => {
                                 setBuilderItems(updated);
                               }}
                               placeholder="0"
-                              className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg font-mono text-xs text-slate-100 focus:border-emerald-500 text-center font-bold"
+                              className="m3-input w-full p-2 font-mono text-xs text-center font-bold tabular-nums"
                             />
                           </div>
 
                           {/* Item Discount Percent & Amount */}
                           <div className="col-span-6 sm:col-span-3">
-                            <label className="block text-[10px] text-slate-400 mb-0.5 flex items-center justify-between">
+                            <label className="block text-[10px] text-[var(--md-on-surface-variant)] mb-0.5 flex items-center justify-between">
                               <span>خصم الصنف (% ومبلغ)</span>
-                              <span className="text-[9px] text-amber-400 font-mono">0-9 EN</span>
+                              <span className="text-[9px] text-[var(--md-warning)] font-mono">0-9 EN</span>
                             </label>
                             <div className="grid grid-cols-2 gap-1">
                               <div className="relative">
@@ -1234,9 +1232,9 @@ export const PurchaseInvoicesTab: React.FC = () => {
                                     setBuilderItems(updated);
                                   }}
                                   placeholder="0%"
-                                  className="w-full p-1.5 bg-slate-900 border border-slate-700 rounded-lg font-mono text-xs text-amber-300 focus:border-amber-500 text-center"
+                                  className="m3-input w-full p-1.5 font-mono text-xs text-[var(--md-warning)] text-center tabular-nums"
                                 />
-                                <span className="absolute left-1.5 top-1.5 text-[9px] text-slate-500">%</span>
+                                <span className="absolute left-1.5 top-1.5 text-[9px] text-[var(--md-on-surface-variant)]">%</span>
                               </div>
 
                               <div className="relative">
@@ -1258,7 +1256,7 @@ export const PurchaseInvoicesTab: React.FC = () => {
                                     setBuilderItems(updated);
                                   }}
                                   placeholder="0 مبلغ"
-                                  className="w-full p-1.5 bg-slate-900 border border-slate-700 rounded-lg font-mono text-xs text-amber-300 focus:border-amber-500 text-center font-bold"
+                                  className="m3-input w-full p-1.5 font-mono text-xs text-[var(--md-warning)] text-center font-bold tabular-nums"
                                 />
                               </div>
                             </div>
@@ -1266,32 +1264,32 @@ export const PurchaseInvoicesTab: React.FC = () => {
                         </div>
 
                         {/* Row Calculations Bar */}
-                        <div className="flex flex-wrap items-center justify-between pt-1.5 border-t border-slate-800/80 text-[11px] gap-2">
+                        <div className="flex flex-wrap items-center justify-between pt-1.5 border-t border-[var(--md-outline-variant)] text-[11px] gap-2">
                           <div className="flex flex-wrap items-center gap-2">
                             {(calcs.bonusQuantity > 0 || calcs.itemDiscountAmount > 0) ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-emerald-950/80 border border-emerald-800/60 text-emerald-300 font-medium">
-                                <Gift className="w-3.5 h-3.5 text-emerald-400" />
-                                <span>إجمالي الداخل للمخزن: <strong className="font-mono font-bold text-white">{calcs.totalReceivedBaseUnits}</strong></span>
-                                <span className="text-emerald-600">|</span>
-                                <span>التكلفة الفعلية للوحدة: <strong className="font-mono font-bold text-emerald-200">{Math.round(calcs.effectiveUnitCost * 100) / 100}</strong> {currency}</span>
+                              <span className="m3-badge m3-badge-success inline-flex items-center gap-1.5 font-medium">
+                                <Gift className="w-3.5 h-3.5" />
+                                <span>إجمالي الداخل للمخزن: <strong className="font-mono font-bold tabular-nums">{calcs.totalReceivedBaseUnits}</strong></span>
+                                <span className="opacity-50">|</span>
+                                <span>التكلفة الفعلية للوحدة: <strong className="font-mono font-bold tabular-nums">{Math.round(calcs.effectiveUnitCost * 100) / 100}</strong> {currency}</span>
                               </span>
                             ) : (
-                              <span className="text-slate-400">
-                                الكمية الداخلة للمستودع: <strong className="font-mono text-slate-200">{calcs.totalReceivedBaseUnits}</strong>
+                              <span className="text-[var(--md-on-surface-variant)]">
+                                الكمية الداخلة للمستودع: <strong className="font-mono text-[var(--md-on-surface)] tabular-nums">{calcs.totalReceivedBaseUnits}</strong>
                               </span>
                             )}
 
                             {calcs.itemDiscountAmount > 0 && (
-                              <span className="text-amber-400 font-mono text-[10px]">
+                              <span className="text-[var(--md-warning)] font-mono text-[10px] tabular-nums">
                                 (وفر الخصم: -{formatAmount(calcs.itemDiscountAmount)} {currency})
                               </span>
                             )}
                           </div>
 
                           <div className="flex items-center gap-3">
-                            <div className="text-left font-mono">
-                              <span className="text-[10px] text-slate-400 ml-1">صافي الصنف:</span>
-                              <strong className="text-sm font-bold text-emerald-400">{formatAmount(calcs.netRowCost)} {currency}</strong>
+                            <div className="text-left font-mono tabular-nums">
+                              <span className="text-[10px] text-[var(--md-on-surface-variant)] ml-1">صافي الصنف:</span>
+                              <strong className="text-sm font-bold text-[var(--md-primary-text)]">{formatAmount(calcs.netRowCost)} {currency}</strong>
                             </div>
 
                             <button
@@ -1299,7 +1297,9 @@ export const PurchaseInvoicesTab: React.FC = () => {
                               onClick={() => handleRemoveItem(index)}
                               disabled={builderItems.length === 1}
                               className={`p-1.5 rounded-lg transition-colors ${
-                                builderItems.length === 1 ? 'text-slate-600 cursor-not-allowed' : 'text-red-400 hover:bg-red-950/60 cursor-pointer'
+                                builderItems.length === 1
+                                  ? 'text-[var(--md-on-surface-variant)]/40 cursor-not-allowed'
+                                  : 'text-[var(--md-error)] hover:bg-[var(--md-error-container)] cursor-pointer'
                               }`}
                               title="حذف الصنف"
                             >
@@ -1314,21 +1314,21 @@ export const PurchaseInvoicesTab: React.FC = () => {
               </div>
 
               {/* Invoice-Level Supplier Discount Card */}
-              <div className="bg-slate-950 border border-slate-800 rounded-xl p-3.5">
+              <div className="bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl p-3.5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="p-2 bg-amber-950/50 border border-amber-800/40 rounded-xl text-amber-400">
+                    <div className="p-2 bg-[var(--md-warning-container)] border border-[var(--md-outline-variant)] rounded-xl text-[var(--md-on-warning-container)]">
                       <Tag className="w-4 h-4" />
                     </div>
                     <div>
-                      <div className="font-bold text-white text-xs">خصم الفاتورة الإجمالي (Invoice Discount)</div>
-                      <div className="text-[10px] text-slate-400">خصم تجاري خاص يمنحه المورد على إجمالي الفاتورة</div>
+                      <div className="font-bold text-[var(--md-on-surface)] text-xs">خصم الفاتورة الإجمالي (Invoice Discount)</div>
+                      <div className="text-[10px] text-[var(--md-on-surface-variant)]">خصم تجاري خاص يمنحه المورد على إجمالي الفاتورة</div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-slate-400">مبلغ الخصم:</span>
+                      <span className="text-xs text-[var(--md-on-surface-variant)]">مبلغ الخصم:</span>
                       <input
                         type="text"
                         inputMode="decimal"
@@ -1344,13 +1344,13 @@ export const PurchaseInvoicesTab: React.FC = () => {
                           }
                         }}
                         placeholder="0"
-                        className="w-28 p-2 bg-slate-900 border border-slate-700 rounded-lg font-mono text-xs text-amber-300 font-bold focus:border-amber-500 text-center"
+                        className="m3-input w-28 p-2 font-mono text-xs text-[var(--md-warning)] font-bold text-center tabular-nums"
                       />
-                      <span className="text-xs text-slate-400">{currency}</span>
+                      <span className="text-xs text-[var(--md-on-surface-variant)]">{currency}</span>
                     </div>
 
                     {numInvoiceDisc > 0 && (
-                      <span className="text-xs font-mono font-bold text-amber-400 whitespace-nowrap bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20">
+                      <span className="m3-badge m3-badge-warning text-xs font-mono font-bold whitespace-nowrap tabular-nums">
                         -{formatAmount(numInvoiceDisc)} {currency} ({invoiceDiscountPercent}%)
                       </span>
                     )}
@@ -1359,13 +1359,13 @@ export const PurchaseInvoicesTab: React.FC = () => {
               </div>
 
               {/* Full Payment Methods Selector (نقدي / بنكي / محفظة إلكترونية / آجل) */}
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
-                <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                  <span className="font-bold text-emerald-400 text-xs flex items-center gap-1.5">
+              <div className="bg-[var(--md-surface-container-low)] p-4 rounded-xl border border-[var(--md-outline-variant)] space-y-3">
+                <div className="flex items-center justify-between border-b border-[var(--md-outline-variant)] pb-2 flex-wrap gap-1">
+                  <span className="font-bold text-[var(--md-primary-text)] text-xs flex items-center gap-1.5">
                     <Banknote className="w-4 h-4" />
                     <span>طريقة الدفع والسداد للمورد</span>
                   </span>
-                  <span className="text-[10px] text-slate-400">ترحيل آلي لحساب الصندوق (1101) والبنك (1102) والمحافظ (1107) والموردين (2101)</span>
+                  <span className="text-[10px] text-[var(--md-on-surface-variant)]">ترحيل آلي لحساب الصندوق (1101) والبنك (1102) والمحافظ (1107) والموردين (2101)</span>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -1374,16 +1374,16 @@ export const PurchaseInvoicesTab: React.FC = () => {
                     onClick={() => handlePaymentMethodChange('CASH')}
                     className={`p-3 rounded-xl border text-right transition-all flex flex-col gap-1.5 cursor-pointer ${
                       paymentMethod === 'CASH'
-                        ? 'bg-emerald-500/15 border-emerald-500/70 ring-1 ring-emerald-500/30 text-white'
-                        : 'bg-slate-900 border-slate-800 hover:bg-slate-800/70 text-slate-300'
+                        ? 'bg-[var(--md-success-container)] border-[var(--md-success)] text-[var(--md-on-success-container)]'
+                        : 'bg-[var(--md-surface-container)] border-[var(--md-outline-variant)] hover:bg-[var(--md-surface-container-high)] text-[var(--md-on-surface)]'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <Banknote className="w-4 h-4 text-emerald-400" />
-                      {paymentMethod === 'CASH' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+                      <Banknote className="w-4 h-4 text-[var(--md-success)]" />
+                      {paymentMethod === 'CASH' && <CheckCircle2 className="w-3.5 h-3.5 text-[var(--md-success)]" />}
                     </div>
                     <div className="font-bold text-xs">نقدي (الصندوق)</div>
-                    <div className="text-[10px] text-slate-400">صرف من حساب 1101</div>
+                    <div className="text-[10px] text-[var(--md-on-surface-variant)]">صرف من حساب 1101</div>
                   </button>
 
                   <button
@@ -1391,16 +1391,16 @@ export const PurchaseInvoicesTab: React.FC = () => {
                     onClick={() => handlePaymentMethodChange('BANK')}
                     className={`p-3 rounded-xl border text-right transition-all flex flex-col gap-1.5 cursor-pointer ${
                       paymentMethod === 'BANK'
-                        ? 'bg-blue-500/15 border-blue-500/70 ring-1 ring-blue-500/30 text-white'
-                        : 'bg-slate-900 border-slate-800 hover:bg-slate-800/70 text-slate-300'
+                        ? 'bg-[var(--md-info-container)] border-[var(--md-info)] text-[var(--md-on-info-container)]'
+                        : 'bg-[var(--md-surface-container)] border-[var(--md-outline-variant)] hover:bg-[var(--md-surface-container-high)] text-[var(--md-on-surface)]'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <Landmark className="w-4 h-4 text-blue-400" />
-                      {paymentMethod === 'BANK' && <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />}
+                      <Landmark className="w-4 h-4 text-[var(--md-info)]" />
+                      {paymentMethod === 'BANK' && <CheckCircle2 className="w-3.5 h-3.5 text-[var(--md-info)]" />}
                     </div>
                     <div className="font-bold text-xs">تحويل بنكي</div>
-                    <div className="text-[10px] text-slate-400">صرف من حساب 1102</div>
+                    <div className="text-[10px] text-[var(--md-on-surface-variant)]">صرف من حساب 1102</div>
                   </button>
 
                   <button
@@ -1408,16 +1408,16 @@ export const PurchaseInvoicesTab: React.FC = () => {
                     onClick={() => handlePaymentMethodChange('WALLET')}
                     className={`p-3 rounded-xl border text-right transition-all flex flex-col gap-1.5 cursor-pointer ${
                       paymentMethod === 'WALLET'
-                        ? 'bg-purple-500/15 border-purple-500/70 ring-1 ring-purple-500/30 text-white'
-                        : 'bg-slate-900 border-slate-800 hover:bg-slate-800/70 text-slate-300'
+                        ? 'bg-[var(--md-secondary-container)] border-[var(--md-secondary)] text-[var(--md-on-secondary-container)]'
+                        : 'bg-[var(--md-surface-container)] border-[var(--md-outline-variant)] hover:bg-[var(--md-surface-container-high)] text-[var(--md-on-surface)]'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <Wallet className="w-4 h-4 text-purple-400" />
-                      {paymentMethod === 'WALLET' && <CheckCircle2 className="w-3.5 h-3.5 text-purple-400" />}
+                      <Wallet className="w-4 h-4 text-[var(--md-secondary)]" />
+                      {paymentMethod === 'WALLET' && <CheckCircle2 className="w-3.5 h-3.5 text-[var(--md-secondary)]" />}
                     </div>
                     <div className="font-bold text-xs">محفظة إلكترونية</div>
-                    <div className="text-[10px] text-slate-400">صرف من حساب 1107</div>
+                    <div className="text-[10px] text-[var(--md-on-surface-variant)]">صرف من حساب 1107</div>
                   </button>
 
                   <button
@@ -1425,21 +1425,21 @@ export const PurchaseInvoicesTab: React.FC = () => {
                     onClick={() => handlePaymentMethodChange('CREDIT')}
                     className={`p-3 rounded-xl border text-right transition-all flex flex-col gap-1.5 cursor-pointer ${
                       paymentMethod === 'CREDIT'
-                        ? 'bg-amber-500/15 border-amber-500/70 ring-1 ring-amber-500/30 text-white'
-                        : 'bg-slate-900 border-slate-800 hover:bg-slate-800/70 text-slate-300'
+                        ? 'bg-[var(--md-warning-container)] border-[var(--md-warning)] text-[var(--md-on-warning-container)]'
+                        : 'bg-[var(--md-surface-container)] border-[var(--md-outline-variant)] hover:bg-[var(--md-surface-container-high)] text-[var(--md-on-surface)]'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <Clock className="w-4 h-4 text-amber-400" />
-                      {paymentMethod === 'CREDIT' && <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />}
+                      <Clock className="w-4 h-4 text-[var(--md-warning)]" />
+                      {paymentMethod === 'CREDIT' && <CheckCircle2 className="w-3.5 h-3.5 text-[var(--md-warning)]" />}
                     </div>
                     <div className="font-bold text-xs">شراء آجل / جزئي</div>
-                    <div className="text-[10px] text-slate-400">ذمة موردين حساب 2101</div>
+                    <div className="text-[10px] text-[var(--md-on-surface-variant)]">ذمة موردين حساب 2101</div>
                   </button>
                 </div>
 
                 {(paymentMethod === 'BANK' || paymentMethod === 'WALLET') && (
-                  <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl space-y-2.5">
+                  <div className="p-3 bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-xl space-y-2.5">
                     {paymentMethod === 'WALLET' && (
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {['الكريمي', 'ون كاش', 'جوالي', 'فلوسك', 'جايبي', 'كاش'].map((w) => (
@@ -1449,8 +1449,8 @@ export const PurchaseInvoicesTab: React.FC = () => {
                             onClick={() => setPaymentChannelName(w)}
                             className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors cursor-pointer ${
                               paymentChannelName === w
-                                ? 'bg-purple-600/30 border-purple-500 text-purple-200'
-                                : 'bg-slate-950 border-slate-700 text-slate-300 hover:border-purple-500/50'
+                                ? 'bg-[var(--md-secondary-container)] border-[var(--md-secondary)] text-[var(--md-on-secondary-container)]'
+                                : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-container-high)]'
                             }`}
                           >
                             {w}
@@ -1460,7 +1460,7 @@ export const PurchaseInvoicesTab: React.FC = () => {
                     )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">
+                        <label className="block text-[11px] text-[var(--md-on-surface-variant)] mb-1">
                           {paymentMethod === 'BANK' ? 'اسم البنك / الحساب المحول منه' : 'اسم المحفظة / المزود'}
                         </label>
                         <input
@@ -1468,11 +1468,11 @@ export const PurchaseInvoicesTab: React.FC = () => {
                           value={paymentChannelName}
                           onChange={(e) => setPaymentChannelName(e.target.value)}
                           placeholder={paymentMethod === 'BANK' ? 'مثال: بنك الكريمي / التضامن' : 'مثال: جوالي، ون كاش، الكريمي'}
-                          className="w-full p-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
+                          className="m3-input w-full p-2 text-xs"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">
+                        <label className="block text-[11px] text-[var(--md-on-surface-variant)] mb-1">
                           رقم الحوالة / الإشعار المرجعي
                         </label>
                         <input
@@ -1480,7 +1480,7 @@ export const PurchaseInvoicesTab: React.FC = () => {
                           value={paymentReferenceNo}
                           onChange={(e) => setPaymentReferenceNo(toEnglishDigits(e.target.value))}
                           placeholder="رقم العملية أو الإشعار"
-                          className="w-full p-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
+                          className="m3-input w-full p-2 text-xs font-mono"
                         />
                       </div>
                     </div>
@@ -1488,8 +1488,8 @@ export const PurchaseInvoicesTab: React.FC = () => {
                 )}
 
                 {paymentMethod === 'CREDIT' && (
-                  <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-300 text-[11px] flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                  <div className="p-2.5 bg-[var(--md-warning-container)] border border-[var(--md-warning)]/30 rounded-lg text-[var(--md-on-warning-container)] text-[11px] flex items-center gap-2">
+                    <Clock className="w-4 h-4 shrink-0" />
                     <span>
                       شراء آجل: سيتم قيد المبلغ المتبقي على حساب المورد في ذمم الموردين (2101)، مع إمكانية إدخال دفعة مقدمة أدناه.
                     </span>
@@ -1499,9 +1499,9 @@ export const PurchaseInvoicesTab: React.FC = () => {
                 {/* Payment to Supplier & Balances */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   <div>
-                    <label className="block text-slate-300 font-semibold mb-1 text-xs flex items-center justify-between">
+                    <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1 text-xs flex items-center justify-between">
                       <span>المبلغ المسدد للمورد فوراً ({currency})</span>
-                      <span className="text-[10px] text-amber-400 font-mono">0-9 EN</span>
+                      <span className="text-[10px] text-[var(--md-warning)] font-mono">0-9 EN</span>
                     </label>
                     <input
                       type="text"
@@ -1514,14 +1514,14 @@ export const PurchaseInvoicesTab: React.FC = () => {
                         setPaidAmount(toEnglishDigits(e.target.value).replace(/[^0-9.]/g, ''));
                       }}
                       placeholder="0.00"
-                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-emerald-400 font-bold font-mono focus:outline-none focus:border-emerald-500"
+                      className="m3-input w-full p-2 text-[var(--md-success)] font-bold font-mono tabular-nums"
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-300 font-semibold mb-1 text-xs">
+                    <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1 text-xs">
                       المتبقي للمورد (دين آجل على المنشأة - 2101)
                     </label>
-                    <div className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl font-bold font-mono text-amber-400 text-sm">
+                    <div className="w-full p-2 bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-xl font-bold font-mono text-[var(--md-warning)] text-sm tabular-nums">
                       {formatAmount(Math.max(0, calculatedTotal - (parseFloat(paidAmount) || 0)))} {currency}
                     </div>
                   </div>
@@ -1529,47 +1529,47 @@ export const PurchaseInvoicesTab: React.FC = () => {
               </div>
 
               {/* Live Totals & Summary Metrics */}
-              <div className="p-4 bg-slate-950 border border-slate-800 text-white rounded-xl space-y-3">
+              <div className="p-4 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] text-[var(--md-on-surface)] rounded-xl space-y-3">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                  <div className="p-2.5 bg-slate-900/80 rounded-lg border border-slate-800">
-                    <span className="text-slate-400 block text-[10px]">المجموع قبل الخصم</span>
-                    <span className="font-mono font-bold text-sm text-slate-200">
+                  <div className="p-2.5 bg-[var(--md-surface-container)] rounded-lg border border-[var(--md-outline-variant)]">
+                    <span className="text-[var(--md-on-surface-variant)] block text-[10px]">المجموع قبل الخصم</span>
+                    <span className="font-mono font-bold text-sm text-[var(--md-on-surface)] tabular-nums">
                       {formatAmount(calculatedSubtotal)} {currency}
                     </span>
                   </div>
 
-                  <div className="p-2.5 bg-slate-900/80 rounded-lg border border-slate-800">
-                    <span className="text-amber-400/90 block text-[10px]">إجمالي الخصم التجاري</span>
-                    <span className="font-mono font-bold text-sm text-amber-300">
+                  <div className="p-2.5 bg-[var(--md-surface-container)] rounded-lg border border-[var(--md-outline-variant)]">
+                    <span className="text-[var(--md-warning)] block text-[10px]">إجمالي الخصم التجاري</span>
+                    <span className="font-mono font-bold text-sm text-[var(--md-warning)] tabular-nums">
                       -{formatAmount(calculatedTotalDiscount)} {currency}
                     </span>
                   </div>
 
-                  <div className="p-2.5 bg-emerald-950/40 rounded-lg border border-emerald-900/60">
-                    <span className="text-emerald-400 block text-[10px] flex items-center gap-1">
-                      <Gift className="w-3 h-3 text-emerald-400" />
+                  <div className="p-2.5 bg-[var(--md-success-container)]/50 rounded-lg border border-[var(--md-success)]/30">
+                    <span className="text-[var(--md-success)] block text-[10px] flex items-center gap-1">
+                      <Gift className="w-3 h-3" />
                       <span>إجمالي القطع للمخزن</span>
                     </span>
-                    <span className="font-mono font-bold text-sm text-emerald-300">
+                    <span className="font-mono font-bold text-sm text-[var(--md-on-success-container)] tabular-nums">
                       {calculatedTotalReceivedUnits} قطعة
                     </span>
                   </div>
 
-                  <div className="p-2.5 bg-emerald-950/60 rounded-lg border border-emerald-700/60">
-                    <span className="text-emerald-300 block text-[10px] font-bold">الصافي المستحق للمورد</span>
-                    <span className="font-mono font-extrabold text-base text-emerald-400">
+                  <div className="p-2.5 bg-[var(--md-primary-container)] rounded-lg border border-[var(--md-primary)]/40">
+                    <span className="text-[var(--md-on-primary-container)] block text-[10px] font-bold">الصافي المستحق للمورد</span>
+                    <span className="font-mono font-extrabold text-base text-[var(--md-on-primary-container)] tabular-nums">
                       {formatAmount(calculatedTotal)} {currency}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-800/80">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-[var(--md-outline-variant)]">
                   <div className="w-full sm:w-auto flex items-center gap-2">
-                    <span className="text-slate-400 text-xs">حالة الفاتورة:</span>
+                    <span className="text-[var(--md-on-surface-variant)] text-xs">حالة الفاتورة:</span>
                     <select
                       value={status}
                       onChange={(e) => setStatus(e.target.value)}
-                      className="p-1.5 bg-slate-900 border border-slate-700 text-white rounded-lg text-xs focus:border-emerald-500"
+                      className="m3-select p-1.5 text-xs"
                     >
                       <option value="PENDING">اعتماد ورفع للرصيد والمخزن (تأكيد الشراء)</option>
                       <option value="DRAFT">حفظ كمسودة مشتريات</option>
@@ -1577,7 +1577,7 @@ export const PurchaseInvoicesTab: React.FC = () => {
                   </div>
 
                   {calculatedTotal > 0 && currency !== 'YER' && (
-                    <div className="text-xs text-emerald-300 font-mono">
+                    <div className="text-xs text-[var(--md-primary-text)] font-mono tabular-nums">
                       المعادل بالعملة الأساسية (YER): <strong className="font-bold">{formatAmount(calculatedTotal * (parseFloat(exchangeRate) || 1))} YER</strong>
                     </div>
                   )}
@@ -1585,27 +1585,27 @@ export const PurchaseInvoicesTab: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">ملاحظات الفاتورة</label>
+                <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">ملاحظات الفاتورة</label>
                 <textarea
                   rows={2}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="ملاحظات العقد أو الفاتورة الأصلية للمورد..."
-                  className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                  className="m3-input w-full p-2.5"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--md-outline-variant)]">
                 <button
                   type="button"
                   onClick={() => setIsBuilderOpen(false)}
-                  className="px-4 py-2 border border-slate-700 text-slate-300 rounded-xl hover:bg-slate-800 font-semibold"
+                  className="m3-btn-outlined px-4 py-2 font-semibold cursor-pointer"
                 >
                   إلغاء
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-950/60 border border-emerald-500/40 transition-all active:scale-95"
+                  className="m3-btn-primary px-5 py-2 font-bold transition-all active:scale-95 cursor-pointer"
                 >
                   حفظ وتأكيد المشتريات
                 </button>
@@ -1617,26 +1617,26 @@ export const PurchaseInvoicesTab: React.FC = () => {
 
       {/* VIEW DETAILS MODAL */}
       {selectedInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-150" dir="rtl">
-          <div className="bg-slate-900 rounded-2xl border border-slate-800 shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden text-right text-slate-100">
-            <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-950/60">
-              <span className="font-bold text-white text-sm flex items-center gap-2">
-                <ShoppingBag className="w-4 h-4 text-emerald-400" />
-                <span>تفاصيل فاتورة مشتريات #{selectedInvoice.invoice_number}</span>
+        <div className="m3-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-150" dir="rtl">
+          <div className="m3-modal-surface rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden text-right text-[var(--md-on-surface)]">
+            <div className="flex items-center justify-between p-4 border-b border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)]">
+              <span className="font-bold text-[var(--md-on-surface)] text-sm flex items-center gap-2">
+                <ShoppingBag className="w-4 h-4 text-[var(--md-primary-text)]" />
+                <span>تفاصيل فاتورة مشتريات <span className="font-mono tabular-nums">#{selectedInvoice.invoice_number}</span></span>
               </span>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => handlePrintSinglePurchase(selectedInvoice)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-950 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-800/60 rounded-xl text-xs font-semibold shadow-sm transition-all cursor-pointer"
+                  className="m3-btn-tonal inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold cursor-pointer"
                   title="طباعة الفاتورة أو حفظها PDF"
                 >
-                  <Printer className="w-3.5 h-3.5 text-emerald-400" />
+                  <Printer className="w-3.5 h-3.5" />
                   <span>طباعة / PDF</span>
                 </button>
                 <button
                   onClick={() => setSelectedInvoice(null)}
-                  className="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-slate-800"
+                  className="text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] p-1 rounded-lg hover:bg-[var(--md-surface-container-high)] cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1644,41 +1644,41 @@ export const PurchaseInvoicesTab: React.FC = () => {
             </div>
 
             <div className="p-5 space-y-4 text-xs overflow-y-auto flex-1">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-950 p-3.5 rounded-xl border border-slate-800 gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-[var(--md-surface-container-low)] p-3.5 rounded-xl border border-[var(--md-outline-variant)] gap-2">
                 <div>
-                  <div className="text-slate-400 font-semibold text-[11px]">المورد التجاري</div>
-                  <div className="font-bold text-white text-sm">{selectedInvoice.supplier_name}</div>
+                  <div className="text-[var(--md-on-surface-variant)] font-semibold text-[11px]">المورد التجاري</div>
+                  <div className="font-bold text-[var(--md-on-surface)] text-sm">{selectedInvoice.supplier_name}</div>
                 </div>
                 <div className="flex items-center gap-4">
                   <div>
-                    <div className="text-slate-400 font-semibold text-[11px]">التاريخ</div>
-                    <div className="font-mono font-bold text-slate-200">
+                    <div className="text-[var(--md-on-surface-variant)] font-semibold text-[11px]">التاريخ</div>
+                    <div className="font-mono font-bold text-[var(--md-on-surface)] tabular-nums">
                       {new Date(selectedInvoice.invoice_date).toLocaleDateString('ar-YE')}
                     </div>
                   </div>
                   <div>
-                    <div className="text-slate-400 font-semibold text-[11px]">الحالة</div>
+                    <div className="text-[var(--md-on-surface-variant)] font-semibold text-[11px]">الحالة</div>
                     <div>{getStatusBadge(selectedInvoice.status)}</div>
                   </div>
                 </div>
               </div>
 
               {/* Items Table */}
-              <div className="overflow-x-auto border border-slate-800 rounded-xl">
-                <table className="w-full text-right text-xs">
-                  <thead className="bg-slate-950 font-bold text-slate-400 border-b border-slate-800 text-[11px]">
+              <div className="overflow-x-auto border border-[var(--md-outline-variant)] rounded-xl">
+                <table className="m3-table w-full text-right text-xs">
+                  <thead className="m3-thead font-bold text-[11px]">
                     <tr>
-                      <th className="p-2.5">الصنف</th>
-                      <th className="p-2.5 text-center">الكمية المشترات</th>
-                      <th className="p-2.5 text-center text-emerald-400">بونص مجاني 🎁</th>
-                      <th className="p-2.5 text-center">إجمالي المخزن</th>
-                      <th className="p-2.5 text-left">سعر الوحدة</th>
-                      <th className="p-2.5 text-left text-amber-400">خصم الصنف</th>
-                      <th className="p-2.5 text-left text-teal-400">التكلفة الفعلية</th>
-                      <th className="p-2.5 text-left">الصافي</th>
+                      <th className="m3-th p-2.5">الصنف</th>
+                      <th className="m3-th p-2.5 text-center">الكمية المشترات</th>
+                      <th className="m3-th p-2.5 text-center text-[var(--md-success)]">بونص مجاني 🎁</th>
+                      <th className="m3-th p-2.5 text-center">إجمالي المخزن</th>
+                      <th className="m3-th p-2.5 text-left">سعر الوحدة</th>
+                      <th className="m3-th p-2.5 text-left text-[var(--md-warning)]">خصم الصنف</th>
+                      <th className="m3-th p-2.5 text-left text-[var(--md-primary-text)]">التكلفة الفعلية</th>
+                      <th className="m3-th p-2.5 text-left">الصافي</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                  <tbody className="divide-y divide-[var(--md-outline-variant)]">
                     {selectedInvoice.items?.map((it: any, i: number) => {
                       const q = Number(it.quantity || 1);
                       const freeQ = Number(it.freeQuantity || it.free_quantity || 0);
@@ -1689,26 +1689,26 @@ export const PurchaseInvoicesTab: React.FC = () => {
                       const eff = Number(it.effectiveUnitCost || it.effective_unit_cost || (totalQ > 0 ? net / totalQ : cost));
 
                       return (
-                        <tr key={it.id || i} className="hover:bg-slate-800/30">
-                          <td className="p-2.5 font-semibold text-white">
+                        <tr key={it.id || i} className="hover:bg-[var(--md-surface-container-low)]">
+                          <td className="p-2.5 font-semibold text-[var(--md-on-surface)]">
                             <div>{it.product_name}</div>
                             {(it.itemCode || it.sku) && (
-                              <div className="text-[10px] text-slate-500 font-mono">[{it.itemCode || it.sku}]</div>
+                              <div className="text-[10px] text-[var(--md-on-surface-variant)] font-mono">[{it.itemCode || it.sku}]</div>
                             )}
                           </td>
-                          <td className="p-2.5 font-mono text-center font-bold text-slate-200">{q}</td>
-                          <td className="p-2.5 font-mono text-center font-bold text-emerald-400">
+                          <td className="p-2.5 font-mono text-center font-bold text-[var(--md-on-surface)] tabular-nums">{q}</td>
+                          <td className="p-2.5 font-mono text-center font-bold text-[var(--md-success)] tabular-nums">
                             {freeQ > 0 ? `+${freeQ}` : '-'}
                           </td>
-                          <td className="p-2.5 font-mono text-center font-bold text-teal-300 bg-teal-950/20">{totalQ}</td>
-                          <td className="p-2.5 font-mono text-left">{formatAmount(cost)} {selectedInvoice.currency || 'YER'}</td>
-                          <td className="p-2.5 font-mono text-left text-amber-300">
+                          <td className="p-2.5 font-mono text-center font-bold text-[var(--md-primary-text)] bg-[var(--md-primary-container)]/30 tabular-nums">{totalQ}</td>
+                          <td className="p-2.5 font-mono text-left text-[var(--md-on-surface-variant)] tabular-nums">{formatAmount(cost)} {selectedInvoice.currency || 'YER'}</td>
+                          <td className="p-2.5 font-mono text-left text-[var(--md-warning)] tabular-nums">
                             {disc > 0 ? `-${formatAmount(disc)}` : '-'}
                           </td>
-                          <td className="p-2.5 font-mono text-left font-bold text-teal-400">
+                          <td className="p-2.5 font-mono text-left font-bold text-[var(--md-primary-text)] tabular-nums">
                             {Math.round(eff * 100) / 100} {selectedInvoice.currency || 'YER'}
                           </td>
-                          <td className="p-2.5 font-mono font-bold text-emerald-400 text-left">
+                          <td className="p-2.5 font-mono font-bold text-[var(--md-success)] text-left tabular-nums">
                             {formatAmount(net)} {selectedInvoice.currency || 'YER'}
                           </td>
                         </tr>
@@ -1719,71 +1719,71 @@ export const PurchaseInvoicesTab: React.FC = () => {
               </div>
 
               {/* Financial Breakdown */}
-              <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5 text-slate-300">
+              <div className="p-4 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl space-y-2.5 text-[var(--md-on-surface)]">
                 <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">المجموع الفرعي (قبل الخصم):</span>
-                  <span className="font-mono font-bold text-slate-200">
+                  <span className="text-[var(--md-on-surface-variant)]">المجموع الفرعي (قبل الخصم):</span>
+                  <span className="font-mono font-bold text-[var(--md-on-surface)] tabular-nums">
                     {formatAmount(selectedInvoice.subtotal || selectedInvoice.total)} {selectedInvoice.currency || 'YER'}
                   </span>
                 </div>
 
                 {Number(selectedInvoice.items_discount) > 0 && (
-                  <div className="flex justify-between text-xs text-amber-400">
+                  <div className="flex justify-between text-xs text-[var(--md-warning)]">
                     <span>خصومات الأصناف:</span>
-                    <span className="font-mono font-bold">
+                    <span className="font-mono font-bold tabular-nums">
                       -{formatAmount(selectedInvoice.items_discount)} {selectedInvoice.currency || 'YER'}
                     </span>
                   </div>
                 )}
 
                 {Number(selectedInvoice.invoice_discount) > 0 && (
-                  <div className="flex justify-between text-xs text-amber-400">
+                  <div className="flex justify-between text-xs text-[var(--md-warning)]">
                     <span>خصم الفاتورة الإضافي:</span>
-                    <span className="font-mono font-bold">
+                    <span className="font-mono font-bold tabular-nums">
                       -{formatAmount(selectedInvoice.invoice_discount)} {selectedInvoice.currency || 'YER'}
                     </span>
                   </div>
                 )}
 
                 {Number(selectedInvoice.discount) > 0 && !(Number(selectedInvoice.items_discount) > 0 && Number(selectedInvoice.invoice_discount) > 0) && (
-                  <div className="flex justify-between text-xs text-amber-400">
+                  <div className="flex justify-between text-xs text-[var(--md-warning)]">
                     <span>إجمالي الخصم التجاري:</span>
-                    <span className="font-mono font-bold">
+                    <span className="font-mono font-bold tabular-nums">
                       -{formatAmount(selectedInvoice.discount)} {selectedInvoice.currency || 'YER'}
                     </span>
                   </div>
                 )}
 
                 {Number(selectedInvoice.total_received_quantity) > 0 && (
-                  <div className="flex justify-between text-xs text-emerald-400 font-bold border-t border-slate-800/80 pt-2">
+                  <div className="flex justify-between text-xs text-[var(--md-success)] font-bold border-t border-[var(--md-outline-variant)] pt-2">
                     <span className="flex items-center gap-1">
                       <Gift className="w-3.5 h-3.5" />
                       <span>إجمالي الكميات الداخلة للمستودع:</span>
                     </span>
-                    <span className="font-mono">{selectedInvoice.total_received_quantity} قطعة</span>
+                    <span className="font-mono tabular-nums">{selectedInvoice.total_received_quantity} قطعة</span>
                   </div>
                 )}
 
-                <div className="flex justify-between font-bold border-t border-slate-800/80 pt-2">
-                  <span className="text-white text-sm">الصافي النهائي المستحق للمورد:</span>
-                  <span className="font-mono text-emerald-400 text-base">{formatAmount(selectedInvoice.total)} {selectedInvoice.currency || 'YER'}</span>
+                <div className="flex justify-between font-bold border-t border-[var(--md-outline-variant)] pt-2">
+                  <span className="text-[var(--md-on-surface)] text-sm">الصافي النهائي المستحق للمورد:</span>
+                  <span className="font-mono text-[var(--md-primary-text)] text-base tabular-nums">{formatAmount(selectedInvoice.total)} {selectedInvoice.currency || 'YER'}</span>
                 </div>
 
                 {selectedInvoice.currency && selectedInvoice.currency !== 'YER' && selectedInvoice.exchange_rate && (
-                  <div className="flex justify-between text-slate-400 font-semibold text-[11px]">
+                  <div className="flex justify-between text-[var(--md-on-surface-variant)] font-semibold text-[11px]">
                     <span>المعادل بالعملة الأساسية (YER):</span>
-                    <span className="font-mono">{formatAmount(Number(selectedInvoice.total) * Number(selectedInvoice.exchange_rate))} YER (سعر الصرف: {selectedInvoice.exchange_rate})</span>
+                    <span className="font-mono tabular-nums">{formatAmount(Number(selectedInvoice.total) * Number(selectedInvoice.exchange_rate))} YER (سعر الصرف: {selectedInvoice.exchange_rate})</span>
                   </div>
                 )}
 
-                <div className="flex justify-between text-emerald-400 text-xs font-semibold">
+                <div className="flex justify-between text-[var(--md-success)] text-xs font-semibold">
                   <span>المبلغ المسدد للمورد:</span>
-                  <span className="font-mono font-bold">{formatAmount(selectedInvoice.paid_amount || 0)} {selectedInvoice.currency || 'YER'}</span>
+                  <span className="font-mono font-bold tabular-nums">{formatAmount(selectedInvoice.paid_amount || 0)} {selectedInvoice.currency || 'YER'}</span>
                 </div>
 
-                <div className="flex justify-between text-amber-400 font-bold text-xs border-t border-slate-800/80 pt-2">
+                <div className="flex justify-between text-[var(--md-warning)] font-bold text-xs border-t border-[var(--md-outline-variant)] pt-2">
                   <span>المبلغ المتبقي دين على المنشأة:</span>
-                  <span className="font-mono text-sm">{formatAmount(selectedInvoice.remaining_amount)} {selectedInvoice.currency || 'YER'}</span>
+                  <span className="font-mono text-sm tabular-nums">{formatAmount(selectedInvoice.remaining_amount)} {selectedInvoice.currency || 'YER'}</span>
                 </div>
               </div>
             </div>

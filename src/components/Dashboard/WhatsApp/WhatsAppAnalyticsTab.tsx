@@ -39,69 +39,69 @@ export const WhatsAppAnalyticsTab: React.FC<WhatsAppAnalyticsTabProps> = ({ stat
   const failedPercent = Math.min(100, Math.round((failed / Math.max(sent, 1)) * 100));
 
   return (
-    <div id="whatsapp-analytics-section" className="space-y-6">
-      
+    <div id="whatsapp-analytics-section" className="space-y-6 text-[var(--md-on-surface)]" dir="rtl">
+
       {/* Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-slate-900 rounded-2xl border border-slate-800 p-5 shadow-xl space-y-2">
+        <div className="m3-card p-5 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400">معدل التسليم الناجح</span>
-            <CheckCheck className="w-4 h-4 text-emerald-400" />
+            <span className="text-xs font-bold text-[var(--md-on-surface-variant)]">معدل التسليم الناجح</span>
+            <CheckCheck className="w-4 h-4 text-[var(--md-success)]" />
           </div>
-          <p className="text-2xl font-black text-slate-100 font-mono">{stats.deliveryRate}%</p>
-          <p className="text-[11px] text-emerald-400 font-medium">أداء ممتاز عبر خوادم Meta الرسمية</p>
+          <p className="text-2xl font-black text-[var(--md-on-surface)] font-mono tabular-nums">{stats.deliveryRate}%</p>
+          <p className="text-[11px] text-[var(--md-success)] font-medium">أداء ممتاز عبر خوادم Meta الرسمية</p>
         </div>
 
-        <div className="bg-slate-900 rounded-2xl border border-slate-800 p-5 shadow-xl space-y-2">
+        <div className="m3-card p-5 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400">معدل قراءة الرسائل</span>
-            <Eye className="w-4 h-4 text-cyan-400" />
+            <span className="text-xs font-bold text-[var(--md-on-surface-variant)]">معدل قراءة الرسائل</span>
+            <Eye className="w-4 h-4 text-[var(--md-info)]" />
           </div>
-          <p className="text-2xl font-black text-slate-100 font-mono">{readPercent || 78}%</p>
-          <p className="text-[11px] text-slate-400 font-medium">تفاعل عالي مع إشعارات الفواتير والتحصيل</p>
+          <p className="text-2xl font-black text-[var(--md-on-surface)] font-mono tabular-nums">{readPercent || 78}%</p>
+          <p className="text-[11px] text-[var(--md-on-surface-variant)] font-medium">تفاعل عالي مع إشعارات الفواتير والتحصيل</p>
         </div>
 
-        <div className="bg-slate-900 rounded-2xl border border-slate-800 p-5 shadow-xl space-y-2">
+        <div className="m3-card p-5 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400">متوسط سرعة الإرسال</span>
-            <Zap className="w-4 h-4 text-amber-400" />
+            <span className="text-xs font-bold text-[var(--md-on-surface-variant)]">متوسط سرعة الإرسال</span>
+            <Zap className="w-4 h-4 text-[var(--md-warning)]" />
           </div>
-          <p className="text-2xl font-black text-slate-100 font-mono">1.2 ثانية</p>
-          <p className="text-[11px] text-slate-400 font-medium">معالجة فورية عبر الويب هوك السحابي</p>
+          <p className="text-2xl font-black text-[var(--md-on-surface)] font-mono tabular-nums">1.2 ثانية</p>
+          <p className="text-[11px] text-[var(--md-on-surface-variant)] font-medium">معالجة فورية عبر الويب هوك السحابي</p>
         </div>
       </div>
 
       {/* Delivery Funnel & Channel Breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
+
         {/* Delivery Funnel */}
-        <div className="bg-slate-900 rounded-2xl border border-slate-800 p-5 shadow-xl space-y-4">
-          <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-emerald-400" />
+        <div className="m3-card p-5 space-y-4">
+          <h3 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-[var(--md-primary-text)]" />
             <span>مسار وصول الرسائل (Delivery Funnel)</span>
           </h3>
 
           <div className="space-y-3 pt-2">
             {/* Sent */}
             <div className="space-y-1">
-              <div className="flex justify-between text-xs font-semibold text-slate-300">
+              <div className="flex justify-between text-xs font-semibold text-[var(--md-on-surface-variant)]">
                 <span>المرسلة من النظام (Dispatched)</span>
-                <span className="font-mono text-slate-100">{sent.toLocaleString('en-US')} رسالة</span>
+                <span className="font-mono tabular-nums text-[var(--md-on-surface)]">{sent.toLocaleString('en-US')} رسالة</span>
               </div>
-              <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500 rounded-full w-full" />
+              <div className="w-full h-3 bg-[var(--md-surface-container-highest)] rounded-full overflow-hidden">
+                <div className="h-full bg-[var(--md-info)] rounded-full w-full" />
               </div>
             </div>
 
             {/* Delivered */}
             <div className="space-y-1">
-              <div className="flex justify-between text-xs font-semibold text-slate-300">
+              <div className="flex justify-between text-xs font-semibold text-[var(--md-on-surface-variant)]">
                 <span>تم التسليم لجهاز المستلم (Delivered)</span>
-                <span className="font-mono text-slate-100">{deliveredPercent}%</span>
+                <span className="font-mono tabular-nums text-[var(--md-on-surface)]">{deliveredPercent}%</span>
               </div>
-              <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden">
+              <div className="w-full h-3 bg-[var(--md-surface-container-highest)] rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-teal-500 rounded-full"
+                  className="h-full bg-[var(--md-primary)] rounded-full"
                   style={{ width: `${deliveredPercent}%` }}
                 />
               </div>
@@ -109,13 +109,13 @@ export const WhatsAppAnalyticsTab: React.FC<WhatsAppAnalyticsTabProps> = ({ stat
 
             {/* Read */}
             <div className="space-y-1">
-              <div className="flex justify-between text-xs font-semibold text-slate-300">
+              <div className="flex justify-between text-xs font-semibold text-[var(--md-on-surface-variant)]">
                 <span>تم فتح وقراءة الرسالة (Read)</span>
-                <span className="font-mono text-slate-100">{readPercent || 78}%</span>
+                <span className="font-mono tabular-nums text-[var(--md-on-surface)]">{readPercent || 78}%</span>
               </div>
-              <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden">
+              <div className="w-full h-3 bg-[var(--md-surface-container-highest)] rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-emerald-500 rounded-full"
+                  className="h-full bg-[var(--md-success)] rounded-full"
                   style={{ width: `${readPercent || 78}%` }}
                 />
               </div>
@@ -124,31 +124,31 @@ export const WhatsAppAnalyticsTab: React.FC<WhatsAppAnalyticsTabProps> = ({ stat
         </div>
 
         {/* Categories Breakdown */}
-        <div className="bg-slate-900 rounded-2xl border border-slate-800 p-5 shadow-xl space-y-4">
-          <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-emerald-400" />
+        <div className="m3-card p-5 space-y-4">
+          <h3 className="text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-[var(--md-primary-text)]" />
             <span>توزيع الرسائل حسب التصنيف والهدف</span>
           </h3>
 
           <div className="space-y-3 pt-2">
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 text-xs">
-              <span className="font-bold text-slate-300">تذكيرات الفواتير والمطالبات</span>
-              <span className="font-mono font-bold text-emerald-400">45%</span>
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] text-xs">
+              <span className="font-bold text-[var(--md-on-surface)]">تذكيرات الفواتير والمطالبات</span>
+              <span className="font-mono tabular-nums font-bold text-[var(--md-success)]">45%</span>
             </div>
 
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 text-xs">
-              <span className="font-bold text-slate-300">سندات القبض وإشعارات السداد</span>
-              <span className="font-mono font-bold text-teal-400">30%</span>
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] text-xs">
+              <span className="font-bold text-[var(--md-on-surface)]">سندات القبض وإشعارات السداد</span>
+              <span className="font-mono tabular-nums font-bold text-[var(--md-primary-text)]">30%</span>
             </div>
 
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 text-xs">
-              <span className="font-bold text-slate-300">كشوفات الحساب والمطابقات</span>
-              <span className="font-mono font-bold text-blue-400">15%</span>
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] text-xs">
+              <span className="font-bold text-[var(--md-on-surface)]">كشوفات الحساب والمطابقات</span>
+              <span className="font-mono tabular-nums font-bold text-[var(--md-info)]">15%</span>
             </div>
 
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 text-xs">
-              <span className="font-bold text-slate-300">محادثات مباشرة وخدمة عملاء</span>
-              <span className="font-mono font-bold text-purple-400">10%</span>
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] text-xs">
+              <span className="font-bold text-[var(--md-on-surface)]">محادثات مباشرة وخدمة عملاء</span>
+              <span className="font-mono tabular-nums font-bold text-[var(--md-secondary)]">10%</span>
             </div>
           </div>
         </div>

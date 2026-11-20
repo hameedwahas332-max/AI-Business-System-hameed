@@ -500,18 +500,18 @@ export const CustomerSuccessTab: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="space-y-6 text-[var(--md-on-surface)]" dir="rtl">
       {/* Header Banner */}
-      <div className="bg-slate-900 text-white rounded-2xl p-6 sm:p-8 shadow-xl border border-emerald-900/50 relative overflow-hidden">
+      <div className="m3-card-elevated p-6 sm:p-8 relative overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-12 h-12 rounded-xl bg-emerald-950 border border-emerald-800/60 flex items-center justify-center text-emerald-400">
-                <Heart className="w-6 h-6 text-emerald-400" />
+              <div className="w-12 h-12 rounded-xl bg-[var(--md-primary-container)] border border-[var(--md-primary)]/20 flex items-center justify-center text-[var(--md-on-primary-container)] shrink-0">
+                <Heart className="w-6 h-6" />
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">نجاح العملاء وتجربة المستخدم (Customer Success & TTFV)</h1>
-                <p className="text-sm text-slate-400">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--md-on-surface)]">نجاح العملاء وتجربة المستخدم (Customer Success & TTFV)</h1>
+                <p className="text-sm text-[var(--md-on-surface-variant)]">
                   إدارة رحلة التهيئة، تسريع الوصول للقيمة الأولى، دعم الفريق، ومراقبة مؤشرات الرضا والاحتفاظ
                 </p>
               </div>
@@ -527,7 +527,7 @@ export const CustomerSuccessTab: React.FC = () => {
                 if (activeSubTab === 'pilot_program') fetchPilotData();
               }}
               disabled={loading}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-emerald-700 rounded-xl text-sm font-medium transition flex items-center gap-2 cursor-pointer text-emerald-400"
+              className="m3-btn-outlined text-sm cursor-pointer"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               تحديث البيانات
@@ -539,23 +539,23 @@ export const CustomerSuccessTab: React.FC = () => {
       {/* Feedback Toast */}
       {feedback && (
         <div
-          className={`p-4 rounded-xl text-sm font-medium flex items-center gap-3 border shadow-sm ${
+          className={`p-4 rounded-xl text-sm font-medium flex items-center gap-3 border ${
             feedback.type === 'success'
-              ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
-              : 'bg-rose-950 text-rose-300 border-rose-800'
+              ? 'bg-[var(--md-success-container)] text-[var(--md-on-success-container)] border-[var(--md-success)]/30'
+              : 'bg-[var(--md-error-container)] text-[var(--md-on-error-container)] border-[var(--md-error)]/30'
           }`}
         >
           {feedback.type === 'success' ? (
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <CheckCircle2 className="w-5 h-5 text-[var(--md-success)] shrink-0" />
           ) : (
-            <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+            <AlertTriangle className="w-5 h-5 text-[var(--md-error)] shrink-0" />
           )}
           <span>{feedback.message}</span>
         </div>
       )}
 
       {/* SubTab Navigation */}
-      <div className="flex flex-wrap gap-2 border-b border-slate-800 pb-3">
+      <div className="flex flex-wrap gap-2 border-b border-[var(--md-outline-variant)] pb-3">
         {[
           { id: 'onboarding', label: 'دليل التهيئة والخطوات (Checklist)', icon: CheckCircle2 },
           { id: 'invitations', label: 'دعوات فريق العمل (Invitations)', icon: UserPlus },
@@ -570,10 +570,8 @@ export const CustomerSuccessTab: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => setActiveSubTab(tab.id as SubTab)}
-              className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-                isActive
-                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-950/50'
-                  : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800 hover:border-emerald-900/50'
+              className={`text-sm cursor-pointer ${
+                isActive ? 'm3-btn-primary' : 'm3-btn-outlined'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -586,27 +584,27 @@ export const CustomerSuccessTab: React.FC = () => {
       {/* TAB 1: ONBOARDING CHECKLIST */}
       {activeSubTab === 'onboarding' && (
         <div className="space-y-6">
-          <div className="bg-slate-900 rounded-2xl p-6 border border-emerald-900/50 shadow-xl">
+          <div className="m3-card p-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-emerald-400" />
+                <h3 className="text-lg font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-[var(--md-primary-text)]" />
                   قائمة خطوات التهيئة السريعة (Time-To-First-Value Checklist)
                 </h3>
-                <p className="text-sm text-slate-400 mt-1">
+                <p className="text-sm text-[var(--md-on-surface-variant)] mt-1">
                   أكمل هذه الخطوات للحصول على القيمة القصوى وبدء دورة الأعمال المحاسبية المتكاملة
                 </p>
               </div>
-              <div className="bg-emerald-950/80 border border-emerald-800/80 rounded-xl px-4 py-2 text-emerald-300 text-sm font-semibold flex items-center gap-2">
-                <Clock className="w-4 h-4 text-emerald-400" />
+              <div className="m3-badge m3-badge-primary px-4 py-2 text-sm font-semibold flex items-center gap-2 tabular-nums">
+                <Clock className="w-4 h-4" />
                 نسبة الإنجاز: {onboardingData?.checklist?.progressPercent ?? 0}%
               </div>
             </div>
 
             {/* Progress Bar */}
-            <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden mb-6">
+            <div className="w-full bg-[var(--md-surface-container-highest)] h-3 rounded-full overflow-hidden mb-6">
               <div
-                className="bg-emerald-500 h-full transition-all duration-500"
+                className="bg-[var(--md-primary)] h-full transition-all duration-500"
                 style={{ width: `${onboardingData?.checklist?.progressPercent ?? 0}%` }}
               />
             </div>
@@ -627,29 +625,29 @@ export const CustomerSuccessTab: React.FC = () => {
                     key={step.id || idx}
                     className={`p-4 rounded-xl border transition flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
                       isDone
-                        ? 'bg-emerald-950/40 border-emerald-800/50'
+                        ? 'bg-[var(--md-success-container)]/50 border-[var(--md-success)]/30'
                         : isSkipped
-                        ? 'bg-slate-950 border-slate-800 text-slate-500'
-                        : 'bg-slate-950 border-slate-800 hover:border-emerald-800/80'
+                        ? 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] opacity-75'
+                        : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] hover:border-[var(--md-primary)]/50'
                     }`}
                   >
                     <div className="flex items-start gap-3">
                       <div
-                        className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 ${
+                        className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 tabular-nums ${
                           isDone
-                            ? 'bg-emerald-500 text-white'
+                            ? 'bg-[var(--md-success)] text-white'
                             : isSkipped
-                            ? 'bg-slate-800 text-slate-400'
-                            : 'bg-slate-800 text-emerald-400 border border-emerald-800'
+                            ? 'bg-[var(--md-surface-container-highest)] text-[var(--md-on-surface-variant)]'
+                            : 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/30'
                         }`}
                       >
                         {isDone ? <CheckCircle2 className="w-4 h-4" /> : idx + 1}
                       </div>
                       <div>
-                        <h4 className={`font-semibold text-sm ${isDone ? 'text-emerald-300 line-through' : 'text-slate-200'}`}>
+                        <h4 className={`font-semibold text-sm ${isDone ? 'text-[var(--md-on-success-container)] line-through' : 'text-[var(--md-on-surface)]'}`}>
                           {step.title || step.step_name || step.id}
                         </h4>
-                        <p className="text-xs text-slate-400 mt-0.5">{step.description}</p>
+                        <p className="text-xs text-[var(--md-on-surface-variant)] mt-0.5">{step.description}</p>
                       </div>
                     </div>
 
@@ -658,14 +656,14 @@ export const CustomerSuccessTab: React.FC = () => {
                         <>
                           <button
                             onClick={() => handleCompleteStep(step.id || step.step_key)}
-                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg shadow-sm transition cursor-pointer"
+                            className="m3-btn-primary !min-h-[32px] !px-3 !py-1.5 text-xs cursor-pointer"
                           >
                             تعليم كمكتمل
                           </button>
                           {!isSkipped && (
                             <button
                               onClick={() => handleSkipStep(step.id || step.step_key)}
-                              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg transition cursor-pointer"
+                              className="m3-btn-outlined !min-h-[32px] !px-3 !py-1.5 text-xs cursor-pointer"
                             >
                               تخطي
                             </button>
@@ -673,7 +671,7 @@ export const CustomerSuccessTab: React.FC = () => {
                         </>
                       )}
                       {isDone && (
-                        <span className="text-xs font-semibold text-emerald-300 bg-emerald-950/90 border border-emerald-800 px-2.5 py-1 rounded-md flex items-center gap-1">
+                        <span className="m3-badge m3-badge-success text-xs px-2.5 py-1 flex items-center gap-1">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           مكتمل
                         </span>
@@ -691,25 +689,25 @@ export const CustomerSuccessTab: React.FC = () => {
       {activeSubTab === 'invitations' && (
         <div className="space-y-6">
           {/* Invite Box */}
-          <div className="bg-slate-900 rounded-2xl p-6 border border-emerald-900/50 shadow-xl">
-            <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
-              <UserPlus className="w-5 h-5 text-emerald-400" />
+          <div className="m3-card p-6">
+            <h3 className="text-lg font-bold text-[var(--md-on-surface)] mb-2 flex items-center gap-2">
+              <UserPlus className="w-5 h-5 text-[var(--md-primary-text)]" />
               دعوة عضو جديد لفريق العمل (Team Member Invitation)
             </h3>
-            <p className="text-sm text-slate-400 mb-6">
+            <p className="text-sm text-[var(--md-on-surface-variant)] mb-6">
               أرسل رابط دعوة آمن للانضمام لشركتك مع تحديد الصلاحيات الإدارية والمحاسبية المناسبة
             </p>
 
             <form onSubmit={handleCreateInvitation} className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
               <div className="sm:col-span-6">
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">البريد الإلكتروني للعضو</label>
+                <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)] mb-1.5">البريد الإلكتروني للعضو</label>
                 <input
                   type="email"
                   required
                   placeholder="colleague@company.com"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                  className="m3-input text-sm"
                 />
               </div>
 
@@ -719,9 +717,9 @@ export const CustomerSuccessTab: React.FC = () => {
                   id="adminCheckbox"
                   checked={inviteIsAdmin}
                   onChange={(e) => setInviteIsAdmin(e.target.checked)}
-                  className="w-4 h-4 text-emerald-600 rounded border-slate-700 bg-slate-950 focus:ring-emerald-500"
+                  className="w-4 h-4 accent-[var(--md-primary)] rounded border-[var(--md-outline)]"
                 />
-                <label htmlFor="adminCheckbox" className="text-xs font-semibold text-slate-300 cursor-pointer">
+                <label htmlFor="adminCheckbox" className="text-xs font-semibold text-[var(--md-on-surface)] cursor-pointer">
                   منح صلاحيات مدير شركة (Admin)
                 </label>
               </div>
@@ -729,7 +727,7 @@ export const CustomerSuccessTab: React.FC = () => {
               <div className="sm:col-span-3">
                 <button
                   type="submit"
-                  className="w-full h-11 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-emerald-950/50 transition flex items-center justify-center gap-2 cursor-pointer"
+                  className="m3-btn-primary w-full text-sm cursor-pointer"
                 >
                   <Send className="w-4 h-4" />
                   إرسال الدعوة
@@ -739,60 +737,60 @@ export const CustomerSuccessTab: React.FC = () => {
           </div>
 
           {/* Invitations Table */}
-          <div className="bg-slate-900 rounded-2xl p-6 border border-emerald-900/50 shadow-xl">
-            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-              <Mail className="w-5 h-5 text-emerald-400" />
+          <div className="m3-card p-6">
+            <h3 className="text-lg font-bold text-[var(--md-on-surface)] mb-4 flex items-center gap-2">
+              <Mail className="w-5 h-5 text-[var(--md-primary-text)]" />
               سجل الدعوات المرسلة
             </h3>
 
             {invitations.length === 0 ? (
-              <div className="text-center py-10 text-slate-400">
-                <UserCheck className="w-10 h-10 mx-auto mb-2 text-slate-600" />
+              <div className="text-center py-10 text-[var(--md-on-surface-variant)]">
+                <UserCheck className="w-10 h-10 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">لا توجد دعوات معلقة حالياً</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-right text-sm">
-                  <thead className="bg-slate-950 text-slate-400 font-semibold border-b border-slate-800">
+              <div className="overflow-x-auto border border-[var(--md-outline-variant)] rounded-xl">
+                <table className="m3-table text-right text-sm" dir="rtl">
+                  <thead className="m3-thead">
                     <tr>
-                      <th className="py-3 px-4">البريد الإلكتروني</th>
-                      <th className="py-3 px-4">الصلاحية</th>
-                      <th className="py-3 px-4">الحالة</th>
-                      <th className="py-3 px-4">تاريخ الإرسال</th>
-                      <th className="py-3 px-4 text-left">إجراءات</th>
+                      <th className="m3-th">البريد الإلكتروني</th>
+                      <th className="m3-th">الصلاحية</th>
+                      <th className="m3-th">الحالة</th>
+                      <th className="m3-th">تاريخ الإرسال</th>
+                      <th className="m3-th text-left">إجراءات</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800">
+                  <tbody className="divide-y divide-[var(--md-outline-variant)]">
                     {invitations.map((inv) => (
-                      <tr key={inv.id} className="hover:bg-slate-800/40">
-                        <td className="py-3 px-4 font-medium text-slate-200">{inv.email}</td>
+                      <tr key={inv.id} className="hover:bg-[var(--md-surface-container-low)] transition-colors">
+                        <td className="py-3 px-4 font-medium text-[var(--md-on-surface)]">{inv.email}</td>
                         <td className="py-3 px-4">
-                          <span className={`text-xs px-2.5 py-1 rounded-md font-semibold ${inv.is_company_admin ? 'bg-purple-950 text-purple-300 border border-purple-800' : 'bg-slate-800 text-slate-300 border border-slate-700'}`}>
+                          <span className={`m3-badge text-xs ${inv.is_company_admin ? 'm3-badge-secondary' : 'm3-badge-info'}`}>
                             {inv.is_company_admin ? 'مدير شركة' : 'عضو فريق'}
                           </span>
                         </td>
                         <td className="py-3 px-4">
-                          <span className={`text-xs px-2.5 py-1 rounded-md font-semibold ${
-                            inv.status === 'ACCEPTED' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' :
-                            inv.status === 'PENDING' ? 'bg-amber-950 text-amber-300 border border-amber-800' :
-                            'bg-slate-800 text-slate-300'
+                          <span className={`m3-badge text-xs ${
+                            inv.status === 'ACCEPTED' ? 'm3-badge-success' :
+                            inv.status === 'PENDING' ? 'm3-badge-warning' :
+                            'm3-badge-secondary'
                           }`}>
                             {inv.status === 'ACCEPTED' ? 'تم القبول' : inv.status === 'PENDING' ? 'قيد الانتظار' : inv.status}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-slate-400 text-xs">{new Date(inv.created_at).toLocaleDateString('ar-SA')}</td>
+                        <td className="py-3 px-4 text-[var(--md-on-surface-variant)] text-xs font-mono tabular-nums">{new Date(inv.created_at).toLocaleDateString('ar-SA')}</td>
                         <td className="py-3 px-4 text-left space-x-2 space-x-reverse">
                           {inv.status === 'PENDING' && (
                             <>
                               <button
                                 onClick={() => handleResendInvitation(inv.id)}
-                                className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold px-2 py-1 bg-slate-800 border border-slate-700 rounded cursor-pointer"
+                                className="m3-btn-tonal !min-h-[30px] !px-2.5 !py-1 text-xs cursor-pointer"
                               >
                                 إعادة إرسال
                               </button>
                               <button
                                 onClick={() => handleRevokeInvitation(inv.id)}
-                                className="text-xs text-rose-400 hover:text-rose-300 font-semibold px-2 py-1 bg-slate-800 border border-slate-700 rounded cursor-pointer"
+                                className="m3-btn-danger !min-h-[30px] !px-2.5 !py-1 text-xs cursor-pointer"
                               >
                                 إلغاء
                               </button>
@@ -813,43 +811,43 @@ export const CustomerSuccessTab: React.FC = () => {
       {activeSubTab === 'health_activation' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-slate-900 rounded-2xl p-6 border border-emerald-900/40 shadow-xl">
+            <div className="m3-card p-6">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-800/80 px-2.5 py-1 rounded-lg">درجة النشاط</span>
-                <Zap className="w-5 h-5 text-amber-400" />
+                <span className="m3-badge m3-badge-primary text-xs">درجة النشاط</span>
+                <Zap className="w-5 h-5 text-[var(--md-warning)]" />
               </div>
-              <h4 className="text-2xl font-extrabold text-white">
+              <h4 className="text-2xl font-extrabold text-[var(--md-on-surface)] font-mono tabular-nums">
                 {activationStatus?.score ?? 92} / 100
               </h4>
-              <p className="text-xs text-slate-400 mt-1">حالة نشاط الحساب ومؤشر استخدام الميزات الأساسية</p>
+              <p className="text-xs text-[var(--md-on-surface-variant)] mt-1">حالة نشاط الحساب ومؤشر استخدام الميزات الأساسية</p>
             </div>
 
-            <div className="bg-slate-900 rounded-2xl p-6 border border-emerald-900/40 shadow-xl">
+            <div className="m3-card p-6">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-800/80 px-2.5 py-1 rounded-lg">الوقت للقيمة الأولى</span>
-                <Clock className="w-5 h-5 text-emerald-400" />
+                <span className="m3-badge m3-badge-success text-xs">الوقت للقيمة الأولى</span>
+                <Clock className="w-5 h-5 text-[var(--md-primary-text)]" />
               </div>
-              <h4 className="text-2xl font-extrabold text-white">
+              <h4 className="text-2xl font-extrabold text-[var(--md-on-surface)] font-mono tabular-nums">
                 {activationStatus?.timeToValueMinutes ?? '4.2'} دقيقة
               </h4>
-              <p className="text-xs text-slate-400 mt-1">الزمن المستغرق لإصدار أول فاتورة وتسجيل العمليات</p>
+              <p className="text-xs text-[var(--md-on-surface-variant)] mt-1">الزمن المستغرق لإصدار أول فاتورة وتسجيل العمليات</p>
             </div>
 
-            <div className="bg-slate-900 rounded-2xl p-6 border border-emerald-900/40 shadow-xl">
+            <div className="m3-card p-6">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-bold text-teal-400 bg-teal-950/80 border border-teal-800/80 px-2.5 py-1 rounded-lg">درجة الصحة</span>
-                <Heart className="w-5 h-5 text-emerald-400" />
+                <span className="m3-badge m3-badge-info text-xs">درجة الصحة</span>
+                <Heart className="w-5 h-5 text-[var(--md-success)]" />
               </div>
-              <h4 className="text-2xl font-extrabold text-white">
+              <h4 className="text-2xl font-extrabold text-[var(--md-on-surface)]">
                 {activationStatus?.healthStatus ?? 'ممتاز (Healthy)'}
               </h4>
-              <p className="text-xs text-slate-400 mt-1">معدل التفاعل الدوري واستقرار العمليات</p>
+              <p className="text-xs text-[var(--md-on-surface-variant)] mt-1">معدل التفاعل الدوري واستقرار العمليات</p>
             </div>
           </div>
 
-          <div className="bg-slate-900 rounded-2xl p-6 border border-emerald-900/50 shadow-xl">
-            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-emerald-400" />
+          <div className="m3-card p-6">
+            <h3 className="text-lg font-bold text-[var(--md-on-surface)] mb-4 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-[var(--md-primary-text)]" />
               مؤشرات الاعتماد والتفاعل للميزات (Feature Adoption Milestones)
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -859,10 +857,10 @@ export const CustomerSuccessTab: React.FC = () => {
                 { title: 'الفحص الضوئي OCR', count: 'مفعل', desc: 'مسح فواتير المشتريات تلقائياً' },
                 { title: 'التنبيهات والواتساب', count: 'متصل', desc: 'إرسال السندات والإشعارات' }
               ].map((item, i) => (
-                <div key={i} className="p-4 rounded-xl bg-slate-950 border border-slate-800">
-                  <h4 className="font-semibold text-sm text-slate-200">{item.title}</h4>
-                  <div className="text-emerald-400 text-sm font-bold mt-1">{item.count}</div>
-                  <p className="text-xs text-slate-400 mt-1">{item.desc}</p>
+                <div key={i} className="p-4 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)]">
+                  <h4 className="font-semibold text-sm text-[var(--md-on-surface)]">{item.title}</h4>
+                  <div className="text-[var(--md-success)] text-sm font-bold mt-1">{item.count}</div>
+                  <p className="text-xs text-[var(--md-on-surface-variant)] mt-1">{item.desc}</p>
                 </div>
               ))}
             </div>
@@ -873,27 +871,27 @@ export const CustomerSuccessTab: React.FC = () => {
       {/* TAB 4: SAMPLE DATA SANDBOX */}
       {activeSubTab === 'sample_data' && (
         <div className="space-y-6">
-          <div className="bg-slate-900 rounded-2xl p-6 border border-emerald-900/50 shadow-xl space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div className="m3-card p-6 space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--md-outline-variant)] pb-4">
               <div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Database className="w-5 h-5 text-emerald-400" />
+                <h3 className="text-lg font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                  <Database className="w-5 h-5 text-[var(--md-primary-text)]" />
                   مركز التحكم بالبيانات التجريبية (Sandbox) وتصفير النظام للعمل الحقيقي
                 </h3>
-                <p className="text-sm text-slate-400 mt-1">
+                <p className="text-sm text-[var(--md-on-surface-variant)] mt-1">
                   التحكم الكامل بين وضع العمل الفعلي ببيانات نظيفة ومصفرة 100%، وبين وضع الاستعراض وتجربة ميزات النظام.
                 </p>
               </div>
 
               <div>
                 {typeof window !== 'undefined' && localStorage.getItem('erp_clean_production_mode_v1') === 'true' ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="m3-badge m3-badge-success px-3 py-1.5 text-xs font-bold inline-flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[var(--md-success)] animate-pulse" />
                     وضع العمل الفعلي النظيف مفعل (0 بيانات تجريبية)
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                    <span className="w-2 h-2 rounded-full bg-amber-400" />
+                  <span className="m3-badge m3-badge-warning px-3 py-1.5 text-xs font-bold inline-flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[var(--md-warning)]" />
                     البيانات التجريبية (Sandbox) مفعلة حالياً للعرض
                   </span>
                 )}
@@ -901,12 +899,12 @@ export const CustomerSuccessTab: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                <div className="flex items-center gap-2 text-rose-400 font-bold text-xs mb-2">
+              <div className="bg-[var(--md-surface-container-low)] p-4 rounded-xl border border-[var(--md-outline-variant)]">
+                <div className="flex items-center gap-2 text-[var(--md-error)] font-bold text-xs mb-2">
                   <Trash2 className="w-4 h-4" />
                   ما يتم حذفه وتصفيره عند تفعيل العمل الفعلي:
                 </div>
-                <ul className="text-xs text-slate-300 space-y-1.5 list-disc list-inside">
+                <ul className="text-xs text-[var(--md-on-surface-variant)] space-y-1.5 list-disc list-inside">
                   <li>كافة فواتير المبيعات ونقاط البيع التجريبية ومحطات الوقود</li>
                   <li>جميع فواتير المشتريات وسندات القبض والصرف النموذجية</li>
                   <li>قوائم العملاء والموردين والأصناف الافتراضية التجريبية</li>
@@ -914,12 +912,12 @@ export const CustomerSuccessTab: React.FC = () => {
                 </ul>
               </div>
 
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs mb-2">
+              <div className="bg-[var(--md-surface-container-low)] p-4 rounded-xl border border-[var(--md-outline-variant)]">
+                <div className="flex items-center gap-2 text-[var(--md-success)] font-bold text-xs mb-2">
                   <ShieldCheck className="w-4 h-4" />
                   ما يتم الحفاظ عليه وثباته دائماً وبأمان تام:
                 </div>
-                <ul className="text-xs text-slate-300 space-y-1.5 list-disc list-inside">
+                <ul className="text-xs text-[var(--md-on-surface-variant)] space-y-1.5 list-disc list-inside">
                   <li>حسابك المسجل وكلمة المرور وصلاحيات المسؤول الدائمة</li>
                   <li>اسم المنشأة والشعار والبيانات الضريبية المعتمدة</li>
                   <li>إعدادات ربط واتساب وبوابات الإرسال ومفاتيح API الدائمة</li>
@@ -932,7 +930,7 @@ export const CustomerSuccessTab: React.FC = () => {
               <button
                 onClick={handleCleanupSampleData}
                 disabled={loading}
-                className="px-6 py-3.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-rose-950/50 transition flex items-center gap-2 cursor-pointer"
+                className="m3-btn-danger px-6 py-3 text-sm cursor-pointer"
               >
                 <Trash2 className="w-4 h-4" />
                 حذف كافة البيانات التجريبية من جميع القوائم والواجهات (بدء العمل الفعلي)
@@ -941,9 +939,9 @@ export const CustomerSuccessTab: React.FC = () => {
               <button
                 onClick={handleSeedSampleData}
                 disabled={loading}
-                className="px-5 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-sm rounded-xl transition flex items-center gap-2 cursor-pointer"
+                className="m3-btn-outlined px-5 py-3 text-sm cursor-pointer"
               >
-                <Sparkles className="w-4 h-4 text-amber-300" />
+                <Sparkles className="w-4 h-4 text-[var(--md-warning)]" />
                 تفعيل بيانات Sandbox التجريبية للعرض
               </button>
             </div>
@@ -956,29 +954,29 @@ export const CustomerSuccessTab: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Create & List Tickets */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="bg-slate-900 rounded-2xl p-6 border border-emerald-900/50 shadow-xl">
-              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <Plus className="w-5 h-5 text-emerald-400" />
+            <div className="m3-card p-6">
+              <h3 className="text-lg font-bold text-[var(--md-on-surface)] mb-4 flex items-center gap-2">
+                <Plus className="w-5 h-5 text-[var(--md-primary-text)]" />
                 فتح تذكرة دعم فني جديدة
               </h3>
               <form onSubmit={handleCreateTicket} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">عنوان التذكرة / المشكلة</label>
+                  <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)] mb-1">عنوان التذكرة / المشكلة</label>
                   <input
                     type="text"
                     required
                     placeholder="مثال: استفسار حول الربط مع منصة فاتورة"
                     value={ticketSubject}
                     onChange={(e) => setTicketSubject(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                    className="m3-input text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">الأولوية</label>
+                  <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)] mb-1">الأولوية</label>
                   <select
                     value={ticketPriority}
                     onChange={(e: any) => setTicketPriority(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                    className="m3-select text-sm"
                   >
                     <option value="LOW">منخفضة (Low)</option>
                     <option value="MEDIUM">متوسطة (Medium)</option>
@@ -987,19 +985,19 @@ export const CustomerSuccessTab: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">تفاصيل الاستفسار أو الدعم المطلوب</label>
+                  <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)] mb-1">تفاصيل الاستفسار أو الدعم المطلوب</label>
                   <textarea
                     rows={4}
                     required
                     placeholder="اشرح المشكلة أو السؤال بالتفصيل لمساعدتك في أسرع وقت..."
                     value={ticketDescription}
                     onChange={(e) => setTicketDescription(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                    className="m3-input !h-auto py-2.5 text-sm"
                   />
                 </div>
                 <button
                   type="submit"
-                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-emerald-950/50 transition cursor-pointer"
+                  className="m3-btn-primary w-full text-sm cursor-pointer"
                 >
                   إرسال التذكرة
                 </button>
@@ -1007,11 +1005,11 @@ export const CustomerSuccessTab: React.FC = () => {
             </div>
 
             {/* List */}
-            <div className="bg-slate-900 rounded-2xl p-6 border border-emerald-900/50 shadow-xl">
-              <h4 className="font-bold text-white mb-3 text-sm">تذاكر الدعم السابقة</h4>
+            <div className="m3-card p-6">
+              <h4 className="font-bold text-[var(--md-on-surface)] mb-3 text-sm">تذاكر الدعم السابقة</h4>
               <div className="space-y-2 max-h-72 overflow-y-auto">
                 {tickets.length === 0 ? (
-                  <p className="text-xs text-slate-500 text-center py-4">لا توجد تذاكر مسجلة</p>
+                  <p className="text-xs text-[var(--md-on-surface-variant)] text-center py-4">لا توجد تذاكر مسجلة</p>
                 ) : (
                   tickets.map((t) => (
                     <div
@@ -1019,21 +1017,21 @@ export const CustomerSuccessTab: React.FC = () => {
                       onClick={() => handleSelectTicket(t)}
                       className={`p-3 rounded-xl border cursor-pointer transition ${
                         selectedTicket?.id === t.id
-                          ? 'border-emerald-500 bg-emerald-950/40'
-                          : 'border-slate-800 bg-slate-950 hover:border-slate-700'
+                          ? 'border-[var(--md-primary)] bg-[var(--md-primary-container)]/50'
+                          : 'border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] hover:bg-[var(--md-surface-container-high)]'
                       }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <h5 className="font-semibold text-xs text-slate-200 truncate">{t.subject}</h5>
+                      <div className="flex items-center justify-between gap-2">
+                        <h5 className="font-semibold text-xs text-[var(--md-on-surface)] truncate">{t.subject}</h5>
                         <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                            t.status === 'RESOLVED' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-amber-950 text-amber-300 border border-amber-800'
+                          className={`m3-badge text-[10px] ${
+                            t.status === 'RESOLVED' ? 'm3-badge-success' : 'm3-badge-warning'
                           }`}
                         >
                           {t.status}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-400 mt-1 line-clamp-1">{t.description}</p>
+                      <p className="text-[11px] text-[var(--md-on-surface-variant)] mt-1 line-clamp-1">{t.description}</p>
                     </div>
                   ))
                 )}
@@ -1043,17 +1041,17 @@ export const CustomerSuccessTab: React.FC = () => {
 
           {/* Ticket Details & Thread */}
           <div className="lg:col-span-7">
-            <div className="bg-slate-900 rounded-2xl p-6 border border-emerald-900/50 shadow-xl h-full flex flex-col justify-between">
+            <div className="m3-card p-6 h-full flex flex-col justify-between">
               {selectedTicket ? (
                 <div>
-                  <div className="border-b border-slate-800 pb-4 mb-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-base font-bold text-white">{selectedTicket.subject}</h3>
-                      <span className="text-xs px-2.5 py-1 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-semibold">
+                  <div className="border-b border-[var(--md-outline-variant)] pb-4 mb-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-base font-bold text-[var(--md-on-surface)]">{selectedTicket.subject}</h3>
+                      <span className="m3-badge m3-badge-primary text-xs">
                         {selectedTicket.priority}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-400 mt-1">{selectedTicket.description}</p>
+                    <p className="text-xs text-[var(--md-on-surface-variant)] mt-1">{selectedTicket.description}</p>
                   </div>
 
                   {/* Message Thread */}
@@ -1061,17 +1059,19 @@ export const CustomerSuccessTab: React.FC = () => {
                     {(selectedTicket.responses || []).map((resp: any, i: number) => (
                       <div
                         key={i}
-                        className={`p-3.5 rounded-xl text-xs ${
-                          resp.is_staff ? 'bg-emerald-950/40 border border-emerald-800 mr-4 text-emerald-200' : 'bg-slate-950 border border-slate-800 ml-4 text-slate-300'
+                        className={`p-3.5 rounded-xl text-xs border ${
+                          resp.is_staff
+                            ? 'bg-[var(--md-primary-container)] border-[var(--md-primary)]/30 mr-4 text-[var(--md-on-primary-container)]'
+                            : 'bg-[var(--md-surface-container-high)] border-[var(--md-outline-variant)] ml-4 text-[var(--md-on-surface)]'
                         }`}
                       >
-                        <div className="font-bold text-slate-200 mb-1 flex items-center justify-between">
+                        <div className="font-bold mb-1 flex items-center justify-between">
                           <span>{resp.is_staff ? 'فريق نجاح العملاء' : 'أنت'}</span>
-                          <span className="text-[10px] text-slate-500 font-normal">
+                          <span className="text-[10px] opacity-75 font-mono tabular-nums font-normal">
                             {new Date(resp.created_at || Date.now()).toLocaleTimeString('ar-SA')}
                           </span>
                         </div>
-                        <p className="text-slate-200 leading-relaxed">{resp.message}</p>
+                        <p className="leading-relaxed">{resp.message}</p>
                       </div>
                     ))}
                   </div>
@@ -1083,19 +1083,19 @@ export const CustomerSuccessTab: React.FC = () => {
                       placeholder="اكتب ردك هنا..."
                       value={ticketResponseMsg}
                       onChange={(e) => setTicketResponseMsg(e.target.value)}
-                      className="flex-1 px-3.5 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                      className="m3-input flex-1 text-sm"
                     />
                     <button
                       type="submit"
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm rounded-xl transition cursor-pointer"
+                      className="m3-btn-primary text-sm cursor-pointer shrink-0"
                     >
                       إرسال الرد
                     </button>
                   </form>
                 </div>
               ) : (
-                <div className="text-center py-20 text-slate-500">
-                  <MessageSquare className="w-12 h-12 mx-auto mb-2 text-slate-600" />
+                <div className="text-center py-20 text-[var(--md-on-surface-variant)]">
+                  <MessageSquare className="w-12 h-12 mx-auto mb-2 opacity-50" />
                   <p className="text-sm">اختر تذكرة من القائمة لعرض المحادثة وتفاصيل المتابعة</p>
                 </div>
               )}
@@ -1107,18 +1107,18 @@ export const CustomerSuccessTab: React.FC = () => {
       {/* TAB 6: PILOT PROGRAM */}
       {activeSubTab === 'pilot_program' && (
         <div className="space-y-6">
-          <div className="bg-slate-900 rounded-2xl p-6 border border-emerald-900/50 shadow-xl">
-            <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
-              <Award className="w-5 h-5 text-emerald-400" />
+          <div className="m3-card p-6">
+            <h3 className="text-lg font-bold text-[var(--md-on-surface)] mb-2 flex items-center gap-2">
+              <Award className="w-5 h-5 text-[var(--md-primary-text)]" />
               برنامج العملاء المميزين والوصول المبكر (Pilot Program)
             </h3>
-            <p className="text-sm text-slate-400 mb-6">
+            <p className="text-sm text-[var(--md-on-surface-variant)] mb-6">
               بصفتك شريكاً استراتيجياً، يمكنك تجربة الميزات التجريبية ومشاركتنا رأيك لتحسين تجربة النظام.
             </p>
 
             <form onSubmit={handleSubmitFeedback} className="space-y-4 max-w-xl">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">تقييمك لتجربة النظام (NPS Rating)</label>
+                <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)] mb-1.5">تقييمك لتجربة النظام (NPS Rating)</label>
                 <div className="flex gap-2">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -1126,7 +1126,9 @@ export const CustomerSuccessTab: React.FC = () => {
                       key={star}
                       onClick={() => setFeedbackRating(star)}
                       className={`p-2 rounded-xl border transition cursor-pointer ${
-                        feedbackRating >= star ? 'bg-amber-950/80 border-amber-600 text-amber-400' : 'bg-slate-950 border-slate-800 text-slate-600'
+                        feedbackRating >= star
+                          ? 'bg-[var(--md-warning-container)] border-[var(--md-warning)] text-[var(--md-warning)]'
+                          : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)]'
                       }`}
                     >
                       <Star className="w-6 h-6 fill-current" />
@@ -1136,11 +1138,11 @@ export const CustomerSuccessTab: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">مجال الملاحظة</label>
+                <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)] mb-1.5">مجال الملاحظة</label>
                 <select
                   value={feedbackCategory}
                   onChange={(e) => setFeedbackCategory(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                  className="m3-select text-sm"
                 >
                   <option value="USABILITY">سهولة الاستخدام وسرعة الواجهة</option>
                   <option value="ZATCA_COMPLIANCE">التوافق الضريبي وفواتير ZATCA</option>
@@ -1150,20 +1152,20 @@ export const CustomerSuccessTab: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">ملاحظاتك ومقترحاتك</label>
+                <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)] mb-1.5">ملاحظاتك ومقترحاتك</label>
                 <textarea
                   rows={4}
                   required
                   placeholder="ما الذي يعجبك في النظام؟ وما الذي يمكننا تحسينه لمساعدتك أكثر؟"
                   value={feedbackComment}
                   onChange={(e) => setFeedbackComment(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                  className="m3-input !h-auto py-2.5 text-sm"
                 />
               </div>
 
               <button
                 type="submit"
-                className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-emerald-950/50 transition cursor-pointer"
+                className="m3-btn-primary px-6 text-sm cursor-pointer"
               >
                 إرسال الملاحظات
               </button>

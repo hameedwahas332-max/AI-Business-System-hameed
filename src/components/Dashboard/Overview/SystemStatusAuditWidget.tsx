@@ -31,22 +31,22 @@ export const SystemStatusAuditWidget: React.FC<SystemStatusAuditWidgetProps> = (
   }));
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 text-right flex flex-col justify-between h-full">
+    <div className="m3-card p-5 sm:p-6 space-y-4 text-right flex flex-col justify-between h-full">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+      <div className="flex items-center justify-between border-b border-[var(--md-outline-variant)] pb-3">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] flex items-center justify-center shrink-0">
             <ShieldCheck className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white">حوكمة النظام والنسخ الاحتياطي</h3>
-            <p className="text-[11px] text-slate-400">حالة الخوادم والأمان واستمرارية الأعمال</p>
+            <h3 className="text-sm font-bold text-[var(--md-on-surface)]">حوكمة النظام والنسخ الاحتياطي</h3>
+            <p className="text-[11px] text-[var(--md-on-surface-variant)]">حالة الخوادم والأمان واستمرارية الأعمال</p>
           </div>
         </div>
 
         <button
           onClick={() => onNavigate && onNavigate('observability')}
-          className="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
+          className="text-xs font-bold text-[var(--md-primary-text)] hover:underline flex items-center gap-1 cursor-pointer"
         >
           <span>المراقبة</span>
           <ArrowUpRight className="w-3.5 h-3.5" />
@@ -55,62 +55,62 @@ export const SystemStatusAuditWidget: React.FC<SystemStatusAuditWidgetProps> = (
 
       {/* 3 Status indicators */}
       <div className="space-y-2.5">
-        <div className="p-3 rounded-2xl bg-slate-800/40 border border-slate-800/80 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
+        <div className="p-3 rounded-xl bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-[var(--md-success-container)] text-[var(--md-on-success-container)] flex items-center justify-center shrink-0">
               <Database className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <span className="text-xs font-bold text-slate-200 block">قاعدة البيانات السحابية</span>
-              <span className="text-[10px] text-slate-400">Neon PostgreSQL • نشطة</span>
+            <div className="min-w-0">
+              <span className="text-xs font-bold text-[var(--md-on-surface)] block truncate">قاعدة البيانات السحابية</span>
+              <span className="text-[10px] text-[var(--md-on-surface-variant)]">Neon PostgreSQL • نشطة</span>
             </div>
           </div>
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+          <span className="m3-badge m3-badge-success shrink-0">
             متصل 100%
           </span>
         </div>
 
-        <div className="p-3 rounded-2xl bg-slate-800/40 border border-slate-800/80 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center">
+        <div className="p-3 rounded-xl bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-[var(--md-info-container)] text-[var(--md-on-info-container)] flex items-center justify-center shrink-0">
               <Server className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <span className="text-xs font-bold text-slate-200 block">النسخ الاحتياطي السحابي</span>
-              <span className="text-[10px] text-slate-400">Backblaze B2 S3 • مشفر</span>
+            <div className="min-w-0">
+              <span className="text-xs font-bold text-[var(--md-on-surface)] block truncate">النسخ الاحتياطي السحابي</span>
+              <span className="text-[10px] text-[var(--md-on-surface-variant)]">Backblaze B2 S3 • مشفر</span>
             </div>
           </div>
           <button
             onClick={() => onNavigate && onNavigate('backups')}
-            className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30 hover:bg-blue-500/25 transition-colors cursor-pointer"
+            className="m3-badge m3-badge-info hover:opacity-85 transition-opacity cursor-pointer shrink-0"
           >
             جاهز DR
           </button>
         </div>
 
-        <div className="p-3 rounded-2xl bg-slate-800/40 border border-slate-800/80 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-indigo-500/15 text-indigo-400 flex items-center justify-center">
+        <div className="p-3 rounded-xl bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] flex items-center justify-center shrink-0">
               <Lock className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <span className="text-xs font-bold text-slate-200 block">بروتوكول أمان البيانات</span>
-              <span className="text-[10px] text-slate-400">TLS 1.3 + تشفير AES-256</span>
+            <div className="min-w-0">
+              <span className="text-xs font-bold text-[var(--md-on-surface)] block truncate">بروتوكول أمان البيانات</span>
+              <span className="text-[10px] text-[var(--md-on-surface-variant)]">TLS 1.3 + تشفير AES-256</span>
             </div>
           </div>
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
+          <span className="m3-badge m3-badge-primary shrink-0">
             مفعل
           </span>
         </div>
       </div>
 
       {/* Mini Audit Stream */}
-      <div className="space-y-2 pt-2 border-t border-slate-800">
-        <div className="flex items-center justify-between text-xs text-slate-400">
-          <span className="font-bold text-slate-300">سجل العمليات والتدقيق الأخير:</span>
+      <div className="space-y-2 pt-2 border-t border-[var(--md-outline-variant)]">
+        <div className="flex items-center justify-between text-xs text-[var(--md-on-surface-variant)]">
+          <span className="font-bold text-[var(--md-on-surface)]">سجل العمليات والتدقيق الأخير:</span>
           <button
             onClick={() => onNavigate && onNavigate('audit')}
-            className="text-[11px] text-emerald-400 hover:underline font-bold"
+            className="text-[11px] text-[var(--md-primary-text)] hover:underline font-bold cursor-pointer"
           >
             عرض الكل
           </button>
@@ -121,18 +121,18 @@ export const SystemStatusAuditWidget: React.FC<SystemStatusAuditWidgetProps> = (
             activeLogs.map((log, idx) => (
               <div
                 key={idx}
-                className="p-2 rounded-xl bg-slate-800/30 border border-slate-800/60 flex items-center justify-between text-[11px]"
+                className="p-2 rounded-xl bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] flex items-center justify-between text-[11px] gap-2"
               >
                 <div className="flex items-center gap-2 truncate">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                  <span className="font-bold text-slate-200 truncate">{log.action}</span>
-                  <span className="font-mono text-[10px] text-slate-400">({log.entity})</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--md-primary)] shrink-0" />
+                  <span className="font-bold text-[var(--md-on-surface)] truncate">{log.action}</span>
+                  <span className="font-mono text-[10px] text-[var(--md-on-surface-variant)]">({log.entity})</span>
                 </div>
-                <span className="font-mono text-[10px] text-slate-500 shrink-0">{log.time}</span>
+                <span className="font-mono text-[10px] text-[var(--md-on-surface-variant)] shrink-0 tabular-nums">{log.time}</span>
               </div>
             ))
           ) : (
-            <div className="p-3 rounded-xl bg-slate-800/20 border border-slate-800/50 text-center text-[11px] text-slate-400">
+            <div className="p-3 rounded-xl bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] text-center text-[11px] text-[var(--md-on-surface-variant)]">
               لا توجد حركات تدقيق مسجلة حتى الآن
             </div>
           )}
@@ -140,13 +140,13 @@ export const SystemStatusAuditWidget: React.FC<SystemStatusAuditWidgetProps> = (
       </div>
 
       {/* Footer link to Backups */}
-      <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+      <div className="pt-2 border-t border-[var(--md-outline-variant)] flex items-center justify-between">
         <button
           onClick={() => onNavigate && onNavigate('backups')}
-          className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700/80 text-slate-200 text-xs font-bold border border-slate-700 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+          className="m3-btn-outlined w-full text-xs"
         >
           <span>إدارة واستعادة النسخ الاحتياطية (Disaster Recovery)</span>
-          <ArrowUpRight className="w-3.5 h-3.5 text-indigo-400" />
+          <ArrowUpRight className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
         </button>
       </div>
     </div>

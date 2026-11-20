@@ -141,25 +141,25 @@ export const SalesInvoicePaymentModal: React.FC<SalesInvoicePaymentModalProps> =
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 m3-backdrop animate-fadeIn">
+      <div className="m3-modal-surface rounded-2xl w-full max-w-lg overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
+        <div className="px-6 py-4 border-b border-[var(--md-outline-variant)] flex items-center justify-between bg-[var(--md-surface-container-low)]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+            <div className="w-10 h-10 rounded-xl bg-[var(--md-success-container)] border border-[var(--md-success)]/25 flex items-center justify-center text-[var(--md-success)]">
               <DollarSign className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">تسجيل سند قبض / دفعة نقدية</h2>
-              <p className="text-xs text-slate-400">
-                الفاتورة: <span className="text-blue-400 font-mono font-bold">#{invoice.invoice_number}</span> | العميل: {invoice.customer_name}
+              <h2 className="text-lg font-bold text-[var(--md-on-surface)]">تسجيل سند قبض / دفعة نقدية</h2>
+              <p className="text-xs text-[var(--md-on-surface-variant)]">
+                الفاتورة: <span className="text-[var(--md-primary-text)] font-mono font-bold tabular-nums">#{invoice.invoice_number}</span> | العميل: {invoice.customer_name}
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition-colors"
+            className="text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] p-2 rounded-lg hover:bg-[var(--md-surface-container-high)] transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -168,31 +168,31 @@ export const SalesInvoicePaymentModal: React.FC<SalesInvoicePaymentModalProps> =
         {/* Content */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
-            <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-sm flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <div className="p-3 bg-[var(--md-error-container)] border border-[var(--md-error)]/30 rounded-xl text-[var(--md-on-error-container)] text-sm flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 text-[var(--md-error)]" />
               <span>{error}</span>
             </div>
           )}
 
           {/* Invoice Balances Glance */}
-          <div className="grid grid-cols-3 gap-2 p-3 bg-slate-950/60 border border-slate-800 rounded-xl text-center">
+          <div className="grid grid-cols-3 gap-2 p-3 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl text-center tabular-nums">
             <div>
-              <span className="block text-[11px] text-slate-400">إجمالي الفاتورة</span>
-              <span className="text-xs font-bold text-white">{formatAmount(total, invoice.currency || 'YER')}</span>
+              <span className="block text-[11px] text-[var(--md-on-surface-variant)]">إجمالي الفاتورة</span>
+              <span className="text-xs font-bold text-[var(--md-on-surface)]">{formatAmount(total, invoice.currency || 'YER')}</span>
             </div>
             <div>
-              <span className="block text-[11px] text-emerald-400">المسدد سابقاً</span>
-              <span className="text-xs font-bold text-emerald-400">{formatAmount(paid, invoice.currency || 'YER')}</span>
+              <span className="block text-[11px] text-[var(--md-success)]">المسدد سابقاً</span>
+              <span className="text-xs font-bold text-[var(--md-success)]">{formatAmount(paid, invoice.currency || 'YER')}</span>
             </div>
             <div>
-              <span className="block text-[11px] text-amber-400">المتبقي المطلوب</span>
-              <span className="text-xs font-bold text-amber-400">{formatAmount(remaining, invoice.currency || 'YER')}</span>
+              <span className="block text-[11px] text-[var(--md-warning)]">المتبقي المطلوب</span>
+              <span className="text-xs font-bold text-[var(--md-warning)]">{formatAmount(remaining, invoice.currency || 'YER')}</span>
             </div>
           </div>
 
           {/* Amount input */}
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1">المبلغ المراد تحصيله الآن</label>
+            <label className="block text-xs font-medium text-[var(--md-on-surface-variant)] mb-1">المبلغ المراد تحصيله الآن</label>
             <div className="relative">
               <input
                 type="text"
@@ -201,10 +201,10 @@ export const SalesInvoicePaymentModal: React.FC<SalesInvoicePaymentModalProps> =
                 lang="en"
                 value={amount}
                 onChange={(e) => setAmount(parseEnglishNumber(e.target.value, 0))}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-base font-bold text-emerald-400 focus:outline-none focus:border-emerald-500 font-mono"
+                className="m3-input w-full px-4 py-2.5 text-base font-bold text-[var(--md-success)] font-mono tabular-nums"
                 required
               />
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[var(--md-on-surface-variant)]">
                 {getActiveCurrencySymbol(invoice?.currency)}
               </span>
             </div>
@@ -213,11 +213,11 @@ export const SalesInvoicePaymentModal: React.FC<SalesInvoicePaymentModalProps> =
           {/* Payment Method & Date */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">طريقة القبض</label>
+              <label className="block text-xs font-medium text-[var(--md-on-surface-variant)] mb-1">طريقة القبض</label>
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value as any)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"
+                className="m3-select w-full px-3 py-2 text-sm"
               >
                 <option value="CASH">نقداً (الصندوق / الخزينة)</option>
                 <option value="BANK">تحويل بنكي / شيك</option>
@@ -226,51 +226,51 @@ export const SalesInvoicePaymentModal: React.FC<SalesInvoicePaymentModalProps> =
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">تاريخ القبض</label>
+              <label className="block text-xs font-medium text-[var(--md-on-surface-variant)] mb-1">تاريخ القبض</label>
               <input
                 type="date"
                 value={paymentDate}
                 onChange={(e) => setPaymentDate(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"
+                className="m3-input w-full px-3 py-2 text-sm"
               />
             </div>
           </div>
 
           {/* Reference & Notes */}
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1">المرجع / رقم الإشعار</label>
+            <label className="block text-xs font-medium text-[var(--md-on-surface-variant)] mb-1">المرجع / رقم الإشعار</label>
             <input
               type="text"
               value={reference}
               onChange={(e) => setReference(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"
+              className="m3-input w-full px-3 py-2 text-sm"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1">ملاحظات السند</label>
+            <label className="block text-xs font-medium text-[var(--md-on-surface-variant)] mb-1">ملاحظات السند</label>
             <input
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="أي تفاصيل إضافية..."
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"
+              className="m3-input w-full px-3 py-2 text-sm"
             />
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--md-outline-variant)]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-medium transition-colors"
+              className="m3-btn-outlined px-4 py-2 text-sm font-medium"
             >
               إلغاء
             </button>
             <button
               type="submit"
               disabled={loading || amount <= 0}
-              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl text-sm font-semibold flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition-all"
+              className="m3-btn-primary px-5 py-2 text-sm font-semibold flex items-center gap-2"
             >
               {loading ? (
                 <>

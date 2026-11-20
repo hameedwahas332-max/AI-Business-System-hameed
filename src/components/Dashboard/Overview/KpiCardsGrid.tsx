@@ -82,14 +82,14 @@ export const KpiCardsGrid: React.FC<KpiCardsGridProps> = ({
       currency,
       baseEquivalent: formatBaseEquivalent(totalSales, currency),
       icon: TrendingUp,
-      accentBorder: 'from-emerald-500 via-teal-500 to-emerald-600',
-      iconBg: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30',
+      accentBar: 'bg-[var(--md-primary)]',
+      iconBg: 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)]',
       badge: totalSales > 0 ? '+14.2% نمو' : 'بانتظار العمليات',
-      badgeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+      badgeClass: 'm3-badge-success',
       metaLabel: 'المحصل نقداً وبنوك:',
       metaValue: totalSales > 0 ? `${formatAmount(paidSales)} ${currency} (${collectionRate}%)` : `0.00 ${currency}`,
       progressPct: collectionRate,
-      progressColor: 'bg-emerald-500',
+      progressColor: 'bg-[var(--md-primary)]',
       tab: 'invoices' as TabType,
     },
     {
@@ -100,14 +100,14 @@ export const KpiCardsGrid: React.FC<KpiCardsGridProps> = ({
       currency,
       baseEquivalent: formatBaseEquivalent(cashBankBalance, currency),
       icon: Wallet,
-      accentBorder: 'from-blue-500 via-cyan-500 to-indigo-500',
-      iconBg: 'bg-blue-500/15 text-blue-400 border border-blue-500/30',
+      accentBar: 'bg-[var(--md-info)]',
+      iconBg: 'bg-[var(--md-info-container)] text-[var(--md-on-info-container)]',
       badge: cashBankBalance > 0 ? 'جاهزة وفورية' : 'الرصيد 0',
-      badgeClass: 'bg-blue-500/15 text-blue-300 border-blue-500/30',
+      badgeClass: 'm3-badge-info',
       metaLabel: 'تفصيل الأرصدة:',
       metaValue: `(نقد بالصندوق: ${formatAmount(cashAmount)} | البنوك: ${formatAmount(banksAmount)} | المحافظ: ${formatAmount(walletsAmount)})`,
       progressPct: cashBankBalance > 0 ? 100 : 0,
-      progressColor: 'bg-blue-500',
+      progressColor: 'bg-[var(--md-info)]',
       tab: 'payments' as TabType,
     },
     {
@@ -118,14 +118,14 @@ export const KpiCardsGrid: React.FC<KpiCardsGridProps> = ({
       currency,
       baseEquivalent: formatBaseEquivalent(totalReceivables, currency),
       icon: Users,
-      accentBorder: 'from-amber-400 via-yellow-500 to-amber-600',
-      iconBg: 'bg-amber-500/15 text-amber-400 border border-amber-500/30',
+      accentBar: 'bg-[var(--md-secondary)]',
+      iconBg: 'bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)]',
       badge: totalReceivables > 0 ? `${collectionRate}% نسبة التحصيل` : 'لا توجد ديون',
-      badgeClass: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+      badgeClass: 'm3-badge-secondary',
       metaLabel: 'ديون مستحقة للتحصيل:',
       metaValue: `${formatAmount(overdueReceivables)} ${currency} متأخرة`,
       progressPct: totalReceivables > 0 ? Math.min(100, Math.round((overdueReceivables / Math.max(totalReceivables, 1)) * 100)) : 0,
-      progressColor: 'bg-amber-500',
+      progressColor: 'bg-[var(--md-secondary)]',
       tab: 'customers' as TabType,
     },
     {
@@ -136,14 +136,14 @@ export const KpiCardsGrid: React.FC<KpiCardsGridProps> = ({
       currency,
       baseEquivalent: formatBaseEquivalent(totalPayables, currency),
       icon: Truck,
-      accentBorder: 'from-rose-500 via-pink-500 to-rose-600',
-      iconBg: 'bg-rose-500/15 text-rose-400 border border-rose-500/30',
+      accentBar: 'bg-[var(--md-error)]',
+      iconBg: 'bg-[var(--md-error-container)] text-[var(--md-on-error-container)]',
       badge: totalPayables > 0 ? 'سندات صرف مجدولة' : 'لا توجد مستحقات',
-      badgeClass: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
+      badgeClass: 'm3-badge-error',
       metaLabel: 'سندات صرف هذا الأسبوع:',
       metaValue: `${formatAmount(disbursementsThisWeek)} ${currency}`,
       progressPct: totalPayables > 0 ? 45 : 0,
-      progressColor: 'bg-rose-500',
+      progressColor: 'bg-[var(--md-error)]',
       tab: 'suppliers' as TabType,
     },
     {
@@ -154,14 +154,14 @@ export const KpiCardsGrid: React.FC<KpiCardsGridProps> = ({
       currency,
       baseEquivalent: formatBaseEquivalent(netProfit, currency),
       icon: DollarSign,
-      accentBorder: 'from-emerald-400 via-amber-400 to-emerald-500',
-      iconBg: 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30',
+      accentBar: 'bg-[var(--md-success)]',
+      iconBg: 'bg-[var(--md-success-container)] text-[var(--md-on-success-container)]',
       badge: `هامش صافي ${profitMargin}%`,
-      badgeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+      badgeClass: 'm3-badge-success',
       metaLabel: 'المصروفات التشغيلية:',
       metaValue: `${formatAmount(operatingExpenses)} ${currency}`,
       progressPct: Math.min(100, Math.round(Number(profitMargin))),
-      progressColor: 'bg-emerald-400',
+      progressColor: 'bg-[var(--md-success)]',
       tab: 'financial_intelligence' as TabType,
     },
     {
@@ -172,14 +172,14 @@ export const KpiCardsGrid: React.FC<KpiCardsGridProps> = ({
       currency,
       baseEquivalent: formatBaseEquivalent(inventoryValue, currency),
       icon: Package,
-      accentBorder: 'from-purple-500 via-indigo-500 to-cyan-500',
-      iconBg: 'bg-purple-500/15 text-purple-400 border border-purple-500/30',
+      accentBar: 'bg-[var(--md-primary)]',
+      iconBg: 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)]',
       badge: inventoryValue > 0 ? '4 مستودعات نشطة' : 'المستودعات بانتظار التوريد',
-      badgeClass: 'bg-purple-500/15 text-purple-300 border-purple-500/30',
+      badgeClass: 'm3-badge-primary',
       metaLabel: 'توزيع الوحدات ونواقص الطلب:',
       metaValue: inventoryValue > 0 ? (lowStockCount > 0 ? `بالكرتون والحبة (${lowStockCount} نواقص بحاجة لطلب)` : 'بالكرتون والحبة (مكتمل)') : 'المخزون فارغ حالياً',
       progressPct: inventoryValue > 0 ? (lowStockCount > 0 ? 80 : 25) : 0,
-      progressColor: lowStockCount > 0 ? 'bg-amber-400' : 'bg-emerald-400',
+      progressColor: lowStockCount > 0 ? 'bg-[var(--md-warning)]' : 'bg-[var(--md-success)]',
       tab: 'inventory' as TabType,
     },
   ];
@@ -187,11 +187,11 @@ export const KpiCardsGrid: React.FC<KpiCardsGridProps> = ({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        <h2 className="text-xs font-bold text-[var(--md-on-surface-variant)] flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-[var(--md-primary)]" />
           <span>المؤشرات المالية الكبرى والأصول (Executive KPIs & Assets)</span>
         </h2>
-        <span className="text-[11px] text-slate-500 font-mono font-medium">100% Live Sync • English Numerals</span>
+        <span className="text-[11px] text-[var(--md-on-surface-variant)] font-mono font-medium">100% Live Sync • English Numerals</span>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -201,18 +201,18 @@ export const KpiCardsGrid: React.FC<KpiCardsGridProps> = ({
             <div
               key={card.id}
               onClick={() => onNavigate && onNavigate(card.tab)}
-              className="relative overflow-hidden bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl hover:border-slate-700 transition-all duration-200 group cursor-pointer flex flex-col justify-between space-y-4 hover:translate-y-[-2px]"
+              className="m3-card relative overflow-hidden p-5 hover:border-[var(--md-primary)] transition-all duration-200 group cursor-pointer flex flex-col justify-between space-y-4 hover:-translate-y-0.5"
             >
-              {/* Subtle Top Gradient Line */}
-              <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${card.accentBorder}`} />
+              {/* Subtle Top Semantic Indicator */}
+              <div className={`absolute top-0 left-0 right-0 h-1 ${card.accentBar}`} />
 
               {/* Card Header */}
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-0.5 text-right flex-1">
-                  <h3 className="text-xs font-bold text-slate-300 group-hover:text-white transition-colors">
+                  <h3 className="text-xs font-bold text-[var(--md-on-surface)] group-hover:text-[var(--md-primary-text)] transition-colors">
                     {card.title}
                   </h3>
-                  <span className="text-[10px] text-slate-500 font-mono block">
+                  <span className="text-[10px] text-[var(--md-on-surface-variant)] font-mono block">
                     {card.subtext}
                   </span>
                 </div>
@@ -224,26 +224,26 @@ export const KpiCardsGrid: React.FC<KpiCardsGridProps> = ({
               {/* Amount Display with strict English numerals & Base Equivalent */}
               <div className="text-right space-y-1">
                 <div className="flex items-baseline gap-2 justify-start flex-wrap">
-                  <span className="text-2xl sm:text-3xl font-black text-white font-mono tabular-nums tracking-tight">
+                  <span className="text-2xl sm:text-3xl font-black text-[var(--md-on-surface)] font-mono tabular-nums tracking-tight">
                     {formatAmount(card.amount)}
                   </span>
-                  <span className="text-xs font-bold text-slate-400 font-mono">
+                  <span className="text-xs font-bold text-[var(--md-on-surface-variant)] font-mono">
                     {card.currency}
                   </span>
                 </div>
 
                 {card.baseEquivalent && (
-                  <div className="flex items-center gap-1.5 text-[11px] text-emerald-400/90 font-mono font-semibold pt-0.5">
-                    <Coins className="w-3 h-3 text-amber-400 shrink-0" />
+                  <div className="flex items-center gap-1.5 text-[11px] text-[var(--md-primary-text)] font-mono font-semibold pt-0.5 tabular-nums">
+                    <Coins className="w-3 h-3 text-[var(--md-secondary)] shrink-0" />
                     <span>يعادل بالعملة الأساسية: ≈ {card.baseEquivalent}</span>
                   </div>
                 )}
 
                 <div className="flex items-center justify-between pt-1">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${card.badgeClass}`}>
+                  <span className={`m3-badge ${card.badgeClass}`}>
                     {card.badge}
                   </span>
-                  <span className="text-[11px] text-slate-400 group-hover:text-emerald-400 flex items-center gap-0.5 font-bold transition-colors">
+                  <span className="text-[11px] text-[var(--md-on-surface-variant)] group-hover:text-[var(--md-primary-text)] flex items-center gap-0.5 font-bold transition-colors">
                     <span>التفاصيل</span>
                     <ArrowUpRight className="w-3.5 h-3.5" />
                   </span>
@@ -251,14 +251,14 @@ export const KpiCardsGrid: React.FC<KpiCardsGridProps> = ({
               </div>
 
               {/* Progress & Micro Meta Footnote */}
-              <div className="space-y-1.5 pt-2 border-t border-slate-800/80">
-                <div className="flex items-center justify-between text-[11px] text-slate-400">
+              <div className="space-y-1.5 pt-2 border-t border-[var(--md-outline-variant)]">
+                <div className="flex items-center justify-between text-[11px] text-[var(--md-on-surface-variant)] gap-2">
                   <span className="truncate">{card.metaLabel}</span>
-                  <span className="font-mono tabular-nums font-semibold text-slate-300 shrink-0">
+                  <span className="font-mono tabular-nums font-semibold text-[var(--md-on-surface)] shrink-0">
                     {card.metaValue}
                   </span>
                 </div>
-                <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-[var(--md-surface-container-high)] rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${card.progressColor}`}
                     style={{ width: `${Math.max(5, Math.min(100, card.progressPct))}%` }}

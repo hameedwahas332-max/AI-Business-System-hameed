@@ -75,23 +75,23 @@ export const WhatsAppAutomationsTab: React.FC<WhatsAppAutomationsTabProps> = ({
   };
 
   return (
-    <div id="whatsapp-automations-section" className="space-y-6">
+    <div id="whatsapp-automations-section" dir="rtl" className="space-y-6">
       
       {/* Header Info Banner */}
-      <div className="bg-slate-900 rounded-2xl border border-slate-800 p-5 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="m3-card p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
-            <Zap className="w-5 h-5 text-amber-400" />
+          <h2 className="text-base font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+            <Zap className="w-5 h-5 text-[var(--md-warning)]" />
             <span>قواعد وأتمتة التنبيهات والتحصيل الذكي</span>
           </h2>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-[var(--md-on-surface-variant)]">
             تفعيل الإرسال التلقائي للرسائل الموثقة عند حدوث العمليات المحاسبية في النظام بدون تدخل يدوي.
           </p>
         </div>
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs transition-all shadow-md shadow-emerald-950/40 active:scale-95 shrink-0"
+          className="m3-btn-primary text-xs shrink-0 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>+ إضافة قاعدة أتمتة</span>
@@ -99,46 +99,46 @@ export const WhatsAppAutomationsTab: React.FC<WhatsAppAutomationsTabProps> = ({
       </div>
 
       {/* Multi-stage Collection Pipeline visual */}
-      <div className="bg-slate-950/80 border border-slate-800 text-white rounded-2xl p-5 shadow-xl space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs font-bold text-emerald-400">
+      <div className="m3-card-elevated p-5 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-xs font-bold text-[var(--md-primary-text)]">
             <ShieldCheck className="w-4 h-4" />
             <span>مسار التحصيل المتعدد المراحل (Multi-Stage Collection Workflow)</span>
           </div>
-          <span className="text-[10px] text-slate-400 font-mono">حماية كاملة من التكرار العشوائي</span>
+          <span className="text-[10px] text-[var(--md-on-surface-variant)] font-mono">حماية كاملة من التكرار العشوائي</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-2">
-          <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
-            <div className="flex items-center justify-between text-[11px] font-bold text-slate-200">
+          <div className="p-3 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] space-y-1">
+            <div className="flex items-center justify-between text-[11px] font-bold text-[var(--md-on-surface)]">
               <span>المرحلة 1: إصدار الفاتورة</span>
-              <span className="text-emerald-400">فوري</span>
+              <span className="text-[var(--md-success)]">فوري</span>
             </div>
-            <p className="text-[10px] text-slate-400 leading-tight">إرسال رابط الفاتورة وتفاصيل المبلغ المستحق للعميل.</p>
+            <p className="text-[10px] text-[var(--md-on-surface-variant)] leading-tight">إرسال رابط الفاتورة وتفاصيل المبلغ المستحق للعميل.</p>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
-            <div className="flex items-center justify-between text-[11px] font-bold text-slate-200">
+          <div className="p-3 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] space-y-1">
+            <div className="flex items-center justify-between text-[11px] font-bold text-[var(--md-on-surface)]">
               <span>المرحلة 2: تذكير ودي</span>
-              <span className="text-amber-400">+7 أيام</span>
+              <span className="text-[var(--md-warning)] tabular-nums">+7 أيام</span>
             </div>
-            <p className="text-[10px] text-slate-400 leading-tight">تذكير لطيف بموعد الاستحقاق وبيانات الحساب البنكي.</p>
+            <p className="text-[10px] text-[var(--md-on-surface-variant)] leading-tight">تذكير لطيف بموعد الاستحقاق وبيانات الحساب البنكي.</p>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
-            <div className="flex items-center justify-between text-[11px] font-bold text-slate-200">
+          <div className="p-3 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] space-y-1">
+            <div className="flex items-center justify-between text-[11px] font-bold text-[var(--md-on-surface)]">
               <span>المرحلة 3: إشعار استحقاق</span>
-              <span className="text-orange-400">+15 يوم</span>
+              <span className="text-[var(--md-error)] tabular-nums">+15 يوم</span>
             </div>
-            <p className="text-[10px] text-slate-400 leading-tight">إشعار رسمي بضرورة سداد المبلغ لتفادي تعليق الحساب.</p>
+            <p className="text-[10px] text-[var(--md-on-surface-variant)] leading-tight">إشعار رسمي بضرورة سداد المبلغ لتفادي تعليق الحساب.</p>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
-            <div className="flex items-center justify-between text-[11px] font-bold text-slate-200">
+          <div className="p-3 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] space-y-1">
+            <div className="flex items-center justify-between text-[11px] font-bold text-[var(--md-on-surface)]">
               <span>المرحلة 4: إشعار السداد</span>
-              <span className="text-emerald-400">عند القبض</span>
+              <span className="text-[var(--md-success)]">عند القبض</span>
             </div>
-            <p className="text-[10px] text-slate-400 leading-tight">تأكيد استلام الدفعة النقدية وإرسال سند القبض.</p>
+            <p className="text-[10px] text-[var(--md-on-surface-variant)] leading-tight">تأكيد استلام الدفعة النقدية وإرسال سند القبض.</p>
           </div>
         </div>
       </div>
@@ -149,25 +149,23 @@ export const WhatsAppAutomationsTab: React.FC<WhatsAppAutomationsTabProps> = ({
           return (
             <div
               key={auto.id}
-              className={`bg-slate-900 rounded-2xl border p-5 shadow-xl space-y-4 transition-all ${
-                auto.is_active ? 'border-slate-800' : 'border-slate-800/60 opacity-60 bg-slate-900/50'
+              className={`m3-card p-5 space-y-4 transition-all ${
+                auto.is_active ? '' : 'opacity-65'
               }`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-slate-100">{auto.name}</h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm font-bold text-[var(--md-on-surface)]">{auto.name}</h3>
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                        auto.is_active
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                      className={`m3-badge text-[10px] font-bold ${
+                        auto.is_active ? 'm3-badge-success' : 'm3-badge-secondary'
                       }`}
                     >
                       {auto.is_active ? 'نشط ويعمل' : 'متوقف مؤقتاً'}
                     </span>
                   </div>
-                  <p className="text-xs font-semibold text-emerald-400 flex items-center gap-1">
+                  <p className="text-xs font-semibold text-[var(--md-primary-text)] flex items-center gap-1">
                     <Zap className="w-3.5 h-3.5" />
                     <span>الحدث المحفّز: {getTriggerName(auto.trigger_event)}</span>
                   </p>
@@ -175,10 +173,10 @@ export const WhatsAppAutomationsTab: React.FC<WhatsAppAutomationsTabProps> = ({
 
                 <button
                   onClick={() => onToggleAutomation(auto.id, !auto.is_active)}
-                  className={`p-2 rounded-xl border text-xs font-bold transition-colors ${
+                  className={`p-2 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${
                     auto.is_active
-                      ? 'bg-amber-500/10 text-amber-300 border-amber-500/20 hover:bg-amber-500/20'
-                      : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20 hover:bg-emerald-500/20'
+                      ? 'bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)] border-[var(--md-warning)]/30 hover:opacity-85'
+                      : 'bg-[var(--md-success-container)] text-[var(--md-on-success-container)] border-[var(--md-success)]/30 hover:opacity-85'
                   }`}
                   title={auto.is_active ? 'إيقاف مؤقت' : 'تفعيل'}
                 >
@@ -187,15 +185,15 @@ export const WhatsAppAutomationsTab: React.FC<WhatsAppAutomationsTabProps> = ({
               </div>
 
               {/* Message Payload */}
-              <div className="p-3 bg-slate-950/60 rounded-xl text-xs text-slate-300 font-sans border border-slate-800 leading-relaxed">
+              <div className="p-3 bg-[var(--md-surface-container-low)] rounded-xl text-xs text-[var(--md-on-surface)] font-sans border border-[var(--md-outline-variant)] leading-relaxed">
                 {auto.custom_message || 'استخدام قالب الرسالة التلقائي'}
               </div>
 
               {/* Stats Footer */}
-              <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-800 font-mono">
+              <div className="flex items-center justify-between text-[11px] text-[var(--md-on-surface-variant)] pt-2 border-t border-[var(--md-outline-variant)] font-mono tabular-nums">
                 <div className="flex items-center gap-3">
-                  <span className="text-emerald-400 font-bold">✓ نُفّذت بنجاح: {(auto.success_count || 0).toLocaleString('en-US')}</span>
-                  {auto.fail_count > 0 && <span className="text-rose-400 font-bold">✕ فشل: {auto.fail_count.toLocaleString('en-US')}</span>}
+                  <span className="text-[var(--md-success)] font-bold">✓ نُفّذت بنجاح: {(auto.success_count || 0).toLocaleString('en-US')}</span>
+                  {auto.fail_count > 0 && <span className="text-[var(--md-error)] font-bold">✕ فشل: {auto.fail_count.toLocaleString('en-US')}</span>}
                 </div>
                 <span>آخر تشغيل: {auto.last_run_at ? new Date(auto.last_run_at).toLocaleDateString('en-US') : 'لم يتم بعد'}</span>
               </div>
@@ -206,16 +204,16 @@ export const WhatsAppAutomationsTab: React.FC<WhatsAppAutomationsTabProps> = ({
 
       {/* Add Automation Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-slate-900 rounded-2xl border border-slate-800 shadow-2xl max-w-lg w-full p-6 space-y-4 animate-scale-in">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
-                <Zap className="w-5 h-5 text-amber-400" />
+        <div className="fixed inset-0 z-50 m3-backdrop flex items-center justify-center p-4 animate-fade-in">
+          <div className="m3-modal-surface max-w-lg w-full p-6 space-y-4 animate-scale-in">
+            <div className="flex items-center justify-between border-b border-[var(--md-outline-variant)] pb-3">
+              <h3 className="text-base font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+                <Zap className="w-5 h-5 text-[var(--md-warning)]" />
                 <span>إضافة قاعدة أتمتة جديدة</span>
               </h3>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="text-slate-400 hover:text-slate-200 text-lg font-bold"
+                className="m3-btn-text !min-h-[32px] !px-2 !py-1 text-base font-bold"
               >
                 ✕
               </button>
@@ -223,23 +221,23 @@ export const WhatsAppAutomationsTab: React.FC<WhatsAppAutomationsTabProps> = ({
 
             <form onSubmit={handleCreate} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">اسم القاعدة *</label>
+                <label className="block text-xs font-bold text-[var(--md-on-surface)] mb-1">اسم القاعدة *</label>
                 <input
                   type="text"
                   required
                   placeholder="مثال: إشعار فوري عند اعتماد سند القبض"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 text-slate-100 placeholder:text-slate-500"
+                  className="m3-input !h-10 text-xs"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">الحدث المحفّز (Trigger Event)</label>
+                <label className="block text-xs font-bold text-[var(--md-on-surface)] mb-1">الحدث المحفّز (Trigger Event)</label>
                 <select
                   value={triggerEvent}
                   onChange={(e) => setTriggerEvent(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200"
+                  className="m3-select !h-10 text-xs"
                 >
                   <option value="INVOICE_CREATED">عند إنشاء فاتورة مبيعات جديدة</option>
                   <option value="PAYMENT_RECEIVED">عند استلام وقيد سند قبض</option>
@@ -252,29 +250,29 @@ export const WhatsAppAutomationsTab: React.FC<WhatsAppAutomationsTabProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">نص الرسالة التلقائية *</label>
+                <label className="block text-xs font-bold text-[var(--md-on-surface)] mb-1">نص الرسالة التلقائية *</label>
                 <textarea
                   rows={3}
                   required
                   placeholder="مرحباً {{customer_name}}، نود إعلامكم بـ..."
                   value={customMessage}
                   onChange={(e) => setCustomMessage(e.target.value)}
-                  className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 text-slate-100 placeholder:text-slate-500"
+                  className="m3-input !h-auto py-2.5 text-xs"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--md-outline-variant)]">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-700 text-slate-300 text-xs font-bold hover:bg-slate-800"
+                  className="m3-btn-outlined text-xs"
                 >
                   إلغاء
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving || !name.trim() || !customMessage.trim()}
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs transition-all shadow-md shadow-emerald-950/40 disabled:opacity-50"
+                  className="m3-btn-primary text-xs cursor-pointer disabled:opacity-50"
                 >
                   {isSaving ? 'جاري الحفظ...' : 'حفظ وتفعيل القاعدة'}
                 </button>

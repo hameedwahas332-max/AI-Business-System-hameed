@@ -80,17 +80,17 @@ export const WhatsAppLogsTab: React.FC<WhatsAppLogsTabProps> = ({
   };
 
   return (
-    <div id="whatsapp-logs-section" className="space-y-4">
+    <div id="whatsapp-logs-section" className="space-y-4 text-[var(--md-on-surface)]" dir="rtl">
       {/* Search & Filters */}
-      <div className="bg-slate-900 rounded-2xl border border-slate-800 p-4 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div className="m3-card p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute right-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="بحث في سجل الرسائل (الرقم، الاسم، النص)..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-3 pr-9 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 text-slate-100 placeholder:text-slate-500"
+            className="m3-input !h-10 !pr-9 text-xs"
           />
         </div>
 
@@ -98,7 +98,7 @@ export const WhatsAppLogsTab: React.FC<WhatsAppLogsTabProps> = ({
           <select
             value={filterDirection}
             onChange={(e: any) => setFilterDirection(e.target.value)}
-            className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 font-bold"
+            className="m3-select !h-10 !w-auto text-xs font-bold"
           >
             <option value="ALL">جميع الاتجاهات</option>
             <option value="OUTBOUND">صادرة (Outbound)</option>
@@ -108,7 +108,7 @@ export const WhatsAppLogsTab: React.FC<WhatsAppLogsTabProps> = ({
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 font-bold"
+            className="m3-select !h-10 !w-auto text-xs font-bold"
           >
             <option value="ALL">جميع الحالات</option>
             <option value="SENT">مرسلة (Sent)</option>
@@ -121,10 +121,10 @@ export const WhatsAppLogsTab: React.FC<WhatsAppLogsTabProps> = ({
             type="button"
             onClick={handleExportCSV}
             disabled={filteredLogs.length === 0}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs transition-colors disabled:opacity-40"
+            className="m3-btn-outlined !min-h-[40px] text-xs disabled:opacity-40 cursor-pointer"
             title="تصدير السجل إلى ملف CSV"
           >
-            <Download className="w-3.5 h-3.5 text-emerald-400" />
+            <Download className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
             <span>تصدير السجل</span>
           </button>
 
@@ -132,7 +132,7 @@ export const WhatsAppLogsTab: React.FC<WhatsAppLogsTabProps> = ({
             <button
               type="button"
               onClick={onRefresh}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+              className="m3-btn-outlined !min-h-[40px] !px-2.5 cursor-pointer"
               title="تحديث السجل"
             >
               <RefreshCw className="w-3.5 h-3.5" />
@@ -142,37 +142,35 @@ export const WhatsAppLogsTab: React.FC<WhatsAppLogsTabProps> = ({
       </div>
 
       {/* Logs Table */}
-      <div className="bg-slate-900 rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+      <div className="m3-card overflow-hidden">
         {filteredLogs.length === 0 ? (
-          <div className="p-12 text-center text-slate-500 space-y-2">
-            <FileText className="w-8 h-8 mx-auto text-slate-600" />
-            <p className="text-sm font-semibold text-slate-300">لا توجد رسائل مطابقة للبحث</p>
+          <div className="p-12 text-center text-[var(--md-on-surface-variant)] space-y-2">
+            <FileText className="w-8 h-8 mx-auto opacity-50" />
+            <p className="text-sm font-semibold text-[var(--md-on-surface)]">لا توجد رسائل مطابقة للبحث</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-right text-xs">
-              <thead className="bg-slate-950/60 text-slate-300 font-bold border-b border-slate-800">
+            <table className="m3-table text-right text-xs" dir="rtl">
+              <thead className="m3-thead">
                 <tr>
-                  <th className="p-3.5">الاتجاه</th>
-                  <th className="p-3.5">الطرف / الرقم</th>
-                  <th className="p-3.5">النوع</th>
-                  <th className="p-3.5">نص الرسالة</th>
-                  <th className="p-3.5">وقت الإرسال</th>
-                  <th className="p-3.5">الحالة</th>
-                  <th className="p-3.5 text-center">إجراءات</th>
+                  <th className="m3-th">الاتجاه</th>
+                  <th className="m3-th">الطرف / الرقم</th>
+                  <th className="m3-th">النوع</th>
+                  <th className="m3-th">نص الرسالة</th>
+                  <th className="m3-th">وقت الإرسال</th>
+                  <th className="m3-th">الحالة</th>
+                  <th className="m3-th text-center">إجراءات</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60 text-slate-300">
+              <tbody className="divide-y divide-[var(--md-outline-variant)]">
                 {filteredLogs.map((log) => {
                   const isOut = log.direction === 'OUTBOUND';
                   return (
-                    <tr key={log.id} className="hover:bg-slate-800/40 transition-colors">
+                    <tr key={log.id} className="hover:bg-[var(--md-surface-container-low)] transition-colors">
                       <td className="p-3.5">
                         <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border ${
-                            isOut
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                              : 'bg-blue-500/10 text-blue-300 border-blue-500/20'
+                          className={`m3-badge text-[10px] inline-flex items-center gap-1 ${
+                            isOut ? 'm3-badge-success' : 'm3-badge-info'
                           }`}
                         >
                           {isOut ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownLeft className="w-3 h-3" />}
@@ -181,21 +179,21 @@ export const WhatsAppLogsTab: React.FC<WhatsAppLogsTabProps> = ({
                       </td>
 
                       <td className="p-3.5 space-y-0.5">
-                        <p className="font-bold text-slate-100">{log.customer_name || log.supplier_name || log.display_name || 'جهة اتصال'}</p>
-                        <p className="text-[10px] text-slate-400 font-mono" dir="ltr">
+                        <p className="font-bold text-[var(--md-on-surface)]">{log.customer_name || log.supplier_name || log.display_name || 'جهة اتصال'}</p>
+                        <p className="text-[10px] text-[var(--md-on-surface-variant)] font-mono tabular-nums" dir="ltr">
                           {log.phone_number}
                         </p>
                       </td>
 
-                      <td className="p-3.5 font-bold text-[11px] text-slate-400">
+                      <td className="p-3.5 font-bold text-[11px] text-[var(--md-on-surface-variant)]">
                         {log.message_type || 'نص'}
                       </td>
 
-                      <td className="p-3.5 max-w-sm truncate font-sans text-slate-200">
+                      <td className="p-3.5 max-w-sm truncate font-sans text-[var(--md-on-surface)]">
                         {log.message_body}
                       </td>
 
-                      <td className="p-3.5 font-mono text-slate-400 text-[11px]">
+                      <td className="p-3.5 font-mono tabular-nums text-[var(--md-on-surface-variant)] text-[11px]">
                         {new Date(log.created_at).toLocaleString('en-US', {
                           year: 'numeric',
                           month: 'short',
@@ -207,20 +205,20 @@ export const WhatsAppLogsTab: React.FC<WhatsAppLogsTabProps> = ({
 
                       <td className="p-3.5">
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                          className={`m3-badge text-[10px] inline-flex items-center gap-1 ${
                             log.status === 'READ'
-                              ? 'bg-cyan-500/10 text-cyan-300 border-cyan-500/20'
+                              ? 'm3-badge-info'
                               : log.status === 'DELIVERED'
-                              ? 'bg-teal-500/10 text-teal-300 border-teal-500/20'
+                              ? 'm3-badge-primary'
                               : log.status === 'FAILED'
-                              ? 'bg-rose-500/10 text-rose-300 border-rose-500/20'
-                              : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
+                              ? 'm3-badge-error'
+                              : 'm3-badge-success'
                           }`}
                         >
-                          {log.status === 'READ' && <CheckCheck className="w-3 h-3 text-cyan-400" />}
-                          {log.status === 'DELIVERED' && <CheckCheck className="w-3 h-3 text-teal-400" />}
-                          {log.status === 'FAILED' && <AlertTriangle className="w-3 h-3 text-rose-400" />}
-                          {(!log.status || log.status === 'SENT') && <Check className="w-3 h-3 text-emerald-400" />}
+                          {log.status === 'READ' && <CheckCheck className="w-3 h-3" />}
+                          {log.status === 'DELIVERED' && <CheckCheck className="w-3 h-3" />}
+                          {log.status === 'FAILED' && <AlertTriangle className="w-3 h-3" />}
+                          {(!log.status || log.status === 'SENT') && <Check className="w-3 h-3" />}
                           <span>{log.status || 'SENT'}</span>
                         </span>
                       </td>
@@ -230,7 +228,7 @@ export const WhatsAppLogsTab: React.FC<WhatsAppLogsTabProps> = ({
                           type="button"
                           onClick={() => handleRetry(log)}
                           disabled={retryingId === log.id}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-500/20 text-xs font-bold transition-all disabled:opacity-40"
+                          className="m3-btn-tonal !min-h-[30px] !px-2.5 !py-1 text-xs disabled:opacity-40 cursor-pointer"
                           title="إعادة إرسال الرسالة من داخل النظام"
                         >
                           {retryingId === log.id ? (

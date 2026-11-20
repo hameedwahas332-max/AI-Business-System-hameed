@@ -81,39 +81,39 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
 
     if (status === 'DRAFT') {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-300 border border-slate-500/30">
-          <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+        <span className="m3-badge bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] border border-[var(--md-outline-variant)]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--md-on-surface-variant)]"></span>
           مسودة
         </span>
       );
     }
     if (status === 'CANCELLED') {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30">
-          <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+        <span className="m3-badge-error">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--md-error)]"></span>
           ملغاة
         </span>
       );
     }
     if (status === 'PAID' || remaining <= 0.01) {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+        <span className="m3-badge-success">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--md-success)]"></span>
           مسددة بالكامل
         </span>
       );
     }
     if (status === 'PARTIALLY_PAID' || status === 'PARTIAL' || (paid > 0 && remaining > 0.01)) {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/30">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+        <span className="m3-badge-info">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--md-info)]"></span>
           مسددة جزئياً
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
-        <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+      <span className="m3-badge-warning">
+        <span className="w-1.5 h-1.5 rounded-full bg-[var(--md-warning)]"></span>
         آجلة / ذمم (غير مسددة)
       </span>
     );
@@ -123,8 +123,8 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
 
   if (loading) {
     return (
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-400 shadow-sm">
-        <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+      <div className="m3-card p-12 text-center text-[var(--md-on-surface-variant)]">
+        <div className="w-8 h-8 border-3 border-[var(--md-primary)] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
         <p className="text-sm">جاري تحميل سجل فواتير المبيعات...</p>
       </div>
     );
@@ -132,40 +132,40 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
 
   if (invoices.length === 0) {
     return (
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-400 shadow-sm">
-        <p className="text-base font-semibold text-slate-300 mb-1">لا توجد فواتير مبيعات مطابقة</p>
-        <p className="text-xs text-slate-500">جرب تغيير معايير البحث أو الفلاتر أو إنشاء فاتورة جديدة.</p>
+      <div className="m3-card p-12 text-center text-[var(--md-on-surface-variant)]">
+        <p className="text-base font-semibold text-[var(--md-on-surface)] mb-1">لا توجد فواتير مبيعات مطابقة</p>
+        <p className="text-xs text-[var(--md-on-surface-variant)]">جرب تغيير معايير البحث أو الفلاتر أو إنشاء فاتورة جديدة.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm flex flex-col">
+    <div className="m3-card overflow-hidden flex flex-col">
       <div className="overflow-x-auto">
-        <table className="w-full text-right text-sm">
-          <thead className="bg-slate-950/70 border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+        <table className="m3-table w-full text-right text-sm">
+          <thead className="m3-thead">
             <tr>
-              <th className="py-3.5 px-4 w-10 text-center">
+              <th className="m3-th py-3.5 px-4 w-10 text-center">
                 <input
                   type="checkbox"
                   checked={isAllSelected}
                   onChange={onSelectAll}
-                  className="w-4 h-4 rounded text-blue-600 bg-slate-800 border-slate-700 focus:ring-blue-500 cursor-pointer"
+                  className="w-4 h-4 rounded accent-[var(--md-primary)] cursor-pointer"
                 />
               </th>
-              <th className="py-3.5 px-4">رقم الفاتورة والضمان</th>
-              <th className="py-3.5 px-4">العميل وفئة السعر</th>
-              <th className="py-3.5 px-4">المندوب / البائع</th>
-              <th className="py-3.5 px-4">تاريخ الإصدار</th>
-              <th className="py-3.5 px-4">الاستحقاق</th>
-              <th className="py-3.5 px-4 text-left">العملة والإجمالي</th>
-              <th className="py-3.5 px-4 text-left">المدفوع</th>
-              <th className="py-3.5 px-4 text-left">المتبقي</th>
-              <th className="py-3.5 px-4 text-center">الحالة</th>
-              <th className="py-3.5 px-4 text-center">الإجراءات</th>
+              <th className="m3-th py-3.5 px-4">رقم الفاتورة والضمان</th>
+              <th className="m3-th py-3.5 px-4">العميل وفئة السعر</th>
+              <th className="m3-th py-3.5 px-4">المندوب / البائع</th>
+              <th className="m3-th py-3.5 px-4">تاريخ الإصدار</th>
+              <th className="m3-th py-3.5 px-4">الاستحقاق</th>
+              <th className="m3-th py-3.5 px-4 text-left">العملة والإجمالي</th>
+              <th className="m3-th py-3.5 px-4 text-left">المدفوع</th>
+              <th className="m3-th py-3.5 px-4 text-left">المتبقي</th>
+              <th className="m3-th py-3.5 px-4 text-center">الحالة</th>
+              <th className="m3-th py-3.5 px-4 text-center">الإجراءات</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800">
+          <tbody className="divide-y divide-[var(--md-outline-variant)]">
             {invoiceList.map((inv) => {
               const isSelected = selectedList.includes(inv.id);
               const rawTotal = Number(inv.total ?? inv.totalAmount ?? inv.grandTotal ?? inv.netTotal ?? inv.total_amount ?? inv.amount ?? 0);
@@ -210,10 +210,10 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
 
               const priceTier = inv.price_tier || inv.tier || 'retail';
               const tierNameMap: Record<string, { label: string; color: string }> = {
-                retail: { label: 'تجزئة', color: 'bg-slate-800 text-slate-300 border-slate-700' },
-                half_wholesale: { label: 'نصف جملة', color: 'bg-sky-950 text-sky-300 border-sky-800' },
-                wholesale: { label: 'جملة', color: 'bg-emerald-950 text-emerald-300 border-emerald-800' },
-                vip: { label: 'VIP خاص', color: 'bg-amber-950 text-amber-300 border-amber-800' },
+                retail: { label: 'تجزئة', color: 'bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] border-[var(--md-outline-variant)]' },
+                half_wholesale: { label: 'نصف جملة', color: 'bg-[var(--md-info-container)] text-[var(--md-on-info-container)] border-[var(--md-info)]/30' },
+                wholesale: { label: 'جملة', color: 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border-[var(--md-primary)]/30' },
+                vip: { label: 'VIP خاص', color: 'bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] border-[var(--md-secondary)]/30' },
               };
               const tierInfo = tierNameMap[priceTier] || tierNameMap.retail;
 
@@ -232,8 +232,8 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
               return (
                 <tr
                   key={inv.id}
-                  className={`hover:bg-slate-800/40 transition-colors ${
-                    isSelected ? 'bg-blue-500/5' : ''
+                  className={`transition-colors ${
+                    isSelected ? 'bg-[var(--md-primary-container)]/35' : ''
                   }`}
                 >
                   <td className="py-3.5 px-4 text-center">
@@ -241,7 +241,7 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
                       type="checkbox"
                       checked={isSelected}
                       onChange={() => onSelectToggle(inv.id)}
-                      className="w-4 h-4 rounded text-blue-600 bg-slate-800 border-slate-700 focus:ring-blue-500 cursor-pointer"
+                      className="w-4 h-4 rounded accent-[var(--md-primary)] cursor-pointer"
                     />
                   </td>
 
@@ -252,18 +252,18 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
                         <button
                           type="button"
                           onClick={() => onViewDetails(inv)}
-                          className="font-mono font-bold text-blue-400 hover:text-blue-300 hover:underline text-xs"
+                          className="font-mono font-bold text-[var(--md-primary-text)] hover:underline text-xs cursor-pointer tabular-nums"
                         >
                           #{inv.invoice_number}
                         </button>
                         <button
                           type="button"
                           onClick={() => copyToClipboard(inv.invoice_number, inv.id)}
-                          className="text-slate-500 hover:text-slate-300 p-0.5 rounded transition-colors"
+                          className="text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] p-0.5 rounded transition-colors cursor-pointer"
                           title="نسخ رقم الفاتورة"
                         >
                           {copiedId === inv.id ? (
-                            <Check className="w-3 h-3 text-emerald-400" />
+                            <Check className="w-3 h-3 text-[var(--md-success)]" />
                           ) : (
                             <Copy className="w-3 h-3" />
                           )}
@@ -271,17 +271,17 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
 
                         {/* Cloud Synchronization Status Indicator */}
                         {inv.syncStatus === 'CONFLICT' ? (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.2 rounded-md bg-rose-500/10 text-rose-300 border border-rose-500/30 font-bold" title="يوجد تعارض في السيرفر">
+                          <span className="m3-badge-error text-[10px]" title="يوجد تعارض في السيرفر">
                             <span>⚠️</span>
                             <span>تعارض</span>
                           </span>
                         ) : inv.serverSeq || inv.syncStatus === 'SYNCED' || inv.is_synced ? (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.2 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold" title={`تم التأكيد بالسيرفر #${inv.serverSeq || ''}`}>
+                          <span className="m3-badge-success text-[10px]" title={`تم التأكيد بالسيرفر #${inv.serverSeq || ''}`}>
                             <span>☁️</span>
                             <span>متزامن</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.2 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/30 font-bold" title="محفوظ محلياً بانتظار الإرسال">
+                          <span className="m3-badge-warning text-[10px]" title="محفوظ محلياً بانتظار الإرسال">
                             <span>⏳</span>
                             <span>معلق محلياً</span>
                           </span>
@@ -290,8 +290,8 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
 
                       {hasWarranty && (
                         <div className="flex items-center gap-1">
-                          <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold">
-                            <ShieldCheck className="w-3 h-3 text-amber-400" />
+                          <span className="m3-badge-secondary text-[10px]">
+                            <ShieldCheck className="w-3 h-3" />
                             <span>ضمان إطار/بطارية</span>
                           </span>
                         </div>
@@ -302,12 +302,12 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
                   {/* Customer & Price Tier */}
                   <td className="py-3.5 px-4">
                     <div className="space-y-1">
-                      <p className="font-medium text-slate-100 truncate max-w-[180px]">
+                      <p className="font-medium text-[var(--md-on-surface)] truncate max-w-[180px]">
                         {customerDisplayName}
                       </p>
                       <div className="flex items-center gap-2 flex-wrap">
                         {inv.customer_phone && (
-                          <span className="text-[11px] text-slate-500 font-mono" dir="ltr">
+                          <span className="text-[11px] text-[var(--md-on-surface-variant)] font-mono" dir="ltr">
                             {inv.customer_phone}
                           </span>
                         )}
@@ -320,46 +320,46 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
 
                   {/* Sales Rep / Cashier */}
                   <td className="py-3.5 px-4">
-                    <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium">
-                      <User className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                    <div className="flex items-center gap-1.5 text-xs text-[var(--md-on-surface)] font-medium">
+                      <User className="w-3.5 h-3.5 text-[var(--md-info)] shrink-0" />
                       <span className="truncate max-w-[130px]">{salesRep}</span>
                     </div>
                   </td>
 
                   {/* Issue Date */}
-                  <td className="py-3.5 px-4 text-xs text-slate-300 font-mono">
+                  <td className="py-3.5 px-4 text-xs text-[var(--md-on-surface-variant)] font-mono tabular-nums">
                     {inv.invoice_date || inv.created_at?.split('T')[0]}
                   </td>
 
                   {/* Due Date */}
-                  <td className="py-3.5 px-4 text-xs font-mono">
+                  <td className="py-3.5 px-4 text-xs font-mono tabular-nums">
                     {inv.due_date ? (
-                      <span className={isOverdue ? 'text-rose-400 font-bold flex items-center gap-1' : 'text-slate-300'}>
-                        {isOverdue && <AlertTriangle className="w-3 h-3 text-rose-400" />}
+                      <span className={isOverdue ? 'text-[var(--md-error)] font-bold flex items-center gap-1' : 'text-[var(--md-on-surface-variant)]'}>
+                        {isOverdue && <AlertTriangle className="w-3 h-3 text-[var(--md-error)]" />}
                         {inv.due_date}
                       </span>
                     ) : (
-                      <span className="text-slate-500">-</span>
+                      <span className="text-[var(--md-on-surface-variant)]">-</span>
                     )}
                   </td>
 
                   {/* Total with Currency & Base Currency Equivalent */}
-                  <td className="py-3.5 px-4 text-left font-mono">
+                  <td className="py-3.5 px-4 text-left font-mono tabular-nums">
                     <div className="space-y-0.5">
-                      <div className="font-bold text-white text-sm flex items-center justify-end gap-1.5" dir="ltr">
+                      <div className="font-bold text-[var(--md-on-surface)] text-sm flex items-center justify-end gap-1.5" dir="ltr">
                         <span>{formatAmount(total, currency)}</span>
                         <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold border ${
                           currency === 'YER'
-                            ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
+                            ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border-[var(--md-primary)]/30'
                             : currency === 'SAR'
-                            ? 'bg-amber-950 text-amber-300 border-amber-800'
-                            : 'bg-blue-950 text-blue-300 border-blue-800'
+                            ? 'bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] border-[var(--md-secondary)]/30'
+                            : 'bg-[var(--md-info-container)] text-[var(--md-on-info-container)] border-[var(--md-info)]/30'
                         }`}>
                           {getActiveCurrencySymbol(currency)}
                         </span>
                       </div>
                       {currency !== 'YER' && (
-                        <div className="text-[10px] text-amber-300/90 font-mono text-left" dir="ltr">
+                        <div className="text-[10px] text-[var(--md-warning)] font-mono text-left" dir="ltr">
                           ≈ {baseEquivalent.toLocaleString('en-US', { maximumFractionDigits: 0 })} {getActiveCurrencySymbol('YER')}
                         </div>
                       )}
@@ -367,13 +367,13 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
                   </td>
 
                   {/* Paid */}
-                  <td className="py-3.5 px-4 text-left font-mono font-semibold text-emerald-400" dir="ltr">
+                  <td className="py-3.5 px-4 text-left font-mono font-semibold text-[var(--md-success)] tabular-nums" dir="ltr">
                     {formatAmount(paid, currency)}
                   </td>
 
                   {/* Remaining */}
-                  <td className="py-3.5 px-4 text-left font-mono font-bold" dir="ltr">
-                    <span className={remaining > 0.01 ? 'text-amber-400' : 'text-slate-500'}>
+                  <td className="py-3.5 px-4 text-left font-mono font-bold tabular-nums" dir="ltr">
+                    <span className={remaining > 0.01 ? 'text-[var(--md-warning)]' : 'text-[var(--md-on-surface-variant)]'}>
                       {formatAmount(remaining, currency)}
                     </span>
                   </td>
@@ -390,7 +390,7 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
                       <button
                         type="button"
                         onClick={() => onViewDetails(inv)}
-                        className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors"
+                        className="p-1.5 bg-[var(--md-surface-container-high)] hover:bg-[var(--md-surface-container-highest)] text-[var(--md-on-surface)] rounded-lg transition-colors cursor-pointer"
                         title="عرض تفاصيل الفاتورة"
                       >
                         <Eye className="w-4 h-4" />
@@ -415,7 +415,7 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
                             currency: getActiveCurrencySymbol(inv.currency),
                           })
                         }
-                        className="p-1.5 bg-slate-800 hover:bg-slate-700 text-blue-400 rounded-lg transition-colors"
+                        className="p-1.5 bg-[var(--md-info-container)]/60 hover:bg-[var(--md-info-container)] text-[var(--md-info)] rounded-lg transition-colors cursor-pointer"
                         title="طباعة"
                       >
                         <Printer className="w-4 h-4" />
@@ -426,7 +426,7 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
                         <button
                           type="button"
                           onClick={() => onRecordPayment(inv)}
-                          className="p-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-lg transition-colors"
+                          className="p-1.5 bg-[var(--md-success-container)] hover:opacity-90 text-[var(--md-success)] border border-[var(--md-success)]/25 rounded-lg transition-colors cursor-pointer"
                           title="تسجيل دفعة"
                         >
                           <DollarSign className="w-4 h-4" />
@@ -438,7 +438,7 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
                         <button
                           type="button"
                           onClick={() => onRecordReturn(inv)}
-                          className="p-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-lg transition-colors"
+                          className="p-1.5 bg-[var(--md-warning-container)] hover:opacity-90 text-[var(--md-warning)] border border-[var(--md-warning)]/25 rounded-lg transition-colors cursor-pointer"
                           title="مرتجع مبيعات"
                         >
                           <RotateCcw className="w-4 h-4" />
@@ -450,7 +450,7 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
                         type="button"
                         onClick={() => onSendEmail(inv.id)}
                         disabled={sendingEmailId === inv.id}
-                        className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 rounded-lg transition-colors"
+                        className="p-1.5 bg-[var(--md-surface-container-high)] hover:bg-[var(--md-surface-container-highest)] text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] rounded-lg transition-colors cursor-pointer"
                         title="إرسال عبر البريد"
                       >
                         <Mail className="w-4 h-4" />
@@ -460,7 +460,7 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
                       <button
                         type="button"
                         onClick={() => onDeleteInvoice(inv.id || inv.invoice_number)}
-                        className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg transition-colors cursor-pointer"
+                        className="p-1.5 bg-[var(--md-error-container)] hover:opacity-90 text-[var(--md-error)] border border-[var(--md-error)]/25 rounded-lg transition-colors cursor-pointer"
                         title="حذف الفاتورة من السجل وإعادة البضاعة للمخزن وعكس الحسابات"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -475,9 +475,9 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
       </div>
 
       {/* Pagination Bar */}
-      <div className="px-4 py-3 border-t border-slate-800 bg-slate-950/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+      <div className="px-4 py-3 border-t border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[var(--md-on-surface-variant)]">
         <div>
-          إجمالي النتائج: <span className="font-bold text-slate-200">{totalCount}</span> فاتورة
+          إجمالي النتائج: <span className="font-bold text-[var(--md-on-surface)] tabular-nums">{totalCount}</span> فاتورة
         </div>
 
         {totalPages > 1 && (
@@ -486,18 +486,18 @@ export const SalesInvoicesTable: React.FC<SalesInvoicesTableProps> = ({
               type="button"
               disabled={currentPage <= 1}
               onClick={() => onPageChange(currentPage - 1)}
-              className="p-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 rounded-lg text-slate-300 transition-colors"
+              className="m3-btn-outlined p-1.5"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
-            <span className="font-mono">
+            <span className="font-mono tabular-nums">
               صفحة {currentPage} من {totalPages}
             </span>
             <button
               type="button"
               disabled={currentPage >= totalPages}
               onClick={() => onPageChange(currentPage + 1)}
-              className="p-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 rounded-lg text-slate-300 transition-colors"
+              className="m3-btn-outlined p-1.5"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>

@@ -575,16 +575,16 @@ export const PaymentsTab: React.FC = () => {
   });
 
   return (
-    <div className="space-y-6" id="vouchers-module-root">
+    <div className="space-y-6 text-right text-[var(--md-on-surface)] font-sans" id="vouchers-module-root" dir="rtl">
       {/* 1. Header & Primary Action Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 p-5 rounded-2xl border border-emerald-900/40 shadow-xl" id="vouchers-header">
+      <div className="m3-card p-5 flex flex-col md:flex-row md:items-center justify-between gap-4" id="vouchers-header">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center justify-center shadow-lg">
+          <div className="w-12 h-12 rounded-[var(--md-radius-md)] bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-outline-variant)] flex items-center justify-center shrink-0">
             <Receipt className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-xl font-black text-white tracking-tight">السندات والتحصيلات المالية</h1>
-            <p className="text-xs font-semibold text-slate-400 mt-0.5">
+            <h1 className="text-xl font-black text-[var(--md-on-surface)] tracking-tight">السندات والتحصيلات المالية</h1>
+            <p className="text-xs font-medium text-[var(--md-on-surface-variant)] mt-0.5">
               إدارة سندات القبض من العملاء وسندات الدفع للموردين مع التسوية المحاسبية والربط التلقائي بالفواتير
             </p>
           </div>
@@ -594,7 +594,7 @@ export const PaymentsTab: React.FC = () => {
           <button
             onClick={() => fetchPaymentsAndStats()}
             disabled={loading}
-            className="p-2.5 text-slate-300 hover:bg-slate-800 rounded-xl border border-slate-700 transition cursor-pointer"
+            className="m3-btn-outlined !px-3"
             title="تحديث البيانات"
             id="btn-refresh-vouchers"
           >
@@ -605,7 +605,7 @@ export const PaymentsTab: React.FC = () => {
 
           <button
             onClick={() => handleOpenCreateModal('CUSTOMER_PAYMENT')}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white px-4 py-2.5 rounded-xl font-bold text-sm shadow-md transition cursor-pointer"
+            className="m3-btn-primary text-xs sm:text-sm"
             id="btn-create-customer-receipt"
           >
             <ArrowDownLeft className="w-4 h-4 stroke-[2.5]" />
@@ -614,7 +614,7 @@ export const PaymentsTab: React.FC = () => {
 
           <button
             onClick={() => handleOpenCreateModal('SUPPLIER_PAYMENT')}
-            className="flex items-center gap-2 bg-rose-600 hover:bg-rose-500 active:scale-[0.98] text-white px-4 py-2.5 rounded-xl font-bold text-sm shadow-md transition cursor-pointer"
+            className="m3-btn-danger text-xs sm:text-sm"
             id="btn-create-supplier-payment"
           >
             <ArrowUpRight className="w-4 h-4 stroke-[2.5]" />
@@ -625,24 +625,24 @@ export const PaymentsTab: React.FC = () => {
 
       {/* Notifications */}
       {error && (
-        <div className="flex items-center justify-between p-4 bg-rose-950/40 border border-rose-800/60 rounded-xl text-rose-300 text-sm">
+        <div className="flex items-center justify-between p-4 bg-[var(--md-error-container)] border border-[var(--md-error)]/30 rounded-[var(--md-radius-md)] text-[var(--md-on-error-container)] text-sm">
           <div className="flex items-center gap-2.5">
             <AlertCircle className="w-5 h-5 flex-shrink-0" />
-            <span>{error}</span>
+            <span className="font-semibold">{error}</span>
           </div>
-          <button onClick={() => setError(null)} className="p-1 hover:bg-rose-900/50 rounded-lg cursor-pointer">
+          <button onClick={() => setError(null)} className="p-1 opacity-80 hover:opacity-100 rounded-lg cursor-pointer">
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
       {success && (
-        <div className="flex items-center justify-between p-4 bg-emerald-950/40 border border-emerald-800/60 rounded-xl text-emerald-300 text-sm">
+        <div className="flex items-center justify-between p-4 bg-[var(--md-success-container)] border border-[var(--md-success)]/30 rounded-[var(--md-radius-md)] text-[var(--md-on-success-container)] text-sm">
           <div className="flex items-center gap-2.5">
             <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
-            <span>{success}</span>
+            <span className="font-semibold">{success}</span>
           </div>
-          <button onClick={() => setSuccess(null)} className="p-1 hover:bg-emerald-900/50 rounded-lg cursor-pointer">
+          <button onClick={() => setSuccess(null)} className="p-1 opacity-80 hover:opacity-100 rounded-lg cursor-pointer">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -651,90 +651,90 @@ export const PaymentsTab: React.FC = () => {
       {/* 2. Top Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="vouchers-stats-cards">
         {/* Total / Today's Receipts */}
-        <div className="bg-slate-900 p-4.5 rounded-2xl border border-emerald-900/40 shadow-xl flex items-center justify-between">
+        <div className="m3-card p-4.5 flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-xs font-bold text-slate-400">إجمالي المقبوضات (سندات القبض)</span>
-            <div className="text-xl font-extrabold text-emerald-400 font-mono">
-              {formatAmount(totalReceipts || stats?.totalCollected || stats?.month?.receipts || 0)} <span className="text-xs font-sans text-slate-500">YER</span>
+            <span className="text-xs font-bold text-[var(--md-on-surface-variant)]">إجمالي المقبوضات (سندات القبض)</span>
+            <div className="text-xl font-extrabold text-[var(--md-success)] font-mono tabular-nums">
+              {formatAmount(totalReceipts || stats?.totalCollected || stats?.month?.receipts || 0)} <span className="text-xs font-sans text-[var(--md-on-surface-variant)]">YER</span>
             </div>
-            <div className="text-[11px] text-slate-400">
-              مقبوضات اليوم: <span className="font-mono font-bold text-slate-300">{formatAmount(stats?.today?.receipts || 0)}</span>
+            <div className="text-[11px] text-[var(--md-on-surface-variant)] tabular-nums">
+              مقبوضات اليوم: <span className="font-mono font-bold text-[var(--md-on-surface)]">{formatAmount(stats?.today?.receipts || 0)}</span>
             </div>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center justify-center">
+          <div className="w-11 h-11 rounded-[var(--md-radius-md)] bg-[var(--md-success-container)] text-[var(--md-on-success-container)] flex items-center justify-center shrink-0">
             <ArrowDownLeft className="w-5 h-5" />
           </div>
         </div>
 
         {/* Total / Today's Disbursements */}
-        <div className="bg-slate-900 p-4.5 rounded-2xl border border-emerald-900/40 shadow-xl flex items-center justify-between">
+        <div className="m3-card p-4.5 flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-xs font-bold text-slate-400">إجمالي المدفوعات (سندات الصرف)</span>
-            <div className="text-xl font-extrabold text-rose-400 font-mono">
-              {formatAmount(totalDisbursements || stats?.totalDisbursed || stats?.month?.payments || 0)} <span className="text-xs font-sans text-slate-500">YER</span>
+            <span className="text-xs font-bold text-[var(--md-on-surface-variant)]">إجمالي المدفوعات (سندات الصرف)</span>
+            <div className="text-xl font-extrabold text-[var(--md-error)] font-mono tabular-nums">
+              {formatAmount(totalDisbursements || stats?.totalDisbursed || stats?.month?.payments || 0)} <span className="text-xs font-sans text-[var(--md-on-surface-variant)]">YER</span>
             </div>
-            <div className="text-[11px] text-slate-400">
-              مدفوعات اليوم: <span className="font-mono font-bold text-slate-300">{formatAmount(stats?.today?.payments || 0)}</span>
+            <div className="text-[11px] text-[var(--md-on-surface-variant)] tabular-nums">
+              مدفوعات اليوم: <span className="font-mono font-bold text-[var(--md-on-surface)]">{formatAmount(stats?.today?.payments || 0)}</span>
             </div>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-rose-950 text-rose-400 border border-rose-800 flex items-center justify-center">
+          <div className="w-11 h-11 rounded-[var(--md-radius-md)] bg-[var(--md-error-container)] text-[var(--md-on-error-container)] flex items-center justify-center shrink-0">
             <ArrowUpRight className="w-5 h-5" />
           </div>
         </div>
 
         {/* Net Movement */}
-        <div className="bg-slate-900 p-4.5 rounded-2xl border border-emerald-900/40 shadow-xl flex items-center justify-between">
+        <div className="m3-card p-4.5 flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-xs font-bold text-slate-400">صافي حركة الخزينة</span>
+            <span className="text-xs font-bold text-[var(--md-on-surface-variant)]">صافي حركة الخزينة</span>
             <div
-              className={`text-xl font-extrabold font-mono ${
-                ((totalReceipts - totalDisbursements) || stats?.netCashflow || stats?.month?.net || 0) >= 0 ? 'text-teal-400' : 'text-amber-400'
+              className={`text-xl font-extrabold font-mono tabular-nums ${
+                ((totalReceipts - totalDisbursements) || stats?.netCashflow || stats?.month?.net || 0) >= 0 ? 'text-[var(--md-primary-text)]' : 'text-[var(--md-warning)]'
               }`}
             >
-              {formatAmount((totalReceipts - totalDisbursements) || stats?.netCashflow || stats?.month?.net || 0)} <span className="text-xs font-sans text-slate-500">YER</span>
+              {formatAmount((totalReceipts - totalDisbursements) || stats?.netCashflow || stats?.month?.net || 0)} <span className="text-xs font-sans text-[var(--md-on-surface-variant)]">YER</span>
             </div>
-            <div className="text-[11px] text-slate-400">
-              صافي حركة اليوم: <span className="font-mono font-bold text-slate-300">{formatAmount(stats?.today?.net || 0)}</span>
+            <div className="text-[11px] text-[var(--md-on-surface-variant)] tabular-nums">
+              صافي حركة اليوم: <span className="font-mono font-bold text-[var(--md-on-surface)]">{formatAmount(stats?.today?.net || 0)}</span>
             </div>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-teal-950 text-teal-400 border border-teal-800 flex items-center justify-center">
+          <div className="w-11 h-11 rounded-[var(--md-radius-md)] bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] flex items-center justify-center shrink-0">
             <DollarSign className="w-5 h-5" />
           </div>
         </div>
 
         {/* Filtered View Summary */}
-        <div className="bg-slate-900 p-4.5 rounded-2xl border border-emerald-900/40 shadow-xl flex items-center justify-between">
+        <div className="m3-card p-4.5 flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-xs font-bold text-slate-400">السندات المعروضة</span>
-            <div className="text-xl font-extrabold text-white font-mono">
-              {filteredPayments.length} <span className="text-xs font-sans text-slate-500">سند</span>
+            <span className="text-xs font-bold text-[var(--md-on-surface-variant)]">السندات المعروضة</span>
+            <div className="text-xl font-extrabold text-[var(--md-on-surface)] font-mono tabular-nums">
+              {filteredPayments.length} <span className="text-xs font-sans text-[var(--md-on-surface-variant)]">سند</span>
             </div>
-            <div className="text-[11px] text-slate-400 font-mono">
+            <div className="text-[11px] text-[var(--md-on-surface-variant)] font-mono tabular-nums">
               قبض: {formatAmount(totalReceipts)} | دفع: {formatAmount(totalDisbursements)}
             </div>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-slate-800 text-slate-300 border border-slate-700 flex items-center justify-center">
+          <div className="w-11 h-11 rounded-[var(--md-radius-md)] bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] flex items-center justify-center shrink-0">
             <Layers className="w-5 h-5" />
           </div>
         </div>
       </div>
 
       {/* 3. Main Navigation Tabs & Filters Bar */}
-      <div className="bg-slate-900 rounded-2xl border border-emerald-900/40 shadow-xl overflow-hidden" id="vouchers-tabs-and-filters">
+      <div className="m3-card overflow-hidden" id="vouchers-tabs-and-filters">
         {/* Tabs Bar */}
-        <div className="flex border-b border-slate-800 px-4 pt-3 gap-2 bg-slate-950/60 overflow-x-auto">
+        <div className="flex border-b border-[var(--md-outline-variant)] px-4 pt-3 gap-2 bg-[var(--md-surface-container-low)] overflow-x-auto">
           <button
             onClick={() => setActiveTab('ALL')}
             className={`flex items-center gap-2 pb-3 px-4 font-bold text-sm border-b-2 transition whitespace-nowrap cursor-pointer ${
               activeTab === 'ALL'
-                ? 'border-emerald-500 text-emerald-400 bg-slate-900 rounded-t-xl shadow-xs'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-[var(--md-primary)] text-[var(--md-primary-text)] bg-[var(--md-surface-container)] rounded-t-[var(--md-radius-md)]'
+                : 'border-transparent text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
             }`}
             id="tab-all-vouchers"
           >
             <Layers className="w-4 h-4" />
             <span>كافة السندات المالية</span>
-            <span className="px-2 py-0.5 text-xs rounded-full bg-slate-800 text-slate-400 font-mono">
+            <span className="px-2 py-0.5 text-xs rounded-full bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] font-mono tabular-nums">
               {payments.length}
             </span>
           </button>
@@ -743,12 +743,12 @@ export const PaymentsTab: React.FC = () => {
             onClick={() => setActiveTab('CUSTOMER_PAYMENT')}
             className={`flex items-center gap-2 pb-3 px-4 font-bold text-sm border-b-2 transition whitespace-nowrap cursor-pointer ${
               activeTab === 'CUSTOMER_PAYMENT'
-                ? 'border-emerald-500 text-emerald-400 bg-slate-900 rounded-t-xl shadow-xs'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-[var(--md-success)] text-[var(--md-success)] bg-[var(--md-surface-container)] rounded-t-[var(--md-radius-md)]'
+                : 'border-transparent text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
             }`}
             id="tab-receipt-vouchers"
           >
-            <ArrowDownLeft className="w-4 h-4 text-emerald-400" />
+            <ArrowDownLeft className="w-4 h-4 text-[var(--md-success)]" />
             <span>سندات القبض (مقبوضات العملاء)</span>
           </button>
 
@@ -756,27 +756,27 @@ export const PaymentsTab: React.FC = () => {
             onClick={() => setActiveTab('SUPPLIER_PAYMENT')}
             className={`flex items-center gap-2 pb-3 px-4 font-bold text-sm border-b-2 transition whitespace-nowrap cursor-pointer ${
               activeTab === 'SUPPLIER_PAYMENT'
-                ? 'border-rose-500 text-rose-400 bg-slate-900 rounded-t-xl shadow-xs'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-[var(--md-error)] text-[var(--md-error)] bg-[var(--md-surface-container)] rounded-t-[var(--md-radius-md)]'
+                : 'border-transparent text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
             }`}
             id="tab-payment-vouchers"
           >
-            <ArrowUpRight className="w-4 h-4 text-rose-400" />
+            <ArrowUpRight className="w-4 h-4 text-[var(--md-error)]" />
             <span>سندات الدفع (مدفوعات الموردين)</span>
           </button>
         </div>
 
         {/* Filters Row */}
-        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 bg-slate-950/40 border-b border-slate-800">
+        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 bg-[var(--md-surface-container-low)]/60 border-b border-[var(--md-outline-variant)]">
           {/* Search Box */}
           <div className="lg:col-span-2 relative">
-            <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-[var(--md-on-surface-variant)] pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="بحث برقم السند، الطرف، المرجع، البيان..."
-              className="w-full pl-3 pr-9 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-semibold text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
+              className="m3-input !h-10 !pr-9 text-xs"
               id="input-vouchers-search"
             />
           </div>
@@ -786,7 +786,7 @@ export const PaymentsTab: React.FC = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-semibold text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
+              className="m3-select !h-10 text-xs"
               id="select-voucher-status"
             >
               <option value="">جميع الحالات</option>
@@ -800,7 +800,7 @@ export const PaymentsTab: React.FC = () => {
             <select
               value={methodFilter}
               onChange={(e) => setMethodFilter(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-semibold text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
+              className="m3-select !h-10 text-xs"
               id="select-voucher-method"
             >
               <option value="">جميع طرق السداد</option>
@@ -816,7 +816,7 @@ export const PaymentsTab: React.FC = () => {
             <select
               value={currencyFilter}
               onChange={(e) => setCurrencyFilter(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-semibold text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
+              className="m3-select !h-10 text-xs"
               id="select-voucher-currency"
             >
               <option value="">جميع العملات</option>
@@ -832,7 +832,7 @@ export const PaymentsTab: React.FC = () => {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-2 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-semibold text-slate-200"
+              className="m3-input !h-10 !px-2 text-xs"
               title="من تاريخ"
               id="input-vouchers-start-date"
             />
@@ -840,7 +840,7 @@ export const PaymentsTab: React.FC = () => {
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-2 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-semibold text-slate-200"
+              className="m3-input !h-10 !px-2 text-xs"
               title="إلى تاريخ"
               id="input-vouchers-end-date"
             />
@@ -849,33 +849,33 @@ export const PaymentsTab: React.FC = () => {
 
         {/* 4. Vouchers Table */}
         <div className="overflow-x-auto" id="vouchers-table-container">
-          <table className="w-full text-right text-xs">
-            <thead>
-              <tr className="bg-slate-950 border-b border-slate-800 text-slate-400 font-bold">
-                <th className="py-3.5 px-4">رقم السند</th>
-                <th className="py-3.5 px-4">النوع</th>
-                <th className="py-3.5 px-4">الطرف المعني</th>
-                <th className="py-3.5 px-4">المبلغ والعملة</th>
-                <th className="py-3.5 px-4">طريقة السداد والخزينة</th>
-                <th className="py-3.5 px-4">التاريخ</th>
-                <th className="py-3.5 px-4 text-center">الحالة</th>
-                <th className="py-3.5 px-4 text-center">الإجراءات</th>
+          <table className="m3-table text-right text-xs">
+            <thead className="m3-thead">
+              <tr>
+                <th className="m3-th">رقم السند</th>
+                <th className="m3-th">النوع</th>
+                <th className="m3-th">الطرف المعني</th>
+                <th className="m3-th">المبلغ والعملة</th>
+                <th className="m3-th">طريقة السداد والخزينة</th>
+                <th className="m3-th">التاريخ</th>
+                <th className="m3-th text-center">الحالة</th>
+                <th className="m3-th text-center">الإجراءات</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/80 font-medium">
+            <tbody className="divide-y divide-[var(--md-outline-variant)] font-medium">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-500" />
+                  <td colSpan={8} className="py-12 text-center text-[var(--md-on-surface-variant)]">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[var(--md-primary-text)]" />
                     <span>جاري تحميل السندات المالية والتحصيلات...</span>
                   </td>
                 </tr>
               ) : filteredPayments.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
-                    <Receipt className="w-10 h-10 mx-auto mb-2 opacity-30 text-emerald-400" />
-                    <p className="font-bold text-sm text-slate-300">لا توجد سندات مالية مسجلة</p>
-                    <p className="text-xs text-slate-400 mt-1">
+                  <td colSpan={8} className="py-12 text-center text-[var(--md-on-surface-variant)]">
+                    <Receipt className="w-10 h-10 mx-auto mb-2 opacity-30 text-[var(--md-primary-text)]" />
+                    <p className="font-bold text-sm text-[var(--md-on-surface)]">لا توجد سندات مالية مسجلة</p>
+                    <p className="text-xs text-[var(--md-on-surface-variant)] mt-1">
                       {searchQuery || statusFilter || methodFilter
                         ? 'جرّب تغيير خيارات البحث أو التصفية أعلاه'
                         : 'يمكنك إضافة سند قبض جديد من عميل أو سند صرف لمورد'}
@@ -890,8 +890,8 @@ export const PaymentsTab: React.FC = () => {
                   return (
                     <tr
                       key={p.id}
-                      className={`hover:bg-slate-800/40 transition ${
-                        isCancelled ? 'opacity-60 bg-slate-950/40' : ''
+                      className={`hover:bg-[var(--md-surface-container-low)] transition-colors ${
+                        isCancelled ? 'opacity-65 bg-[var(--md-surface-container-low)]/50' : ''
                       }`}
                     >
                       {/* Voucher Number */}
@@ -899,43 +899,43 @@ export const PaymentsTab: React.FC = () => {
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <button
                             onClick={() => handleOpenDetails(p.id)}
-                            className="font-mono font-bold text-emerald-400 hover:text-emerald-300 hover:underline flex items-center gap-1 cursor-pointer"
+                            className="font-mono font-bold text-[var(--md-primary-text)] hover:underline flex items-center gap-1 cursor-pointer tabular-nums"
                           >
                             <span>{p.voucher_number || p.reference || `V-${p.id.slice(0, 6)}`}</span>
                           </button>
 
                           {/* Cloud Synchronization Status Indicator */}
                           {p.syncStatus === 'CONFLICT' ? (
-                            <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.2 rounded-md bg-rose-500/10 text-rose-300 border border-rose-500/30 font-bold" title="يوجد تعارض في السيرفر">
+                            <span className="m3-badge m3-badge-error text-[10px]" title="يوجد تعارض في السيرفر">
                               <span>⚠️</span>
                               <span>تعارض</span>
                             </span>
                           ) : p.serverSeq || p.syncStatus === 'SYNCED' || p.is_synced ? (
-                            <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.2 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold" title={`تم التأكيد بالسيرفر #${p.serverSeq || ''}`}>
+                            <span className="m3-badge m3-badge-success text-[10px]" title={`تم التأكيد بالسيرفر #${p.serverSeq || ''}`}>
                               <span>☁️</span>
                               <span>متزامن</span>
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.2 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/30 font-bold" title="محفوظ محلياً بانتظار الإرسال">
+                            <span className="m3-badge m3-badge-warning text-[10px]" title="محفوظ محلياً بانتظار الإرسال">
                               <span>⏳</span>
                               <span>معلق محلياً</span>
                             </span>
                           )}
                         </div>
                         {p.operation_number && (
-                          <div className="text-[10px] text-slate-400 font-mono">عملية: {p.operation_number}</div>
+                          <div className="text-[10px] text-[var(--md-on-surface-variant)] font-mono mt-0.5">عملية: {p.operation_number}</div>
                         )}
                       </td>
 
                       {/* Voucher Type */}
                       <td className="py-3 px-4">
                         {isReceipt ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">
+                          <span className="m3-badge m3-badge-success text-[11px]">
                             <ArrowDownLeft className="w-3.5 h-3.5" />
                             <span>سند قبض</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-950 text-rose-300 border border-rose-800">
+                          <span className="m3-badge m3-badge-error text-[11px]">
                             <ArrowUpRight className="w-3.5 h-3.5" />
                             <span>سند صرف</span>
                           </span>
@@ -944,10 +944,10 @@ export const PaymentsTab: React.FC = () => {
 
                       {/* Party */}
                       <td className="py-3 px-4">
-                        <div className="font-bold text-slate-100">
+                        <div className="font-bold text-[var(--md-on-surface)]">
                           {resolvePartyName(p)}
                         </div>
-                        <div className="text-[11px] text-slate-400 flex items-center gap-2">
+                        <div className="text-[11px] text-[var(--md-on-surface-variant)] flex items-center gap-2 tabular-nums">
                           {p.customer_phone || p.supplier_phone ? (
                             <span>هاتف: {p.customer_phone || p.supplier_phone}</span>
                           ) : null}
@@ -960,18 +960,18 @@ export const PaymentsTab: React.FC = () => {
                       {/* Amount & Currency */}
                       <td className="py-3 px-4">
                         <div
-                          className={`font-mono font-extrabold text-sm ${
+                          className={`font-mono font-extrabold text-sm tabular-nums ${
                             isCancelled
-                              ? 'text-slate-500 line-through'
+                              ? 'text-[var(--md-on-surface-variant)] line-through'
                               : isReceipt
-                              ? 'text-emerald-400'
-                              : 'text-rose-400'
+                              ? 'text-[var(--md-success)]'
+                              : 'text-[var(--md-error)]'
                           }`}
                         >
-                          {formatAmount(p.amount || 0)} <span className="text-xs font-sans font-bold text-slate-400">{p.currency || 'YER'}</span>
+                          {formatAmount(p.amount || 0)} <span className="text-xs font-sans font-bold text-[var(--md-on-surface-variant)]">{p.currency || 'YER'}</span>
                         </div>
                         {p.currency && p.currency !== 'YER' && Number(p.exchange_rate) > 1 && (
-                          <div className="text-[10px] text-slate-400 font-mono">
+                          <div className="text-[10px] text-[var(--md-on-surface-variant)] font-mono tabular-nums">
                             ≈ {formatAmount((p.amount || 0) * (p.exchange_rate || 1))} YER (سعر: {p.exchange_rate})
                           </div>
                         )}
@@ -979,46 +979,46 @@ export const PaymentsTab: React.FC = () => {
 
                       {/* Payment Method & Account */}
                       <td className="py-3 px-4">
-                        <div className="flex items-center gap-1.5 font-bold text-slate-300">
+                        <div className="flex items-center gap-1.5 font-bold text-[var(--md-on-surface)]">
                           {p.payment_method === 'CASH' ? (
                             <>
-                              <Wallet className="w-3.5 h-3.5 text-amber-400" />
+                              <Wallet className="w-3.5 h-3.5 text-[var(--md-warning)]" />
                               <span>نقداً (خزينة)</span>
                             </>
                           ) : p.payment_method === 'BANK' || p.payment_method === 'BANK_TRANSFER' ? (
                             <>
-                              <Landmark className="w-3.5 h-3.5 text-blue-400" />
+                              <Landmark className="w-3.5 h-3.5 text-[var(--md-info)]" />
                               <span>تحويل بنكي {p.bank_name ? `(${p.bank_name})` : ''}</span>
                             </>
                           ) : p.payment_method === 'WALLET' ? (
                             <>
-                              <CreditCard className="w-3.5 h-3.5 text-purple-400" />
+                              <CreditCard className="w-3.5 h-3.5 text-[var(--md-secondary)]" />
                               <span>محفظة {p.wallet_provider ? `(${p.wallet_provider})` : ''}</span>
                             </>
                           ) : (
                             <>
-                              <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                              <FileText className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
                               <span>شيك مصرفي {p.check_number ? `(#${p.check_number})` : ''}</span>
                             </>
                           )}
                         </div>
-                        {p.notes && <div className="text-[11px] text-slate-400 truncate max-w-xs">{p.notes}</div>}
+                        {p.notes && <div className="text-[11px] text-[var(--md-on-surface-variant)] truncate max-w-xs">{p.notes}</div>}
                       </td>
 
                       {/* Date */}
-                      <td className="py-3 px-4 font-mono text-slate-300">
+                      <td className="py-3 px-4 font-mono text-[var(--md-on-surface-variant)] tabular-nums">
                         {p.payment_date ? formatDateOnly(p.payment_date) : '-'}
                       </td>
 
                       {/* Status */}
                       <td className="py-3 px-4 text-center">
                         {isCancelled ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-950/70 text-rose-300 border border-rose-800">
+                          <span className="m3-badge m3-badge-error text-[10px]">
                             <Ban className="w-3 h-3" />
                             <span>ملغي</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/70 text-emerald-300 border border-emerald-800">
+                          <span className="m3-badge m3-badge-success text-[10px]">
                             <CheckCircle2 className="w-3 h-3" />
                             <span>معتمد</span>
                           </span>
@@ -1027,30 +1027,30 @@ export const PaymentsTab: React.FC = () => {
 
                       {/* Actions */}
                       <td className="py-3 px-4 text-center">
-                        <div className="flex items-center justify-center gap-1">
+                        <div className="flex items-center justify-center gap-1.5">
                           <button
                             onClick={() => handleOpenDetails(p.id)}
-                            className="p-1.5 text-slate-300 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition cursor-pointer"
+                            className="m3-btn-outlined !min-h-[32px] !px-2 !py-1.5"
                             title="عرض التفاصيل والقيود المحاسبية"
                           >
-                            <Eye className="w-4 h-4" />
+                            <Eye className="w-3.5 h-3.5" />
                           </button>
 
                           <button
                             onClick={() => handlePrintVoucher(p)}
-                            className="p-1.5 text-slate-300 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition cursor-pointer"
+                            className="m3-btn-tonal !min-h-[32px] !px-2 !py-1.5"
                             title="طباعة السند الرسمي"
                           >
-                            <Printer className="w-4 h-4" />
+                            <Printer className="w-3.5 h-3.5" />
                           </button>
 
                           {!isCancelled && (
                             <button
                               onClick={() => handleOpenCancelDialog(p)}
-                              className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950/50 rounded-lg transition cursor-pointer"
+                              className="m3-btn-danger !min-h-[32px] !px-2 !py-1.5"
                               title="إلغاء السند وعكس القيود"
                             >
-                              <Ban className="w-4 h-4" />
+                              <Ban className="w-3.5 h-3.5" />
                             </button>
                           )}
                         </div>
@@ -1066,19 +1066,15 @@ export const PaymentsTab: React.FC = () => {
 
       {/* 5. Create Payment / Receipt Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs overflow-y-auto" id="modal-create-voucher">
-          <div className="bg-slate-900 rounded-2xl max-w-2xl w-full border border-emerald-900/50 shadow-2xl overflow-hidden my-8">
+        <div className="m3-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto" id="modal-create-voucher" dir="rtl">
+          <div className="m3-modal-surface max-w-2xl w-full overflow-hidden my-8 text-right text-[var(--md-on-surface)]">
             {/* Modal Header */}
-            <div
-              className={`p-5 flex items-center justify-between text-white border-b ${
-                paymentType === 'CUSTOMER_PAYMENT'
-                  ? 'bg-slate-950 border-emerald-900/40'
-                  : 'bg-slate-950 border-rose-900/40'
-              }`}
-            >
+            <div className="p-5 flex items-center justify-between bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)]">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white ${
-                  paymentType === 'CUSTOMER_PAYMENT' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'
+                <div className={`w-10 h-10 rounded-[var(--md-radius-md)] flex items-center justify-center shrink-0 ${
+                  paymentType === 'CUSTOMER_PAYMENT'
+                    ? 'bg-[var(--md-success-container)] text-[var(--md-on-success-container)]'
+                    : 'bg-[var(--md-error-container)] text-[var(--md-on-error-container)]'
                 }`}>
                   {paymentType === 'CUSTOMER_PAYMENT' ? (
                     <ArrowDownLeft className="w-5 h-5 stroke-[2.5]" />
@@ -1087,27 +1083,30 @@ export const PaymentsTab: React.FC = () => {
                   )}
                 </div>
                 <div>
-                  <h2 className="text-base font-black text-white">
+                  <h2 className="text-base font-black text-[var(--md-on-surface)]">
                     {paymentType === 'CUSTOMER_PAYMENT' ? 'إنشاء سند قبض مالي (تحصيل من عميل)' : 'إنشاء سند صرف مالي (سداد لمورد)'}
                   </h2>
-                  <p className="text-xs text-slate-400">تسجيل وتأكيد الحركة النقدية مع الترحيل التلقائي لدفتر الأستاذ العام</p>
+                  <p className="text-xs text-[var(--md-on-surface-variant)]">تسجيل وتأكيد الحركة النقدية مع الترحيل التلقائي لدفتر الأستاذ العام</p>
                 </div>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="p-1.5 text-slate-400 hover:text-white rounded-lg cursor-pointer">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="p-1.5 text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] rounded-[var(--md-radius-sm)] cursor-pointer transition-colors"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Modal Body */}
-            <form onSubmit={handleSavePayment} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+            <form onSubmit={handleSavePayment} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto custom-scrollbar">
               {/* Step 1: Party Selection */}
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-300">
+              <div className="bg-[var(--md-surface-container-low)] p-4 rounded-[var(--md-radius-md)] border border-[var(--md-outline-variant)] space-y-3">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <label className="text-xs font-bold text-[var(--md-on-surface)]">
                     {paymentType === 'CUSTOMER_PAYMENT' ? 'العميل المستلم منه *' : 'المورد المدفوع له *'}
                   </label>
                   {selectedParty && (
-                    <span className="text-[11px] font-mono font-bold text-emerald-400">
+                    <span className="m3-badge m3-badge-primary font-mono text-[11px] tabular-nums">
                       الرصيد الحالي: {formatAmount(selectedParty.balance || selectedParty.current_balance || 0)}{' '}
                       {selectedParty.currency || 'YER'}
                     </span>
@@ -1121,7 +1120,7 @@ export const PaymentsTab: React.FC = () => {
                     setInvoiceAllocations({});
                   }}
                   required
-                  className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
+                  className="m3-select text-xs font-bold"
                 >
                   <option value="">{paymentType === 'CUSTOMER_PAYMENT' ? 'اختر العميل...' : 'اختر المورد...'}</option>
                   {(paymentType === 'CUSTOMER_PAYMENT' ? customers : suppliers).map((ent) => (
@@ -1137,9 +1136,9 @@ export const PaymentsTab: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {/* Amount */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center justify-between">
+                  <label className="block text-xs font-bold text-[var(--md-on-surface-variant)] mb-1.5 flex items-center justify-between">
                     <span>مبلغ السند *</span>
-                    <span className="text-[10px] text-emerald-400 font-mono">0-9 EN</span>
+                    <span className="text-[10px] text-[var(--md-primary-text)] font-mono">0-9 EN</span>
                   </label>
                   <input
                     type="text"
@@ -1150,13 +1149,13 @@ export const PaymentsTab: React.FC = () => {
                     value={amount}
                     onChange={(e) => setAmount(toEnglishDigits(e.target.value).replace(/[^0-9.]/g, ''))}
                     placeholder="0.00"
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl font-mono text-sm font-bold text-white text-left focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
+                    className="m3-input font-mono text-sm font-bold text-left tabular-nums"
                   />
                 </div>
 
                 {/* Currency */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">العملة</label>
+                  <label className="block text-xs font-bold text-[var(--md-on-surface-variant)] mb-1.5">العملة</label>
                   <select
                     value={currency}
                     onChange={(e) => {
@@ -1164,7 +1163,7 @@ export const PaymentsTab: React.FC = () => {
                       setCurrency(cur);
                       setExchangeRate(String(getAccountingRate(cur)));
                     }}
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
+                    className="m3-select text-xs font-bold"
                   >
                     <option value="YER">ريال يمني (YER)</option>
                     <option value="SAR">ريال سعودي (SAR)</option>
@@ -1174,31 +1173,31 @@ export const PaymentsTab: React.FC = () => {
 
                 {/* Payment Date */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">تاريخ السند *</label>
+                  <label className="block text-xs font-bold text-[var(--md-on-surface-variant)] mb-1.5">تاريخ السند *</label>
                   <input
                     type="date"
                     required
                     value={paymentDate}
                     onChange={(e) => setPaymentDate(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
+                    className="m3-input text-xs font-bold"
                   />
                 </div>
               </div>
 
               {/* Exchange rate if foreign */}
               {currency !== 'YER' && (
-                <div className="p-3 bg-amber-950/40 border border-amber-800/60 rounded-xl flex items-center justify-between gap-4 text-xs flex-wrap">
-                  <div className="flex items-center gap-2 text-amber-300 font-bold">
-                    <Sparkles className="w-4 h-4 text-amber-400" />
+                <div className="p-3 bg-[var(--md-warning-container)]/35 border border-[var(--md-warning)]/35 rounded-[var(--md-radius-md)] flex items-center justify-between gap-4 text-xs flex-wrap">
+                  <div className="flex items-center gap-2 text-[var(--md-on-warning-container)] font-bold">
+                    <Sparkles className="w-4 h-4 shrink-0" />
                     <span>سعر صرف {currency} مقابل YER:</span>
                     {amount && Number(amount) > 0 && (
-                      <span className="font-mono text-emerald-400 font-bold mr-2">
+                      <span className="font-mono text-[var(--md-success)] font-bold mr-2 tabular-nums">
                         (المعادل: ≈ {formatNumber(Number(amount) * Number(exchangeRate))} YER)
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-amber-400 font-mono">0-9 EN</span>
+                    <span className="text-[10px] text-[var(--md-on-warning-container)] font-mono">0-9 EN</span>
                     <input
                       type="text"
                       inputMode="decimal"
@@ -1206,7 +1205,7 @@ export const PaymentsTab: React.FC = () => {
                       lang="en"
                       value={exchangeRate}
                       onChange={(e) => setExchangeRate(toEnglishDigits(e.target.value).replace(/[^0-9.]/g, ''))}
-                      className="w-32 px-3 py-1.5 bg-slate-900 border border-amber-700 rounded-lg font-mono font-bold text-xs text-white text-left focus:outline-none"
+                      className="m3-input !h-9 !w-32 font-mono font-bold text-xs text-left tabular-nums"
                     />
                   </div>
                 </div>
@@ -1214,7 +1213,7 @@ export const PaymentsTab: React.FC = () => {
 
               {/* Step 3: Payment Method & Channel Details */}
               <div className="space-y-3">
-                <label className="block text-xs font-bold text-slate-300">طريقة وقناة السداد *</label>
+                <label className="block text-xs font-bold text-[var(--md-on-surface-variant)]">طريقة وقناة السداد *</label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
                     { id: 'CASH', label: 'نقدًا (خزينة)', icon: Wallet },
@@ -1229,13 +1228,13 @@ export const PaymentsTab: React.FC = () => {
                         type="button"
                         key={m.id}
                         onClick={() => setPaymentMethod(m.id)}
-                        className={`flex flex-col items-center justify-center p-3 rounded-xl border text-xs font-bold transition gap-1.5 cursor-pointer ${
+                        className={`flex flex-col items-center justify-center p-3 rounded-[var(--md-radius-md)] border text-xs font-bold transition gap-1.5 cursor-pointer ${
                           isSelected
-                            ? 'bg-emerald-950 border-emerald-500 text-emerald-300 shadow-xs'
-                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                            ? 'bg-[var(--md-primary-container)] border-[var(--md-primary)] text-[var(--md-on-primary-container)] shadow-sm'
+                            : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-container-high)] hover:text-[var(--md-on-surface)]'
                         }`}
                       >
-                        <Icon className={`w-4 h-4 ${isSelected ? 'text-emerald-400' : ''}`} />
+                        <Icon className="w-4 h-4" />
                         <span>{m.label}</span>
                       </button>
                     );
@@ -1244,35 +1243,35 @@ export const PaymentsTab: React.FC = () => {
 
                 {/* Conditional Fields: Bank */}
                 {paymentMethod === 'BANK' && (
-                  <div className="p-3.5 bg-slate-950 rounded-xl border border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-3.5 bg-[var(--md-surface-container-low)] rounded-[var(--md-radius-md)] border border-[var(--md-outline-variant)] grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-400 mb-1">اسم البنك</label>
+                      <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1">اسم البنك</label>
                       <input
                         type="text"
                         value={bankName}
                         onChange={(e) => setBankName(e.target.value)}
                         placeholder="مثل: بنك الكريمي، بنك التضامن"
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
+                        className="m3-input !h-9 text-xs"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-400 mb-1">رقم الحساب / IBAN</label>
+                      <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1">رقم الحساب / IBAN</label>
                       <input
                         type="text"
                         value={bankAccountNumber}
                         onChange={(e) => setBankAccountNumber(e.target.value)}
                         placeholder="رقم الحساب البنكي"
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-white"
+                        className="m3-input !h-9 text-xs font-mono"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-400 mb-1">رقم العملية / الإشعار</label>
+                      <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1">رقم العملية / الإشعار</label>
                       <input
                         type="text"
                         value={operationNumber}
                         onChange={(e) => setOperationNumber(e.target.value)}
                         placeholder="رقم التحويل البنكي"
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-white"
+                        className="m3-input !h-9 text-xs font-mono"
                       />
                     </div>
                   </div>
@@ -1280,35 +1279,35 @@ export const PaymentsTab: React.FC = () => {
 
                 {/* Conditional Fields: Wallet */}
                 {paymentMethod === 'WALLET' && (
-                  <div className="p-3.5 bg-slate-950 rounded-xl border border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-3.5 bg-[var(--md-surface-container-low)] rounded-[var(--md-radius-md)] border border-[var(--md-outline-variant)] grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-400 mb-1">مزود المحفظة</label>
+                      <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1">مزود المحفظة</label>
                       <input
                         type="text"
                         value={walletProvider}
                         onChange={(e) => setWalletProvider(e.target.value)}
                         placeholder="مثل: جوالي، فلوسك، ون كاش"
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
+                        className="m3-input !h-9 text-xs"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-400 mb-1">رقم هاتف المحفظة</label>
+                      <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1">رقم هاتف المحفظة</label>
                       <input
                         type="text"
                         value={walletNumber}
                         onChange={(e) => setWalletNumber(e.target.value)}
                         placeholder="رقم هاتف المحفظة"
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-white"
+                        className="m3-input !h-9 text-xs font-mono"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-400 mb-1">رقم عملية التحويل</label>
+                      <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1">رقم عملية التحويل</label>
                       <input
                         type="text"
                         value={operationNumber}
                         onChange={(e) => setOperationNumber(e.target.value)}
                         placeholder="رقم المعاملة بالمحفظة"
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-white"
+                        className="m3-input !h-9 text-xs font-mono"
                       />
                     </div>
                   </div>
@@ -1316,34 +1315,34 @@ export const PaymentsTab: React.FC = () => {
 
                 {/* Conditional Fields: Check */}
                 {paymentMethod === 'CHECK' && (
-                  <div className="p-3.5 bg-slate-950 rounded-xl border border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-3.5 bg-[var(--md-surface-container-low)] rounded-[var(--md-radius-md)] border border-[var(--md-outline-variant)] grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-400 mb-1">رقم الشيك</label>
+                      <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1">رقم الشيك</label>
                       <input
                         type="text"
                         value={checkNumber}
                         onChange={(e) => setCheckNumber(e.target.value)}
                         placeholder="رقم الشيك المصرفي"
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-white"
+                        className="m3-input !h-9 text-xs font-mono"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-400 mb-1">تاريخ استحقاق الشيك</label>
+                      <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1">تاريخ استحقاق الشيك</label>
                       <input
                         type="date"
                         value={checkDueDate}
                         onChange={(e) => setCheckDueDate(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-white"
+                        className="m3-input !h-9 text-xs font-mono"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-400 mb-1">اسم البنك المسحوب عليه</label>
+                      <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1">اسم البنك المسحوب عليه</label>
                       <input
                         type="text"
                         value={bankName}
                         onChange={(e) => setBankName(e.target.value)}
                         placeholder="اسم البنك"
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
+                        className="m3-input !h-9 text-xs"
                       />
                     </div>
                   </div>
@@ -1351,9 +1350,9 @@ export const PaymentsTab: React.FC = () => {
               </div>
 
               {/* Step 4: Settlement / Allocation Mode */}
-              <div className="space-y-3 pt-2 border-t border-slate-800">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-300">طريقة تسوية المبلغ</span>
+              <div className="space-y-3 pt-3 border-t border-[var(--md-outline-variant)]">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <span className="text-xs font-bold text-[var(--md-on-surface)]">طريقة تسوية المبلغ</span>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
@@ -1361,10 +1360,10 @@ export const PaymentsTab: React.FC = () => {
                         setAllocationMode('ON_ACCOUNT');
                         setInvoiceAllocations({});
                       }}
-                      className={`px-3 py-1 text-xs rounded-lg font-bold transition cursor-pointer ${
+                      className={`px-3 py-1.5 text-xs rounded-[var(--md-radius-md)] font-bold transition cursor-pointer border ${
                         allocationMode === 'ON_ACCOUNT'
-                          ? 'bg-emerald-600 text-white shadow-xs'
-                          : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-slate-200'
+                          ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] border-[var(--md-primary)]'
+                          : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
                       }`}
                     >
                       دفعة على الحساب
@@ -1372,10 +1371,10 @@ export const PaymentsTab: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setAllocationMode('ALLOCATE_INVOICES')}
-                      className={`px-3 py-1 text-xs rounded-lg font-bold transition cursor-pointer ${
+                      className={`px-3 py-1.5 text-xs rounded-[var(--md-radius-md)] font-bold transition cursor-pointer border ${
                         allocationMode === 'ALLOCATE_INVOICES'
-                          ? 'bg-emerald-600 text-white shadow-xs'
-                          : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-slate-200'
+                          ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] border-[var(--md-primary)]'
+                          : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
                       }`}
                     >
                       تسوية فواتير محددة ({partyInvoices.length})
@@ -1385,13 +1384,13 @@ export const PaymentsTab: React.FC = () => {
 
                 {/* If Invoices allocation selected */}
                 {allocationMode === 'ALLOCATE_INVOICES' && (
-                  <div className="p-3.5 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-slate-300">الفواتير المستحقة للطرف المحدد:</span>
+                  <div className="p-3.5 bg-[var(--md-surface-container-low)] rounded-[var(--md-radius-md)] border border-[var(--md-outline-variant)] space-y-3">
+                    <div className="flex items-center justify-between text-xs gap-2 flex-wrap">
+                      <span className="font-bold text-[var(--md-on-surface)]">الفواتير المستحقة للطرف المحدد:</span>
                       <button
                         type="button"
                         onClick={handleAutoDistribute}
-                        className="text-xs text-emerald-400 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                        className="text-xs text-[var(--md-primary-text)] font-bold hover:underline flex items-center gap-1 cursor-pointer"
                       >
                         <Sparkles className="w-3.5 h-3.5" />
                         <span>توزيع تلقائي للمبلغ على الأقدم</span>
@@ -1399,7 +1398,7 @@ export const PaymentsTab: React.FC = () => {
                     </div>
 
                     {partyInvoices.length === 0 ? (
-                      <p className="text-xs text-slate-400 text-center py-3">لا توجد فواتير معلقة لهذا الطرف (سيتم قيد السند كدفعة على الحساب)</p>
+                      <p className="text-xs text-[var(--md-on-surface-variant)] text-center py-3">لا توجد فواتير معلقة لهذا الطرف (سيتم قيد السند كدفعة على الحساب)</p>
                     ) : (
                       <div className="space-y-2 max-h-48 overflow-y-auto">
                         {partyInvoices.map((inv) => {
@@ -1409,20 +1408,20 @@ export const PaymentsTab: React.FC = () => {
                           return (
                             <div
                               key={inv.id}
-                              className="p-2.5 bg-slate-900 rounded-lg border border-slate-800 flex items-center justify-between gap-3 text-xs"
+                              className="p-2.5 bg-[var(--md-surface-container)] rounded-[var(--md-radius-sm)] border border-[var(--md-outline-variant)] flex items-center justify-between gap-3 text-xs"
                             >
                               <div className="space-y-0.5">
-                                <div className="font-mono font-bold text-white">
+                                <div className="font-mono font-bold text-[var(--md-on-surface)]">
                                   فاتورة #{inv.invoice_number || inv.id.slice(0, 6)}
                                 </div>
-                                <div className="text-[11px] text-slate-400">
+                                <div className="text-[11px] text-[var(--md-on-surface-variant)] tabular-nums">
                                   الإجمالي: {formatAmount(inv.total_amount || 0)} | المتبقي:{' '}
-                                  <span className="font-mono font-bold text-rose-400">{formatAmount(due)}</span> {currency}
+                                  <span className="font-mono font-bold text-[var(--md-error)]">{formatAmount(due)}</span> {currency}
                                 </div>
                               </div>
 
                               <div className="flex items-center gap-2">
-                                <label className="text-[11px] text-slate-400 font-bold">المبلغ المطبق:</label>
+                                <label className="text-[11px] text-[var(--md-on-surface-variant)] font-bold">المبلغ المطبق:</label>
                                 <input
                                   type="number"
                                   step="0.01"
@@ -1437,7 +1436,7 @@ export const PaymentsTab: React.FC = () => {
                                     });
                                   }}
                                   placeholder="0.00"
-                                  className="w-24 px-2 py-1 bg-slate-950 border border-slate-700 rounded text-xs font-mono font-bold text-white focus:border-emerald-500"
+                                  className="m3-input !h-8 !w-24 text-xs font-mono font-bold tabular-nums"
                                 />
                               </div>
                             </div>
@@ -1447,10 +1446,10 @@ export const PaymentsTab: React.FC = () => {
                     )}
 
                     {/* Allocation summary footer */}
-                    <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-800 font-mono font-bold">
-                      <span className="text-slate-300">إجمالي المخصص للفواتير: {formatAmount(totalAllocatedAmount)} {currency}</span>
+                    <div className="flex items-center justify-between text-xs pt-2 border-t border-[var(--md-outline-variant)] font-mono font-bold tabular-nums">
+                      <span className="text-[var(--md-on-surface)]">إجمالي المخصص للفواتير: {formatAmount(totalAllocatedAmount)} {currency}</span>
                       {unallocatedExcess > 0 && (
-                        <span className="text-amber-400">
+                        <span className="text-[var(--md-warning)]">
                           الفائض (على الحساب): +{formatAmount(unallocatedExcess)} {currency}
                         </span>
                       )}
@@ -1460,19 +1459,19 @@ export const PaymentsTab: React.FC = () => {
               </div>
 
               {/* Step 5: Notes & Reference */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-800">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-[var(--md-outline-variant)]">
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">رقم المرجع الخارجي (اختياري)</label>
+                  <label className="block text-xs font-bold text-[var(--md-on-surface-variant)] mb-1">رقم المرجع الخارجي (اختياري)</label>
                   <input
                     type="text"
                     value={reference}
                     onChange={(e) => setReference(e.target.value)}
                     placeholder="رقم سند يدوي / مستند ورقي"
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs font-mono text-white"
+                    className="m3-input !h-10 text-xs font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">رسوم التحويل (إن وجدت)</label>
+                  <label className="block text-xs font-bold text-[var(--md-on-surface-variant)] mb-1">رسوم التحويل (إن وجدت)</label>
                   <input
                     type="number"
                     step="0.01"
@@ -1480,40 +1479,36 @@ export const PaymentsTab: React.FC = () => {
                     value={transferFee}
                     onChange={(e) => setTransferFee(e.target.value)}
                     placeholder="0.00"
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs font-mono text-white"
+                    className="m3-input !h-10 text-xs font-mono tabular-nums"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">وذلك عن / البيان والملاحظات</label>
+                <label className="block text-xs font-bold text-[var(--md-on-surface-variant)] mb-1">وذلك عن / البيان والملاحظات</label>
                 <textarea
                   rows={2}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="وصف سبب السند المالي، مثل: سداد دفعة عن مبيعات شهر..."
-                  className="w-full px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                  className="m3-input !h-auto py-2.5 text-xs"
                 />
               </div>
 
               {/* Modal Actions */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--md-outline-variant)]">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
                   disabled={isSubmitting}
-                  className="px-4 py-2.5 text-xs font-bold text-slate-300 hover:bg-slate-800 rounded-xl transition cursor-pointer"
+                  className="m3-btn-outlined text-xs"
                 >
                   إلغاء
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`flex items-center gap-2 px-6 py-2.5 text-white rounded-xl text-xs font-extrabold shadow-md transition cursor-pointer ${
-                    paymentType === 'CUSTOMER_PAYMENT'
-                      ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/30'
-                      : 'bg-rose-600 hover:bg-rose-500 shadow-rose-900/30'
-                  }`}
+                  className={paymentType === 'CUSTOMER_PAYMENT' ? 'm3-btn-primary text-xs' : 'm3-btn-danger text-xs'}
                 >
                   {isSubmitting ? (
                     <>
@@ -1535,21 +1530,23 @@ export const PaymentsTab: React.FC = () => {
 
       {/* 6. View Voucher Details Modal */}
       {isDetailsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs overflow-y-auto" id="modal-voucher-details">
-          <div className="bg-slate-900 rounded-2xl max-w-3xl w-full border border-emerald-900/50 shadow-2xl overflow-hidden my-8">
+        <div className="m3-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto" id="modal-voucher-details" dir="rtl">
+          <div className="m3-modal-surface max-w-3xl w-full overflow-hidden my-8 text-right text-[var(--md-on-surface)]">
             {detailsLoading ? (
-              <div className="p-12 text-center text-slate-400">
-                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-emerald-500" />
+              <div className="p-12 text-center text-[var(--md-on-surface-variant)]">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-[var(--md-primary-text)]" />
                 <p className="text-sm font-bold">جاري تحميل تفاصيل السند والقيود المحاسبية...</p>
               </div>
             ) : selectedPaymentDetails ? (
-              <div className="divide-y divide-slate-800">
+              <div className="divide-y divide-[var(--md-outline-variant)]">
                 {/* Header */}
-                <div className="p-5 flex items-center justify-between bg-slate-950 border-b border-emerald-900/40">
+                <div className="p-5 flex items-center justify-between bg-[var(--md-surface-container-low)]">
                   <div className="flex items-center gap-3">
                     <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center text-white ${
-                        selectedPaymentDetails.type === 'CUSTOMER_PAYMENT' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'
+                      className={`w-10 h-10 rounded-[var(--md-radius-md)] flex items-center justify-center shrink-0 ${
+                        selectedPaymentDetails.type === 'CUSTOMER_PAYMENT'
+                          ? 'bg-[var(--md-success-container)] text-[var(--md-on-success-container)]'
+                          : 'bg-[var(--md-error-container)] text-[var(--md-on-error-container)]'
                       }`}
                     >
                       {selectedPaymentDetails.type === 'CUSTOMER_PAYMENT' ? (
@@ -1559,22 +1556,22 @@ export const PaymentsTab: React.FC = () => {
                       )}
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-base font-black text-white">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="text-base font-black text-[var(--md-on-surface)]">
                           {selectedPaymentDetails.type === 'CUSTOMER_PAYMENT' ? 'سند قبض مالي' : 'سند صرف مالي'}:{' '}
-                          <span className="font-mono text-emerald-400">{selectedPaymentDetails.voucher_number || selectedPaymentDetails.reference}</span>
+                          <span className="font-mono text-[var(--md-primary-text)]">{selectedPaymentDetails.voucher_number || selectedPaymentDetails.reference}</span>
                         </h2>
                         {selectedPaymentDetails.status === 'CANCELLED' ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-800">
+                          <span className="m3-badge m3-badge-error text-[10px]">
                             ملغي
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">
+                          <span className="m3-badge m3-badge-success text-[10px]">
                             معتمد
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className="text-xs text-[var(--md-on-surface-variant)] mt-0.5 tabular-nums">
                         التاريخ: {new Date(selectedPaymentDetails.payment_date).toLocaleDateString('ar-YE')}
                       </p>
                     </div>
@@ -1583,41 +1580,44 @@ export const PaymentsTab: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handlePrintVoucher(selectedPaymentDetails)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-200 shadow-xs cursor-pointer"
+                      className="m3-btn-tonal !min-h-[36px] text-xs"
                     >
-                      <Printer className="w-3.5 h-3.5 text-emerald-400" />
+                      <Printer className="w-3.5 h-3.5" />
                       <span>طباعة</span>
                     </button>
-                    <button onClick={() => setIsDetailsOpen(false)} className="p-1.5 text-slate-400 hover:text-slate-200 rounded-lg cursor-pointer">
+                    <button
+                      onClick={() => setIsDetailsOpen(false)}
+                      className="p-1.5 text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] rounded-[var(--md-radius-sm)] cursor-pointer"
+                    >
                       <X className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
 
                 {/* Details Body */}
-                <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
                   {/* Financial & Party Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
-                      <span className="text-[11px] font-bold text-slate-400 block mb-1">المبلغ والعملة</span>
-                      <span className="text-lg font-extrabold font-mono text-emerald-400">
+                    <div className="p-3.5 bg-[var(--md-surface-container-low)] rounded-[var(--md-radius-md)] border border-[var(--md-outline-variant)]">
+                      <span className="text-[11px] font-bold text-[var(--md-on-surface-variant)] block mb-1">المبلغ والعملة</span>
+                      <span className="text-lg font-extrabold font-mono text-[var(--md-success)] tabular-nums">
                         {formatAmount(selectedPaymentDetails.amount || 0)} {selectedPaymentDetails.currency || 'YER'}
                       </span>
                     </div>
 
-                    <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
-                      <span className="text-[11px] font-bold text-slate-400 block mb-1">الطرف المعني</span>
-                      <span className="text-sm font-bold text-white block">
+                    <div className="p-3.5 bg-[var(--md-surface-container-low)] rounded-[var(--md-radius-md)] border border-[var(--md-outline-variant)]">
+                      <span className="text-[11px] font-bold text-[var(--md-on-surface-variant)] block mb-1">الطرف المعني</span>
+                      <span className="text-sm font-bold text-[var(--md-on-surface)] block">
                         {resolvePartyName(selectedPaymentDetails)}
                       </span>
-                      <span className="text-xs text-slate-400 font-mono">
+                      <span className="text-xs text-[var(--md-on-surface-variant)] font-mono">
                         {selectedPaymentDetails.customer_phone || selectedPaymentDetails.supplier_phone || ''}
                       </span>
                     </div>
 
-                    <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
-                      <span className="text-[11px] font-bold text-slate-400 block mb-1">طريقة السداد</span>
-                      <span className="text-sm font-bold text-white block">
+                    <div className="p-3.5 bg-[var(--md-surface-container-low)] rounded-[var(--md-radius-md)] border border-[var(--md-outline-variant)]">
+                      <span className="text-[11px] font-bold text-[var(--md-on-surface-variant)] block mb-1">طريقة السداد</span>
+                      <span className="text-sm font-bold text-[var(--md-on-surface)] block">
                         {selectedPaymentDetails.payment_method === 'CASH'
                           ? 'نقداً (خزينة)'
                           : selectedPaymentDetails.payment_method === 'BANK'
@@ -1627,41 +1627,41 @@ export const PaymentsTab: React.FC = () => {
                           : selectedPaymentDetails.payment_method}
                       </span>
                       {selectedPaymentDetails.bank_name && (
-                        <span className="text-xs text-slate-400">{selectedPaymentDetails.bank_name}</span>
+                        <span className="text-xs text-[var(--md-on-surface-variant)]">{selectedPaymentDetails.bank_name}</span>
                       )}
                     </div>
                   </div>
 
                   {/* Statement / Notes */}
                   {selectedPaymentDetails.notes && (
-                    <div className="p-3.5 bg-slate-950 rounded-xl border border-slate-800 text-xs">
-                      <span className="font-bold text-slate-400 block mb-1">البيان والملاحظات:</span>
-                      <p className="text-slate-200 font-medium">{selectedPaymentDetails.notes}</p>
+                    <div className="p-3.5 bg-[var(--md-surface-container-low)] rounded-[var(--md-radius-md)] border border-[var(--md-outline-variant)] text-xs">
+                      <span className="font-bold text-[var(--md-on-surface-variant)] block mb-1">البيان والملاحظات:</span>
+                      <p className="text-[var(--md-on-surface)] font-medium">{selectedPaymentDetails.notes}</p>
                     </div>
                   )}
 
                   {/* Linked Allocations Breakdown */}
                   {selectedPaymentDetails.allocations && selectedPaymentDetails.allocations.length > 0 && (
                     <div className="space-y-2">
-                      <h3 className="text-xs font-bold text-slate-300">تسوية الفواتير المرتبطة:</h3>
-                      <div className="overflow-x-auto border border-slate-800 rounded-xl">
-                        <table className="w-full text-right text-xs">
-                          <thead className="bg-slate-950 text-slate-400 font-bold border-b border-slate-800">
+                      <h3 className="text-xs font-bold text-[var(--md-on-surface)]">تسوية الفواتير المرتبطة:</h3>
+                      <div className="overflow-x-auto border border-[var(--md-outline-variant)] rounded-[var(--md-radius-md)]">
+                        <table className="m3-table text-right text-xs">
+                          <thead className="m3-thead">
                             <tr>
-                              <th className="p-2.5">رقم الفاتورة</th>
-                              <th className="p-2.5">إجمالي الفاتورة</th>
-                              <th className="p-2.5">المدفوع مسبقاً</th>
-                              <th className="p-2.5 text-emerald-400">المبلغ المطبق بالسند</th>
-                              <th className="p-2.5">المتبقي</th>
+                              <th className="m3-th">رقم الفاتورة</th>
+                              <th className="m3-th">إجمالي الفاتورة</th>
+                              <th className="m3-th">المدفوع مسبقاً</th>
+                              <th className="m3-th !text-[var(--md-success)]">المبلغ المطبق بالسند</th>
+                              <th className="m3-th">المتبقي</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-800 font-mono text-slate-300">
+                          <tbody className="divide-y divide-[var(--md-outline-variant)] font-mono tabular-nums">
                             {selectedPaymentDetails.allocations.map((a: any, idx: number) => (
-                              <tr key={idx} className="hover:bg-slate-800/40">
-                                <td className="p-2.5 font-bold text-emerald-400">#{a.invoice_number || '-'}</td>
+                              <tr key={idx} className="hover:bg-[var(--md-surface-container-low)]">
+                                <td className="p-2.5 font-bold text-[var(--md-primary-text)]">#{a.invoice_number || '-'}</td>
                                 <td className="p-2.5">{formatAmount(a.invoice_total || 0)}</td>
                                 <td className="p-2.5">{formatAmount(a.previous_paid || 0)}</td>
-                                <td className="p-2.5 font-bold text-emerald-400">+{formatAmount(a.allocated_amount || 0)}</td>
+                                <td className="p-2.5 font-bold text-[var(--md-success)]">+{formatAmount(a.allocated_amount || 0)}</td>
                                 <td className="p-2.5">{formatAmount(a.remaining_balance || 0)}</td>
                               </tr>
                             ))}
@@ -1675,34 +1675,34 @@ export const PaymentsTab: React.FC = () => {
                   {selectedPaymentDetails.ledger_entries && selectedPaymentDetails.ledger_entries.length > 0 && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-xs font-bold text-slate-300">
+                        <h3 className="text-xs font-bold text-[var(--md-on-surface)]">
                           القيود المحاسبية المرحلة بدفتر الأستاذ (Double-Entry Ledger):
                         </h3>
-                        <span className="text-[11px] font-mono text-emerald-400 font-bold">متزن ومقيد</span>
+                        <span className="m3-badge m3-badge-success text-[10px]">متزن ومقيد</span>
                       </div>
-                      <div className="overflow-x-auto border border-slate-800 rounded-xl">
-                        <table className="w-full text-right text-xs">
-                          <thead className="bg-slate-950 text-slate-400 font-bold border-b border-slate-800">
+                      <div className="overflow-x-auto border border-[var(--md-outline-variant)] rounded-[var(--md-radius-md)]">
+                        <table className="m3-table text-right text-xs">
+                          <thead className="m3-thead">
                             <tr>
-                              <th className="p-2.5">الحساب المحاسبي</th>
-                              <th className="p-2.5">النوع</th>
-                              <th className="p-2.5 text-emerald-400">مدين (Debit)</th>
-                              <th className="p-2.5 text-rose-400">دائن (Credit)</th>
-                              <th className="p-2.5">البيان</th>
+                              <th className="m3-th">الحساب المحاسبي</th>
+                              <th className="m3-th">النوع</th>
+                              <th className="m3-th !text-[var(--md-success)]">مدين (Debit)</th>
+                              <th className="m3-th !text-[var(--md-error)]">دائن (Credit)</th>
+                              <th className="m3-th">البيان</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-800 font-medium text-slate-300">
+                          <tbody className="divide-y divide-[var(--md-outline-variant)] font-medium">
                             {selectedPaymentDetails.ledger_entries.map((entry: any, idx: number) => (
-                              <tr key={idx} className="hover:bg-slate-800/40">
-                                <td className="p-2.5 font-bold text-white">{entry.account_name || entry.account_code || '-'}</td>
-                                <td className="p-2.5 text-slate-400 font-mono text-[11px]">{entry.account_type || '-'}</td>
-                                <td className="p-2.5 font-mono font-bold text-emerald-400">
+                              <tr key={idx} className="hover:bg-[var(--md-surface-container-low)]">
+                                <td className="p-2.5 font-bold text-[var(--md-on-surface)]">{entry.account_name || entry.account_code || '-'}</td>
+                                <td className="p-2.5 text-[var(--md-on-surface-variant)] font-mono text-[11px]">{entry.account_type || '-'}</td>
+                                <td className="p-2.5 font-mono font-bold text-[var(--md-success)] tabular-nums">
                                   {Number(entry.debit || 0) > 0 ? `${formatAmount(entry.debit)} YER` : '-'}
                                 </td>
-                                <td className="p-2.5 font-mono font-bold text-rose-400">
+                                <td className="p-2.5 font-mono font-bold text-[var(--md-error)] tabular-nums">
                                   {Number(entry.credit || 0) > 0 ? `${formatAmount(entry.credit)} YER` : '-'}
                                 </td>
-                                <td className="p-2.5 text-slate-400 text-[11px]">{entry.description || '-'}</td>
+                                <td className="p-2.5 text-[var(--md-on-surface-variant)] text-[11px]">{entry.description || '-'}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -1713,13 +1713,13 @@ export const PaymentsTab: React.FC = () => {
 
                   {/* Audit Trail & Cancellation Info */}
                   {selectedPaymentDetails.status === 'CANCELLED' && (
-                    <div className="p-3.5 bg-rose-950/40 border border-rose-800/60 rounded-xl text-xs space-y-1">
-                      <span className="font-bold text-rose-300 block">تم إلغاء هذا السند وعكس قيوده:</span>
-                      <p className="text-slate-300">
+                    <div className="p-3.5 bg-[var(--md-error-container)]/35 border border-[var(--md-error)]/40 rounded-[var(--md-radius-md)] text-xs space-y-1">
+                      <span className="font-bold text-[var(--md-error)] block">تم إلغاء هذا السند وعكس قيوده:</span>
+                      <p className="text-[var(--md-on-surface)]">
                         سبب الإلغاء: <span className="font-bold">{selectedPaymentDetails.cancellation_reason || 'غير محدد'}</span>
                       </p>
                       {selectedPaymentDetails.cancelled_at && (
-                        <p className="text-slate-400 font-mono text-[10px]">
+                        <p className="text-[var(--md-on-surface-variant)] font-mono text-[10px] tabular-nums">
                           تاريخ الإلغاء: {new Date(selectedPaymentDetails.cancelled_at).toLocaleString('ar-YE')}
                         </p>
                       )}
@@ -1728,11 +1728,11 @@ export const PaymentsTab: React.FC = () => {
                 </div>
 
                 {/* Footer Actions */}
-                <div className="p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between">
+                <div className="p-4 bg-[var(--md-surface-container-low)] flex items-center justify-between">
                   {selectedPaymentDetails.status !== 'CANCELLED' ? (
                     <button
                       onClick={() => handleOpenCancelDialog(selectedPaymentDetails)}
-                      className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-rose-400 hover:bg-rose-950/50 rounded-xl transition cursor-pointer"
+                      className="m3-btn-danger !min-h-[36px] text-xs"
                     >
                       <Ban className="w-4 h-4" />
                       <span>إلغاء السند وعكس القيود</span>
@@ -1743,7 +1743,7 @@ export const PaymentsTab: React.FC = () => {
 
                   <button
                     onClick={() => setIsDetailsOpen(false)}
-                    className="px-5 py-2 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl hover:bg-slate-700 cursor-pointer"
+                    className="m3-btn-outlined text-xs"
                   >
                     إغلاق
                   </button>
@@ -1756,23 +1756,23 @@ export const PaymentsTab: React.FC = () => {
 
       {/* 7. Cancel Voucher Confirmation Modal */}
       {isCancelModalOpen && cancelTargetPayment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs" id="modal-cancel-voucher">
-          <div className="bg-slate-900 rounded-2xl max-w-md w-full border border-rose-800/60 shadow-2xl p-6 space-y-4">
-            <div className="flex items-center gap-3 text-rose-400">
-              <div className="w-10 h-10 rounded-xl bg-rose-950 border border-rose-800 flex items-center justify-center">
+        <div className="m3-backdrop fixed inset-0 z-50 flex items-center justify-center p-4" id="modal-cancel-voucher" dir="rtl">
+          <div className="m3-modal-surface max-w-md w-full border-[var(--md-error)]/40 p-6 space-y-4 text-right text-[var(--md-on-surface)]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-[var(--md-radius-md)] bg-[var(--md-error-container)] text-[var(--md-on-error-container)] flex items-center justify-center shrink-0">
                 <Ban className="w-5 h-5 stroke-[2.5]" />
               </div>
               <div>
-                <h3 className="text-base font-black text-white">إلغاء السند المالي وعكس القيود</h3>
-                <p className="text-xs text-slate-400 font-mono">
+                <h3 className="text-base font-black text-[var(--md-on-surface)]">إلغاء السند المالي وعكس القيود</h3>
+                <p className="text-xs text-[var(--md-on-surface-variant)] font-mono">
                   {cancelTargetPayment.voucher_number || cancelTargetPayment.reference}
                 </p>
               </div>
             </div>
 
-            <div className="p-3 bg-rose-950/30 rounded-xl border border-rose-800/40 text-xs text-rose-300 space-y-1.5">
-              <p className="font-bold">⚠️ تنبيه محاسبي هام:</p>
-              <ul className="list-disc list-inside space-y-0.5 text-[11px] text-slate-400">
+            <div className="p-3.5 bg-[var(--md-error-container)]/35 rounded-[var(--md-radius-md)] border border-[var(--md-error)]/30 text-xs space-y-1.5">
+              <p className="font-bold text-[var(--md-error)]">⚠️ تنبيه محاسبي هام:</p>
+              <ul className="list-disc list-inside space-y-0.5 text-[11px] text-[var(--md-on-surface-variant)]">
                 <li>سيتم إلغاء السند وعكس قيود اليومية بدفتر الأستاذ العام تلقائياً.</li>
                 <li>سيتم إعادة فتح أي فواتير تم تسويتها بواسطة هذا السند.</li>
                 <li>سيتم تعديل رصيد العميل / المورد وفقاً لمبلغ السند المعكوس.</li>
@@ -1780,14 +1780,14 @@ export const PaymentsTab: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1.5">سبب الإلغاء *</label>
+              <label className="block text-xs font-bold text-[var(--md-on-surface-variant)] mb-1.5">سبب الإلغاء *</label>
               <textarea
                 required
                 rows={2}
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
                 placeholder="يرجى كتابة سبب إلغاء السند (مثل: خطأ في المبلغ، إيداع مكرر...)"
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:border-rose-500"
+                className="m3-input !h-auto py-2.5 text-xs"
               />
             </div>
 
@@ -1796,7 +1796,7 @@ export const PaymentsTab: React.FC = () => {
                 type="button"
                 onClick={() => setIsCancelModalOpen(false)}
                 disabled={isCancelling}
-                className="px-4 py-2 text-xs font-bold text-slate-300 hover:bg-slate-800 rounded-xl cursor-pointer"
+                className="m3-btn-outlined text-xs"
               >
                 تراجع
               </button>
@@ -1804,7 +1804,7 @@ export const PaymentsTab: React.FC = () => {
                 type="button"
                 onClick={handleConfirmCancel}
                 disabled={isCancelling || !cancelReason.trim()}
-                className="flex items-center gap-1.5 px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-900/30 transition disabled:opacity-50 cursor-pointer"
+                className="m3-btn-danger text-xs disabled:opacity-50"
               >
                 {isCancelling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban className="w-4 h-4" />}
                 <span>تأكيد الإلغاء وعكس القيود</span>

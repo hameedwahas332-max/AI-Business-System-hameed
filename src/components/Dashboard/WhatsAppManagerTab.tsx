@@ -956,7 +956,7 @@ export const WhatsAppManagerTab: React.FC = () => {
       : 'نظام المراسلة الداخلي الذكي ERP';
 
   return (
-    <div id="whatsapp-manager-tab-root" className="space-y-6">
+    <div id="whatsapp-manager-tab-root" className="space-y-6 text-[var(--md-on-surface)]" dir="rtl">
       {/* WhatsApp Header with all functional buttons */}
       <WhatsAppHeader
         isConnected={isConnected}
@@ -982,7 +982,7 @@ export const WhatsAppManagerTab: React.FC = () => {
       <WhatsAppKPIs stats={stats} />
 
       {/* Navigation Sub-Tabs */}
-      <div className="flex border-b border-slate-800 gap-1.5 overflow-x-auto pb-2 scrollbar-none">
+      <div className="flex border-b border-[var(--md-outline-variant)] gap-2 overflow-x-auto pb-3 scrollbar-none">
         {[
           { id: 'conversations', label: 'المحادثات المباشرة' },
           { id: 'reminders', label: 'تذكيرات الديون والفواتير' },
@@ -996,10 +996,8 @@ export const WhatsAppManagerTab: React.FC = () => {
           <button
             key={tab.id}
             onClick={() => setActiveSubTab(tab.id)}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-              activeSubTab === tab.id
-                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-950/40'
-                : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+            className={`text-xs whitespace-nowrap cursor-pointer ${
+              activeSubTab === tab.id ? 'm3-btn-primary' : 'm3-btn-outlined'
             }`}
           >
             {tab.label}

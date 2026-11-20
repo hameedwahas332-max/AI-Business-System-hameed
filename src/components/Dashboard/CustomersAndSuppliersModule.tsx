@@ -1179,27 +1179,26 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
     <div className="space-y-5 text-right font-sans" dir="rtl">
       
       {/* ========================================================================= */}
-      {/* 1. PAGE HEADER (Compact Global ERP Style: Emerald / Deep Dark Green / Gold) */}
+      {/* 1. PAGE HEADER (M3 Unified Header)                                        */}
       {/* ========================================================================= */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-[#061a14] via-[#09221b] to-[#04100c] border border-emerald-500/20 p-5 sm:p-6 shadow-xl shadow-black/30">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none -translate-x-1/2 -translate-y-1/2" />
-        <div className="absolute bottom-0 right-0 w-80 h-80 bg-amber-500/5 rounded-full blur-3xl pointer-events-none translate-x-1/3 translate-y-1/3" />
+      <div className="m3-card-elevated relative overflow-hidden p-5 sm:p-6">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-[var(--md-primary)]" />
 
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
           {/* Title & Subtitle */}
           <div className="space-y-1.5">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white shadow-lg shadow-emerald-900/40 ring-1 ring-emerald-400/30">
+              <div className="w-10 h-10 rounded-xl bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] flex items-center justify-center border border-[var(--md-primary)]/25 shrink-0">
                 <Users className="w-5 h-5" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-[var(--md-on-surface)] flex items-center gap-2 flex-wrap">
                   <span>العملاء والموردون</span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  <span className="m3-badge m3-badge-primary text-[10px]">
                     ERP Financial Suite
                   </span>
                 </h1>
-                <p className="text-xs sm:text-sm text-emerald-100/70">
+                <p className="text-xs sm:text-sm text-[var(--md-on-surface-variant)]">
                   إدارة الحسابات والعلاقات التجارية والأرصدة والمدفوعات
                 </p>
               </div>
@@ -1210,7 +1209,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <button
               onClick={handleOpenCreateCustomer}
-              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-900/30 hover:shadow-emerald-700/40 transition-all border border-emerald-400/30 cursor-pointer active:scale-95"
+              className="m3-btn-primary px-3.5 py-2 text-xs font-bold cursor-pointer active:scale-95"
             >
               <Plus className="w-4 h-4" />
               <span>+ إضافة عميل</span>
@@ -1218,17 +1217,17 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
 
             <button
               onClick={handleOpenCreateSupplier}
-              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-[#0e2a22] hover:bg-[#13372c] text-amber-300 hover:text-amber-200 rounded-xl text-xs font-bold border border-amber-500/30 shadow-md transition-all cursor-pointer active:scale-95"
+              className="m3-btn-tonal px-3.5 py-2 text-xs font-bold cursor-pointer active:scale-95"
             >
-              <Truck className="w-4 h-4 text-amber-400" />
+              <Truck className="w-4 h-4 text-[var(--md-secondary)]" />
               <span>+ إضافة مورد</span>
             </button>
 
             <button
               onClick={() => handleOpenTransactionModal()}
-              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-[#0c1f19] hover:bg-[#122c23] text-emerald-200 rounded-xl text-xs font-semibold border border-emerald-500/20 shadow-sm transition-all cursor-pointer"
+              className="m3-btn-outlined px-3 py-2 text-xs font-semibold cursor-pointer"
             >
-              <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-400" />
+              <ArrowLeftRight className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
               <span className="hidden sm:inline">حركة حساب</span>
             </button>
 
@@ -1237,7 +1236,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
             <button
               onClick={handleDirectPrint}
               title="طباعة التقرير الشامل"
-              className="p-2 bg-[#0c1f19] hover:bg-[#122c23] text-slate-300 hover:text-white rounded-xl border border-emerald-500/20 transition-all cursor-pointer"
+              className="m3-btn-outlined !min-h-[38px] !px-2.5 cursor-pointer"
             >
               <Printer className="w-4 h-4" />
             </button>
@@ -1245,7 +1244,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
             <button
               onClick={() => setIsImportModalOpen(true)}
               title="استيراد البيانات"
-              className="p-2 bg-[#0c1f19] hover:bg-[#122c23] text-slate-300 hover:text-white rounded-xl border border-emerald-500/20 transition-all cursor-pointer"
+              className="m3-btn-outlined !min-h-[38px] !px-2.5 cursor-pointer"
             >
               <Download className="w-4 h-4 rotate-180" />
             </button>
@@ -1253,9 +1252,9 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
             <button
               onClick={() => fetchAllData(searchQuery)}
               title="تحديث البيانات فوراً"
-              className="p-2 bg-[#0c1f19] hover:bg-[#122c23] text-slate-300 hover:text-white rounded-xl border border-emerald-500/20 transition-all cursor-pointer"
+              className="m3-btn-outlined !min-h-[38px] !px-2.5 cursor-pointer"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-emerald-400' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-[var(--md-primary-text)]' : ''}`} />
             </button>
           </div>
         </div>
@@ -1266,96 +1265,96 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
       {/* ========================================================================= */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {/* Card 1: Total Customers */}
-        <div className="p-3.5 rounded-xl bg-gradient-to-b from-[#0f1d18] to-[#0a1511] border border-emerald-500/20 shadow-md flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-400 text-[11px] font-medium mb-1">
+        <div className="m3-card p-3.5 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] text-[11px] font-medium mb-1">
             <span>إجمالي العملاء</span>
-            <Users className="w-3.5 h-3.5 text-emerald-400" />
+            <Users className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
           </div>
           <div className="flex items-baseline justify-between mt-1">
-            <span className="text-lg sm:text-xl font-bold font-mono text-white">
+            <span className="text-lg sm:text-xl font-bold font-mono tabular-nums text-[var(--md-on-surface)]">
               {formatNumber(totalCustomerCount)}
             </span>
-            <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+            <span className="m3-badge m3-badge-primary text-[10px]">
               حساب
             </span>
           </div>
         </div>
 
         {/* Card 2: Active Customers */}
-        <div className="p-3.5 rounded-xl bg-gradient-to-b from-[#0f1d18] to-[#0a1511] border border-emerald-500/20 shadow-md flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-400 text-[11px] font-medium mb-1">
+        <div className="m3-card p-3.5 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] text-[11px] font-medium mb-1">
             <span>العملاء النشطون</span>
-            <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <UserCheck className="w-3.5 h-3.5 text-[var(--md-success)]" />
           </div>
           <div className="flex items-baseline justify-between mt-1">
-            <span className="text-lg sm:text-xl font-bold font-mono text-emerald-400">
+            <span className="text-lg sm:text-xl font-bold font-mono tabular-nums text-[var(--md-success)]">
               {formatNumber(activeCustomerCount)}
             </span>
-            <span className="text-[10px] text-slate-400 font-mono">
+            <span className="text-[10px] text-[var(--md-on-surface-variant)] font-mono tabular-nums">
               {totalCustomerCount > 0 ? `${Math.round((activeCustomerCount / totalCustomerCount) * 100)}%` : '0%'}
             </span>
           </div>
         </div>
 
         {/* Card 3: Total Customer Receivables (المبالغ المستحقة من العملاء) */}
-        <div className="p-3.5 rounded-xl bg-gradient-to-b from-[#14231b] to-[#0a1511] border border-emerald-500/30 shadow-md flex flex-col justify-between relative overflow-hidden">
-          <div className="flex items-center justify-between text-emerald-300 text-[11px] font-semibold mb-1">
+        <div className="m3-card p-3.5 border-[var(--md-success)]/35 bg-[var(--md-success-container)]/35 flex flex-col justify-between relative overflow-hidden">
+          <div className="flex items-center justify-between text-[var(--md-success)] text-[11px] font-semibold mb-1">
             <span>مستحقات العملاء (مدين)</span>
-            <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+            <TrendingUp className="w-3.5 h-3.5 text-[var(--md-success)]" />
           </div>
           <div className="mt-1">
-            <div className="text-base sm:text-lg font-black font-mono text-emerald-300">
+            <div className="text-base sm:text-lg font-black font-mono tabular-nums text-[var(--md-success)]">
               {formatNumber(totalCustomerReceivables)}
             </div>
-            <div className="text-[10px] font-bold text-emerald-400/80 font-mono">
+            <div className="text-[10px] font-bold text-[var(--md-on-surface-variant)] font-mono">
               YER (ريال يمني)
             </div>
           </div>
         </div>
 
         {/* Card 4: Total Suppliers */}
-        <div className="p-3.5 rounded-xl bg-gradient-to-b from-[#0f1d18] to-[#0a1511] border border-emerald-500/20 shadow-md flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-400 text-[11px] font-medium mb-1">
+        <div className="m3-card p-3.5 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] text-[11px] font-medium mb-1">
             <span>إجمالي الموردين</span>
-            <Truck className="w-3.5 h-3.5 text-amber-400" />
+            <Truck className="w-3.5 h-3.5 text-[var(--md-secondary)]" />
           </div>
           <div className="flex items-baseline justify-between mt-1">
-            <span className="text-lg sm:text-xl font-bold font-mono text-white">
+            <span className="text-lg sm:text-xl font-bold font-mono tabular-nums text-[var(--md-on-surface)]">
               {formatNumber(totalSupplierCount)}
             </span>
-            <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+            <span className="m3-badge m3-badge-secondary text-[10px]">
               شركة
             </span>
           </div>
         </div>
 
         {/* Card 5: Active Suppliers */}
-        <div className="p-3.5 rounded-xl bg-gradient-to-b from-[#0f1d18] to-[#0a1511] border border-emerald-500/20 shadow-md flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-400 text-[11px] font-medium mb-1">
+        <div className="m3-card p-3.5 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] text-[11px] font-medium mb-1">
             <span>الموردون النشطون</span>
-            <Building2 className="w-3.5 h-3.5 text-amber-400" />
+            <Building2 className="w-3.5 h-3.5 text-[var(--md-warning)]" />
           </div>
           <div className="flex items-baseline justify-between mt-1">
-            <span className="text-lg sm:text-xl font-bold font-mono text-amber-300">
+            <span className="text-lg sm:text-xl font-bold font-mono tabular-nums text-[var(--md-warning)]">
               {formatNumber(activeSupplierCount)}
             </span>
-            <span className="text-[10px] text-slate-400 font-mono">
+            <span className="text-[10px] text-[var(--md-on-surface-variant)] font-mono tabular-nums">
               {totalSupplierCount > 0 ? `${Math.round((activeSupplierCount / totalSupplierCount) * 100)}%` : '0%'}
             </span>
           </div>
         </div>
 
         {/* Card 6: Total Supplier Payables (المبالغ المستحقة للموردين) */}
-        <div className="p-3.5 rounded-xl bg-gradient-to-b from-[#1c1d10] to-[#0d120a] border border-amber-500/30 shadow-md flex flex-col justify-between">
-          <div className="flex items-center justify-between text-amber-300 text-[11px] font-semibold mb-1">
+        <div className="m3-card p-3.5 border-[var(--md-warning)]/35 bg-[var(--md-warning-container)]/35 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-[var(--md-warning)] text-[11px] font-semibold mb-1">
             <span>مستحقات الموردين (دائن)</span>
-            <TrendingDown className="w-3.5 h-3.5 text-amber-400" />
+            <TrendingDown className="w-3.5 h-3.5 text-[var(--md-warning)]" />
           </div>
           <div className="mt-1">
-            <div className="text-base sm:text-lg font-black font-mono text-amber-300">
+            <div className="text-base sm:text-lg font-black font-mono tabular-nums text-[var(--md-warning)]">
               {formatNumber(totalSupplierPayables)}
             </div>
-            <div className="text-[10px] font-bold text-amber-400/80 font-mono">
+            <div className="text-[10px] font-bold text-[var(--md-on-surface-variant)] font-mono">
               YER (التزامات)
             </div>
           </div>
@@ -1365,35 +1364,35 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
       {/* ========================================================================= */}
       {/* 2.1 MULTI-CURRENCY BALANCE & EXCHANGE RATE CONVERSION SUMMARY BANNER       */}
       {/* ========================================================================= */}
-      <div className="bg-[#091712] border border-emerald-500/30 rounded-2xl p-4 shadow-lg">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-3 mb-3 border-b border-emerald-500/20 gap-2">
+      <div className="m3-card p-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-3 mb-3 border-b border-[var(--md-outline-variant)] gap-2">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            <div className="p-1.5 rounded-lg bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/25">
               <Coins className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+              <h3 className="text-xs sm:text-sm font-bold text-[var(--md-on-surface)] flex items-center gap-2 flex-wrap">
                 <span>ملخص الأرصدة بحسب العملات ومعادل الصرف المحاسبي</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 font-mono">
+                <span className="m3-badge m3-badge-secondary text-[10px] font-mono">
                   Base: YER
                 </span>
               </h3>
-              <p className="text-[11px] text-emerald-300/70">
+              <p className="text-[11px] text-[var(--md-on-surface-variant)] font-mono tabular-nums">
                 أسعار الصرف اللحظية: 1 SAR = {currencyBreakdown.sarRate} YER | 1 USD = {currencyBreakdown.usdRate} YER
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-slate-400">تصفية سريعة:</span>
+            <span className="text-[11px] text-[var(--md-on-surface-variant)]">تصفية سريعة:</span>
             {(['ALL', 'YER', 'SAR', 'USD'] as const).map((curr) => (
               <button
                 key={curr}
                 onClick={() => setCurrencyFilter(curr)}
-                className={`px-2 py-0.5 rounded-lg text-[10px] font-bold font-mono transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold font-mono transition-all cursor-pointer border ${
                   currencyFilter === curr
-                    ? 'bg-emerald-500 text-black font-black shadow-sm'
-                    : 'bg-[#050f0c] text-slate-300 hover:text-white border border-emerald-500/20'
+                    ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] border-[var(--md-primary)]'
+                    : 'bg-[var(--md-surface-container-low)] text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] border-[var(--md-outline-variant)]'
                 }`}
               >
                 {curr === 'ALL' ? 'الكل' : curr}
@@ -1408,28 +1407,28 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
             onClick={() => setCurrencyFilter(currencyFilter === 'YER' ? 'ALL' : 'YER')}
             className={`p-3 rounded-xl border transition-all cursor-pointer ${
               currencyFilter === 'YER'
-                ? 'bg-[#12281e] border-emerald-400 shadow-md ring-1 ring-emerald-400/50'
-                : 'bg-[#06120d] border-emerald-500/20 hover:border-emerald-500/40'
+                ? 'bg-[var(--md-primary-container)]/40 border-[var(--md-primary)] ring-1 ring-[var(--md-primary)]/40'
+                : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] hover:border-[var(--md-primary)]/50'
             }`}
           >
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px] font-bold text-emerald-300">الريال اليمني (YER)</span>
-              <span className="text-[9px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded font-mono">
+              <span className="text-[11px] font-bold text-[var(--md-primary-text)]">الريال اليمني (YER)</span>
+              <span className="m3-badge m3-badge-primary text-[9px] font-mono">
                 الأساس
               </span>
             </div>
             <div className="space-y-1 text-xs">
-              <div className="flex justify-between items-center text-slate-300">
-                <span className="text-[10px] text-slate-400">مستحق لنا (عملاء):</span>
-                <span className="font-mono font-bold text-emerald-300">{formatNumber(currencyBreakdown.yerReceivables)}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-[var(--md-on-surface-variant)]">مستحق لنا (عملاء):</span>
+                <span className="font-mono tabular-nums font-bold text-[var(--md-success)]">{formatNumber(currencyBreakdown.yerReceivables)}</span>
               </div>
-              <div className="flex justify-between items-center text-slate-300">
-                <span className="text-[10px] text-slate-400">مستحق علينا (موردون):</span>
-                <span className="font-mono font-bold text-amber-300">{formatNumber(currencyBreakdown.yerPayables)}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-[var(--md-on-surface-variant)]">مستحق علينا (موردون):</span>
+                <span className="font-mono tabular-nums font-bold text-[var(--md-warning)]">{formatNumber(currencyBreakdown.yerPayables)}</span>
               </div>
-              <div className="pt-1 mt-1 border-t border-emerald-500/20 flex justify-between items-center text-[11px]">
-                <span className="text-slate-400">الصافي:</span>
-                <span className={`font-mono font-bold ${currencyBreakdown.yerReceivables >= currencyBreakdown.yerPayables ? 'text-emerald-400' : 'text-red-400'}`}>
+              <div className="pt-1 mt-1 border-t border-[var(--md-outline-variant)] flex justify-between items-center text-[11px]">
+                <span className="text-[var(--md-on-surface-variant)]">الصافي:</span>
+                <span className={`font-mono tabular-nums font-bold ${currencyBreakdown.yerReceivables >= currencyBreakdown.yerPayables ? 'text-[var(--md-success)]' : 'text-[var(--md-error)]'}`}>
                   {formatNumber(currencyBreakdown.yerReceivables - currencyBreakdown.yerPayables)} YER
                 </span>
               </div>
@@ -1441,28 +1440,28 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
             onClick={() => setCurrencyFilter(currencyFilter === 'SAR' ? 'ALL' : 'SAR')}
             className={`p-3 rounded-xl border transition-all cursor-pointer ${
               currencyFilter === 'SAR'
-                ? 'bg-[#12281e] border-amber-400 shadow-md ring-1 ring-amber-400/50'
-                : 'bg-[#06120d] border-emerald-500/20 hover:border-amber-500/40'
+                ? 'bg-[var(--md-secondary-container)]/50 border-[var(--md-secondary)] ring-1 ring-[var(--md-secondary)]/40'
+                : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] hover:border-[var(--md-secondary)]/50'
             }`}
           >
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px] font-bold text-amber-300">الريال السعودي (SAR)</span>
-              <span className="text-[9px] bg-amber-500/10 text-amber-300 px-1.5 py-0.5 rounded font-mono">
+              <span className="text-[11px] font-bold text-[var(--md-secondary)]">الريال السعودي (SAR)</span>
+              <span className="m3-badge m3-badge-secondary text-[9px] font-mono tabular-nums">
                 1 SAR = {currencyBreakdown.sarRate} YER
               </span>
             </div>
             <div className="space-y-1 text-xs">
-              <div className="flex justify-between items-center text-slate-300">
-                <span className="text-[10px] text-slate-400">مستحق لنا (عملاء):</span>
-                <span className="font-mono font-bold text-amber-200">{formatNumber(currencyBreakdown.sarReceivables)} SAR</span>
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-[var(--md-on-surface-variant)]">مستحق لنا (عملاء):</span>
+                <span className="font-mono tabular-nums font-bold text-[var(--md-success)]">{formatNumber(currencyBreakdown.sarReceivables)} SAR</span>
               </div>
-              <div className="flex justify-between items-center text-slate-300">
-                <span className="text-[10px] text-slate-400">مستحق علينا (موردون):</span>
-                <span className="font-mono font-bold text-amber-300">{formatNumber(currencyBreakdown.sarPayables)} SAR</span>
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-[var(--md-on-surface-variant)]">مستحق علينا (موردون):</span>
+                <span className="font-mono tabular-nums font-bold text-[var(--md-warning)]">{formatNumber(currencyBreakdown.sarPayables)} SAR</span>
               </div>
-              <div className="pt-1 mt-1 border-t border-amber-500/20 flex justify-between items-center text-[10px]">
-                <span className="text-amber-400/80">المعادل بالريال اليمني:</span>
-                <span className="font-mono font-bold text-amber-300">
+              <div className="pt-1 mt-1 border-t border-[var(--md-outline-variant)] flex justify-between items-center text-[10px]">
+                <span className="text-[var(--md-on-surface-variant)]">المعادل بالريال اليمني:</span>
+                <span className="font-mono tabular-nums font-bold text-[var(--md-secondary)]">
                   ≈ {formatNumber((currencyBreakdown.sarReceivables - currencyBreakdown.sarPayables) * currencyBreakdown.sarRate)} YER
                 </span>
               </div>
@@ -1474,28 +1473,28 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
             onClick={() => setCurrencyFilter(currencyFilter === 'USD' ? 'ALL' : 'USD')}
             className={`p-3 rounded-xl border transition-all cursor-pointer ${
               currencyFilter === 'USD'
-                ? 'bg-[#12281e] border-emerald-400 shadow-md ring-1 ring-emerald-400/50'
-                : 'bg-[#06120d] border-emerald-500/20 hover:border-emerald-500/40'
+                ? 'bg-[var(--md-info-container)]/50 border-[var(--md-info)] ring-1 ring-[var(--md-info)]/40'
+                : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] hover:border-[var(--md-info)]/50'
             }`}
           >
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px] font-bold text-emerald-200">الدولار الأمريكي (USD)</span>
-              <span className="text-[9px] bg-emerald-500/10 text-emerald-300 px-1.5 py-0.5 rounded font-mono">
+              <span className="text-[11px] font-bold text-[var(--md-info)]">الدولار الأمريكي (USD)</span>
+              <span className="m3-badge m3-badge-info text-[9px] font-mono tabular-nums">
                 1 USD = {currencyBreakdown.usdRate} YER
               </span>
             </div>
             <div className="space-y-1 text-xs">
-              <div className="flex justify-between items-center text-slate-300">
-                <span className="text-[10px] text-slate-400">مستحق لنا (عملاء):</span>
-                <span className="font-mono font-bold text-emerald-200">{formatNumber(currencyBreakdown.usdReceivables)} USD</span>
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-[var(--md-on-surface-variant)]">مستحق لنا (عملاء):</span>
+                <span className="font-mono tabular-nums font-bold text-[var(--md-success)]">{formatNumber(currencyBreakdown.usdReceivables)} USD</span>
               </div>
-              <div className="flex justify-between items-center text-slate-300">
-                <span className="text-[10px] text-slate-400">مستحق علينا (موردون):</span>
-                <span className="font-mono font-bold text-amber-200">{formatNumber(currencyBreakdown.usdPayables)} USD</span>
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-[var(--md-on-surface-variant)]">مستحق علينا (موردون):</span>
+                <span className="font-mono tabular-nums font-bold text-[var(--md-warning)]">{formatNumber(currencyBreakdown.usdPayables)} USD</span>
               </div>
-              <div className="pt-1 mt-1 border-t border-emerald-500/20 flex justify-between items-center text-[10px]">
-                <span className="text-emerald-400/80">المعادل بالريال اليمني:</span>
-                <span className="font-mono font-bold text-emerald-300">
+              <div className="pt-1 mt-1 border-t border-[var(--md-outline-variant)] flex justify-between items-center text-[10px]">
+                <span className="text-[var(--md-on-surface-variant)]">المعادل بالريال اليمني:</span>
+                <span className="font-mono tabular-nums font-bold text-[var(--md-info)]">
                   ≈ {formatNumber((currencyBreakdown.usdReceivables - currencyBreakdown.usdPayables) * currencyBreakdown.usdRate)} YER
                 </span>
               </div>
@@ -1503,31 +1502,31 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
           </div>
 
           {/* Consolidated Net Base Valuation Card */}
-          <div className="p-3 rounded-xl bg-gradient-to-br from-[#122e23] via-[#0b2118] to-[#06120d] border border-emerald-400/40 shadow-lg flex flex-col justify-between">
+          <div className="p-3 rounded-xl bg-[var(--md-primary-container)]/35 border border-[var(--md-primary)]/35 flex flex-col justify-between">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] font-black text-emerald-300">إجمالي المعادل الشامل</span>
-              <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-bold">
+              <span className="text-[11px] font-black text-[var(--md-primary-text)]">إجمالي المعادل الشامل</span>
+              <span className="m3-badge m3-badge-primary text-[9px]">
                 محاسبي موحّد
               </span>
             </div>
             <div className="space-y-1 text-xs">
-              <div className="flex justify-between items-center text-slate-300">
-                <span className="text-[10px] text-slate-400">إجمالي حقوقنا المحولة:</span>
-                <span className="font-mono font-bold text-emerald-300">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-[var(--md-on-surface-variant)]">إجمالي حقوقنا المحولة:</span>
+                <span className="font-mono tabular-nums font-bold text-[var(--md-success)]">
                   {formatNumber(currencyBreakdown.totalReceivablesInBase)} YER
                 </span>
               </div>
-              <div className="flex justify-between items-center text-slate-300">
-                <span className="text-[10px] text-slate-400">إجمالي التزاماتنا المحولة:</span>
-                <span className="font-mono font-bold text-amber-300">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-[var(--md-on-surface-variant)]">إجمالي التزاماتنا المحولة:</span>
+                <span className="font-mono tabular-nums font-bold text-[var(--md-warning)]">
                   {formatNumber(currencyBreakdown.totalPayablesInBase)} YER
                 </span>
               </div>
-              <div className="pt-1.5 mt-1 border-t border-emerald-500/30 flex justify-between items-center">
-                <span className="text-[11px] font-bold text-white">صافي المركز المالي:</span>
+              <div className="pt-1.5 mt-1 border-t border-[var(--md-primary)]/25 flex justify-between items-center">
+                <span className="text-[11px] font-bold text-[var(--md-on-surface)]">صافي المركز المالي:</span>
                 <span
-                  className={`font-mono font-black text-xs ${
-                    currencyBreakdown.netBaseEquivalent >= 0 ? 'text-emerald-400' : 'text-red-400'
+                  className={`font-mono tabular-nums font-black text-xs ${
+                    currencyBreakdown.netBaseEquivalent >= 0 ? 'text-[var(--md-success)]' : 'text-[var(--md-error)]'
                   }`}
                 >
                   {formatNumber(currencyBreakdown.netBaseEquivalent)} YER
@@ -1540,24 +1539,24 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
 
       {/* Notifications / Feedback */}
       {error && (
-        <div className="p-3.5 bg-red-950/80 border border-red-500/40 text-red-200 text-xs rounded-xl flex items-center justify-between gap-3 shadow-lg">
+        <div className="p-3.5 bg-[var(--md-error-container)] border border-[var(--md-error)]/35 text-[var(--md-on-error-container)] text-xs rounded-xl flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+            <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
-          <button onClick={() => setError(null)} className="text-red-400 hover:text-white p-1">
+          <button onClick={() => setError(null)} className="opacity-75 hover:opacity-100 p-1 cursor-pointer">
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
       {success && (
-        <div className="p-3.5 bg-emerald-950/80 border border-emerald-500/40 text-emerald-200 text-xs rounded-xl flex items-center justify-between gap-3 shadow-lg">
+        <div className="p-3.5 bg-[var(--md-success-container)] border border-[var(--md-success)]/35 text-[var(--md-on-success-container)] text-xs rounded-xl flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{success}</span>
           </div>
-          <button onClick={() => setSuccess(null)} className="text-emerald-400 hover:text-white p-1">
+          <button onClick={() => setSuccess(null)} className="opacity-75 hover:opacity-100 p-1 cursor-pointer">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -1566,7 +1565,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
       {/* ========================================================================= */}
       {/* 3. MAIN NAVIGATION TABS (الكل، العملاء، الموردون، حسابات مدينة، ...)         */}
       {/* ========================================================================= */}
-      <div className="flex items-center justify-between border-b border-emerald-900/40 pb-2 overflow-x-auto gap-2">
+      <div className="flex items-center justify-between border-b border-[var(--md-outline-variant)] pb-2 overflow-x-auto gap-2">
         <div className="flex items-center gap-1.5 shrink-0">
           {[
             { id: 'ALL', label: 'الكل', count: unifiedAccounts.length },
@@ -1582,16 +1581,18 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
               <button
                 key={tab.id}
                 onClick={() => setActiveMainTab(tab.id as MainTabFilter)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer border ${
                   isActive
-                    ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-md shadow-emerald-950 border border-emerald-400/40'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#0f1d18] border border-transparent'
+                    ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] border-[var(--md-primary)]'
+                    : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] border-transparent'
                 }`}
               >
                 <span>{tab.label}</span>
                 <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
-                    isActive ? 'bg-black/30 text-white' : 'bg-[#15251f] text-emerald-400'
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono tabular-nums font-bold ${
+                    isActive
+                      ? 'bg-[var(--md-on-primary)]/20 text-[var(--md-on-primary)]'
+                      : 'bg-[var(--md-surface-container-high)] text-[var(--md-primary-text)]'
                   }`}
                 >
                   {tab.count}
@@ -1602,12 +1603,14 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
         </div>
 
         {/* View Mode Toggle (جدول / بطاقات) */}
-        <div className="flex items-center gap-1 bg-[#091511] p-1 rounded-xl border border-emerald-500/20 shrink-0">
+        <div className="flex items-center gap-1 bg-[var(--md-surface-container)] p-1 rounded-xl border border-[var(--md-outline-variant)] shrink-0">
           <button
             onClick={() => setViewMode('TABLE')}
             title="عرض كجدول ERP متكامل"
             className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-              viewMode === 'TABLE' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              viewMode === 'TABLE'
+                ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
+                : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             <List className="w-3.5 h-3.5" />
@@ -1617,7 +1620,9 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
             onClick={() => setViewMode('CARDS')}
             title="عرض كبطاقات تفاعلية"
             className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-              viewMode === 'CARDS' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              viewMode === 'CARDS'
+                ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
+                : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             <LayoutGrid className="w-3.5 h-3.5" />
@@ -1629,21 +1634,21 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
       {/* ========================================================================= */}
       {/* 4. ADVANCED FILTER & SEARCH TOOLBAR                                      */}
       {/* ========================================================================= */}
-      <div className="bg-[#0b1713] p-3.5 rounded-xl border border-emerald-500/20 shadow-md flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
+      <div className="m3-card p-3.5 flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
         {/* Search Input */}
         <div className="relative flex-1 w-full max-w-md">
-          <Search className="w-4 h-4 text-emerald-400/60 absolute right-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             placeholder="البحث بالاسم، رقم الهاتف، المعرف، أو المدينة..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-3 pr-9 py-2 bg-[#070e0b] border border-emerald-500/20 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 text-xs transition-all"
+            className="m3-input !h-10 w-full !pl-8 !pr-9 text-xs"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -1656,7 +1661,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as any)}
-            className="px-2.5 py-1.5 bg-[#070e0b] border border-emerald-500/20 rounded-xl text-slate-300 text-xs focus:outline-none focus:border-emerald-400"
+            className="m3-select !h-10 !w-auto text-xs"
           >
             <option value="ALL">الحالة: الكل</option>
             <option value="DEBIT">مدين (له رصيد مستحق)</option>
@@ -1669,7 +1674,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
           <select
             value={currencyFilter}
             onChange={(e) => setCurrencyFilter(e.target.value as any)}
-            className="px-2.5 py-1.5 bg-[#070e0b] border border-emerald-500/20 rounded-xl text-slate-300 text-xs focus:outline-none focus:border-emerald-400"
+            className="m3-select !h-10 !w-auto text-xs"
           >
             <option value="ALL">العملة: الكل</option>
             <option value="YER">YER (ريال يمني)</option>
@@ -1681,7 +1686,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="px-2.5 py-1.5 bg-[#070e0b] border border-emerald-500/20 rounded-xl text-slate-300 text-xs focus:outline-none focus:border-emerald-400 font-medium"
+            className="m3-select !h-10 !w-auto text-xs font-medium"
           >
             <option value="BALANCE_DESC">الترتيب: أعلى رصيد</option>
             <option value="BALANCE_ASC">الترتيب: الأقل رصيداً</option>
@@ -1689,8 +1694,8 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
             <option value="NAME">الترتيب: أبجدياً (الاسم)</option>
           </select>
 
-          <div className="text-[11px] text-slate-400 font-mono">
-            النتائج: <span className="font-bold text-emerald-400">{filteredAccounts.length}</span>
+          <div className="text-[11px] text-[var(--md-on-surface-variant)] font-mono tabular-nums">
+            النتائج: <span className="font-bold text-[var(--md-primary-text)]">{filteredAccounts.length}</span>
           </div>
         </div>
       </div>
@@ -1699,27 +1704,27 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
       {/* 5. MAIN ACCOUNTS PRESENTATION (Table View / Card View)                    */}
       {/* ========================================================================= */}
       {loading ? (
-        <div className="p-12 text-center bg-[#0a1511] rounded-2xl border border-emerald-500/20 flex flex-col items-center justify-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
-          <span className="text-sm font-semibold text-slate-300">جاري تحميل سجلات وحسابات المنظومة...</span>
+        <div className="m3-card p-12 text-center flex flex-col items-center justify-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-[var(--md-primary-text)]" />
+          <span className="text-sm font-semibold text-[var(--md-on-surface-variant)]">جاري تحميل سجلات وحسابات المنظومة...</span>
         </div>
       ) : filteredAccounts.length === 0 ? (
-        <div className="p-12 text-center bg-[#0a1511] rounded-2xl border border-emerald-500/20 text-slate-400 space-y-3">
-          <Users className="w-10 h-10 mx-auto text-emerald-600/40" />
-          <div className="text-sm font-bold text-slate-200">لا توجد حسابات مطابقة للبحث أو الفلتر المختار</div>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto">
+        <div className="m3-card p-12 text-center text-[var(--md-on-surface-variant)] space-y-3">
+          <Users className="w-10 h-10 mx-auto text-[var(--md-primary-text)] opacity-50" />
+          <div className="text-sm font-bold text-[var(--md-on-surface)]">لا توجد حسابات مطابقة للبحث أو الفلتر المختار</div>
+          <p className="text-xs text-[var(--md-on-surface-variant)] max-w-sm mx-auto">
             يمكنك إضافة عميل أو مورد جديد أو إعادة ضبط خيارات البحث.
           </p>
           <div className="flex items-center justify-center gap-3 pt-2">
             <button
               onClick={handleOpenCreateCustomer}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold"
+              className="m3-btn-primary px-4 py-2 text-xs font-bold cursor-pointer"
             >
               + إضافة عميل
             </button>
             <button
               onClick={handleOpenCreateSupplier}
-              className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold"
+              className="m3-btn-tonal px-4 py-2 text-xs font-bold cursor-pointer"
             >
               + إضافة مورد
             </button>
@@ -1727,35 +1732,35 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
         </div>
       ) : viewMode === 'TABLE' ? (
         /* TABLE VIEW (Dense Professional ERP Layout) */
-        <div className="bg-[#091511] rounded-2xl border border-emerald-500/20 shadow-xl overflow-hidden">
+        <div className="m3-card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-right text-xs">
-              <thead className="bg-[#0e221b] text-slate-300 font-bold border-b border-emerald-500/20">
+            <table className="m3-table w-full text-right text-xs">
+              <thead className="m3-thead">
                 <tr>
-                  <th className="p-3.5 text-center w-10">
+                  <th className="m3-th p-3.5 text-center w-10">
                     <button
                       onClick={toggleSelectAll}
-                      className="text-slate-400 hover:text-emerald-400 cursor-pointer"
+                      className="text-[var(--md-on-surface-variant)] hover:text-[var(--md-primary-text)] cursor-pointer"
                     >
                       {selectedIds.size === filteredAccounts.length && filteredAccounts.length > 0 ? (
-                        <CheckSquare className="w-4 h-4 text-emerald-400" />
+                        <CheckSquare className="w-4 h-4 text-[var(--md-primary-text)]" />
                       ) : (
                         <Square className="w-4 h-4" />
                       )}
                     </button>
                   </th>
-                  <th className="p-3.5">الاسم والحساب</th>
-                  <th className="p-3.5 text-center">النوع</th>
-                  <th className="p-3.5 text-center">رقم الحساب</th>
-                  <th className="p-3.5">الهاتف</th>
-                  <th className="p-3.5 text-center">العملة</th>
-                  <th className="p-3.5">الرصيد الحالي</th>
-                  <th className="p-3.5 text-center">حالة الحساب</th>
-                  <th className="p-3.5 text-center">آخر حركة</th>
-                  <th className="p-3.5 text-center">الإجراءات</th>
+                  <th className="m3-th p-3.5">الاسم والحساب</th>
+                  <th className="m3-th p-3.5 text-center">النوع</th>
+                  <th className="m3-th p-3.5 text-center">رقم الحساب</th>
+                  <th className="m3-th p-3.5">الهاتف</th>
+                  <th className="m3-th p-3.5 text-center">العملة</th>
+                  <th className="m3-th p-3.5">الرصيد الحالي</th>
+                  <th className="m3-th p-3.5 text-center">حالة الحساب</th>
+                  <th className="m3-th p-3.5 text-center">آخر حركة</th>
+                  <th className="m3-th p-3.5 text-center">الإجراءات</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-emerald-950/60">
+              <tbody className="divide-y divide-[var(--md-outline-variant)]">
                 {filteredAccounts.map((account) => {
                   const isSelected = selectedIds.has(account._uniqueKey);
                   const isCustomer = account._accountType === 'CUSTOMER';
@@ -1764,18 +1769,18 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                   return (
                     <tr
                       key={account._uniqueKey}
-                      className={`hover:bg-[#0f241d]/80 transition-colors ${
-                        isSelected ? 'bg-emerald-950/40' : ''
+                      className={`hover:bg-[var(--md-surface-container-low)] transition-colors ${
+                        isSelected ? 'bg-[var(--md-primary-container)]/30' : ''
                       }`}
                     >
                       {/* Checkbox */}
                       <td className="p-3 text-center">
                         <button
                           onClick={() => toggleSelectOne(account._uniqueKey)}
-                          className="text-slate-400 hover:text-emerald-400 cursor-pointer"
+                          className="text-[var(--md-on-surface-variant)] hover:text-[var(--md-primary-text)] cursor-pointer"
                         >
                           {isSelected ? (
-                            <CheckSquare className="w-4 h-4 text-emerald-400" />
+                            <CheckSquare className="w-4 h-4 text-[var(--md-primary-text)]" />
                           ) : (
                             <Square className="w-4 h-4" />
                           )}
@@ -1786,23 +1791,23 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                       <td className="p-3">
                         <div className="flex items-center gap-2.5">
                           <div
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border ${
                               isCustomer
-                                ? 'bg-emerald-900/50 text-emerald-300 border border-emerald-500/30'
-                                : 'bg-amber-900/50 text-amber-300 border border-amber-500/30'
+                                ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border-[var(--md-primary)]/25'
+                                : 'bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] border-[var(--md-secondary)]/30'
                             }`}
                           >
                             {account._name.slice(0, 2)}
                           </div>
                           <div>
-                            <div className="font-bold text-white flex items-center gap-1.5">
+                            <div className="font-bold text-[var(--md-on-surface)] flex items-center gap-1.5 flex-wrap">
                               <span>{account._name}</span>
-                              <span className="text-[9px] px-1.5 py-0.2 rounded font-normal bg-[#132d24] text-emerald-300 border border-emerald-500/20">
+                              <span className="m3-badge text-[9px] font-normal">
                                 {account._segment}
                               </span>
                             </div>
                             {account._email && (
-                              <div className="text-[10px] text-slate-400">{account._email}</div>
+                              <div className="text-[10px] text-[var(--md-on-surface-variant)]">{account._email}</div>
                             )}
                           </div>
                         </div>
@@ -1811,10 +1816,8 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                       {/* Type Badge */}
                       <td className="p-3 text-center">
                         <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                            isCustomer
-                              ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
-                              : 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                          className={`m3-badge text-[10px] ${
+                            isCustomer ? 'm3-badge-primary' : 'm3-badge-secondary'
                           }`}
                         >
                           {isCustomer ? <Users className="w-3 h-3" /> : <Truck className="w-3 h-3" />}
@@ -1823,45 +1826,47 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                       </td>
 
                       {/* Account Number */}
-                      <td className="p-3 text-center font-mono text-slate-400 text-[11px]">
+                      <td className="p-3 text-center font-mono text-[var(--md-on-surface-variant)] text-[11px]">
                         {account._displayCode}
                       </td>
 
                       {/* Phone */}
-                      <td className="p-3 dir-ltr text-right font-mono text-slate-300 text-xs">
+                      <td className="p-3 dir-ltr text-right font-mono text-[var(--md-on-surface)] text-xs">
                         {account._phone ? (
                           <a
                             href={`tel:${account._phone}`}
-                            className="hover:text-emerald-400 transition-colors"
+                            className="hover:text-[var(--md-primary-text)] transition-colors"
                           >
                             {account._phone}
                           </a>
                         ) : (
-                          <span className="text-slate-600">-</span>
+                          <span className="text-[var(--md-on-surface-variant)]">-</span>
                         )}
                       </td>
 
                       {/* Currency */}
                       <td className="p-3 text-center">
-                        <span className="px-2 py-0.5 rounded bg-[#10241d] text-slate-300 font-mono font-semibold text-[10px] border border-emerald-500/20">
+                        <span className="m3-badge font-mono font-semibold text-[10px]">
                           {account._currency}
                         </span>
                       </td>
 
                       {/* Current Balance (Hero Financial Field) */}
-                      <td className="p-3 font-mono font-bold text-xs">
+                      <td className="p-3 font-mono tabular-nums font-bold text-xs">
                         <div
                           className={`inline-flex items-baseline gap-1 px-2.5 py-1 rounded-lg border ${
                             bal > 0
-                              ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40'
+                              ? isCustomer
+                                ? 'bg-[var(--md-success-container)] text-[var(--md-on-success-container)] border-[var(--md-success)]/30'
+                                : 'bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)] border-[var(--md-warning)]/30'
                               : bal < 0
-                              ? 'bg-amber-950/60 text-amber-300 border-amber-500/40'
-                              : 'bg-[#10241d] text-slate-400 border-slate-700/50'
+                              ? 'bg-[var(--md-info-container)] text-[var(--md-on-info-container)] border-[var(--md-info)]/30'
+                              : 'bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] border-[var(--md-outline-variant)]'
                           }`}
                         >
                           <span className="text-sm font-black tracking-tight">{formatNumber(Math.abs(bal))}</span>
                           <span className="text-[10px] font-normal opacity-80">{account._currency}</span>
-                          <span className="text-[9px] font-bold opacity-75 mr-1">
+                          <span className="text-[9px] font-bold opacity-80 mr-1">
                             {bal > 0 ? (isCustomer ? '(مدين)' : '(دائن)') : bal < 0 ? '(-)' : '(خالص)'}
                           </span>
                         </div>
@@ -1870,14 +1875,14 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                       {/* Status */}
                       <td className="p-3 text-center">
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          className={`m3-badge text-[10px] ${
                             bal > 0
                               ? isCustomer
-                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                                : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                ? 'm3-badge-success'
+                                : 'm3-badge-warning'
                               : bal < 0
-                              ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                              : 'bg-slate-800 text-slate-400 border border-slate-700'
+                              ? 'm3-badge-info'
+                              : ''
                           }`}
                         >
                           {bal > 0 ? (isCustomer ? 'مدين' : 'دائن') : bal < 0 ? 'تسوية' : 'مسدد'}
@@ -1885,7 +1890,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                       </td>
 
                       {/* Last Activity Date */}
-                      <td className="p-3 text-center text-slate-400 font-mono text-[10px]">
+                      <td className="p-3 text-center text-[var(--md-on-surface-variant)] font-mono tabular-nums text-[10px]">
                         {new Date(account._createdAt).toLocaleDateString('ar-YE')}
                       </td>
 
@@ -1895,7 +1900,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                           <button
                             onClick={() => handleOpenAccountDetail(account, account._accountType)}
                             title="فتح كشف الحساب والملف المالي"
-                            className="p-1.5 bg-[#0f2820] hover:bg-emerald-600 text-emerald-300 hover:text-white rounded-lg transition-all cursor-pointer shadow-sm"
+                            className="m3-btn-tonal !min-h-[30px] !px-2 rounded-lg cursor-pointer"
                           >
                             <FileText className="w-3.5 h-3.5" />
                           </button>
@@ -1903,7 +1908,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                           <button
                             onClick={() => handleOpenTransactionModal(account, account._accountType)}
                             title="إضافة حركة مالية مباشرة"
-                            className="p-1.5 bg-[#0f2820] hover:bg-emerald-600 text-emerald-300 hover:text-white rounded-lg transition-all cursor-pointer shadow-sm"
+                            className="m3-btn-outlined !min-h-[30px] !px-2 rounded-lg text-[var(--md-primary-text)] cursor-pointer"
                           >
                             <ArrowLeftRight className="w-3.5 h-3.5" />
                           </button>
@@ -1911,7 +1916,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                           <button
                             onClick={() => handleOpenWhatsAppModal(account, account._accountType)}
                             title="مشاركة كشف الحساب عبر WhatsApp"
-                            className="p-1.5 bg-[#0f2820] hover:bg-[#25D366] text-emerald-300 hover:text-white rounded-lg transition-all cursor-pointer shadow-sm"
+                            className="m3-btn-outlined !min-h-[30px] !px-2 rounded-lg text-[var(--md-success)] cursor-pointer"
                           >
                             <MessageCircle className="w-3.5 h-3.5" />
                           </button>
@@ -1923,7 +1928,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                                 : handleOpenEditSupplier(account)
                             }
                             title="تعديل بيانات الحساب"
-                            className="p-1.5 bg-[#0f2820] hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-all cursor-pointer shadow-sm"
+                            className="m3-btn-outlined !min-h-[30px] !px-2 rounded-lg cursor-pointer"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
@@ -1932,7 +1937,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                             <button
                               onClick={() => handleOpenMergeModal(account)}
                               title="دمج حساب العميل مع عميل آخر (Merge Customer)"
-                              className="p-1.5 bg-[#0f2820] hover:bg-amber-600 text-amber-300 hover:text-white rounded-lg transition-all cursor-pointer shadow-sm"
+                              className="m3-btn-outlined !min-h-[30px] !px-2 rounded-lg text-[var(--md-warning)] cursor-pointer"
                             >
                               <Share2 className="w-3.5 h-3.5" />
                             </button>
@@ -1945,7 +1950,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                                 : handleDeleteSupplier(account)
                             }
                             title="حذف الحساب"
-                            className="p-1.5 bg-[#0f2820] hover:bg-red-700 text-red-400 hover:text-white rounded-lg transition-all cursor-pointer shadow-sm"
+                            className="m3-btn-danger !min-h-[30px] !px-2 rounded-lg cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -1968,35 +1973,33 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
             return (
               <div
                 key={account._uniqueKey}
-                className="bg-gradient-to-b from-[#0e221b] to-[#081510] rounded-2xl border border-emerald-500/20 p-4 shadow-lg hover:border-emerald-500/40 transition-all flex flex-col justify-between space-y-3"
+                className="m3-card p-4 hover:border-[var(--md-primary)]/40 transition-all flex flex-col justify-between space-y-3"
               >
                 {/* Card Header */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2.5">
                     <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 border ${
                         isCustomer
-                          ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-500/40'
-                          : 'bg-amber-900/60 text-amber-300 border border-amber-500/40'
+                          ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border-[var(--md-primary)]/30'
+                          : 'bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] border-[var(--md-secondary)]/30'
                       }`}
                     >
                       {account._name.slice(0, 2)}
                     </div>
                     <div>
-                      <div className="font-bold text-white text-sm">{account._name}</div>
-                      <div className="text-[10px] text-slate-400 flex items-center gap-1.5">
+                      <div className="font-bold text-[var(--md-on-surface)] text-sm">{account._name}</div>
+                      <div className="text-[10px] text-[var(--md-on-surface-variant)] flex items-center gap-1.5">
                         <span className="font-mono">{account._displayCode}</span>
                         <span>•</span>
-                        <span className="text-emerald-400">{account._segment}</span>
+                        <span className="text-[var(--md-primary-text)] font-semibold">{account._segment}</span>
                       </div>
                     </div>
                   </div>
 
                   <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                      isCustomer
-                        ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
-                        : 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                    className={`m3-badge text-[10px] ${
+                      isCustomer ? 'm3-badge-primary' : 'm3-badge-secondary'
                     }`}
                   >
                     {isCustomer ? 'عميل' : 'مورد'}
@@ -2004,23 +2007,23 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                 </div>
 
                 {/* Balance Highlight Box */}
-                <div className="p-3 bg-[#06120d] rounded-xl border border-emerald-500/20 flex items-center justify-between">
+                <div className="p-3 bg-[var(--md-surface-container-low)] rounded-xl border border-[var(--md-outline-variant)] flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] text-slate-400 block">الرصيد المالي الحالي:</span>
+                    <span className="text-[10px] text-[var(--md-on-surface-variant)] block">الرصيد المالي الحالي:</span>
                     <div className="flex items-baseline gap-1 mt-0.5">
-                      <span className="text-lg font-black font-mono text-emerald-300">
+                      <span className={`text-lg font-black font-mono tabular-nums ${bal > 0 ? (isCustomer ? 'text-[var(--md-success)]' : 'text-[var(--md-warning)]') : 'text-[var(--md-on-surface)]'}`}>
                         {formatNumber(Math.abs(bal))}
                       </span>
-                      <span className="text-[10px] text-slate-400 font-mono">{account._currency}</span>
+                      <span className="text-[10px] text-[var(--md-on-surface-variant)] font-mono">{account._currency}</span>
                     </div>
                   </div>
                   <span
-                    className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
+                    className={`m3-badge text-[10px] ${
                       bal > 0
                         ? isCustomer
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                          : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                        : 'bg-slate-800 text-slate-400'
+                          ? 'm3-badge-success'
+                          : 'm3-badge-warning'
+                        : ''
                     }`}
                   >
                     {bal > 0 ? (isCustomer ? 'مدين مستحق' : 'دائن مستحق') : bal < 0 ? 'دائن' : 'خالص'}
@@ -2028,22 +2031,22 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                 </div>
 
                 {/* Details Meta */}
-                <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-300 pt-1">
+                <div className="grid grid-cols-2 gap-2 text-[11px] text-[var(--md-on-surface-variant)] pt-1">
                   <div className="flex items-center gap-1.5 truncate">
-                    <Phone className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                    <Phone className="w-3.5 h-3.5 opacity-70 shrink-0" />
                     <span className="font-mono dir-ltr">{account._phone || 'بدون هاتف'}</span>
                   </div>
                   <div className="flex items-center gap-1.5 truncate">
-                    <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                    <MapPin className="w-3.5 h-3.5 opacity-70 shrink-0" />
                     <span className="truncate">{account._address || 'المركز الرئيسي'}</span>
                   </div>
                 </div>
 
                 {/* Card Actions Footer */}
-                <div className="pt-2 border-t border-emerald-900/40 flex items-center justify-between gap-1.5">
+                <div className="pt-2 border-t border-[var(--md-outline-variant)] flex items-center justify-between gap-1.5">
                   <button
                     onClick={() => handleOpenAccountDetail(account, account._accountType)}
-                    className="flex-1 py-1.5 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white rounded-lg text-xs font-bold border border-emerald-500/30 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                    className="m3-btn-tonal flex-1 !min-h-[34px] py-1.5 text-xs font-bold flex items-center justify-center gap-1 cursor-pointer"
                   >
                     <FileText className="w-3.5 h-3.5" />
                     <span>كشف الحساب</span>
@@ -2051,7 +2054,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
 
                   <button
                     onClick={() => handleOpenTransactionModal(account, account._accountType)}
-                    className="p-2 bg-[#0c1f19] hover:bg-emerald-600 text-emerald-300 hover:text-white rounded-lg transition-all cursor-pointer"
+                    className="m3-btn-outlined !min-h-[34px] !px-2 text-[var(--md-primary-text)] cursor-pointer"
                     title="حركة حساب"
                   >
                     <ArrowLeftRight className="w-3.5 h-3.5" />
@@ -2059,7 +2062,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
 
                   <button
                     onClick={() => handleOpenWhatsAppModal(account, account._accountType)}
-                    className="p-2 bg-[#0c1f19] hover:bg-[#25D366] text-emerald-300 hover:text-white rounded-lg transition-all cursor-pointer"
+                    className="m3-btn-outlined !min-h-[34px] !px-2 text-[var(--md-success)] cursor-pointer"
                     title="مشاركة WhatsApp"
                   >
                     <MessageCircle className="w-3.5 h-3.5" />
@@ -2068,7 +2071,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                   {isCustomer && (
                     <button
                       onClick={() => handleOpenMergeModal(account)}
-                      className="p-2 bg-[#0c1f19] hover:bg-amber-600 text-amber-300 hover:text-white rounded-lg transition-all cursor-pointer"
+                      className="m3-btn-outlined !min-h-[34px] !px-2 text-[var(--md-warning)] cursor-pointer"
                       title="دمج الحساب"
                     >
                       <Share2 className="w-3.5 h-3.5" />
@@ -2079,7 +2082,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                     onClick={() =>
                       isCustomer ? handleOpenEditCustomer(account) : handleOpenEditSupplier(account)
                     }
-                    className="p-2 bg-[#0c1f19] hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition-all cursor-pointer"
+                    className="m3-btn-outlined !min-h-[34px] !px-2 cursor-pointer"
                     title="تعديل"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
@@ -2095,35 +2098,35 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
       {/* 6. DETAIL & STATEMENT MODAL / DRAWER (ERP Financial Account Center)       */}
       {/* ========================================================================= */}
       {detailAccount && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-3 sm:p-4">
-          <div className="bg-[#091511] rounded-2xl border border-emerald-500/30 shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden text-right">
+        <div className="m3-backdrop fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+          <div className="m3-modal-surface w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden text-right">
             {/* Modal Header */}
-            <div className="p-4 sm:p-5 bg-gradient-to-r from-[#061a14] to-[#0d2820] border-b border-emerald-500/20 flex items-center justify-between">
+            <div className="p-4 sm:p-5 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 border ${
                     detailAccount.type === 'CUSTOMER'
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-amber-600 text-white'
+                      ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border-[var(--md-primary)]/30'
+                      : 'bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] border-[var(--md-secondary)]/30'
                   }`}
                 >
                   {detailAccount.party.name ? detailAccount.party.name.slice(0, 2) : 'AC'}
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-base flex items-center gap-2">
+                  <h3 className="font-bold text-[var(--md-on-surface)] text-base flex items-center gap-2 flex-wrap">
                     <span>{detailAccount.party.name || detailAccount.party._name}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    <span className={`m3-badge text-[10px] ${detailAccount.type === 'CUSTOMER' ? 'm3-badge-primary' : 'm3-badge-secondary'}`}>
                       {detailAccount.type === 'CUSTOMER' ? 'حساب عميل' : 'حساب مورد'}
                     </span>
                   </h3>
-                  <p className="text-xs text-slate-400">
-                    رقم الحساب: <span className="font-mono text-emerald-400">ACC-{detailAccount.party.id.slice(-6)}</span> • الهاتف: <span className="font-mono">{detailAccount.party.phone || '-'}</span>
+                  <p className="text-xs text-[var(--md-on-surface-variant)]">
+                    رقم الحساب: <span className="font-mono text-[var(--md-primary-text)] font-semibold">ACC-{detailAccount.party.id.slice(-6)}</span> • الهاتف: <span className="font-mono">{detailAccount.party.phone || '-'}</span>
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setDetailAccount(null)}
-                className="text-slate-400 hover:text-white p-2 rounded-lg bg-[#06120d] border border-emerald-500/20 cursor-pointer"
+                className="m3-btn-outlined !min-h-[36px] !px-2 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2152,43 +2155,43 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                   : (statementData?.transactions || []).length);
 
               return (
-                <div className="p-4 bg-[#06120d] border-b border-emerald-500/20 grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
-                  <div className="p-3 bg-[#0d221b] rounded-xl border border-blue-500/30">
-                    <span className="text-blue-300 block text-[10px] font-bold">الرصيد الافتتاحي (الأساس):</span>
-                    <span className="text-sm font-bold font-mono text-white">
+                <div className="p-4 bg-[var(--md-surface-container)] border-b border-[var(--md-outline-variant)] grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+                  <div className="m3-card p-3 border-[var(--md-info)]/30">
+                    <span className="text-[var(--md-info)] block text-[10px] font-bold">الرصيد الافتتاحي (الأساس):</span>
+                    <span className="text-sm font-bold font-mono tabular-nums text-[var(--md-on-surface)]">
                       {formatNumber(opBalance)} {cur}
                     </span>
                   </div>
 
-                  <div className="p-3 bg-[#0d221b] rounded-xl border border-amber-500/30">
-                    <span className="text-amber-300 block text-[10px] font-bold">إجمالي مدين الفترة (+):</span>
-                    <span className="text-sm font-bold font-mono text-amber-200">
+                  <div className="m3-card p-3 border-[var(--md-warning)]/30">
+                    <span className="text-[var(--md-warning)] block text-[10px] font-bold">إجمالي مدين الفترة (+):</span>
+                    <span className="text-sm font-bold font-mono tabular-nums text-[var(--md-warning)]">
                       {formatNumber(totalDebit)} {cur}
                     </span>
                   </div>
 
-                  <div className="p-3 bg-[#0d221b] rounded-xl border border-emerald-500/30">
-                    <span className="text-emerald-300 block text-[10px] font-bold">إجمالي دائن / مسددات (-):</span>
-                    <span className="text-sm font-bold font-mono text-emerald-200">
+                  <div className="m3-card p-3 border-[var(--md-success)]/30">
+                    <span className="text-[var(--md-success)] block text-[10px] font-bold">إجمالي دائن / مسددات (-):</span>
+                    <span className="text-sm font-bold font-mono tabular-nums text-[var(--md-success)]">
                       {formatNumber(totalCredit)} {cur}
                     </span>
                   </div>
 
-                  <div className="p-3 bg-[#0d221b] rounded-xl border border-purple-500/40">
-                    <span className="text-purple-300 block text-[10px] font-bold">الرصيد الختامي النهائي:</span>
-                    <span className="text-base font-black font-mono text-purple-200">
+                  <div className="m3-card p-3 border-[var(--md-primary)]/40 bg-[var(--md-primary-container)]/35">
+                    <span className="text-[var(--md-primary-text)] block text-[10px] font-bold">الرصيد الختامي النهائي:</span>
+                    <span className="text-base font-black font-mono tabular-nums text-[var(--md-primary-text)]">
                       {formatNumber(clBalance)} {cur}
                     </span>
                     {cur !== 'YER' && (
-                      <span className="block text-[10px] text-emerald-300 font-mono mt-0.5">
+                      <span className="block text-[10px] text-[var(--md-on-surface-variant)] font-mono tabular-nums mt-0.5">
                         ≈ {formatNumber(toBaseCurrencyAmount(clBalance, cur))} YER
                       </span>
                     )}
                   </div>
 
-                  <div className="p-3 bg-[#0d221b] rounded-xl border border-emerald-500/20 col-span-2 sm:col-span-1">
-                    <span className="text-slate-400 block text-[10px] font-bold">عدد الحركات الفعلية:</span>
-                    <span className="text-sm font-bold font-mono text-slate-200">
+                  <div className="m3-card p-3 col-span-2 sm:col-span-1">
+                    <span className="text-[var(--md-on-surface-variant)] block text-[10px] font-bold">عدد الحركات الفعلية:</span>
+                    <span className="text-sm font-bold font-mono tabular-nums text-[var(--md-on-surface)]">
                       {actualTxCount} حركة
                     </span>
                   </div>
@@ -2197,11 +2200,11 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
             })()}
 
             {/* Statement Filter & Action Bar */}
-            <div className="p-3 bg-[#091913] border-b border-emerald-500/20 flex items-center justify-between gap-3 flex-wrap">
+            <div className="p-3 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={() => handleOpenTransactionModal(detailAccount.party, detailAccount.type)}
-                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer"
+                  className="m3-btn-primary !min-h-[34px] px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
                 >
                   <ArrowLeftRight className="w-3.5 h-3.5" />
                   <span>+ إضافة حركة</span>
@@ -2209,34 +2212,34 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
 
                 <button
                   onClick={() => handleOpenWhatsAppModal(detailAccount.party, detailAccount.type)}
-                  className="px-3 py-1.5 bg-[#173e2a] hover:bg-[#25D366] text-emerald-300 hover:text-white rounded-lg text-xs font-bold flex items-center gap-1.5 border border-emerald-500/30 transition-all cursor-pointer"
+                  className="m3-btn-tonal !min-h-[34px] px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
                 >
                   <MessageCircle className="w-3.5 h-3.5" />
                   <span>WhatsApp</span>
                 </button>
 
                 {/* Date Filter Inputs */}
-                <div className="flex items-center gap-1.5 bg-[#06120d] px-2 py-1 rounded-lg border border-emerald-500/20 text-xs">
-                  <span className="text-slate-400 text-[11px]">من:</span>
+                <div className="flex items-center gap-1.5 bg-[var(--md-surface-container-lowest)] px-2.5 py-1 rounded-xl border border-[var(--md-outline-variant)] text-xs">
+                  <span className="text-[var(--md-on-surface-variant)] text-[11px]">من:</span>
                   <input
                     type="date"
                     value={stmtFromDate}
                     onChange={(e) => setStmtFromDate(e.target.value)}
-                    className="bg-transparent text-slate-200 text-xs focus:outline-none"
+                    className="bg-transparent text-[var(--md-on-surface)] text-xs font-mono focus:outline-none"
                   />
-                  <span className="text-slate-400 text-[11px] mr-1">إلى:</span>
+                  <span className="text-[var(--md-on-surface-variant)] text-[11px] mr-1">إلى:</span>
                   <input
                     type="date"
                     value={stmtToDate}
                     onChange={(e) => setStmtToDate(e.target.value)}
-                    className="bg-transparent text-slate-200 text-xs focus:outline-none"
+                    className="bg-transparent text-[var(--md-on-surface)] text-xs font-mono focus:outline-none"
                   />
                   <button
                     onClick={() => {
                       setStmtPage(1);
                       fetchAccountStatement(detailAccount.party, detailAccount.type, stmtFromDate, stmtToDate, 1, stmtLimit);
                     }}
-                    className="px-2 py-1 bg-emerald-700/60 hover:bg-emerald-600 text-white rounded text-[11px] font-bold cursor-pointer transition-colors"
+                    className="px-2.5 py-1 bg-[var(--md-primary)] hover:bg-[var(--md-primary-hover)] text-[var(--md-on-primary)] rounded-lg text-[11px] font-bold cursor-pointer transition-colors"
                   >
                     تطبيق
                   </button>
@@ -2248,7 +2251,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                         setStmtPage(1);
                         fetchAccountStatement(detailAccount.party, detailAccount.type, '', '', 1, stmtLimit);
                       }}
-                      className="px-1.5 py-1 text-slate-400 hover:text-white text-[11px] cursor-pointer"
+                      className="px-1.5 py-1 text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] text-[11px] cursor-pointer"
                       title="إلغاء الفلتر"
                     >
                       <X className="w-3 h-3" />
@@ -2260,7 +2263,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
               <div className="flex items-center gap-2">
                 <button
                   onClick={handlePrintStatement}
-                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer transition-colors"
+                  className="m3-btn-tonal !min-h-[34px] px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
                   title="طباعة كشف حساب معتمد (A4 / PDF)"
                 >
                   <Printer className="w-3.5 h-3.5" />
@@ -2271,14 +2274,14 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
             </div>
 
             {/* Statement Table Body */}
-            <div className="flex-1 overflow-y-auto p-4 bg-[#08140f]">
+            <div className="flex-1 overflow-y-auto p-4 bg-[var(--md-surface)]">
               {statementLoading ? (
-                <div className="p-12 text-center text-slate-400 flex flex-col items-center justify-center gap-2">
-                  <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
+                <div className="p-12 text-center text-[var(--md-on-surface-variant)] flex flex-col items-center justify-center gap-2">
+                  <Loader2 className="w-6 h-6 animate-spin text-[var(--md-primary-text)]" />
                   <span>جاري تحميل كشف الحساب المعتمد...</span>
                 </div>
               ) : !statementData ? (
-                <div className="p-10 text-center text-slate-400">
+                <div className="p-10 text-center text-[var(--md-on-surface-variant)]">
                   لا توجد بيانات متاحة لهذا الحساب.
                 </div>
               ) : (
@@ -2303,159 +2306,163 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                     : actualTxList.length;
 
                   return (
-                    <table className="w-full text-right text-xs border border-emerald-900/40 rounded-lg overflow-hidden">
-                      <thead className="bg-[#0f2820] text-slate-200 font-bold border-b border-emerald-500/30">
-                        <tr>
-                          <th className="p-2.5">التاريخ</th>
-                          <th className="p-2.5">نوع الحركة</th>
-                          <th className="p-2.5">مبلغ الحركة</th>
-                          <th className="p-2.5">الرصيد التراكمي</th>
-                          <th className="p-2.5">البيان / سبب القيد</th>
-                          <th className="p-2.5 text-center">المستلم / الساحب</th>
-                          <th className="p-2.5 text-center">المرجع</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-emerald-950/60">
-                        {/* 1. DEDICATED OPENING BALANCE BASELINE ROW (ROW 0) */}
-                        <tr className="bg-[#0c261e] border-b-2 border-emerald-500/40 text-emerald-200">
-                          <td className="p-2.5 text-slate-300 font-mono text-[11px]">
-                            {stmtFromDate ? formatDateOnly(stmtFromDate) : 'رصيد بداية'}
-                          </td>
-                          <td className="p-2.5">
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/30 text-emerald-200 border border-emerald-400/40">
-                              <Sparkles className="w-3 h-3 text-amber-300" />
-                              <span>الرصيد الافتتاحي (أساس البداية)</span>
-                            </span>
-                          </td>
-                          <td className="p-2.5 font-mono text-slate-400">
-                            —
-                          </td>
-                          <td className="p-2.5 font-mono font-black text-sm text-emerald-300">
-                            {formatNumber(opBalance)} {cur}
-                          </td>
-                          <td className="p-2.5 text-emerald-100/80 font-medium text-[11px]">
-                            الرصيد الافتتاحي المعتمد لبداية الفترة (خط الأساس المحاسبي)
-                          </td>
-                          <td className="p-2.5 text-center text-slate-400 font-mono text-[10px]">
-                            —
-                          </td>
-                          <td className="p-2.5 text-center text-slate-400 font-mono text-[10px]">
-                            BASELINE
-                          </td>
-                        </tr>
+                    <div className="m3-card overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="m3-table w-full text-right text-xs">
+                          <thead className="m3-thead">
+                            <tr>
+                              <th className="m3-th p-2.5">التاريخ</th>
+                              <th className="m3-th p-2.5">نوع الحركة</th>
+                              <th className="m3-th p-2.5">مبلغ الحركة</th>
+                              <th className="m3-th p-2.5">الرصيد التراكمي</th>
+                              <th className="m3-th p-2.5">البيان / سبب القيد</th>
+                              <th className="m3-th p-2.5 text-center">المستلم / الساحب</th>
+                              <th className="m3-th p-2.5 text-center">المرجع</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[var(--md-outline-variant)]">
+                            {/* 1. DEDICATED OPENING BALANCE BASELINE ROW (ROW 0) */}
+                            <tr className="bg-[var(--md-primary-container)]/35 border-b-2 border-[var(--md-primary)]/35">
+                              <td className="p-2.5 text-[var(--md-on-surface-variant)] font-mono tabular-nums text-[11px]">
+                                {stmtFromDate ? formatDateOnly(stmtFromDate) : 'رصيد بداية'}
+                              </td>
+                              <td className="p-2.5">
+                                <span className="m3-badge m3-badge-primary text-[10px]">
+                                  <Sparkles className="w-3 h-3 text-[var(--md-secondary)]" />
+                                  <span>الرصيد الافتتاحي (أساس البداية)</span>
+                                </span>
+                              </td>
+                              <td className="p-2.5 font-mono text-[var(--md-on-surface-variant)]">
+                                —
+                              </td>
+                              <td className="p-2.5 font-mono tabular-nums font-black text-sm text-[var(--md-primary-text)]">
+                                {formatNumber(opBalance)} {cur}
+                              </td>
+                              <td className="p-2.5 text-[var(--md-on-surface)] font-medium text-[11px]">
+                                الرصيد الافتتاحي المعتمد لبداية الفترة (خط الأساس المحاسبي)
+                              </td>
+                              <td className="p-2.5 text-center text-[var(--md-on-surface-variant)] font-mono text-[10px]">
+                                —
+                              </td>
+                              <td className="p-2.5 text-center text-[var(--md-on-surface-variant)] font-mono text-[10px]">
+                                BASELINE
+                              </td>
+                            </tr>
 
-                        {/* 2. SECTION DIVIDER FOR ACTUAL MOVEMENTS */}
-                        <tr className="bg-[#071912] text-emerald-400 font-bold text-[10px]">
-                          <td colSpan={7} className="py-1.5 px-3 text-right border-y border-emerald-500/20">
-                            ▼ الحركات الفعلية المسجلة خلال الفترة ({actualTxCount} حركة مسجلة)
-                          </td>
-                        </tr>
+                            {/* 2. SECTION DIVIDER FOR ACTUAL MOVEMENTS */}
+                            <tr className="bg-[var(--md-surface-container)] text-[var(--md-primary-text)] font-bold text-[10px]">
+                              <td colSpan={7} className="py-1.5 px-3 text-right border-y border-[var(--md-outline-variant)]">
+                                ▼ الحركات الفعلية المسجلة خلال الفترة ({actualTxCount} حركة مسجلة)
+                              </td>
+                            </tr>
 
-                        {/* 3. ACTUAL TRANSACTIONS */}
-                        {actualTxList.length === 0 ? (
-                          <tr>
-                            <td colSpan={7} className="p-8 text-center text-slate-400">
-                              لا توجد حركات مالية مسجلة خلال الفترة المحددة — الرصيد النهائي مطابق للرصيد الافتتاحي ({formatNumber(opBalance)} {cur}).
-                            </td>
-                          </tr>
-                        ) : (
-                          actualTxList.map((tx: any) => {
-                            const txCur = tx.currency || cur;
-                            const recBy = tx.received_by || tx.receivedBy;
-                            return (
-                              <tr key={tx.id} className="hover:bg-[#0f241d] transition-colors">
-                                <td className="p-2.5 text-slate-400 font-mono text-[11px]">
-                                  {formatDateOnly(tx.date || tx.created_at)}
-                                </td>
-                                <td className="p-2.5 font-bold">
-                                  <span
-                                    className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                      tx.type === 'DEBIT'
-                                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                                        : tx.type === 'CREDIT' || tx.type === 'PAYMENT'
-                                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                                        : 'bg-slate-800 text-slate-300'
-                                    }`}
-                                  >
-                                    {tx.type === 'DEBIT'
-                                      ? 'مدين (+ مبيعات)'
-                                      : tx.type === 'CREDIT'
-                                      ? 'دائن (+ توريد)'
-                                      : tx.type === 'PAYMENT'
-                                      ? 'سداد / تحصيل'
-                                      : 'تعديل رصيد'}
-                                  </span>
-                                </td>
-                                <td className="p-2.5 font-mono font-bold text-white">
-                                  <div className="flex items-center gap-1">
-                                    <span>{formatNumber(tx.amount)}</span>
-                                    <span className="text-[10px] text-slate-400 font-normal">{txCur}</span>
-                                  </div>
-                                  {txCur !== 'YER' && tx.exchange_rate && tx.exchange_rate !== 1 && (
-                                    <div className="text-[9px] text-amber-400 font-mono">
-                                      ≈ {formatNumber(Number(tx.amount) * Number(tx.exchange_rate))} YER
-                                    </div>
-                                  )}
-                                </td>
-                                <td className="p-2.5 font-mono font-bold text-emerald-300">
-                                  {formatNumber(tx.balance_after || tx.running_balance)} {txCur}
-                                </td>
-                                <td className="p-2.5 text-slate-300">
-                                  {tx.description || '-'}
-                                </td>
-                                <td className="p-2.5 text-center text-slate-200 font-medium">
-                                  {recBy ? (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-sky-950/80 text-sky-300 border border-sky-500/30">
-                                      {recBy}
-                                    </span>
-                                  ) : (
-                                    <span className="text-slate-500 text-[11px]">—</span>
-                                  )}
-                                </td>
-                                <td className="p-2.5 text-center text-slate-400 font-mono text-[10px]">
-                                  {tx.reference_no || '-'}
+                            {/* 3. ACTUAL TRANSACTIONS */}
+                            {actualTxList.length === 0 ? (
+                              <tr>
+                                <td colSpan={7} className="p-8 text-center text-[var(--md-on-surface-variant)]">
+                                  لا توجد حركات مالية مسجلة خلال الفترة المحددة — الرصيد النهائي مطابق للرصيد الافتتاحي ({formatNumber(opBalance)} {cur}).
                                 </td>
                               </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
+                            ) : (
+                              actualTxList.map((tx: any) => {
+                                const txCur = tx.currency || cur;
+                                const recBy = tx.received_by || tx.receivedBy;
+                                return (
+                                  <tr key={tx.id} className="hover:bg-[var(--md-surface-container-low)] transition-colors">
+                                    <td className="p-2.5 text-[var(--md-on-surface-variant)] font-mono tabular-nums text-[11px]">
+                                      {formatDateOnly(tx.date || tx.created_at)}
+                                    </td>
+                                    <td className="p-2.5 font-bold">
+                                      <span
+                                        className={`m3-badge text-[10px] ${
+                                          tx.type === 'DEBIT'
+                                            ? 'm3-badge-warning'
+                                            : tx.type === 'CREDIT' || tx.type === 'PAYMENT'
+                                            ? 'm3-badge-success'
+                                            : ''
+                                        }`}
+                                      >
+                                        {tx.type === 'DEBIT'
+                                          ? 'مدين (+ مبيعات)'
+                                          : tx.type === 'CREDIT'
+                                          ? 'دائن (+ توريد)'
+                                          : tx.type === 'PAYMENT'
+                                          ? 'سداد / تحصيل'
+                                          : 'تعديل رصيد'}
+                                      </span>
+                                    </td>
+                                    <td className="p-2.5 font-mono tabular-nums font-bold text-[var(--md-on-surface)]">
+                                      <div className="flex items-center gap-1">
+                                        <span>{formatNumber(tx.amount)}</span>
+                                        <span className="text-[10px] text-[var(--md-on-surface-variant)] font-normal">{txCur}</span>
+                                      </div>
+                                      {txCur !== 'YER' && tx.exchange_rate && tx.exchange_rate !== 1 && (
+                                        <div className="text-[9px] text-[var(--md-warning)] font-mono tabular-nums">
+                                          ≈ {formatNumber(Number(tx.amount) * Number(tx.exchange_rate))} YER
+                                        </div>
+                                      )}
+                                    </td>
+                                    <td className="p-2.5 font-mono tabular-nums font-bold text-[var(--md-primary-text)]">
+                                      {formatNumber(tx.balance_after || tx.running_balance)} {txCur}
+                                    </td>
+                                    <td className="p-2.5 text-[var(--md-on-surface)]">
+                                      {tx.description || '-'}
+                                    </td>
+                                    <td className="p-2.5 text-center font-medium">
+                                      {recBy ? (
+                                        <span className="m3-badge m3-badge-info text-[10px]">
+                                          {recBy}
+                                        </span>
+                                      ) : (
+                                        <span className="text-[var(--md-on-surface-variant)] text-[11px]">—</span>
+                                      )}
+                                    </td>
+                                    <td className="p-2.5 text-center text-[var(--md-on-surface-variant)] font-mono text-[10px]">
+                                      {tx.reference_no || '-'}
+                                    </td>
+                                  </tr>
+                                );
+                              })
+                            )}
+                          </tbody>
 
-                      {/* 4. FINAL ACCOUNT SUMMARY BLOCK (TFOOT) */}
-                      <tfoot className="bg-[#071712] border-t-2 border-emerald-500/40 text-xs font-semibold">
-                        <tr className="border-b border-emerald-950/60">
-                          <td colSpan={4} className="p-2.5 text-slate-300">الرصيد الافتتاحي لبداية الفترة (Opening Balance):</td>
-                          <td colSpan={3} className="p-2.5 font-mono text-slate-200 text-left font-bold" dir="ltr">{formatNumber(opBalance)} {cur}</td>
-                        </tr>
-                        <tr className="border-b border-emerald-950/60">
-                          <td colSpan={4} className="p-2.5 text-amber-300">إجمالي مدين الفترة / المسحوبات (Total Debit):</td>
-                          <td colSpan={3} className="p-2.5 font-mono text-amber-300 text-left font-bold" dir="ltr">+{formatNumber(totalDebit)} {cur}</td>
-                        </tr>
-                        <tr className="border-b border-emerald-950/60">
-                          <td colSpan={4} className="p-2.5 text-emerald-300">إجمالي دائن / مسددات الفترة (Total Credit / Payments):</td>
-                          <td colSpan={3} className="p-2.5 font-mono text-emerald-300 text-left font-bold" dir="ltr">-{formatNumber(totalCredit)} {cur}</td>
-                        </tr>
-                        <tr className="bg-[#0c281f] text-sm font-black text-white">
-                          <td colSpan={4} className="p-3 text-emerald-300">
-                            الرصيد الختامي النهائي (Final Account Balance) — [{actualTxCount} حركة فعلية]:
-                          </td>
-                          <td colSpan={3} className="p-3 font-mono text-emerald-300 text-base text-left" dir="ltr">{formatNumber(clBalance)} {cur}</td>
-                        </tr>
-                      </tfoot>
-                    </table>
+                          {/* 4. FINAL ACCOUNT SUMMARY BLOCK (TFOOT) */}
+                          <tfoot className="bg-[var(--md-surface-container-low)] border-t-2 border-[var(--md-primary)]/35 text-xs font-semibold">
+                            <tr className="border-b border-[var(--md-outline-variant)]">
+                              <td colSpan={4} className="p-2.5 text-[var(--md-on-surface-variant)]">الرصيد الافتتاحي لبداية الفترة (Opening Balance):</td>
+                              <td colSpan={3} className="p-2.5 font-mono tabular-nums text-[var(--md-on-surface)] text-left font-bold" dir="ltr">{formatNumber(opBalance)} {cur}</td>
+                            </tr>
+                            <tr className="border-b border-[var(--md-outline-variant)]">
+                              <td colSpan={4} className="p-2.5 text-[var(--md-warning)]">إجمالي مدين الفترة / المسحوبات (Total Debit):</td>
+                              <td colSpan={3} className="p-2.5 font-mono tabular-nums text-[var(--md-warning)] text-left font-bold" dir="ltr">+{formatNumber(totalDebit)} {cur}</td>
+                            </tr>
+                            <tr className="border-b border-[var(--md-outline-variant)]">
+                              <td colSpan={4} className="p-2.5 text-[var(--md-success)]">إجمالي دائن / مسددات الفترة (Total Credit / Payments):</td>
+                              <td colSpan={3} className="p-2.5 font-mono tabular-nums text-[var(--md-success)] text-left font-bold" dir="ltr">-{formatNumber(totalCredit)} {cur}</td>
+                            </tr>
+                            <tr className="bg-[var(--md-primary-container)]/45 text-sm font-black">
+                              <td colSpan={4} className="p-3 text-[var(--md-primary-text)]">
+                                الرصيد الختامي النهائي (Final Account Balance) — [{actualTxCount} حركة فعلية]:
+                              </td>
+                              <td colSpan={3} className="p-3 font-mono tabular-nums text-[var(--md-primary-text)] text-base text-left" dir="ltr">{formatNumber(clBalance)} {cur}</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </div>
                   );
                 })()
               )}
             </div>
 
             {/* Modal Footer with Pagination */}
-            <div className="p-3 bg-[#06120d] border-t border-emerald-500/20 flex items-center justify-between text-xs flex-wrap gap-2">
+            <div className="p-3 bg-[var(--md-surface-container-low)] border-t border-[var(--md-outline-variant)] flex items-center justify-between text-xs flex-wrap gap-2">
               <div className="flex items-center gap-3">
-                <span className="text-slate-400 text-[11px]">
+                <span className="text-[var(--md-on-surface-variant)] text-[11px]">
                   نظام AI Business System • تدقيق وعزل محاسبي معتمد
                 </span>
                 {statementData?.pagination && statementData.pagination.totalPages > 1 && (
-                  <div className="flex items-center gap-1.5 text-xs text-slate-300">
+                  <div className="flex items-center gap-1.5 text-xs text-[var(--md-on-surface)]">
                     <button
                       disabled={statementData.pagination.page <= 1 || statementLoading}
                       onClick={() => {
@@ -2463,12 +2470,12 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                         setStmtPage(newPage);
                         fetchAccountStatement(detailAccount.party, detailAccount.type, stmtFromDate, stmtToDate, newPage, stmtLimit);
                       }}
-                      className="p-1 rounded bg-[#0f241d] hover:bg-emerald-800/40 text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                      className="m3-btn-outlined !min-h-[28px] !px-1.5 disabled:opacity-30 cursor-pointer"
                       title="الصفحة السابقة"
                     >
                       <ChevronRight className="w-4 h-4" />
                     </button>
-                    <span className="font-mono text-[11px] px-2 py-0.5 bg-[#091f17] rounded border border-emerald-500/20">
+                    <span className="font-mono tabular-nums text-[11px] px-2 py-0.5 bg-[var(--md-surface-container)] rounded border border-[var(--md-outline-variant)]">
                       صفحة {statementData.pagination.page} من {statementData.pagination.totalPages}
                     </span>
                     <button
@@ -2478,7 +2485,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                         setStmtPage(newPage);
                         fetchAccountStatement(detailAccount.party, detailAccount.type, stmtFromDate, stmtToDate, newPage, stmtLimit);
                       }}
-                      className="p-1 rounded bg-[#0f241d] hover:bg-emerald-800/40 text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                      className="m3-btn-outlined !min-h-[28px] !px-1.5 disabled:opacity-30 cursor-pointer"
                       title="الصفحة التالية"
                     >
                       <ChevronLeft className="w-4 h-4" />
@@ -2489,7 +2496,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
 
               <button
                 onClick={() => setDetailAccount(null)}
-                className="px-4 py-1.5 bg-[#0f241d] hover:bg-slate-700 text-white rounded-lg font-semibold cursor-pointer"
+                className="m3-btn-outlined !min-h-[34px] px-4 py-1.5 font-semibold cursor-pointer"
               >
                 إغلاق
               </button>
@@ -2499,19 +2506,19 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
       )}
 
       {/* ========================================================================= */}
-      {/* 7. CREATE / EDIT CUSTOMER MODAL (Dark Emerald & Gold Theme)              */}
+      {/* 7. CREATE / EDIT CUSTOMER MODAL (M3 Unified Modal)                        */}
       {/* ========================================================================= */}
       {isCustomerModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-[#091511] rounded-2xl border border-emerald-500/30 shadow-2xl w-full max-w-lg overflow-hidden text-right">
-            <div className="p-4 bg-gradient-to-r from-[#061a14] to-[#0e2b20] border-b border-emerald-500/20 flex items-center justify-between">
-              <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                <Users className="w-4 h-4 text-emerald-400" />
+        <div className="m3-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="m3-modal-surface w-full max-w-lg overflow-hidden text-right">
+            <div className="p-4 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] flex items-center justify-between">
+              <h3 className="font-bold text-[var(--md-on-surface)] text-sm flex items-center gap-2">
+                <Users className="w-4 h-4 text-[var(--md-primary-text)]" />
                 <span>{editingCustomer ? 'تعديل بيانات العميل' : 'إضافة عميل جديد'}</span>
               </h3>
               <button
                 onClick={() => setIsCustomerModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1"
+                className="m3-btn-text p-1.5 rounded-lg cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2519,8 +2526,8 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
 
             <form onSubmit={handleSaveCustomer} className="p-5 space-y-3.5 text-xs">
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">
-                  اسم العميل / الشركة <span className="text-emerald-400">*</span>
+                <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">
+                  اسم العميل / الشركة <span className="text-[var(--md-primary-text)]">*</span>
                 </label>
                 <input
                   type="text"
@@ -2528,40 +2535,40 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                   placeholder="مثال: مؤسسة الأمل للتجارة"
                   value={customerFormData.name}
                   onChange={(e) => setCustomerFormData({ ...customerFormData, name: e.target.value })}
-                  className="w-full p-2.5 bg-[#06100c] border border-emerald-500/20 rounded-xl text-white focus:ring-1 focus:ring-emerald-400 focus:outline-none"
+                  className="m3-input w-full text-xs"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">رقم الهاتف</label>
+                  <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">رقم الهاتف</label>
                   <input
                     type="text"
                     placeholder="+967770000000"
                     value={customerFormData.phone}
                     onChange={(e) => setCustomerFormData({ ...customerFormData, phone: e.target.value })}
-                    className="w-full p-2.5 bg-[#06100c] border border-emerald-500/20 rounded-xl text-white dir-ltr text-right focus:ring-1 focus:ring-emerald-400 focus:outline-none font-mono"
+                    className="m3-input w-full text-xs dir-ltr text-right font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">البريد الإلكتروني</label>
+                  <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">البريد الإلكتروني</label>
                   <input
                     type="email"
                     placeholder="client@company.com"
                     value={customerFormData.email}
                     onChange={(e) => setCustomerFormData({ ...customerFormData, email: e.target.value })}
-                    className="w-full p-2.5 bg-[#06100c] border border-emerald-500/20 rounded-xl text-white focus:ring-1 focus:ring-emerald-400 focus:outline-none"
+                    className="m3-input w-full text-xs"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">العملة الافتراضية</label>
+                  <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">العملة الافتراضية</label>
                   <select
                     value={customerFormData.currency}
                     onChange={(e) => setCustomerFormData({ ...customerFormData, currency: e.target.value })}
-                    className="w-full p-2.5 bg-[#06100c] border border-emerald-500/20 rounded-xl text-white focus:ring-1 focus:ring-emerald-400 focus:outline-none"
+                    className="m3-select w-full text-xs"
                   >
                     <option value="YER">ريال يمني (YER)</option>
                     <option value="SAR">ريال سعودي (SAR)</option>
@@ -2571,9 +2578,9 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
 
                 {!editingCustomer ? (
                   <div>
-                    <label className="block text-slate-300 font-semibold mb-1 flex items-center justify-between">
+                    <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1 flex items-center justify-between">
                       <span>الرصيد الافتتاحي</span>
-                      <span className="text-[10px] text-emerald-400 font-mono">0-9 EN</span>
+                      <span className="text-[10px] text-[var(--md-primary-text)] font-mono">0-9 EN</span>
                     </label>
                     <input
                       type="text"
@@ -2588,55 +2595,55 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                           openingBalance: toEnglishDigits(e.target.value).replace(/[^0-9.-]/g, ''),
                         })
                       }
-                      className="w-full p-2.5 bg-[#06100c] border border-emerald-500/20 rounded-xl text-white focus:ring-1 focus:ring-emerald-400 focus:outline-none font-mono text-left"
+                      className="m3-input w-full text-xs font-mono tabular-nums text-left"
                     />
                   </div>
                 ) : (
                   <div>
-                    <label className="block text-slate-400 font-semibold mb-1">الرصيد الافتتاحي المسجل</label>
+                    <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">الرصيد الافتتاحي المسجل</label>
                     <input
                       type="text"
                       disabled
                       value={`${formatNumber(customerFormData.openingBalance)} ${customerFormData.currency}`}
-                      className="w-full p-2.5 bg-[#040a08] border border-slate-800 rounded-xl text-slate-500 font-mono"
+                      className="m3-input w-full text-xs font-mono tabular-nums"
                     />
                   </div>
                 )}
               </div>
 
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">العنوان التفصيلي</label>
+                <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">العنوان التفصيلي</label>
                 <input
                   type="text"
                   placeholder="صنعاء - شارع الزبيري"
                   value={customerFormData.address}
                   onChange={(e) => setCustomerFormData({ ...customerFormData, address: e.target.value })}
-                  className="w-full p-2.5 bg-[#06100c] border border-emerald-500/20 rounded-xl text-white focus:ring-1 focus:ring-emerald-400 focus:outline-none"
+                  className="m3-input w-full text-xs"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">ملاحظات وشروط الدفع</label>
+                <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">ملاحظات وشروط الدفع</label>
                 <textarea
                   rows={2}
                   placeholder="سقف الائتمان، الملاحظات التعاقدية..."
                   value={customerFormData.notes}
                   onChange={(e) => setCustomerFormData({ ...customerFormData, notes: e.target.value })}
-                  className="w-full p-2.5 bg-[#06100c] border border-emerald-500/20 rounded-xl text-white focus:ring-1 focus:ring-emerald-400 focus:outline-none"
+                  className="m3-input !h-auto py-2.5 w-full text-xs"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-emerald-900/40">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--md-outline-variant)]">
                 <button
                   type="button"
                   onClick={() => setIsCustomerModalOpen(false)}
-                  className="px-4 py-2 bg-[#0a1511] text-slate-300 rounded-xl border border-slate-700 hover:bg-slate-800 font-semibold cursor-pointer"
+                  className="m3-btn-outlined px-4 py-2 font-semibold cursor-pointer"
                 >
                   إلغاء
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white rounded-xl font-bold shadow-lg shadow-emerald-950 cursor-pointer"
+                  className="m3-btn-primary px-5 py-2 font-bold cursor-pointer"
                 >
                   حفظ العميل
                 </button>
@@ -2647,19 +2654,19 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
       )}
 
       {/* ========================================================================= */}
-      {/* 8. CREATE / EDIT SUPPLIER MODAL (Dark Emerald & Gold Theme)              */}
+      {/* 8. CREATE / EDIT SUPPLIER MODAL (M3 Unified Modal)                        */}
       {/* ========================================================================= */}
       {isSupplierModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-[#091511] rounded-2xl border border-amber-500/30 shadow-2xl w-full max-w-lg overflow-hidden text-right">
-            <div className="p-4 bg-gradient-to-r from-[#061a14] to-[#1d2710] border-b border-amber-500/20 flex items-center justify-between">
-              <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                <Truck className="w-4 h-4 text-amber-400" />
+        <div className="m3-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="m3-modal-surface w-full max-w-lg overflow-hidden text-right">
+            <div className="p-4 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] flex items-center justify-between">
+              <h3 className="font-bold text-[var(--md-on-surface)] text-sm flex items-center gap-2">
+                <Truck className="w-4 h-4 text-[var(--md-secondary)]" />
                 <span>{editingSupplier ? 'تعديل بيانات المورد' : 'إضافة مورد / مصنع جديد'}</span>
               </h3>
               <button
                 onClick={() => setIsSupplierModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1"
+                className="m3-btn-text p-1.5 rounded-lg cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2667,8 +2674,8 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
 
             <form onSubmit={handleSaveSupplier} className="p-5 space-y-3.5 text-xs">
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">
-                  اسم المورد / الشركة <span className="text-amber-400">*</span>
+                <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">
+                  اسم المورد / الشركة <span className="text-[var(--md-secondary)]">*</span>
                 </label>
                 <input
                   type="text"
@@ -2676,40 +2683,40 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                   placeholder="مثال: شركة النور للاستيراد والتوزيع"
                   value={supplierFormData.name}
                   onChange={(e) => setSupplierFormData({ ...supplierFormData, name: e.target.value })}
-                  className="w-full p-2.5 bg-[#06100c] border border-amber-500/20 rounded-xl text-white focus:ring-1 focus:ring-amber-400 focus:outline-none"
+                  className="m3-input w-full text-xs"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">رقم الهاتف</label>
+                  <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">رقم الهاتف</label>
                   <input
                     type="text"
                     placeholder="+967770000000"
                     value={supplierFormData.phone}
                     onChange={(e) => setSupplierFormData({ ...supplierFormData, phone: e.target.value })}
-                    className="w-full p-2.5 bg-[#06100c] border border-amber-500/20 rounded-xl text-white dir-ltr text-right focus:ring-1 focus:ring-amber-400 focus:outline-none font-mono"
+                    className="m3-input w-full text-xs dir-ltr text-right font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">البريد الإلكتروني</label>
+                  <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">البريد الإلكتروني</label>
                   <input
                     type="email"
                     placeholder="supplier@trade.com"
                     value={supplierFormData.email}
                     onChange={(e) => setSupplierFormData({ ...supplierFormData, email: e.target.value })}
-                    className="w-full p-2.5 bg-[#06100c] border border-amber-500/20 rounded-xl text-white focus:ring-1 focus:ring-amber-400 focus:outline-none"
+                    className="m3-input w-full text-xs"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">عملة التعامل</label>
+                  <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">عملة التعامل</label>
                   <select
                     value={supplierFormData.currency}
                     onChange={(e) => setSupplierFormData({ ...supplierFormData, currency: e.target.value })}
-                    className="w-full p-2.5 bg-[#06100c] border border-amber-500/20 rounded-xl text-white focus:ring-1 focus:ring-amber-400 focus:outline-none"
+                    className="m3-select w-full text-xs"
                   >
                     <option value="YER">ريال يمني (YER)</option>
                     <option value="SAR">ريال سعودي (SAR)</option>
@@ -2719,9 +2726,9 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
 
                 {!editingSupplier ? (
                   <div>
-                    <label className="block text-slate-300 font-semibold mb-1 flex items-center justify-between">
+                    <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1 flex items-center justify-between">
                       <span>الرصيد الافتتاحي</span>
-                      <span className="text-[10px] text-amber-400 font-mono">0-9 EN</span>
+                      <span className="text-[10px] text-[var(--md-secondary)] font-mono">0-9 EN</span>
                     </label>
                     <input
                       type="text"
@@ -2736,55 +2743,55 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                           openingBalance: toEnglishDigits(e.target.value).replace(/[^0-9.-]/g, ''),
                         })
                       }
-                      className="w-full p-2.5 bg-[#06100c] border border-amber-500/20 rounded-xl text-white focus:ring-1 focus:ring-amber-400 focus:outline-none font-mono text-left"
+                      className="m3-input w-full text-xs font-mono tabular-nums text-left"
                     />
                   </div>
                 ) : (
                   <div>
-                    <label className="block text-slate-400 font-semibold mb-1">الرصيد الافتتاحي المسجل</label>
+                    <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">الرصيد الافتتاحي المسجل</label>
                     <input
                       type="text"
                       disabled
                       value={`${formatNumber(supplierFormData.openingBalance)} ${supplierFormData.currency}`}
-                      className="w-full p-2.5 bg-[#040a08] border border-slate-800 rounded-xl text-slate-500 font-mono"
+                      className="m3-input w-full text-xs font-mono tabular-nums"
                     />
                   </div>
                 )}
               </div>
 
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">العنوان والمقر</label>
+                <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">العنوان والمقر</label>
                 <input
                   type="text"
                   placeholder="الميناء / المنطقة الصناعية"
                   value={supplierFormData.address}
                   onChange={(e) => setSupplierFormData({ ...supplierFormData, address: e.target.value })}
-                  className="w-full p-2.5 bg-[#06100c] border border-amber-500/20 rounded-xl text-white focus:ring-1 focus:ring-amber-400 focus:outline-none"
+                  className="m3-input w-full text-xs"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">ملاحظات التوريد</label>
+                <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">ملاحظات التوريد</label>
                 <textarea
                   rows={2}
                   placeholder="فترة السماح، شروط الاستحقاق..."
                   value={supplierFormData.notes}
                   onChange={(e) => setSupplierFormData({ ...supplierFormData, notes: e.target.value })}
-                  className="w-full p-2.5 bg-[#06100c] border border-amber-500/20 rounded-xl text-white focus:ring-1 focus:ring-amber-400 focus:outline-none"
+                  className="m3-input !h-auto py-2.5 w-full text-xs"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-amber-900/40">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--md-outline-variant)]">
                 <button
                   type="button"
                   onClick={() => setIsSupplierModalOpen(false)}
-                  className="px-4 py-2 bg-[#0a1511] text-slate-300 rounded-xl border border-slate-700 hover:bg-slate-800 font-semibold cursor-pointer"
+                  className="m3-btn-outlined px-4 py-2 font-semibold cursor-pointer"
                 >
                   إلغاء
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white rounded-xl font-bold shadow-lg shadow-amber-950 cursor-pointer"
+                  className="m3-btn-primary px-5 py-2 font-bold cursor-pointer"
                 >
                   حفظ المورد
                 </button>
@@ -2798,21 +2805,21 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
       {/* 9. DIRECT ACCOUNT TRANSACTION MODAL (Customer & Supplier)                 */}
       {/* ========================================================================= */}
       {isTxModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-          <div className="bg-[#091511] rounded-2xl border border-emerald-500/30 shadow-2xl w-full max-w-lg overflow-hidden text-right space-y-0 text-xs">
-            <div className="p-4 bg-gradient-to-r from-[#061a14] to-[#0e2a20] border-b border-emerald-500/20 flex items-center justify-between">
+        <div className="m3-backdrop fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="m3-modal-surface w-full max-w-lg overflow-hidden text-right space-y-0 text-xs">
+            <div className="p-4 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] flex items-center justify-between">
               <div>
-                <h4 className="font-bold text-white text-sm flex items-center gap-2">
-                  <ArrowLeftRight className="w-4 h-4 text-emerald-400" />
+                <h4 className="font-bold text-[var(--md-on-surface)] text-sm flex items-center gap-2">
+                  <ArrowLeftRight className="w-4 h-4 text-[var(--md-primary-text)]" />
                   <span>تسجيل حركة حساب مباشرة (Direct Transaction)</span>
                 </h4>
-                <p className="text-[11px] text-emerald-300/70 mt-0.5">
+                <p className="text-[11px] text-[var(--md-on-surface-variant)] mt-0.5">
                   قيد حركة مالية مدينة/دائنة بدون فاتورة مع تدقيق الأثر المباشر
                 </p>
               </div>
               <button
                 onClick={() => setIsTxModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1"
+                className="m3-btn-text p-1.5 rounded-lg cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2821,8 +2828,8 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
             <form onSubmit={handleSubmitTransaction} className="p-5 space-y-4">
               {/* Account Selector */}
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">
-                  الحساب المستهدف <span className="text-emerald-400">*</span>
+                <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">
+                  الحساب المستهدف <span className="text-[var(--md-primary-text)]">*</span>
                 </label>
                 <select
                   required
@@ -2841,7 +2848,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                       });
                     }
                   }}
-                  className="w-full p-2.5 bg-[#06100c] border border-emerald-500/20 rounded-xl text-white focus:ring-1 focus:ring-emerald-400 focus:outline-none"
+                  className="m3-select w-full text-xs"
                 >
                   <option value="" disabled>اختر الحساب...</option>
                   <optgroup label="العملاء (Customers)">
@@ -2863,8 +2870,8 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
 
               {/* Transaction Type Buttons */}
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">
-                  نوع القيد / الحركة <span className="text-emerald-400">*</span>
+                <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">
+                  نوع القيد / الحركة <span className="text-[var(--md-primary-text)]">*</span>
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   <button
@@ -2872,12 +2879,12 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                     onClick={() => setTxFormData({ ...txFormData, type: 'DEBIT' })}
                     className={`p-2.5 rounded-xl border text-center font-bold transition-all cursor-pointer ${
                       txFormData.type === 'DEBIT'
-                        ? 'border-emerald-400 bg-emerald-600/30 text-emerald-200 ring-1 ring-emerald-400'
-                        : 'border-emerald-950 bg-[#06100c] text-slate-400 hover:text-white'
+                        ? 'border-[var(--md-primary)] bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] ring-1 ring-[var(--md-primary)]/40'
+                        : 'border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
                     }`}
                   >
                     <div>مدين (DEBIT)</div>
-                    <div className="text-[9px] font-normal opacity-75">مبيعات / زيادة مديونية</div>
+                    <div className="text-[9px] font-normal opacity-80">مبيعات / زيادة مديونية</div>
                   </button>
 
                   <button
@@ -2885,12 +2892,12 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                     onClick={() => setTxFormData({ ...txFormData, type: 'CREDIT' })}
                     className={`p-2.5 rounded-xl border text-center font-bold transition-all cursor-pointer ${
                       txFormData.type === 'CREDIT'
-                        ? 'border-amber-400 bg-amber-600/30 text-amber-200 ring-1 ring-amber-400'
-                        : 'border-emerald-950 bg-[#06100c] text-slate-400 hover:text-white'
+                        ? 'border-[var(--md-warning)] bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)] ring-1 ring-[var(--md-warning)]/40'
+                        : 'border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
                     }`}
                   >
                     <div>دائن (CREDIT)</div>
-                    <div className="text-[9px] font-normal opacity-75">توريد / استحقاق</div>
+                    <div className="text-[9px] font-normal opacity-80">توريد / استحقاق</div>
                   </button>
 
                   <button
@@ -2898,12 +2905,12 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                     onClick={() => setTxFormData({ ...txFormData, type: 'PAYMENT' })}
                     className={`p-2.5 rounded-xl border text-center font-bold transition-all cursor-pointer ${
                       txFormData.type === 'PAYMENT'
-                        ? 'border-blue-400 bg-blue-600/30 text-blue-200 ring-1 ring-blue-400'
-                        : 'border-emerald-950 bg-[#06100c] text-slate-400 hover:text-white'
+                        ? 'border-[var(--md-info)] bg-[var(--md-info-container)] text-[var(--md-on-info-container)] ring-1 ring-[var(--md-info)]/40'
+                        : 'border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
                     }`}
                   >
                     <div>سداد/قبض</div>
-                    <div className="text-[9px] font-normal opacity-75">تحصيل أو دفع نقدي</div>
+                    <div className="text-[9px] font-normal opacity-80">تحصيل أو دفع نقدي</div>
                   </button>
                 </div>
               </div>
@@ -2911,11 +2918,11 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
               {/* Amount, Currency, Rate */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1 flex items-center justify-between">
+                  <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1 flex items-center justify-between">
                     <span>
-                      المبلغ <span className="text-emerald-400">*</span>
+                      المبلغ <span className="text-[var(--md-primary-text)]">*</span>
                     </span>
-                    <span className="text-[10px] text-emerald-400 font-mono">0-9 EN</span>
+                    <span className="text-[10px] text-[var(--md-primary-text)] font-mono">0-9 EN</span>
                   </label>
                   <input
                     type="text"
@@ -2931,12 +2938,12 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                         amount: toEnglishDigits(e.target.value).replace(/[^0-9.]/g, ''),
                       })
                     }
-                    className="w-full p-2.5 bg-[#06100c] border border-emerald-500/20 rounded-xl text-white font-mono text-left focus:ring-1 focus:ring-emerald-400 focus:outline-none"
+                    className="m3-input w-full text-xs font-mono tabular-nums text-left"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">العملة</label>
+                  <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">العملة</label>
                   <select
                     value={txFormData.currency}
                     onChange={(e) => {
@@ -2947,7 +2954,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                         exchangeRate: cur === 'YER' ? '1.0' : txFormData.exchangeRate || '1.0',
                       });
                     }}
-                    className="w-full p-2.5 bg-[#06100c] border border-emerald-500/20 rounded-xl text-white focus:ring-1 focus:ring-emerald-400 focus:outline-none"
+                    className="m3-select w-full text-xs"
                   >
                     <option value="YER">YER (ريال يمني)</option>
                     <option value="SAR">SAR (ريال سعودي)</option>
@@ -2956,11 +2963,11 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1 flex items-center justify-between">
+                  <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1 flex items-center justify-between">
                     <span>
-                      سعر الصرف {txFormData.currency !== 'YER' && <span className="text-[10px] text-amber-400">(مقابل YER)</span>}
+                      سعر الصرف {txFormData.currency !== 'YER' && <span className="text-[10px] text-[var(--md-warning)]">(مقابل YER)</span>}
                     </span>
-                    <span className="text-[10px] text-amber-400 font-mono">0-9 EN</span>
+                    <span className="text-[10px] text-[var(--md-secondary)] font-mono">0-9 EN</span>
                   </label>
                   <input
                     type="text"
@@ -2976,11 +2983,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                       })
                     }
                     placeholder="1.0"
-                    className={`w-full p-2.5 border rounded-xl font-mono text-left ${
-                      txFormData.currency === 'YER'
-                        ? 'bg-[#040a08] text-slate-600 border-slate-800'
-                        : 'bg-[#06100c] border-emerald-500/20 text-white focus:ring-1 focus:ring-emerald-400'
-                    }`}
+                    className="m3-input w-full text-xs font-mono tabular-nums text-left"
                   />
                 </div>
               </div>
@@ -2988,80 +2991,80 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
               {/* Date & Description */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">تاريخ الحركة</label>
+                  <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">تاريخ الحركة</label>
                   <input
                     type="date"
                     required
                     value={txFormData.date}
                     onChange={(e) => setTxFormData({ ...txFormData, date: e.target.value })}
-                    className="w-full p-2.5 bg-[#06100c] border border-emerald-500/20 rounded-xl text-white focus:ring-1 focus:ring-emerald-400 focus:outline-none font-mono"
+                    className="m3-input w-full text-xs font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">رقم السند / المرجع</label>
+                  <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">رقم السند / المرجع</label>
                   <input
                     type="text"
                     placeholder="TX-000001 (اختياري)"
                     value={txFormData.referenceNo}
                     onChange={(e) => setTxFormData({ ...txFormData, referenceNo: e.target.value })}
-                    className="w-full p-2.5 bg-[#06100c] border border-emerald-500/20 rounded-xl text-white font-mono focus:ring-1 focus:ring-emerald-400 focus:outline-none"
+                    className="m3-input w-full text-xs font-mono"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">البيان / الوصف</label>
+                  <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">البيان / الوصف</label>
                   <input
                     type="text"
                     placeholder="سبب الحركة أو الشرح المحاسبي..."
                     value={txFormData.description}
                     onChange={(e) => setTxFormData({ ...txFormData, description: e.target.value })}
-                    className="w-full p-2.5 bg-[#06100c] border border-emerald-500/20 rounded-xl text-white focus:ring-1 focus:ring-emerald-400 focus:outline-none"
+                    className="m3-input w-full text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1 flex items-center justify-between">
+                  <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1 flex items-center justify-between">
                     <span>المستلم / المسحوب بواسطة</span>
-                    <span className="text-[10px] text-sky-400 font-normal">اختياري</span>
+                    <span className="text-[10px] text-[var(--md-info)] font-normal">اختياري</span>
                   </label>
                   <input
                     type="text"
                     placeholder="اسم الشخص المستلم أو السائق..."
                     value={txFormData.receivedBy}
                     onChange={(e) => setTxFormData({ ...txFormData, receivedBy: e.target.value })}
-                    className="w-full p-2.5 bg-[#06100c] border border-sky-500/30 rounded-xl text-white focus:ring-1 focus:ring-sky-400 focus:outline-none"
+                    className="m3-input w-full text-xs"
                   />
                 </div>
               </div>
 
               {/* Live Simulation Box */}
               {simulatedParty && (
-                <div className="p-3 bg-[#06120d] rounded-xl border border-emerald-500/20 space-y-1 text-[11px]">
-                  <div className="flex justify-between text-slate-400">
+                <div className="p-3 bg-[var(--md-surface-container-low)] rounded-xl border border-[var(--md-outline-variant)] space-y-1 text-[11px]">
+                  <div className="flex justify-between text-[var(--md-on-surface-variant)]">
                     <span>الرصيد الحالي السابق:</span>
-                    <span className="font-mono">{formatNumber(currentPartyBalance)} {simulatedParty.currency || 'YER'}</span>
+                    <span className="font-mono tabular-nums">{formatNumber(currentPartyBalance)} {simulatedParty.currency || 'YER'}</span>
                   </div>
-                  <div className="flex justify-between font-bold text-emerald-400 pt-1 border-t border-emerald-950">
+                  <div className="flex justify-between font-bold text-[var(--md-primary-text)] pt-1 border-t border-[var(--md-outline-variant)]">
                     <span>الرصيد الجديد المتوقع بعد الحفظ:</span>
-                    <span className="font-mono text-sm">{formatNumber(simulatedNewBalance)} {simulatedParty.currency || 'YER'}</span>
+                    <span className="font-mono tabular-nums text-sm">{formatNumber(simulatedNewBalance)} {simulatedParty.currency || 'YER'}</span>
                   </div>
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-emerald-900/40">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--md-outline-variant)]">
                 <button
                   type="button"
                   onClick={() => setIsTxModalOpen(false)}
                   disabled={txSubmitting}
-                  className="px-4 py-2 bg-[#0a1511] text-slate-300 rounded-xl border border-slate-700 hover:bg-slate-800 font-semibold cursor-pointer"
+                  className="m3-btn-outlined px-4 py-2 font-semibold cursor-pointer"
                 >
                   إلغاء
                 </button>
                 <button
                   type="submit"
                   disabled={txSubmitting}
-                  className="px-5 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white rounded-xl font-bold shadow-lg shadow-emerald-950 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="m3-btn-primary px-5 py-2 font-bold flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {txSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                   <span>اعتماد وقيد الحركة</span>
@@ -3076,43 +3079,43 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
       {/* 9.5 CUSTOMER MERGE MODAL (دمج حساب عميل مكرر أو مجهول)                     */}
       {/* ========================================================================= */}
       {mergeModal && (
-        <div className="fixed inset-0 z-[65] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" dir="rtl">
-          <div className="bg-[#091511] rounded-2xl border border-amber-500/40 shadow-2xl w-full max-w-md overflow-hidden text-right">
-            <div className="p-4 bg-gradient-to-r from-[#171306] to-[#2a220e] border-b border-amber-500/30 flex items-center justify-between">
+        <div className="m3-backdrop fixed inset-0 z-[65] flex items-center justify-center p-4 animate-fade-in" dir="rtl">
+          <div className="m3-modal-surface w-full max-w-md overflow-hidden text-right">
+            <div className="p-4 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)] flex items-center justify-center">
                   <Share2 className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-white text-sm">دمج حساب العميل (Customer Merge)</h4>
-                  <p className="text-[11px] text-amber-300/80">نقل الحركات والرصيد والفواتير إلى الحساب الأساسي</p>
+                  <h4 className="font-bold text-[var(--md-on-surface)] text-sm">دمج حساب العميل (Customer Merge)</h4>
+                  <p className="text-[11px] text-[var(--md-on-surface-variant)]">نقل الحركات والرصيد والفواتير إلى الحساب الأساسي</p>
                 </div>
               </div>
               <button
                 onClick={() => setMergeModal(null)}
-                className="text-slate-400 hover:text-white p-1"
+                className="m3-btn-text p-1.5 rounded-lg cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="p-5 space-y-4 text-xs">
-              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-1.5">
-                <div className="text-[11px] font-bold text-amber-300">العميل المُراد دمجه (المصدر):</div>
-                <div className="text-white font-black text-sm">{mergeModal.sourceCustomer.name || mergeModal.sourceCustomer._name}</div>
-                <div className="text-slate-400 font-mono text-[11px]">
+              <div className="p-3 bg-[var(--md-warning-container)]/50 border border-[var(--md-warning)]/35 rounded-xl space-y-1.5">
+                <div className="text-[11px] font-bold text-[var(--md-on-warning-container)]">العميل المُراد دمجه (المصدر):</div>
+                <div className="text-[var(--md-on-surface)] font-black text-sm">{mergeModal.sourceCustomer.name || mergeModal.sourceCustomer._name}</div>
+                <div className="text-[var(--md-on-surface-variant)] font-mono tabular-nums text-[11px]">
                   الرصيد الحالي: {formatNumber(mergeModal.sourceCustomer.current_balance || mergeModal.sourceCustomer.balance || 0)} {mergeModal.sourceCustomer.currency || 'YER'}
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1.5">
-                  اختر العميل الأساسي المُراد الدمج إليه (الهدف) <span className="text-amber-400">*</span>:
+                <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1.5">
+                  اختر العميل الأساسي المُراد الدمج إليه (الهدف) <span className="text-[var(--md-warning)]">*</span>:
                 </label>
                 <select
                   value={mergeModal.targetCustomerId}
                   onChange={(e) => setMergeModal({ ...mergeModal, targetCustomerId: e.target.value })}
-                  className="w-full p-2.5 bg-[#06100c] border border-amber-500/30 rounded-xl text-white font-bold focus:ring-1 focus:ring-amber-400 focus:outline-none"
+                  className="m3-select w-full text-xs font-bold"
                 >
                   <option value="" disabled>اختر العميل المستهدف...</option>
                   {customers
@@ -3125,18 +3128,18 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                 </select>
               </div>
 
-              <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-400 text-[11px] space-y-1">
-                <div>⚠️ <strong>ماذا سيحدث بعد تأكيد الدمج؟</strong></div>
+              <div className="p-3 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl text-[var(--md-on-surface-variant)] text-[11px] space-y-1">
+                <div className="text-[var(--md-on-surface)]">⚠️ <strong>ماذا سيحدث بعد تأكيد الدمج؟</strong></div>
                 <div>• سيتم نقل كافة الفواتير وسندات القبض وحركات الحساب فوراً إلى العميل المستهدف.</div>
                 <div>• سيتم دمج الرصيد المالي وإلغاء حساب العميل المصدر لمنع التكرار والحسابات المجهولة.</div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-amber-900/40">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--md-outline-variant)]">
                 <button
                   type="button"
                   onClick={() => setMergeModal(null)}
                   disabled={isMerging}
-                  className="px-4 py-2 bg-[#0a1511] text-slate-300 rounded-xl border border-slate-700 hover:bg-slate-800 font-semibold cursor-pointer"
+                  className="m3-btn-outlined px-4 py-2 font-semibold cursor-pointer"
                 >
                   إلغاء
                 </button>
@@ -3144,7 +3147,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                   type="button"
                   onClick={handleExecuteMerge}
                   disabled={isMerging || !mergeModal.targetCustomerId}
-                  className="px-5 py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white rounded-xl font-bold shadow-lg shadow-amber-950 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="m3-btn-primary px-5 py-2 font-bold flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {isMerging && <Loader2 className="w-4 h-4 animate-spin" />}
                   <span>تأكيد دمج الحساب</span>
@@ -3159,32 +3162,32 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
       {/* 10. IN-SYSTEM WHATSAPP STATEMENT SENDER MODAL                            */}
       {/* ========================================================================= */}
       {whatsAppModalData && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-3 sm:p-4 animate-fade-in">
-          <div className="bg-[#091511] rounded-2xl border border-emerald-500/30 shadow-2xl w-full max-w-xl overflow-hidden text-right flex flex-col max-h-[92vh]">
+        <div className="m3-backdrop fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+          <div className="m3-modal-surface w-full max-w-xl overflow-hidden text-right flex flex-col max-h-[92vh]">
             
             {/* Modal Header */}
-            <div className="p-4 bg-gradient-to-r from-[#061a14] to-[#0c2e1f] border-b border-emerald-500/20 flex items-center justify-between">
+            <div className="p-4 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-[#25D366] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-[var(--md-success-container)] text-[var(--md-on-success-container)] flex items-center justify-center">
                   <MessageCircle className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                  <h3 className="font-bold text-[var(--md-on-surface)] text-sm flex items-center gap-2 flex-wrap">
                     <span>إرسال كشف الحساب عبر WhatsApp</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    <span className="m3-badge m3-badge-success text-[10px]">
                       إرسال فوري داخل النظام
                     </span>
                   </h3>
-                  <p className="text-[11px] text-slate-400">
-                    الحساب: <span className="text-white font-semibold">{whatsAppModalData.party.name || whatsAppModalData.party._name}</span>
-                    <span className="font-mono text-emerald-400 mx-1.5">• ACC-{String(whatsAppModalData.party.id).slice(-6)}</span>
+                  <p className="text-[11px] text-[var(--md-on-surface-variant)]">
+                    الحساب: <span className="text-[var(--md-on-surface)] font-semibold">{whatsAppModalData.party.name || whatsAppModalData.party._name}</span>
+                    <span className="font-mono text-[var(--md-primary-text)] mx-1.5">• ACC-{String(whatsAppModalData.party.id).slice(-6)}</span>
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setWhatsAppModalData(null)}
                 disabled={isSendingWhatsApp}
-                className="text-slate-400 hover:text-white p-1.5 rounded-lg bg-[#06120d] border border-emerald-500/20 cursor-pointer"
+                className="m3-btn-outlined !min-h-[34px] !px-2 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -3194,13 +3197,13 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
             <div className="p-4 sm:p-5 space-y-4 overflow-y-auto text-xs flex-1">
               
               {/* Recipient Phone Configuration */}
-              <div className="p-3.5 bg-[#06120d] rounded-xl border border-emerald-500/20 space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                    <Phone className="w-3.5 h-3.5 text-emerald-400" />
+              <div className="p-3.5 bg-[var(--md-surface-container-low)] rounded-xl border border-[var(--md-outline-variant)] space-y-2">
+                <div className="flex items-center justify-between flex-wrap gap-1">
+                  <label className="text-xs font-bold text-[var(--md-on-surface)] flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
                     <span>رقم هاتف المستلم (WhatsApp)</span>
                   </label>
-                  <span className="text-[10px] text-slate-400">يجب أن يتضمن مفتاح الدولة (مثل: 967+ أو 966+)</span>
+                  <span className="text-[10px] text-[var(--md-on-surface-variant)]">يجب أن يتضمن مفتاح الدولة (مثل: 967+ أو 966+)</span>
                 </div>
                 <input
                   type="text"
@@ -3213,34 +3216,34 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                     })
                   }
                   placeholder="+967 770 000 000"
-                  className="w-full px-3.5 py-2 bg-[#091f17] border border-emerald-500/30 rounded-lg text-xs font-mono text-emerald-300 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                  className="m3-input w-full text-xs font-mono"
                 />
               </div>
 
               {/* Statement Financial Metrics Pill Summary */}
               {whatsAppModalData.statementSummary && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
-                  <div className="p-2 rounded-lg bg-[#06120d] border border-emerald-500/20">
-                    <div className="text-[10px] text-slate-400">الرصيد الافتتاحي</div>
-                    <div className="font-mono font-bold text-slate-200 text-xs mt-0.5">
+                  <div className="p-2 rounded-lg bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)]">
+                    <div className="text-[10px] text-[var(--md-on-surface-variant)]">الرصيد الافتتاحي</div>
+                    <div className="font-mono tabular-nums font-bold text-[var(--md-on-surface)] text-xs mt-0.5">
                       {toEnglishDigits(formatNumber(whatsAppModalData.statementSummary.openingBalance))}
                     </div>
                   </div>
-                  <div className="p-2 rounded-lg bg-[#06120d] border border-emerald-500/20">
-                    <div className="text-[10px] text-amber-400">إجمالي المدين</div>
-                    <div className="font-mono font-bold text-amber-300 text-xs mt-0.5">
+                  <div className="p-2 rounded-lg bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)]">
+                    <div className="text-[10px] text-[var(--md-warning)]">إجمالي المدين</div>
+                    <div className="font-mono tabular-nums font-bold text-[var(--md-warning)] text-xs mt-0.5">
                       +{toEnglishDigits(formatNumber(whatsAppModalData.statementSummary.totalDebit))}
                     </div>
                   </div>
-                  <div className="p-2 rounded-lg bg-[#06120d] border border-emerald-500/20">
-                    <div className="text-[10px] text-emerald-400">إجمالي الدائن</div>
-                    <div className="font-mono font-bold text-emerald-300 text-xs mt-0.5">
+                  <div className="p-2 rounded-lg bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)]">
+                    <div className="text-[10px] text-[var(--md-success)]">إجمالي الدائن</div>
+                    <div className="font-mono tabular-nums font-bold text-[var(--md-success)] text-xs mt-0.5">
                       -{toEnglishDigits(formatNumber(whatsAppModalData.statementSummary.totalCredit))}
                     </div>
                   </div>
-                  <div className="p-2 rounded-lg bg-emerald-950/40 border border-emerald-500/40">
-                    <div className="text-[10px] text-emerald-300 font-bold">الرصيد النهائي</div>
-                    <div className="font-mono font-black text-emerald-400 text-xs mt-0.5">
+                  <div className="p-2 rounded-lg bg-[var(--md-primary-container)]/50 border border-[var(--md-primary)]/35">
+                    <div className="text-[10px] text-[var(--md-primary-text)] font-bold">الرصيد النهائي</div>
+                    <div className="font-mono tabular-nums font-black text-[var(--md-primary-text)] text-xs mt-0.5">
                       {toEnglishDigits(formatNumber(whatsAppModalData.statementSummary.closingBalance))} {whatsAppModalData.statementSummary.currency}
                     </div>
                   </div>
@@ -3249,12 +3252,12 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
 
               {/* Editable Formatted Statement Text */}
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-slate-300">
+                <div className="flex items-center justify-between text-[var(--md-on-surface)] flex-wrap gap-1">
                   <span className="font-bold flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                    <FileText className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
                     <span>نص كشف الحساب المعتمد للإرسال</span>
                   </span>
-                  <span className="text-[10px] text-slate-400">يمكنك التعديل أو إضافة ملاحظات خاصة قبل الإرسال</span>
+                  <span className="text-[10px] text-[var(--md-on-surface-variant)]">يمكنك التعديل أو إضافة ملاحظات خاصة قبل الإرسال</span>
                 </div>
                 <textarea
                   rows={9}
@@ -3265,13 +3268,13 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                       message: e.target.value,
                     })
                   }
-                  className="w-full p-3 bg-[#06120d] rounded-xl border border-emerald-500/20 font-mono text-[11px] text-slate-200 leading-relaxed focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                  className="m3-input !h-auto p-3 w-full font-mono text-[11px] leading-relaxed"
                 />
               </div>
 
               {/* Internal System Archival Note */}
-              <div className="p-2.5 rounded-lg bg-[#05110b] border border-emerald-500/20 flex items-center gap-2 text-[11px] text-slate-400">
-                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+              <div className="p-2.5 rounded-lg bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] flex items-center gap-2 text-[11px] text-[var(--md-on-surface-variant)]">
+                <ShieldCheck className="w-4 h-4 text-[var(--md-primary-text)] shrink-0" />
                 <span>
                   يتم إرسال هذا الكشف وتسجيله فورياً في مركز محادثات واتساب النظام الداخلي وتحديث مؤشرات التوصيل وسجل التدقيق.
                 </span>
@@ -3279,7 +3282,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
             </div>
 
             {/* Modal Actions Footer */}
-            <div className="p-4 bg-[#06120d] border-t border-emerald-500/20 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+            <div className="p-4 bg-[var(--md-surface-container-low)] border-t border-[var(--md-outline-variant)] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
               
               {/* Copy & External WhatsApp Buttons */}
               <div className="flex items-center gap-2">
@@ -3290,9 +3293,9 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                     setCopiedWhatsApp(true);
                     setTimeout(() => setCopiedWhatsApp(false), 3000);
                   }}
-                  className="px-3 py-2 bg-[#0c1f19] hover:bg-slate-700 text-slate-300 rounded-xl font-semibold flex items-center gap-1.5 border border-emerald-500/20 cursor-pointer text-xs"
+                  className="m3-btn-outlined px-3 py-2 font-semibold flex items-center gap-1.5 cursor-pointer text-xs"
                 >
-                  {copiedWhatsApp ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedWhatsApp ? <Check className="w-3.5 h-3.5 text-[var(--md-success)]" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{copiedWhatsApp ? 'تم النسخ' : 'نسخ النص'}</span>
                 </button>
 
@@ -3300,7 +3303,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                   href={`https://wa.me/${whatsAppModalData.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(whatsAppModalData.message)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3 py-2 bg-[#0c1f19] hover:bg-[#1a3f2e] text-slate-300 hover:text-emerald-300 rounded-xl font-medium flex items-center gap-1.5 border border-emerald-500/20 cursor-pointer text-xs transition-colors"
+                  className="m3-btn-outlined px-3 py-2 font-medium flex items-center gap-1.5 cursor-pointer text-xs"
                   title="فتح تطبيق واتساب الخارجي كنسخة إضافية عند الحاجة"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -3314,7 +3317,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                   type="button"
                   onClick={() => setWhatsAppModalData(null)}
                   disabled={isSendingWhatsApp}
-                  className="px-4 py-2 bg-[#0a1511] text-slate-300 rounded-xl border border-slate-700 hover:bg-slate-800 font-semibold cursor-pointer text-xs"
+                  className="m3-btn-outlined px-4 py-2 font-semibold cursor-pointer text-xs"
                 >
                   إلغاء
                 </button>
@@ -3323,7 +3326,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                   type="button"
                   onClick={handleSendWhatsAppInSystem}
                   disabled={isSendingWhatsApp || !whatsAppModalData.phone.trim()}
-                  className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-950 cursor-pointer text-xs transition-all disabled:opacity-50"
+                  className="m3-btn-primary px-5 py-2.5 font-bold flex items-center justify-center gap-2 cursor-pointer text-xs disabled:opacity-50"
                 >
                   {isSendingWhatsApp ? (
                     <>
@@ -3332,7 +3335,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                     </>
                   ) : (
                     <>
-                      <Send className="w-4 h-4 text-emerald-200" />
+                      <Send className="w-4 h-4" />
                       <span>إرسال فوري داخل النظام 💬</span>
                     </>
                   )}
@@ -3348,44 +3351,44 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
       {/* 11. IMPORT HELPER MODAL                                                  */}
       {/* ========================================================================= */}
       {isImportModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-[#091511] rounded-2xl border border-emerald-500/30 shadow-2xl w-full max-w-md overflow-hidden text-right">
-            <div className="p-4 bg-gradient-to-r from-[#061a14] to-[#0e2b20] border-b border-emerald-500/20 flex items-center justify-between">
-              <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                <Download className="w-4 h-4 text-emerald-400 rotate-180" />
+        <div className="m3-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="m3-modal-surface w-full max-w-md overflow-hidden text-right">
+            <div className="p-4 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] flex items-center justify-between">
+              <h3 className="font-bold text-[var(--md-on-surface)] text-sm flex items-center gap-2">
+                <Download className="w-4 h-4 text-[var(--md-primary-text)] rotate-180" />
                 <span>استيراد دليل العملاء والموردين</span>
               </h3>
               <button
                 onClick={() => setIsImportModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1"
+                className="m3-btn-text p-1.5 rounded-lg cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-5 space-y-4 text-xs text-slate-300">
+            <div className="p-5 space-y-4 text-xs text-[var(--md-on-surface-variant)]">
               <p className="leading-relaxed">
                 يدعم نظام AI Business System استيراد ملفات Excel (.xlsx) و CSV للعملاء والموردين مع المطابقة التلقائية للحقول والأرصدة الافتتاحية.
               </p>
 
-              <div className="p-3 bg-[#06120d] rounded-xl border border-emerald-500/20 space-y-1.5 text-[11px]">
-                <div className="font-bold text-emerald-300">الهيكل الموصى به للملف:</div>
-                <div className="font-mono text-slate-400">
+              <div className="p-3 bg-[var(--md-surface-container-low)] rounded-xl border border-[var(--md-outline-variant)] space-y-1.5 text-[11px]">
+                <div className="font-bold text-[var(--md-primary-text)]">الهيكل الموصى به للملف:</div>
+                <div className="font-mono text-[var(--md-on-surface-variant)]">
                   الاسم | الهاتف | البريد | العنوان | الرصيد الافتتاحي | العملة
                 </div>
               </div>
 
-              <div className="border-2 border-dashed border-emerald-500/30 rounded-xl p-6 text-center bg-[#06120d] hover:border-emerald-400 transition-colors cursor-pointer">
-                <Download className="w-8 h-8 mx-auto text-emerald-400 mb-2" />
-                <div className="font-bold text-white">انقر لاختيار ملف Excel أو CSV أو اسحبه هنا</div>
-                <div className="text-[10px] text-slate-500 mt-1">الحد الأقصى لحجم الملف: 5MB</div>
+              <div className="border-2 border-dashed border-[var(--md-outline)] rounded-xl p-6 text-center bg-[var(--md-surface-container-low)] hover:border-[var(--md-primary)] transition-colors cursor-pointer">
+                <Download className="w-8 h-8 mx-auto text-[var(--md-primary-text)] mb-2" />
+                <div className="font-bold text-[var(--md-on-surface)]">انقر لاختيار ملف Excel أو CSV أو اسحبه هنا</div>
+                <div className="text-[10px] text-[var(--md-on-surface-variant)] mt-1">الحد الأقصى لحجم الملف: 5MB</div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-emerald-900/40">
+              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--md-outline-variant)]">
                 <button
                   type="button"
                   onClick={() => setIsImportModalOpen(false)}
-                  className="px-4 py-2 bg-[#0a1511] text-slate-300 rounded-xl border border-slate-700 hover:bg-slate-800 font-semibold cursor-pointer"
+                  className="m3-btn-outlined px-4 py-2 font-semibold cursor-pointer"
                 >
                   إغلاق
                 </button>

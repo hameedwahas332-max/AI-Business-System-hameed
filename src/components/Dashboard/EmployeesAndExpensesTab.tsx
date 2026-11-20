@@ -406,27 +406,27 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
   };
 
   return (
-    <div className="space-y-6 pb-12 font-sans" dir="rtl">
+    <div className="space-y-6 pb-12 font-sans text-[var(--md-on-surface)]" dir="rtl">
       {/* Alert Banner */}
       {alertMessage && (
         <div
           className={`p-4 rounded-xl flex items-center justify-between border ${
             alertMessage.type === 'success'
-              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-              : 'bg-rose-50 text-rose-800 border-rose-200'
+              ? 'bg-[var(--md-success-container)] text-[var(--md-on-success-container)] border-[var(--md-success)]/30'
+              : 'bg-[var(--md-error-container)] text-[var(--md-on-error-container)] border-[var(--md-error)]/30'
           }`}
         >
           <div className="flex items-center gap-3 font-semibold text-sm">
             {alertMessage.type === 'success' ? (
-              <CheckCircle className="w-5 h-5 text-emerald-600" />
+              <CheckCircle className="w-5 h-5 text-[var(--md-success)] shrink-0" />
             ) : (
-              <AlertTriangle className="w-5 h-5 text-rose-600" />
+              <AlertTriangle className="w-5 h-5 text-[var(--md-error)] shrink-0" />
             )}
             <span>{alertMessage.text}</span>
           </div>
           <button
             onClick={() => setAlertMessage(null)}
-            className="text-gray-400 hover:text-gray-600"
+            className="m3-btn-text !min-h-[28px] !p-1 cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -434,11 +434,11 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
       )}
 
       {/* Main Module Header & Sub-Tab Switcher */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+      <div className="m3-card-elevated p-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-blue-50 text-blue-700 rounded-xl">
+              <div className="p-2.5 bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/20 rounded-xl shrink-0">
                 {activeTab === 'employees' ? (
                   <Users className="w-6 h-6" />
                 ) : (
@@ -446,12 +446,12 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
                 )}
               </div>
               <div>
-                <h1 className="text-xl font-bold text-slate-900">
+                <h1 className="text-xl font-bold text-[var(--md-on-surface)]">
                   {activeTab === 'employees'
                     ? 'إدارة الموظفين والرواتب والسلف والحضور'
                     : 'إدارة المصروفات والتكاليف التشغيلية ومراكز التكلفة'}
                 </h1>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-[var(--md-on-surface-variant)] mt-0.5">
                   ربط محاسبي مباشر مع الخزينة والمصارف ودفتر الأستاذ وقائمة الأرباح والخسائر
                 </p>
               </div>
@@ -459,33 +459,33 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
           </div>
 
           {/* Tab Switcher */}
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+          <div className="flex flex-wrap items-center bg-[var(--md-surface-container-low)] p-1 rounded-xl border border-[var(--md-outline-variant)] gap-1">
             <button
               onClick={() => setActiveTab('employees')}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${
                 activeTab === 'employees'
-                  ? 'bg-white text-blue-700 shadow-sm border border-slate-200'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
+                  : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
               }`}
             >
               <Users className="w-4 h-4" />
               <span>الموظفين والرواتب والسلف</span>
-              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-mono">
+              <span className="m3-badge m3-badge-primary !px-2 !py-0.5 text-xs font-mono tabular-nums">
                 {employees.length}
               </span>
             </button>
 
             <button
               onClick={() => setActiveTab('expenses')}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${
                 activeTab === 'expenses'
-                  ? 'bg-white text-emerald-700 shadow-sm border border-slate-200'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
+                  : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
               }`}
             >
               <DollarSign className="w-4 h-4" />
               <span>المصروفات والتكاليف التشغيلية</span>
-              <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-mono">
+              <span className="m3-badge m3-badge-success !px-2 !py-0.5 text-xs font-mono tabular-nums">
                 {expenses.length}
               </span>
             </button>
@@ -500,79 +500,77 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
         <div className="space-y-6">
           {/* KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-              <div className="flex items-center justify-between text-slate-500 mb-2">
+            <div className="m3-card p-4">
+              <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] mb-2">
                 <span className="text-xs font-bold">إجمالي الموظفين</span>
-                <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                <div className="p-2 bg-[var(--md-info-container)] text-[var(--md-on-info-container)] rounded-xl">
                   <Users className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-black text-slate-900 font-mono">
+              <div className="text-2xl font-black text-[var(--md-on-surface)] font-mono tabular-nums">
                 {employeeStats.totalEmployees}
               </div>
-              <div className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
+              <div className="text-xs text-[var(--md-success)] mt-1 flex items-center gap-1">
                 <CheckCircle className="w-3.5 h-3.5" />
                 <span>{employeeStats.activeEmployees} موظف نشط بالخدمة</span>
               </div>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-              <div className="flex items-center justify-between text-slate-500 mb-2">
+            <div className="m3-card p-4">
+              <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] mb-2">
                 <span className="text-xs font-bold">إجمالي الرواتب الأساسية</span>
-                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                <div className="p-2 bg-[var(--md-success-container)] text-[var(--md-on-success-container)] rounded-xl">
                   <Briefcase className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-black text-slate-900 font-mono">
+              <div className="text-2xl font-black text-[var(--md-on-surface)] font-mono tabular-nums">
                 {formatNumber(employeeStats.totalBaseSalaries)}{' '}
-                <span className="text-xs font-normal text-slate-500">{systemCurrency}</span>
+                <span className="text-xs font-normal text-[var(--md-on-surface-variant)]">{systemCurrency}</span>
               </div>
-              <div className="text-xs text-slate-500 mt-1">قبل البدلات والسلف والاستقطاعات</div>
+              <div className="text-xs text-[var(--md-on-surface-variant)] mt-1">قبل البدلات والسلف والاستقطاعات</div>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-              <div className="flex items-center justify-between text-slate-500 mb-2">
+            <div className="m3-card p-4">
+              <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] mb-2">
                 <span className="text-xs font-bold">إجمالي السلف المسحوبة</span>
-                <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
+                <div className="p-2 bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)] rounded-xl">
                   <ArrowDownRight className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-black text-amber-600 font-mono">
+              <div className="text-2xl font-black text-[var(--md-warning)] font-mono tabular-nums">
                 {formatNumber(employeeStats.totalAdvances)}{' '}
-                <span className="text-xs font-normal text-slate-500">{systemCurrency}</span>
+                <span className="text-xs font-normal text-[var(--md-on-surface-variant)]">{systemCurrency}</span>
               </div>
-              <div className="text-xs text-amber-700 mt-1">تستقطع تلقائياً من مسير الرواتب</div>
+              <div className="text-xs text-[var(--md-on-surface-variant)] mt-1">تستقطع تلقائياً من مسير الرواتب</div>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-              <div className="flex items-center justify-between text-slate-500 mb-2">
+            <div className="m3-card p-4">
+              <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] mb-2">
                 <span className="text-xs font-bold">صافي مسير الرواتب التقديري</span>
-                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+                <div className="p-2 bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] rounded-xl">
                   <DollarSign className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-black text-indigo-700 font-mono">
+              <div className="text-2xl font-black text-[var(--md-primary-text)] font-mono tabular-nums">
                 {formatNumber(
                   employeeStats.totalBaseSalaries +
                     employeeStats.totalBonuses -
                     employeeStats.totalAdvances -
                     employeeStats.totalDeductions
                 )}{' '}
-                <span className="text-xs font-normal text-slate-500">{systemCurrency}</span>
+                <span className="text-xs font-normal text-[var(--md-on-surface-variant)]">{systemCurrency}</span>
               </div>
-              <div className="text-xs text-indigo-600 mt-1">شامل البدلات والمكافآت والخصم</div>
+              <div className="text-xs text-[var(--md-on-surface-variant)] mt-1">شامل البدلات والمكافآت والخصم</div>
             </div>
           </div>
 
           {/* Sub-View Navigation & Action Bar */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
+          <div className="m3-card p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => setEmployeeSubView('directory')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                  employeeSubView === 'directory'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                className={`text-xs cursor-pointer ${
+                  employeeSubView === 'directory' ? 'm3-btn-primary' : 'm3-btn-outlined'
                 }`}
               >
                 دليل وبطاقات الموظفين
@@ -580,10 +578,8 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
 
               <button
                 onClick={() => setEmployeeSubView('movements')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                  employeeSubView === 'movements'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                className={`text-xs cursor-pointer ${
+                  employeeSubView === 'movements' ? 'm3-btn-primary' : 'm3-btn-outlined'
                 }`}
               >
                 سجل السلف والمكافآت والغياب
@@ -591,10 +587,8 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
 
               <button
                 onClick={() => setEmployeeSubView('payroll')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                  employeeSubView === 'payroll'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                className={`text-xs cursor-pointer ${
+                  employeeSubView === 'payroll' ? 'm3-btn-primary' : 'm3-btn-outlined'
                 }`}
               >
                 مسير الرواتب الشهري المعتمد
@@ -607,7 +601,7 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
                   setEditingEmployee(null);
                   setShowEmployeeModal(true);
                 }}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition-all"
+                className="m3-btn-primary text-xs cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 <span>إضافة موظف جديد</span>
@@ -618,7 +612,7 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
                   setMovementTargetEmp(null);
                   setShowMovementModal(true);
                 }}
-                className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition-all"
+                className="m3-btn-tonal text-xs cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 <span>تسجيل سلفة / مكافأة</span>
@@ -651,9 +645,9 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
                         companyName
                       )
                     }
-                    className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-xl text-xs font-bold transition-all"
+                    className="m3-btn-outlined text-xs cursor-pointer"
                   >
-                    <Printer className="w-4 h-4 text-slate-600" />
+                    <Printer className="w-4 h-4" />
                     <span>طباعة مسير الرواتب A4</span>
                   </button>
 
@@ -679,9 +673,9 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
                         companyName
                       )
                     }
-                    className="flex items-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-3.5 py-2 rounded-xl text-xs font-bold transition-all"
+                    className="m3-btn-tonal text-xs cursor-pointer"
                   >
-                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                    <FileSpreadsheet className="w-4 h-4" />
                     <span>تصدير إكسل</span>
                   </button>
                 </>
@@ -691,67 +685,67 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
 
           {/* VIEW A: EMPLOYEES DIRECTORY */}
           {employeeSubView === 'directory' && (
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-              <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                  <Users className="w-4 h-4 text-blue-600" />
+            <div className="m3-card overflow-hidden">
+              <div className="p-4 border-b border-[var(--md-outline-variant)] flex items-center justify-between">
+                <h3 className="font-bold text-[var(--md-on-surface)] text-sm flex items-center gap-2">
+                  <Users className="w-4 h-4 text-[var(--md-primary-text)]" />
                   <span>دليل وبطاقات الموظفين المسجلين ({employees.length})</span>
                 </h3>
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full text-right text-xs">
-                  <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                <table className="m3-table text-right text-xs" dir="rtl">
+                  <thead className="m3-thead">
                     <tr>
-                      <th className="p-3.5">الكود</th>
-                      <th className="p-3.5">اسم الموظف</th>
-                      <th className="p-3.5">المسمى الوظيفي</th>
-                      <th className="p-3.5">الفرع / الموقع</th>
-                      <th className="p-3.5">رقم الهاتف</th>
-                      <th className="p-3.5">تاريخ التعيين</th>
-                      <th className="p-3.5">الراتب الأساسي</th>
-                      <th className="p-3.5">الحالة</th>
-                      <th className="p-3.5 text-center">إجراءات</th>
+                      <th className="m3-th">الكود</th>
+                      <th className="m3-th">اسم الموظف</th>
+                      <th className="m3-th">المسمى الوظيفي</th>
+                      <th className="m3-th">الفرع / الموقع</th>
+                      <th className="m3-th">رقم الهاتف</th>
+                      <th className="m3-th">تاريخ التعيين</th>
+                      <th className="m3-th">الراتب الأساسي</th>
+                      <th className="m3-th">الحالة</th>
+                      <th className="m3-th text-center">إجراءات</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-[var(--md-outline-variant)]">
                     {employees.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="p-8 text-center text-slate-400">
+                        <td colSpan={9} className="p-8 text-center text-[var(--md-on-surface-variant)]">
                           لا يوجد موظفين مسجلين حالياً. اضغط على "إضافة موظف جديد" للبدء.
                         </td>
                       </tr>
                     ) : (
                       employees.map((emp) => (
-                        <tr key={emp.id} className="hover:bg-slate-50/80 transition-colors">
-                          <td className="p-3.5 font-mono font-bold text-blue-700">{emp.code}</td>
-                          <td className="p-3.5 font-bold text-slate-900">
+                        <tr key={emp.id} className="hover:bg-[var(--md-surface-container-low)] transition-colors">
+                          <td className="p-3.5 font-mono tabular-nums font-bold text-[var(--md-primary-text)]">{emp.code}</td>
+                          <td className="p-3.5 font-bold text-[var(--md-on-surface)]">
                             <div className="flex items-center gap-2">
-                              <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs">
+                              <div className="w-7 h-7 rounded-full bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] flex items-center justify-center font-bold text-xs shrink-0">
                                 {emp.name.charAt(0)}
                               </div>
                               <span>{emp.name}</span>
                             </div>
                           </td>
-                          <td className="p-3.5 text-slate-700 font-medium">{emp.roleTitle}</td>
-                          <td className="p-3.5 text-slate-600">{emp.branch}</td>
-                          <td className="p-3.5 font-mono text-slate-600" dir="ltr">
+                          <td className="p-3.5 text-[var(--md-on-surface)] font-medium">{emp.roleTitle}</td>
+                          <td className="p-3.5 text-[var(--md-on-surface-variant)]">{emp.branch}</td>
+                          <td className="p-3.5 font-mono tabular-nums text-[var(--md-on-surface-variant)]" dir="ltr">
                             {emp.phone || '-'}
                           </td>
-                          <td className="p-3.5 font-mono text-slate-500">
+                          <td className="p-3.5 font-mono tabular-nums text-[var(--md-on-surface-variant)]">
                             {formatDateOnly(emp.hireDate)}
                           </td>
-                          <td className="p-3.5 font-mono font-bold text-slate-900">
+                          <td className="p-3.5 font-mono tabular-nums font-bold text-[var(--md-on-surface)]">
                             {formatNumber(emp.baseSalary)} {emp.currency}
                           </td>
                           <td className="p-3.5">
                             <span
-                              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                              className={`m3-badge text-xs ${
                                 emp.status === 'نشط'
-                                  ? 'bg-emerald-100 text-emerald-800'
+                                  ? 'm3-badge-success'
                                   : emp.status === 'في إجازة'
-                                  ? 'bg-amber-100 text-amber-800'
-                                  : 'bg-rose-100 text-rose-800'
+                                  ? 'm3-badge-warning'
+                                  : 'm3-badge-error'
                               }`}
                             >
                               {emp.status}
@@ -766,7 +760,7 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
                                   setShowMovementModal(true);
                                 }}
                                 title="تسجيل سلفة / مكافأة"
-                                className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                                className="m3-btn-text !min-h-[30px] !p-1.5 !text-[var(--md-warning)] cursor-pointer"
                               >
                                 <ArrowDownRight className="w-4 h-4" />
                               </button>
@@ -778,7 +772,7 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
                                   setShowDisburseModal(true);
                                 }}
                                 title="صرف راتب الموظف"
-                                className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                className="m3-btn-text !min-h-[30px] !p-1.5 !text-[var(--md-success)] cursor-pointer"
                               >
                                 <DollarSign className="w-4 h-4" />
                               </button>
@@ -790,7 +784,7 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
                                   printEmployeeStatement(emp, empMovs, undefined, companyName);
                                 }}
                                 title="طباعة كشف حساب وسلف الموظف"
-                                className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                className="m3-btn-text !min-h-[30px] !p-1.5 !text-[var(--md-info)] cursor-pointer"
                               >
                                 <Printer className="w-4 h-4" />
                               </button>
@@ -802,7 +796,7 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
                                   setShowEmployeeModal(true);
                                 }}
                                 title="تعديل الموظف"
-                                className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                                className="m3-btn-text !min-h-[30px] !p-1.5 cursor-pointer"
                               >
                                 <Edit2 className="w-4 h-4" />
                               </button>
@@ -811,7 +805,7 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
                               <button
                                 onClick={() => handleDeleteEmployee(emp.id, emp.name)}
                                 title="حذف الموظف"
-                                className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                className="m3-btn-text !min-h-[30px] !p-1.5 !text-[var(--md-error)] cursor-pointer"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -828,32 +822,32 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
 
           {/* VIEW B: FINANCIAL MOVEMENTS & ATTENDANCE */}
           {employeeSubView === 'movements' && (
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-              <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                  <ArrowDownRight className="w-4 h-4 text-amber-600" />
+            <div className="m3-card overflow-hidden">
+              <div className="p-4 border-b border-[var(--md-outline-variant)] flex items-center justify-between">
+                <h3 className="font-bold text-[var(--md-on-surface)] text-sm flex items-center gap-2">
+                  <ArrowDownRight className="w-4 h-4 text-[var(--md-warning)]" />
                   <span>سجل حركات السلف والمكافآت والخصومات والغياب ({movements.length})</span>
                 </h3>
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full text-right text-xs">
-                  <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                <table className="m3-table text-right text-xs" dir="rtl">
+                  <thead className="m3-thead">
                     <tr>
-                      <th className="p-3.5">التاريخ</th>
-                      <th className="p-3.5">الموظف</th>
-                      <th className="p-3.5">نوع الحركة</th>
-                      <th className="p-3.5">المبلغ</th>
-                      <th className="p-3.5">الخزينة / المصدر</th>
-                      <th className="p-3.5">البيان والتفاصيل</th>
-                      <th className="p-3.5">حالة الحضور</th>
-                      <th className="p-3.5">ملاحظات</th>
+                      <th className="m3-th">التاريخ</th>
+                      <th className="m3-th">الموظف</th>
+                      <th className="m3-th">نوع الحركة</th>
+                      <th className="m3-th">المبلغ</th>
+                      <th className="m3-th">الخزينة / المصدر</th>
+                      <th className="m3-th">البيان والتفاصيل</th>
+                      <th className="m3-th">حالة الحضور</th>
+                      <th className="m3-th">ملاحظات</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-[var(--md-outline-variant)]">
                     {movements.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="p-8 text-center text-slate-400">
+                        <td colSpan={8} className="p-8 text-center text-[var(--md-on-surface-variant)]">
                           لا توجد حركات مالية مسجلة بعد.
                         </td>
                       </tr>
@@ -865,19 +859,19 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
                         const isPay = mov.type === 'salary_payment';
 
                         return (
-                          <tr key={mov.id} className="hover:bg-slate-50/80 transition-colors">
-                            <td className="p-3.5 font-mono text-slate-600">{formatDateOnly(mov.date)}</td>
-                            <td className="p-3.5 font-bold text-slate-900">{mov.employeeName}</td>
+                          <tr key={mov.id} className="hover:bg-[var(--md-surface-container-low)] transition-colors">
+                            <td className="p-3.5 font-mono tabular-nums text-[var(--md-on-surface-variant)]">{formatDateOnly(mov.date)}</td>
+                            <td className="p-3.5 font-bold text-[var(--md-on-surface)]">{mov.employeeName}</td>
                             <td className="p-3.5">
                               <span
-                                className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                                className={`m3-badge text-xs ${
                                   isAdv
-                                    ? 'bg-amber-100 text-amber-800'
+                                    ? 'm3-badge-warning'
                                     : isBonus
-                                    ? 'bg-emerald-100 text-emerald-800'
+                                    ? 'm3-badge-success'
                                     : isDed
-                                    ? 'bg-rose-100 text-rose-800'
-                                    : 'bg-blue-100 text-blue-800'
+                                    ? 'm3-badge-error'
+                                    : 'm3-badge-info'
                                 }`}
                               >
                                 {isAdv
@@ -889,24 +883,24 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
                                   : 'صرف راتب'}
                               </span>
                             </td>
-                            <td className="p-3.5 font-mono font-bold text-slate-900">
+                            <td className="p-3.5 font-mono tabular-nums font-bold">
                               <span
                                 className={
                                   isAdv || isDed
-                                    ? 'text-rose-600'
+                                    ? 'text-[var(--md-error)]'
                                     : isBonus || isPay
-                                    ? 'text-emerald-600'
-                                    : ''
+                                    ? 'text-[var(--md-success)]'
+                                    : 'text-[var(--md-on-surface)]'
                                 }
                               >
                                 {formatNumber(mov.amount)} {mov.currency}
                               </span>
                             </td>
-                            <td className="p-3.5 text-slate-600">{mov.treasury}</td>
-                            <td className="p-3.5 text-slate-800 font-medium">{mov.description || '-'}</td>
+                            <td className="p-3.5 text-[var(--md-on-surface-variant)]">{mov.treasury}</td>
+                            <td className="p-3.5 text-[var(--md-on-surface)] font-medium">{mov.description || '-'}</td>
                             <td className="p-3.5">
                               {mov.attendanceStatus ? (
-                                <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-xs">
+                                <span className="m3-badge m3-badge-secondary text-xs">
                                   {mov.attendanceStatus === 'present'
                                     ? 'حاضر'
                                     : mov.attendanceStatus === 'absent'
@@ -919,7 +913,7 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
                                 '-'
                               )}
                             </td>
-                            <td className="p-3.5 text-slate-500">{mov.notes || '-'}</td>
+                            <td className="p-3.5 text-[var(--md-on-surface-variant)]">{mov.notes || '-'}</td>
                           </tr>
                         );
                       })
@@ -932,45 +926,45 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
 
           {/* VIEW C: MONTHLY PAYROLL SHEET */}
           {employeeSubView === 'payroll' && (
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-              <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="m3-card overflow-hidden">
+              <div className="p-4 border-b border-[var(--md-outline-variant)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                    <Briefcase className="w-4 h-4 text-blue-600" />
+                  <h3 className="font-bold text-[var(--md-on-surface)] text-sm flex items-center gap-2">
+                    <Briefcase className="w-4 h-4 text-[var(--md-primary-text)]" />
                     <span>مسير الرواتب المعتمد لشهر: {payrollMonth}</span>
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-[var(--md-on-surface-variant)] mt-0.5">
                     حساب آلي للمستحقات: الراتب الأساسي + المكافآت - السلف المسحوبة - الخصومات
                   </p>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <label className="text-xs font-bold text-slate-700">الشهر المستحق:</label>
+                  <label className="text-xs font-bold text-[var(--md-on-surface-variant)]">الشهر المستحق:</label>
                   <input
                     type="month"
                     value={payrollMonth}
                     onChange={(e) => setPayrollMonth(e.target.value)}
-                    className="border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-mono font-bold text-slate-800 bg-slate-50"
+                    className="m3-input !h-9 !w-auto !px-3 text-xs font-mono tabular-nums font-bold"
                   />
                 </div>
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full text-right text-xs">
-                  <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                <table className="m3-table text-right text-xs" dir="rtl">
+                  <thead className="m3-thead">
                     <tr>
-                      <th className="p-3.5">كود الموظف</th>
-                      <th className="p-3.5">اسم الموظف</th>
-                      <th className="p-3.5">المسمى الوظيفي</th>
-                      <th className="p-3.5">الراتب الأساسي</th>
-                      <th className="p-3.5 text-emerald-600">المكافآت والبدلات</th>
-                      <th className="p-3.5 text-amber-600">السلف المسحوبة</th>
-                      <th className="p-3.5 text-rose-600">الخصومات والغياب</th>
-                      <th className="p-3.5 font-bold text-blue-700">صافي المستحق</th>
-                      <th className="p-3.5 text-center">إجراء الصرف</th>
+                      <th className="m3-th">كود الموظف</th>
+                      <th className="m3-th">اسم الموظف</th>
+                      <th className="m3-th">المسمى الوظيفي</th>
+                      <th className="m3-th">الراتب الأساسي</th>
+                      <th className="m3-th">المكافآت والبدلات</th>
+                      <th className="m3-th">السلف المسحوبة</th>
+                      <th className="m3-th">الخصومات والغياب</th>
+                      <th className="m3-th">صافي المستحق</th>
+                      <th className="m3-th text-center">إجراء الصرف</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-[var(--md-outline-variant)]">
                     {employees.map((emp) => {
                       // Filter movements for this employee
                       const empMovs = movements.filter((m) => m.employeeId === emp.id);
@@ -992,28 +986,28 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
                       );
 
                       return (
-                        <tr key={emp.id} className="hover:bg-slate-50/80 transition-colors">
-                          <td className="p-3.5 font-mono font-bold text-slate-700">{emp.code}</td>
-                          <td className="p-3.5 font-bold text-slate-900">{emp.name}</td>
-                          <td className="p-3.5 text-slate-600">{emp.roleTitle}</td>
-                          <td className="p-3.5 font-mono font-bold text-slate-800">
+                        <tr key={emp.id} className="hover:bg-[var(--md-surface-container-low)] transition-colors">
+                          <td className="p-3.5 font-mono tabular-nums font-bold text-[var(--md-on-surface-variant)]">{emp.code}</td>
+                          <td className="p-3.5 font-bold text-[var(--md-on-surface)]">{emp.name}</td>
+                          <td className="p-3.5 text-[var(--md-on-surface-variant)]">{emp.roleTitle}</td>
+                          <td className="p-3.5 font-mono tabular-nums font-bold text-[var(--md-on-surface)]">
                             {formatNumber(emp.baseSalary)} {emp.currency}
                           </td>
-                          <td className="p-3.5 font-mono text-emerald-600 font-bold">
+                          <td className="p-3.5 font-mono tabular-nums text-[var(--md-success)] font-bold">
                             +{formatNumber(totalBonuses)}
                           </td>
-                          <td className="p-3.5 font-mono text-amber-600 font-bold">
+                          <td className="p-3.5 font-mono tabular-nums text-[var(--md-warning)] font-bold">
                             -{formatNumber(totalAdv)}
                           </td>
-                          <td className="p-3.5 font-mono text-rose-600 font-bold">
+                          <td className="p-3.5 font-mono tabular-nums text-[var(--md-error)] font-bold">
                             -{formatNumber(totalDeductions)}
                           </td>
-                          <td className="p-3.5 font-mono font-black text-blue-700 bg-blue-50/50">
+                          <td className="p-3.5 font-mono tabular-nums font-black text-[var(--md-primary-text)] bg-[var(--md-primary-container)]/35">
                             {formatNumber(netPayable)} {emp.currency}
                           </td>
                           <td className="p-3.5 text-center">
                             {existingRecord ? (
-                              <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-xs font-bold">
+                              <span className="m3-badge m3-badge-success inline-flex items-center gap-1 px-3 py-1 text-xs">
                                 <CheckCircle className="w-3.5 h-3.5" />
                                 <span>تم الصرف</span>
                               </span>
@@ -1023,7 +1017,7 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
                                   setDisburseEmp(emp);
                                   setShowDisburseModal(true);
                                 }}
-                                className="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-xl text-xs font-bold shadow-sm transition-all"
+                                className="m3-btn-primary !min-h-[30px] !px-3 !py-1 text-xs cursor-pointer"
                               >
                                 <DollarSign className="w-3.5 h-3.5" />
                                 <span>صرف الراتب</span>
@@ -1048,78 +1042,78 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
         <div className="space-y-6">
           {/* KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-              <div className="flex items-center justify-between text-slate-500 mb-2">
+            <div className="m3-card p-4">
+              <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] mb-2">
                 <span className="text-xs font-bold">إجمالي المصروفات التشغيلية</span>
-                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                <div className="p-2 bg-[var(--md-success-container)] text-[var(--md-on-success-container)] rounded-xl">
                   <DollarSign className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-black text-slate-900 font-mono">
+              <div className="text-2xl font-black text-[var(--md-on-surface)] font-mono tabular-nums">
                 {formatNumber(expenseStats.total)}{' '}
-                <span className="text-xs font-normal text-slate-500">{systemCurrency}</span>
+                <span className="text-xs font-normal text-[var(--md-on-surface-variant)]">{systemCurrency}</span>
               </div>
-              <div className="text-xs text-slate-500 mt-1">
+              <div className="text-xs text-[var(--md-on-surface-variant)] mt-1">
                 سجلات الصرف المعتمدة ({expenses.length} سند)
               </div>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-              <div className="flex items-center justify-between text-slate-500 mb-2">
+            <div className="m3-card p-4">
+              <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] mb-2">
                 <span className="text-xs font-bold">بند الرواتب والأجور والسلف</span>
-                <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                <div className="p-2 bg-[var(--md-info-container)] text-[var(--md-on-info-container)] rounded-xl">
                   <Users className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-black text-blue-700 font-mono">
+              <div className="text-2xl font-black text-[var(--md-info)] font-mono tabular-nums">
                 {formatNumber(expenseStats.salariesExpense)}{' '}
-                <span className="text-xs font-normal text-slate-500">{systemCurrency}</span>
+                <span className="text-xs font-normal text-[var(--md-on-surface-variant)]">{systemCurrency}</span>
               </div>
-              <div className="text-xs text-blue-600 mt-1">ترحيل تلقائي من مسير الرواتب</div>
+              <div className="text-xs text-[var(--md-on-surface-variant)] mt-1">ترحيل تلقائي من مسير الرواتب</div>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-              <div className="flex items-center justify-between text-slate-500 mb-2">
+            <div className="m3-card p-4">
+              <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] mb-2">
                 <span className="text-xs font-bold">الإيجارات والطاقة والخدمات</span>
-                <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
+                <div className="p-2 bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] rounded-xl">
                   <Building className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-black text-purple-700 font-mono">
+              <div className="text-2xl font-black text-[var(--md-secondary)] font-mono tabular-nums">
                 {formatNumber(expenseStats.rentAndUtilities)}{' '}
-                <span className="text-xs font-normal text-slate-500">{systemCurrency}</span>
+                <span className="text-xs font-normal text-[var(--md-on-surface-variant)]">{systemCurrency}</span>
               </div>
-              <div className="text-xs text-purple-600 mt-1">إيجارات ومولدات وكهرباء ومياه</div>
+              <div className="text-xs text-[var(--md-on-surface-variant)] mt-1">إيجارات ومولدات وكهرباء ومياه</div>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-              <div className="flex items-center justify-between text-slate-500 mb-2">
+            <div className="m3-card p-4">
+              <div className="flex items-center justify-between text-[var(--md-on-surface-variant)] mb-2">
                 <span className="text-xs font-bold">أعلى مركز تكلفة تحميلاً</span>
-                <div className="p-2 bg-orange-50 text-orange-600 rounded-xl">
+                <div className="p-2 bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)] rounded-xl">
                   <Layers className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-base font-black text-slate-900 truncate">
+              <div className="text-base font-black text-[var(--md-on-surface)] truncate">
                 {expenseStats.topCenter}
               </div>
-              <div className="text-xs text-orange-700 font-mono mt-1">
+              <div className="text-xs text-[var(--md-warning)] font-mono tabular-nums font-bold mt-1">
                 {formatNumber(expenseStats.topCenterVal)} {systemCurrency}
               </div>
             </div>
           </div>
 
           {/* Filter Bar & Actions */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-4">
+          <div className="m3-card p-4 space-y-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
               {/* Search */}
               <div className="relative flex-1">
-                <Search className="w-4 h-4 absolute right-3.5 top-3 text-slate-400" />
+                <Search className="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--md-on-surface-variant)]" />
                 <input
                   type="text"
                   placeholder="بحث برقم السند، المستفيد، البيان..."
                   value={expenseSearch}
                   onChange={(e) => setExpenseSearch(e.target.value)}
-                  className="w-full pl-4 pr-10 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="m3-input !h-10 !pr-10 text-xs"
                 />
               </div>
 
@@ -1130,7 +1124,7 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
                     setEditingExpense(null);
                     setShowExpenseModal(true);
                   }}
-                  className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition-all"
+                  className="m3-btn-primary text-xs cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
                   <span>تسجيل سند مصروف جديد</span>
@@ -1138,9 +1132,9 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
 
                 <button
                   onClick={() => exportExpensesToExcel(filteredExpenses, companyName)}
-                  className="flex items-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-3.5 py-2 rounded-xl text-xs font-bold transition-all"
+                  className="m3-btn-tonal text-xs cursor-pointer"
                 >
-                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                  <FileSpreadsheet className="w-4 h-4" />
                   <span>تصدير إكسل منظم</span>
                 </button>
               </div>
@@ -1149,11 +1143,11 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
             {/* Dropdown Filters */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-xs">
               <div>
-                <label className="block text-slate-500 mb-1">التصنيف:</label>
+                <label className="block text-[var(--md-on-surface-variant)] mb-1">التصنيف:</label>
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full border border-slate-200 rounded-xl p-2 bg-slate-50 text-slate-700"
+                  className="m3-select !h-9 text-xs"
                 >
                   <option value="الكل">كل التصنيفات</option>
                   {EXPENSE_CATEGORIES.map((cat) => (
@@ -1165,11 +1159,11 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
               </div>
 
               <div>
-                <label className="block text-slate-500 mb-1">مركز التكلفة:</label>
+                <label className="block text-[var(--md-on-surface-variant)] mb-1">مركز التكلفة:</label>
                 <select
                   value={selectedCostCenter}
                   onChange={(e) => setSelectedCostCenter(e.target.value)}
-                  className="w-full border border-slate-200 rounded-xl p-2 bg-slate-50 text-slate-700"
+                  className="m3-select !h-9 text-xs"
                 >
                   <option value="الكل">كل مراكز التكلفة</option>
                   {COST_CENTERS.map((c) => (
@@ -1181,11 +1175,11 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
               </div>
 
               <div>
-                <label className="block text-slate-500 mb-1">الخزينة / المصدر:</label>
+                <label className="block text-[var(--md-on-surface-variant)] mb-1">الخزينة / المصدر:</label>
                 <select
                   value={selectedTreasury}
                   onChange={(e) => setSelectedTreasury(e.target.value)}
-                  className="w-full border border-slate-200 rounded-xl p-2 bg-slate-50 text-slate-700"
+                  className="m3-select !h-9 text-xs"
                 >
                   <option value="الكل">كل الخزائن</option>
                   {TREASURIES.map((t) => (
@@ -1197,11 +1191,11 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
               </div>
 
               <div>
-                <label className="block text-slate-500 mb-1">العملة:</label>
+                <label className="block text-[var(--md-on-surface-variant)] mb-1">العملة:</label>
                 <select
                   value={selectedCurrency}
                   onChange={(e) => setSelectedCurrency(e.target.value)}
-                  className="w-full border border-slate-200 rounded-xl p-2 bg-slate-50 text-slate-700"
+                  className="m3-select !h-9 text-xs"
                 >
                   <option value="الكل">كل العملات</option>
                   <option value="YER">ريال يمني (YER)</option>
@@ -1211,77 +1205,77 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
               </div>
 
               <div>
-                <label className="block text-slate-500 mb-1">من تاريخ:</label>
+                <label className="block text-[var(--md-on-surface-variant)] mb-1">من تاريخ:</label>
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full border border-slate-200 rounded-xl p-2 bg-slate-50 text-slate-700 font-mono"
+                  className="m3-input !h-9 text-xs font-mono tabular-nums"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-500 mb-1">إلى تاريخ:</label>
+                <label className="block text-[var(--md-on-surface-variant)] mb-1">إلى تاريخ:</label>
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full border border-slate-200 rounded-xl p-2 bg-slate-50 text-slate-700 font-mono"
+                  className="m3-input !h-9 text-xs font-mono tabular-nums"
                 />
               </div>
             </div>
           </div>
 
           {/* Expenses Table */}
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                <FileText className="w-4 h-4 text-emerald-600" />
+          <div className="m3-card overflow-hidden">
+            <div className="p-4 border-b border-[var(--md-outline-variant)] flex items-center justify-between">
+              <h3 className="font-bold text-[var(--md-on-surface)] text-sm flex items-center gap-2">
+                <FileText className="w-4 h-4 text-[var(--md-primary-text)]" />
                 <span>سجل وسندات صرف المصروفات ({filteredExpenses.length})</span>
               </h3>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-right text-xs">
-                <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+              <table className="m3-table text-right text-xs" dir="rtl">
+                <thead className="m3-thead">
                   <tr>
-                    <th className="p-3.5">رقم السند</th>
-                    <th className="p-3.5">التاريخ</th>
-                    <th className="p-3.5">التصنيف المحاسبي</th>
-                    <th className="p-3.5">مركز التكلفة</th>
-                    <th className="p-3.5">المستفيد</th>
-                    <th className="p-3.5">الخزينة / المصدر</th>
-                    <th className="p-3.5">المبلغ</th>
-                    <th className="p-3.5">البيان</th>
-                    <th className="p-3.5 text-center">طباعة وإجراءات</th>
+                    <th className="m3-th">رقم السند</th>
+                    <th className="m3-th">التاريخ</th>
+                    <th className="m3-th">التصنيف المحاسبي</th>
+                    <th className="m3-th">مركز التكلفة</th>
+                    <th className="m3-th">المستفيد</th>
+                    <th className="m3-th">الخزينة / المصدر</th>
+                    <th className="m3-th">المبلغ</th>
+                    <th className="m3-th">البيان</th>
+                    <th className="m3-th text-center">طباعة وإجراءات</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-[var(--md-outline-variant)]">
                   {filteredExpenses.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="p-8 text-center text-slate-400">
+                      <td colSpan={9} className="p-8 text-center text-[var(--md-on-surface-variant)]">
                         لا توجد سندات صرف تطابق معايير البحث الحالية.
                       </td>
                     </tr>
                   ) : (
                     filteredExpenses.map((exp) => (
-                      <tr key={exp.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="p-3.5 font-mono font-bold text-emerald-700">
+                      <tr key={exp.id} className="hover:bg-[var(--md-surface-container-low)] transition-colors">
+                        <td className="p-3.5 font-mono tabular-nums font-bold text-[var(--md-primary-text)]">
                           {exp.voucherNumber}
                         </td>
-                        <td className="p-3.5 font-mono text-slate-600">{formatDateOnly(exp.date)}</td>
-                        <td className="p-3.5 font-bold text-slate-800">{exp.category}</td>
-                        <td className="p-3.5 text-slate-600">
-                          <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-xs">
+                        <td className="p-3.5 font-mono tabular-nums text-[var(--md-on-surface-variant)]">{formatDateOnly(exp.date)}</td>
+                        <td className="p-3.5 font-bold text-[var(--md-on-surface)]">{exp.category}</td>
+                        <td className="p-3.5">
+                          <span className="m3-badge m3-badge-secondary text-xs">
                             {exp.costCenter}
                           </span>
                         </td>
-                        <td className="p-3.5 font-medium text-slate-900">{exp.beneficiary}</td>
-                        <td className="p-3.5 text-slate-600">{exp.treasury}</td>
-                        <td className="p-3.5 font-mono font-black text-emerald-700">
+                        <td className="p-3.5 font-medium text-[var(--md-on-surface)]">{exp.beneficiary}</td>
+                        <td className="p-3.5 text-[var(--md-on-surface-variant)]">{exp.treasury}</td>
+                        <td className="p-3.5 font-mono tabular-nums font-black text-[var(--md-success)]">
                           {formatNumber(exp.amount)} {exp.currency}
                         </td>
-                        <td className="p-3.5 text-slate-700 max-w-xs truncate">
+                        <td className="p-3.5 text-[var(--md-on-surface-variant)] max-w-xs truncate">
                           {exp.description || '-'}
                         </td>
                         <td className="p-3.5">
@@ -1292,7 +1286,7 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
                                 printExpenseVoucher(exp, { companyName, format: 'a4' })
                               }
                               title="طباعة سند صرف A4"
-                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              className="m3-btn-text !min-h-[30px] !p-1.5 !text-[var(--md-info)] cursor-pointer"
                             >
                               <Printer className="w-4 h-4" />
                             </button>
@@ -1303,7 +1297,7 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
                                 printExpenseVoucher(exp, { companyName, format: 'thermal' })
                               }
                               title="طباعة إيصال كاشير 80mm"
-                              className="p-1.5 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors text-xs font-mono font-bold"
+                              className="m3-btn-text !min-h-[30px] !px-2 !py-1 !text-[var(--md-secondary)] text-xs font-mono font-bold cursor-pointer"
                             >
                               80mm
                             </button>
@@ -1315,7 +1309,7 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
                                 setShowExpenseModal(true);
                               }}
                               title="تعديل السند"
-                              className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                              className="m3-btn-text !min-h-[30px] !p-1.5 cursor-pointer"
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
@@ -1324,7 +1318,7 @@ export const EmployeesAndExpensesTab: React.FC<EmployeesAndExpensesTabProps> = (
                             <button
                               onClick={() => handleDeleteExpense(exp.id, exp.voucherNumber)}
                               title="حذف السند"
-                              className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                              className="m3-btn-text !min-h-[30px] !p-1.5 !text-[var(--md-error)] cursor-pointer"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -1447,14 +1441,14 @@ const EmployeeFormModal: React.FC<EmployeeModalProps> = ({ employee, onClose, on
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4" dir="rtl">
-        <div className="flex items-center justify-between border-b pb-3">
-          <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-            <Users className="w-5 h-5 text-blue-600" />
+    <div className="fixed inset-0 z-50 m3-backdrop flex items-center justify-center p-4">
+      <div className="m3-modal-surface max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto text-[var(--md-on-surface)]" dir="rtl">
+        <div className="flex items-center justify-between border-b border-[var(--md-outline-variant)] pb-3">
+          <h3 className="font-bold text-[var(--md-on-surface)] text-base flex items-center gap-2">
+            <Users className="w-5 h-5 text-[var(--md-primary-text)]" />
             <span>{employee ? 'تعديل بيانات الموظف' : 'إضافة موظف جديد'}</span>
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onClose} className="m3-btn-text !min-h-[32px] !p-1.5 cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -1462,34 +1456,34 @@ const EmployeeFormModal: React.FC<EmployeeModalProps> = ({ employee, onClose, on
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-700 font-bold mb-1">كود الموظف *</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">كود الموظف *</label>
               <input
                 type="text"
                 required
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                className="w-full border border-slate-300 rounded-xl p-2.5 font-mono"
+                className="m3-input !h-10 font-mono tabular-nums text-xs"
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">اسم الموظف الرباعي *</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">اسم الموظف الرباعي *</label>
               <input
                 type="text"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full border border-slate-300 rounded-xl p-2.5 font-bold"
+                className="m3-input !h-10 font-bold text-xs"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-700 font-bold mb-1">المسمى الوظيفي *</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">المسمى الوظيفي *</label>
               <select
                 value={roleTitle}
                 onChange={(e) => setRoleTitle(e.target.value)}
-                className="w-full border border-slate-300 rounded-xl p-2.5 bg-slate-50"
+                className="m3-select !h-10 text-xs"
               >
                 <option value="كاشير ومحاسب مبيعات">كاشير ومحاسب مبيعات</option>
                 <option value="محاسب عام ومدير حسابات">محاسب عام ومدير حسابات</option>
@@ -1502,13 +1496,13 @@ const EmployeeFormModal: React.FC<EmployeeModalProps> = ({ employee, onClose, on
               </select>
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">رقم الهاتف</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">رقم الهاتف</label>
               <input
                 type="text"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="77xxxxxxx"
-                className="w-full border border-slate-300 rounded-xl p-2.5 font-mono text-left"
+                className="m3-input !h-10 font-mono tabular-nums text-left text-xs"
                 dir="ltr"
               />
             </div>
@@ -1516,11 +1510,11 @@ const EmployeeFormModal: React.FC<EmployeeModalProps> = ({ employee, onClose, on
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-700 font-bold mb-1">الفرع / موقع العمل</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">الفرع / موقع العمل</label>
               <select
                 value={branch}
                 onChange={(e) => setBranch(e.target.value)}
-                className="w-full border border-slate-300 rounded-xl p-2.5 bg-slate-50"
+                className="m3-select !h-10 text-xs"
               >
                 {COST_CENTERS.map((c) => (
                   <option key={c} value={c}>
@@ -1530,34 +1524,34 @@ const EmployeeFormModal: React.FC<EmployeeModalProps> = ({ employee, onClose, on
               </select>
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">تاريخ التعيين (تاريخ فقط)</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">تاريخ التعيين (تاريخ فقط)</label>
               <input
                 type="date"
                 required
                 value={hireDate}
                 onChange={(e) => setHireDate(e.target.value)}
-                className="w-full border border-slate-300 rounded-xl p-2.5 font-mono"
+                className="m3-input !h-10 font-mono tabular-nums text-xs"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-slate-700 font-bold mb-1">الراتب الأساسي *</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">الراتب الأساسي *</label>
               <input
                 type="text"
                 required
                 value={baseSalary}
                 onChange={(e) => setBaseSalary(toEnglishDigits(e.target.value))}
-                className="w-full border border-slate-300 rounded-xl p-2.5 font-mono font-bold"
+                className="m3-input !h-10 font-mono tabular-nums font-bold text-xs"
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">العملة</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">العملة</label>
               <select
                 value={currency}
                 onChange={(e: any) => setCurrency(e.target.value)}
-                className="w-full border border-slate-300 rounded-xl p-2.5 bg-slate-50 font-bold"
+                className="m3-select !h-10 font-bold text-xs"
               >
                 <option value="SAR">ريال سعودي (SAR)</option>
                 <option value="YER">ريال يمني (YER)</option>
@@ -1565,11 +1559,11 @@ const EmployeeFormModal: React.FC<EmployeeModalProps> = ({ employee, onClose, on
               </select>
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">حالة الموظف</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">حالة الموظف</label>
               <select
                 value={status}
                 onChange={(e: any) => setStatus(e.target.value)}
-                className="w-full border border-slate-300 rounded-xl p-2.5 bg-slate-50"
+                className="m3-select !h-10 text-xs"
               >
                 <option value="نشط">نشط</option>
                 <option value="في إجازة">في إجازة</option>
@@ -1579,26 +1573,26 @@ const EmployeeFormModal: React.FC<EmployeeModalProps> = ({ employee, onClose, on
           </div>
 
           <div>
-            <label className="block text-slate-700 font-bold mb-1">ملاحظات إضافية</label>
+            <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">ملاحظات إضافية</label>
             <textarea
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full border border-slate-300 rounded-xl p-2.5"
+              className="m3-input !h-auto py-2.5 text-xs"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-3 border-t">
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[var(--md-outline-variant)]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-bold"
+              className="m3-btn-outlined text-xs cursor-pointer"
             >
               إلغاء
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md"
+              className="m3-btn-primary text-xs cursor-pointer"
             >
               حفظ الموظف
             </button>
@@ -1661,26 +1655,26 @@ const MovementFormModal: React.FC<MovementModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4" dir="rtl">
-        <div className="flex items-center justify-between border-b pb-3">
-          <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-            <ArrowDownRight className="w-5 h-5 text-amber-600" />
+    <div className="fixed inset-0 z-50 m3-backdrop flex items-center justify-center p-4">
+      <div className="m3-modal-surface max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto text-[var(--md-on-surface)]" dir="rtl">
+        <div className="flex items-center justify-between border-b border-[var(--md-outline-variant)] pb-3">
+          <h3 className="font-bold text-[var(--md-on-surface)] text-base flex items-center gap-2">
+            <ArrowDownRight className="w-5 h-5 text-[var(--md-warning)]" />
             <span>تسجيل سلفة / مكافأة / خصم / حضور</span>
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onClose} className="m3-btn-text !min-h-[32px] !p-1.5 cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="block text-slate-700 font-bold mb-1">الموظف *</label>
+            <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">الموظف *</label>
             <select
               required
               value={employeeId}
               onChange={(e) => setEmployeeId(e.target.value)}
-              className="w-full border border-slate-300 rounded-xl p-2.5 bg-slate-50 font-bold"
+              className="m3-select !h-10 font-bold text-xs"
             >
               {employees.map((e) => (
                 <option key={e.id} value={e.id}>
@@ -1692,11 +1686,11 @@ const MovementFormModal: React.FC<MovementModalProps> = ({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-700 font-bold mb-1">نوع الحركة المالية *</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">نوع الحركة المالية *</label>
               <select
                 value={type}
                 onChange={(e: any) => setType(e.target.value)}
-                className="w-full border border-slate-300 rounded-xl p-2.5 bg-slate-50 font-bold"
+                className="m3-select !h-10 font-bold text-xs"
               >
                 <option value="advance">سلفة نقدية (تخصم من الراتب)</option>
                 <option value="bonus">مكافأة / بدل إضافي (تزيد الراتب)</option>
@@ -1704,34 +1698,34 @@ const MovementFormModal: React.FC<MovementModalProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">التاريخ (YYYY-MM-DD) *</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">التاريخ (YYYY-MM-DD) *</label>
               <input
                 type="date"
                 required
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full border border-slate-300 rounded-xl p-2.5 font-mono font-bold"
+                className="m3-input !h-10 font-mono tabular-nums font-bold text-xs"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-700 font-bold mb-1">المبلغ *</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">المبلغ *</label>
               <input
                 type="text"
                 required
                 value={amount}
                 onChange={(e) => setAmount(toEnglishDigits(e.target.value))}
-                className="w-full border border-slate-300 rounded-xl p-2.5 font-mono font-bold text-base"
+                className="m3-input !h-10 font-mono tabular-nums font-bold text-base"
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">العملة</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">العملة</label>
               <select
                 value={currency}
                 onChange={(e: any) => setCurrency(e.target.value)}
-                className="w-full border border-slate-300 rounded-xl p-2.5 bg-slate-50 font-bold"
+                className="m3-select !h-10 font-bold text-xs"
               >
                 <option value="SAR">ريال سعودي (SAR)</option>
                 <option value="YER">ريال يمني (YER)</option>
@@ -1742,13 +1736,13 @@ const MovementFormModal: React.FC<MovementModalProps> = ({
 
           {type === 'advance' && (
             <div>
-              <label className="block text-slate-700 font-bold mb-1">
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">
                 الخزينة المسحوب منها السلفة *
               </label>
               <select
                 value={treasury}
                 onChange={(e) => setTreasury(e.target.value)}
-                className="w-full border border-slate-300 rounded-xl p-2.5 bg-slate-50"
+                className="m3-select !h-10 text-xs"
               >
                 {TREASURIES.map((t) => (
                   <option key={t} value={t}>
@@ -1760,27 +1754,27 @@ const MovementFormModal: React.FC<MovementModalProps> = ({
           )}
 
           <div>
-            <label className="block text-slate-700 font-bold mb-1">البيان والسبب</label>
+            <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">البيان والسبب</label>
             <input
               type="text"
               placeholder="مثال: سلفة نقدية لعلاج عائلي / مكافأة تميز بالعمل..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full border border-slate-300 rounded-xl p-2.5"
+              className="m3-input !h-10 text-xs"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-3 border-t">
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[var(--md-outline-variant)]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-bold"
+              className="m3-btn-outlined text-xs cursor-pointer"
             >
               إلغاء
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold shadow-md"
+              className="m3-btn-primary text-xs cursor-pointer"
             >
               تسجيل الحركة المالية
             </button>
@@ -1854,97 +1848,97 @@ const PayrollDisburseModal: React.FC<PayrollDisburseModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4" dir="rtl">
-        <div className="flex items-center justify-between border-b pb-3">
-          <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-            <DollarSign className="w-5 h-5 text-emerald-600" />
+    <div className="fixed inset-0 z-50 m3-backdrop flex items-center justify-center p-4">
+      <div className="m3-modal-surface max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto text-[var(--md-on-surface)]" dir="rtl">
+        <div className="flex items-center justify-between border-b border-[var(--md-outline-variant)] pb-3">
+          <h3 className="font-bold text-[var(--md-on-surface)] text-base flex items-center gap-2">
+            <DollarSign className="w-5 h-5 text-[var(--md-success)]" />
             <span>صرف راتب الموظف: {employee.name}</span>
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onClose} className="m3-btn-text !min-h-[32px] !p-1.5 cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleConfirm} className="space-y-4 text-xs">
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 grid grid-cols-2 gap-2 text-slate-700">
+          <div className="bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl p-3 grid grid-cols-2 gap-2 text-[var(--md-on-surface-variant)]">
             <div>
-              الكود: <strong className="font-mono">{employee.code}</strong>
+              الكود: <strong className="font-mono tabular-nums text-[var(--md-on-surface)]">{employee.code}</strong>
             </div>
             <div>
-              المسمى: <strong>{employee.roleTitle}</strong>
+              المسمى: <strong className="text-[var(--md-on-surface)]">{employee.roleTitle}</strong>
             </div>
             <div>
-              الفرع: <strong>{employee.branch}</strong>
+              الفرع: <strong className="text-[var(--md-on-surface)]">{employee.branch}</strong>
             </div>
             <div>
-              شهر الاستحقاق: <strong className="font-mono">{month}</strong>
+              شهر الاستحقاق: <strong className="font-mono tabular-nums text-[var(--md-on-surface)]">{month}</strong>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-700 font-bold mb-1">الراتب الأساسي</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">الراتب الأساسي</label>
               <input
                 type="text"
                 disabled
                 value={`${formatNumber(baseSalary)} ${employee.currency}`}
-                className="w-full border border-slate-200 bg-slate-100 rounded-xl p-2.5 font-mono font-bold text-slate-700"
+                className="m3-input !h-10 opacity-75 font-mono tabular-nums font-bold text-xs"
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">المكافآت والبدلات (+)</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">المكافآت والبدلات (+)</label>
               <input
                 type="text"
                 value={bonuses}
                 onChange={(e) => setBonuses(toEnglishDigits(e.target.value))}
-                className="w-full border border-emerald-300 rounded-xl p-2.5 font-mono font-bold text-emerald-700"
+                className="m3-input !h-10 !border-[var(--md-success)] font-mono tabular-nums font-bold text-[var(--md-success)] text-xs"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-700 font-bold mb-1">
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">
                 سلف مستقطعة من الراتب (-)
               </label>
               <input
                 type="text"
                 value={advancesDeducted}
                 onChange={(e) => setAdvancesDeducted(toEnglishDigits(e.target.value))}
-                className="w-full border border-amber-300 rounded-xl p-2.5 font-mono font-bold text-amber-700"
+                className="m3-input !h-10 !border-[var(--md-warning)] font-mono tabular-nums font-bold text-[var(--md-warning)] text-xs"
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">
                 خصومات وغياب وجزاءات (-)
               </label>
               <input
                 type="text"
                 value={otherDeductions}
                 onChange={(e) => setOtherDeductions(toEnglishDigits(e.target.value))}
-                className="w-full border border-rose-300 rounded-xl p-2.5 font-mono font-bold text-rose-700"
+                className="m3-input !h-10 !border-[var(--md-error)] font-mono tabular-nums font-bold text-[var(--md-error)] text-xs"
               />
             </div>
           </div>
 
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between">
+          <div className="bg-[var(--md-success-container)] border border-[var(--md-success)]/30 rounded-xl p-4 flex items-center justify-between">
             <div>
-              <div className="text-xs text-emerald-800 font-bold">صافي المبلغ المصروف نقداً</div>
-              <div className="text-xs text-emerald-600">يرحل للمصروفات وقيد الأستاذ فوراً</div>
+              <div className="text-xs text-[var(--md-on-success-container)] font-bold">صافي المبلغ المصروف نقداً</div>
+              <div className="text-xs text-[var(--md-on-success-container)] opacity-80">يرحل للمصروفات وقيد الأستاذ فوراً</div>
             </div>
-            <div className="text-2xl font-black text-emerald-800 font-mono">
+            <div className="text-2xl font-black text-[var(--md-on-success-container)] font-mono tabular-nums">
               {formatNumber(netSalary)} {employee.currency}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-700 font-bold mb-1">خزينة الصرف *</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">خزينة الصرف *</label>
               <select
                 value={treasury}
                 onChange={(e) => setTreasury(e.target.value)}
-                className="w-full border border-slate-300 rounded-xl p-2.5 bg-slate-50 font-bold"
+                className="m3-select !h-10 font-bold text-xs"
               >
                 {TREASURIES.map((t) => (
                   <option key={t} value={t}>
@@ -1954,39 +1948,39 @@ const PayrollDisburseModal: React.FC<PayrollDisburseModalProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">تاريخ الصرف *</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">تاريخ الصرف *</label>
               <input
                 type="date"
                 required
                 value={paymentDate}
                 onChange={(e) => setPaymentDate(e.target.value)}
-                className="w-full border border-slate-300 rounded-xl p-2.5 font-mono"
+                className="m3-input !h-10 font-mono tabular-nums text-xs"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-slate-700 font-bold mb-1">ملاحظات الصرف</label>
+            <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">ملاحظات الصرف</label>
             <input
               type="text"
               placeholder="مثال: اعتماد مسير رواتب شهر أكتوبر..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full border border-slate-300 rounded-xl p-2.5"
+              className="m3-input !h-10 text-xs"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-3 border-t">
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[var(--md-outline-variant)]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-bold"
+              className="m3-btn-outlined text-xs cursor-pointer"
             >
               إلغاء
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md"
+              className="m3-btn-primary text-xs cursor-pointer"
             >
               تأكيد صرف الراتب وترحيله
             </button>
@@ -2046,14 +2040,14 @@ const ExpenseFormModal: React.FC<ExpenseModalProps> = ({ expense, onClose, onSav
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4" dir="rtl">
-        <div className="flex items-center justify-between border-b pb-3">
-          <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-            <DollarSign className="w-5 h-5 text-emerald-600" />
+    <div className="fixed inset-0 z-50 m3-backdrop flex items-center justify-center p-4">
+      <div className="m3-modal-surface max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto text-[var(--md-on-surface)]" dir="rtl">
+        <div className="flex items-center justify-between border-b border-[var(--md-outline-variant)] pb-3">
+          <h3 className="font-bold text-[var(--md-on-surface)] text-base flex items-center gap-2">
+            <DollarSign className="w-5 h-5 text-[var(--md-success)]" />
             <span>{expense ? 'تعديل سند المصروف' : 'تسجيل سند صرف مصروفات تشغيلية'}</span>
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onClose} className="m3-btn-text !min-h-[32px] !p-1.5 cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -2061,34 +2055,34 @@ const ExpenseFormModal: React.FC<ExpenseModalProps> = ({ expense, onClose, onSav
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-700 font-bold mb-1">رقم سند الصرف *</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">رقم سند الصرف *</label>
               <input
                 type="text"
                 required
                 value={voucherNumber}
                 onChange={(e) => setVoucherNumber(e.target.value)}
-                className="w-full border border-slate-300 rounded-xl p-2.5 font-mono font-bold"
+                className="m3-input !h-10 font-mono tabular-nums font-bold text-xs"
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">تاريخ السند (YYYY-MM-DD) *</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">تاريخ السند (YYYY-MM-DD) *</label>
               <input
                 type="date"
                 required
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full border border-slate-300 rounded-xl p-2.5 font-mono"
+                className="m3-input !h-10 font-mono tabular-nums text-xs"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-700 font-bold mb-1">التصنيف المحاسبي للمصروف *</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">التصنيف المحاسبي للمصروف *</label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full border border-slate-300 rounded-xl p-2.5 bg-slate-50 font-bold"
+                className="m3-select !h-10 font-bold text-xs"
               >
                 {EXPENSE_CATEGORIES.map((c) => (
                   <option key={c} value={c}>
@@ -2098,11 +2092,11 @@ const ExpenseFormModal: React.FC<ExpenseModalProps> = ({ expense, onClose, onSav
               </select>
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">مركز التكلفة *</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">مركز التكلفة *</label>
               <select
                 value={costCenter}
                 onChange={(e) => setCostCenter(e.target.value)}
-                className="w-full border border-slate-300 rounded-xl p-2.5 bg-slate-50 font-bold"
+                className="m3-select !h-10 font-bold text-xs"
               >
                 {COST_CENTERS.map((c) => (
                   <option key={c} value={c}>
@@ -2115,35 +2109,35 @@ const ExpenseFormModal: React.FC<ExpenseModalProps> = ({ expense, onClose, onSav
 
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-2">
-              <label className="block text-slate-700 font-bold mb-1">يصرف للمستفيد *</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">يصرف للمستفيد *</label>
               <input
                 type="text"
                 required
                 placeholder="اسم المورد، المالك، الشركة، الموظف..."
                 value={beneficiary}
                 onChange={(e) => setBeneficiary(e.target.value)}
-                className="w-full border border-slate-300 rounded-xl p-2.5 font-bold"
+                className="m3-input !h-10 font-bold text-xs"
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">المبلغ المصروف *</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">المبلغ المصروف *</label>
               <input
                 type="text"
                 required
                 value={amount}
                 onChange={(e) => setAmount(toEnglishDigits(e.target.value))}
-                className="w-full border border-slate-300 rounded-xl p-2.5 font-mono font-bold text-emerald-700 text-base"
+                className="m3-input !h-10 font-mono tabular-nums font-bold text-[var(--md-success)] text-base"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-slate-700 font-bold mb-1">العملة</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">العملة</label>
               <select
                 value={currency}
                 onChange={(e: any) => setCurrency(e.target.value)}
-                className="w-full border border-slate-300 rounded-xl p-2.5 bg-slate-50 font-bold"
+                className="m3-select !h-10 font-bold text-xs"
               >
                 <option value="SAR">ريال سعودي (SAR)</option>
                 <option value="YER">ريال يمني (YER)</option>
@@ -2151,11 +2145,11 @@ const ExpenseFormModal: React.FC<ExpenseModalProps> = ({ expense, onClose, onSav
               </select>
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">طريقة الدفع</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">طريقة الدفع</label>
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full border border-slate-300 rounded-xl p-2.5 bg-slate-50"
+                className="m3-select !h-10 text-xs"
               >
                 <option value="نقداً">نقداً من الصندوق</option>
                 <option value="تحويل بنكي">تحويل بنكي</option>
@@ -2164,11 +2158,11 @@ const ExpenseFormModal: React.FC<ExpenseModalProps> = ({ expense, onClose, onSav
               </select>
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">الخزينة المسحوب منها *</label>
+              <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">الخزينة المسحوب منها *</label>
               <select
                 value={treasury}
                 onChange={(e) => setTreasury(e.target.value)}
-                className="w-full border border-slate-300 rounded-xl p-2.5 bg-slate-50 font-bold"
+                className="m3-select !h-10 font-bold text-xs"
               >
                 {TREASURIES.map((t) => (
                   <option key={t} value={t}>
@@ -2180,38 +2174,38 @@ const ExpenseFormModal: React.FC<ExpenseModalProps> = ({ expense, onClose, onSav
           </div>
 
           <div>
-            <label className="block text-slate-700 font-bold mb-1">البيان والشرح التفصيلي</label>
+            <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">البيان والشرح التفصيلي</label>
             <input
               type="text"
               placeholder="مثال: سداد فاتورة كهرباء شهر أكتوبر / إيجار المستودع..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full border border-slate-300 rounded-xl p-2.5"
+              className="m3-input !h-10 text-xs"
             />
           </div>
 
           <div>
-            <label className="block text-slate-700 font-bold mb-1">ملاحظات أو مراجع فواتير</label>
+            <label className="block text-[var(--md-on-surface-variant)] font-bold mb-1">ملاحظات أو مراجع فواتير</label>
             <textarea
               rows={2}
               placeholder="أرقام فواتير المورد أو السندات الورقية المرفقة..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full border border-slate-300 rounded-xl p-2.5"
+              className="m3-input !h-auto py-2.5 text-xs"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-3 border-t">
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[var(--md-outline-variant)]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-bold"
+              className="m3-btn-outlined text-xs cursor-pointer"
             >
               إلغاء
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md"
+              className="m3-btn-primary text-xs cursor-pointer"
             >
               حفظ وترحيل السند
             </button>

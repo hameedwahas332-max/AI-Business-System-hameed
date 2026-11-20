@@ -575,11 +575,11 @@ export const ProductsTab: React.FC = () => {
 
     if (majorFactor > 1 && majorUnitName) {
       return (
-        <div className="flex flex-col items-start gap-0.5">
-          <span className="font-mono font-bold text-white text-xs">
+        <div className="flex flex-col items-start gap-1">
+          <span className="font-mono font-bold text-[var(--md-on-surface)] text-xs tabular-nums">
             {formatNumber(stock)} {baseUnitName}
           </span>
-          <span className="text-[11px] text-emerald-300 font-semibold bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/40 font-mono">
+          <span className="m3-badge m3-badge-primary font-mono text-[11px] tabular-nums">
             📦 {majorCount} {majorUnitName} {remainderSub > 0 ? `+ ${remainderSub} ${baseUnitName}` : ''}
           </span>
         </div>
@@ -587,7 +587,7 @@ export const ProductsTab: React.FC = () => {
     }
 
     return (
-      <span className="font-mono font-bold text-slate-200">
+      <span className="font-mono font-bold text-[var(--md-on-surface)] tabular-nums">
         {formatNumber(stock)} {baseUnitName}
       </span>
     );
@@ -602,23 +602,23 @@ export const ProductsTab: React.FC = () => {
 
     if (diffDays <= 0) {
       return (
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-1">
-          <AlertCircle className="w-3 h-3 text-rose-400" />
+        <span className="m3-badge m3-badge-error text-[10px] tabular-nums">
+          <AlertCircle className="w-3 h-3 shrink-0" />
           منتهي ({expiryDate})
         </span>
       );
     }
     if (diffDays <= 60) {
       return (
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
-          <AlertTriangle className="w-3 h-3 text-amber-400" />
+        <span className="m3-badge m3-badge-warning text-[10px] tabular-nums">
+          <AlertTriangle className="w-3 h-3 shrink-0" />
           متبقي {diffDays} يوم
         </span>
       );
     }
     return (
-      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 flex items-center gap-1">
-        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+      <span className="m3-badge m3-badge-success text-[10px] tabular-nums">
+        <CheckCircle2 className="w-3 h-3 shrink-0" />
         ساري حتى {expiryDate}
       </span>
     );
@@ -702,26 +702,24 @@ export const ProductsTab: React.FC = () => {
   });
 
   return (
-    <div className="space-y-6 text-right text-slate-100 font-sans" dir="rtl">
-      
+    <div className="space-y-6 text-right text-[var(--md-on-surface)] font-sans" dir="rtl">
+
       {/* Header with Module Settings Button */}
-      <div className="bg-slate-900 border border-emerald-900/40 rounded-2xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-transparent rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-        
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+      <div className="m3-card p-5 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center shadow-lg shadow-emerald-950/50 shrink-0">
+              <div className="w-11 h-11 rounded-[var(--md-radius-md)] bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-outline-variant)] flex items-center justify-center shrink-0">
                 <Package className="w-5 h-5" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black text-[var(--md-on-surface)] tracking-tight flex items-center gap-2 flex-wrap">
                   <span>دليل المنتجات والأصناف والأسعار</span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
+                  <span className="m3-badge m3-badge-primary text-[10px] font-mono">
                     Multi-Activity Catalog
                   </span>
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-400 font-medium">
+                <p className="text-xs sm:text-sm text-[var(--md-on-surface-variant)] font-medium mt-0.5">
                   دعم متكامل للمواد الغذائية (صلاحية FEFO)، البطاريات (سيريال وضمان ورجيع)، الزيوت (لزوجة وسعة)، والتسعير المتعدد والوحدات
                 </p>
               </div>
@@ -734,7 +732,7 @@ export const ProductsTab: React.FC = () => {
 
             <button
               onClick={handleOpenCreate}
-              className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-bold text-xs sm:text-sm shadow-lg shadow-emerald-950/60 border border-emerald-500/40 flex items-center gap-2 transition-all active:scale-95 shrink-0 cursor-pointer"
+              className="m3-btn-primary text-xs sm:text-sm shrink-0"
             >
               <Plus className="w-4 h-4" />
               <span>إضافة صنف جديد</span>
@@ -744,9 +742,9 @@ export const ProductsTab: React.FC = () => {
       </div>
 
       {/* Activity Type Selector Bar */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5 shadow-sm flex items-center gap-2 overflow-x-auto">
-        <span className="text-xs font-bold text-slate-400 px-2 shrink-0 flex items-center gap-1.5">
-          <Filter className="w-3.5 h-3.5 text-emerald-400" />
+      <div className="m3-card p-2.5 flex items-center gap-2 overflow-x-auto">
+        <span className="text-xs font-bold text-[var(--md-on-surface-variant)] px-2 shrink-0 flex items-center gap-1.5">
+          <Filter className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
           نوع النشاط:
         </span>
         {ACTIVITY_OPTIONS.map((opt) => (
@@ -754,10 +752,10 @@ export const ProductsTab: React.FC = () => {
             key={opt.id}
             type="button"
             onClick={() => setSelectedActivity(opt.id as any)}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+            className={`px-3.5 py-2 rounded-[var(--md-radius-md)] text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer border ${
               selectedActivity === opt.id
-                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-950/50 border border-emerald-400/40'
-                : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/60'
+                ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] border-[var(--md-primary)] shadow-sm'
+                : 'bg-[var(--md-surface-container-low)] hover:bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] border-[var(--md-outline-variant)]'
             }`}
           >
             <span>{opt.icon}</span>
@@ -768,39 +766,39 @@ export const ProductsTab: React.FC = () => {
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-slate-900/90 border border-slate-800/80 rounded-2xl p-4 shadow-md flex items-center justify-between group hover:border-emerald-900/60 transition-all">
+        <div className="m3-card p-4 flex items-center justify-between transition-colors hover:border-[var(--md-outline)]">
           <div>
-            <div className="text-[11px] font-semibold text-slate-400 mb-1">إجمالي عدد الأصناف والمنتجات</div>
-            <div className="text-2xl font-bold font-mono text-white">{products.length} صنف</div>
+            <div className="text-[11px] font-semibold text-[var(--md-on-surface-variant)] mb-1">إجمالي عدد الأصناف والمنتجات</div>
+            <div className="text-2xl font-bold font-mono text-[var(--md-on-surface)] tabular-nums">{products.length} صنف</div>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-emerald-950/80 border border-emerald-800/40 text-emerald-400 flex items-center justify-center shrink-0">
+          <div className="w-11 h-11 rounded-[var(--md-radius-md)] bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] flex items-center justify-center shrink-0">
             <Boxes className="w-6 h-6" />
           </div>
         </div>
 
-        <div className="bg-slate-900/90 border border-slate-800/80 rounded-2xl p-4 shadow-md flex items-center justify-between group hover:border-emerald-900/60 transition-all">
+        <div className="m3-card p-4 flex items-center justify-between transition-colors hover:border-[var(--md-outline)]">
           <div>
-            <div className="text-[11px] font-semibold text-slate-400 mb-1">القيمة التقديرية للمخزون (تكلفة الشراء)</div>
-            <div className="text-2xl font-bold font-mono text-emerald-400">
-              {formatAmount(totalStockValuation)} <span className="text-xs text-slate-400 font-sans">YER</span>
+            <div className="text-[11px] font-semibold text-[var(--md-on-surface-variant)] mb-1">القيمة التقديرية للمخزون (تكلفة الشراء)</div>
+            <div className="text-2xl font-bold font-mono text-[var(--md-success)] tabular-nums">
+              {formatAmount(totalStockValuation)} <span className="text-xs text-[var(--md-on-surface-variant)] font-sans">YER</span>
             </div>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-teal-950/80 border border-teal-800/40 text-teal-400 flex items-center justify-center shrink-0">
+          <div className="w-11 h-11 rounded-[var(--md-radius-md)] bg-[var(--md-success-container)] text-[var(--md-on-success-container)] flex items-center justify-center shrink-0">
             <DollarSign className="w-6 h-6" />
           </div>
         </div>
 
-        <div className="bg-slate-900/90 border border-slate-800/80 rounded-2xl p-4 shadow-md flex items-center justify-between group hover:border-emerald-900/60 transition-all">
+        <div className="m3-card p-4 flex items-center justify-between transition-colors hover:border-[var(--md-outline)]">
           <div>
-            <div className="text-[11px] font-semibold text-slate-400 mb-1">الأصناف القريبة من النفاذ</div>
-            <div className={`text-2xl font-bold font-mono ${lowStockCount > 0 ? 'text-amber-400' : 'text-slate-200'}`}>
+            <div className="text-[11px] font-semibold text-[var(--md-on-surface-variant)] mb-1">الأصناف القريبة من النفاذ</div>
+            <div className={`text-2xl font-bold font-mono tabular-nums ${lowStockCount > 0 ? 'text-[var(--md-warning)]' : 'text-[var(--md-on-surface)]'}`}>
               {lowStockCount} صنف
             </div>
           </div>
-          <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border ${
+          <div className={`w-11 h-11 rounded-[var(--md-radius-md)] flex items-center justify-center shrink-0 ${
             lowStockCount > 0
-              ? 'bg-amber-950/80 border-amber-800/40 text-amber-400'
-              : 'bg-slate-800/80 border-slate-700/50 text-slate-400'
+              ? 'bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)]'
+              : 'bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)]'
           }`}>
             <AlertTriangle className="w-6 h-6" />
           </div>
@@ -809,41 +807,41 @@ export const ProductsTab: React.FC = () => {
 
       {/* Notifications */}
       {error && (
-        <div className="p-4 bg-red-950/40 border border-red-800/60 rounded-xl text-red-300 text-xs sm:text-sm flex items-center justify-between gap-3 shadow-lg">
+        <div className="p-4 bg-[var(--md-error-container)] border border-[var(--md-error)]/30 rounded-[var(--md-radius-md)] text-[var(--md-on-error-container)] text-xs sm:text-sm flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-            <span>{error}</span>
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span className="font-semibold">{error}</span>
           </div>
-          <button onClick={() => setError(null)} className="text-red-400 hover:text-red-200">
+          <button onClick={() => setError(null)} className="opacity-80 hover:opacity-100 p-1 rounded-lg cursor-pointer">
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
       {success && (
-        <div className="p-4 bg-emerald-950/40 border border-emerald-800/60 rounded-xl text-emerald-300 text-xs sm:text-sm flex items-center justify-between gap-3 shadow-lg">
+        <div className="p-4 bg-[var(--md-success-container)] border border-[var(--md-success)]/30 rounded-[var(--md-radius-md)] text-[var(--md-on-success-container)] text-xs sm:text-sm flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>{success}</span>
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span className="font-semibold">{success}</span>
           </div>
-          <button onClick={() => setSuccess(null)} className="text-emerald-400 hover:text-emerald-200">
+          <button onClick={() => setSuccess(null)} className="opacity-80 hover:opacity-100 p-1 rounded-lg cursor-pointer">
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
       {/* Table & Filters Card */}
-      <div className="bg-slate-900 border border-slate-800/80 rounded-2xl overflow-hidden shadow-xl">
+      <div className="m3-card overflow-hidden">
         {/* Filters Header */}
-        <div className="p-4 border-b border-slate-800 bg-slate-900/50 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="p-4 border-b border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="relative flex-1 w-full max-w-md">
-            <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               placeholder="البحث باسم المنتج، SKU، أو الباركود..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(normalizeScannedBarcode(e.target.value))}
-              className="w-full pl-3 pr-9 py-2 text-xs bg-slate-950 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
+              className="m3-input !h-10 !pr-9 text-xs"
             />
           </div>
 
@@ -852,7 +850,7 @@ export const ProductsTab: React.FC = () => {
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="py-2 px-3 text-xs bg-slate-950 border border-slate-700/80 rounded-xl text-slate-200 focus:outline-none focus:border-emerald-500"
+                className="m3-select !h-10 !w-auto min-w-[140px] text-xs"
               >
                 <option value="">جميع الفئات</option>
                 {categories.map((cat) => (
@@ -865,10 +863,10 @@ export const ProductsTab: React.FC = () => {
 
             <button
               onClick={() => setLowStockOnly(!lowStockOnly)}
-              className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer ${
+              className={`px-3 py-2 rounded-[var(--md-radius-md)] text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer min-h-[40px] ${
                 lowStockOnly
-                  ? 'bg-amber-950/70 text-amber-300 border-amber-700/70 shadow-sm'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700/80'
+                  ? 'bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)] border-[var(--md-warning)]/40'
+                  : 'bg-[var(--md-surface-container)] hover:bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] border-[var(--md-outline-variant)]'
               }`}
             >
               <AlertTriangle className="w-3.5 h-3.5" />
@@ -881,31 +879,31 @@ export const ProductsTab: React.FC = () => {
 
         {/* Products Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-right text-xs text-slate-300">
-            <thead className="bg-slate-950 text-slate-400 font-semibold border-b border-slate-800 text-[11px] uppercase tracking-wider">
+          <table className="m3-table text-right text-xs">
+            <thead className="m3-thead">
               <tr>
-                <th className="p-3.5">اسم المنتج / النشاط</th>
-                <th className="p-3.5">رقم الصنف / القطعة / SKU</th>
-                <th className="p-3.5">مستويات التسعير</th>
-                <th className="p-3.5">حركة ورصيد المخزون (الوارد / المباع / المتبقي)</th>
-                <th className="p-3.5">مواصفات النشاط والصلاحية والضمان</th>
-                <th className="p-3.5">الحالة</th>
-                <th className="p-3.5 text-center">الإجراءات</th>
+                <th className="m3-th">اسم المنتج / النشاط</th>
+                <th className="m3-th">رقم الصنف / القطعة / SKU</th>
+                <th className="m3-th">مستويات التسعير</th>
+                <th className="m3-th">حركة ورصيد المخزون (الوارد / المباع / المتبقي)</th>
+                <th className="m3-th">مواصفات النشاط والصلاحية والضمان</th>
+                <th className="m3-th">الحالة</th>
+                <th className="m3-th text-center">الإجراءات</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 font-medium">
+            <tbody className="divide-y divide-[var(--md-outline-variant)] font-medium">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-400">
+                  <td colSpan={7} className="p-8 text-center text-[var(--md-on-surface-variant)]">
                     <div className="flex flex-col items-center justify-center gap-2">
-                      <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
+                      <Loader2 className="w-6 h-6 animate-spin text-[var(--md-primary-text)]" />
                       <span>جاري تحميل الأصناف والأسعار...</span>
                     </div>
                   </td>
                 </tr>
               ) : products.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-500">
+                  <td colSpan={7} className="p-8 text-center text-[var(--md-on-surface-variant)]">
                     لا توجد منتجات مطابقة لخيارات البحث أو الفلتر المحددة.
                   </td>
                 </tr>
@@ -931,16 +929,16 @@ export const ProductsTab: React.FC = () => {
                   const displayCode = prod.itemCode || prod.partNumber || prod.sku;
 
                   return (
-                    <tr key={prod.id} className="hover:bg-slate-800/40 transition-colors">
+                    <tr key={prod.id} className="hover:bg-[var(--md-surface-container-low)] transition-colors">
                       {/* Product Name & Activity */}
-                      <td className="p-3.5 font-bold text-white max-w-[240px]">
+                      <td className="p-3.5 font-bold text-[var(--md-on-surface)] max-w-[240px]">
                         <div className="truncate">{prod.name}</div>
                         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                          <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/50">
+                          <span className="m3-badge m3-badge-primary text-[10px]">
                             {activityLabel}
                           </span>
                           {prod.category && (
-                            <span className="text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">
+                            <span className="text-[10px] font-semibold text-[var(--md-on-surface-variant)] bg-[var(--md-surface-container-high)] px-1.5 py-0.5 rounded-[var(--md-radius-sm)]">
                               {prod.category}
                             </span>
                           )}
@@ -948,32 +946,32 @@ export const ProductsTab: React.FC = () => {
                       </td>
 
                       {/* Item Code / Part Number & SKU & Barcode */}
-                      <td className="p-3.5 font-mono text-slate-400 dir-ltr text-right">
-                        <div className="text-emerald-400 font-bold text-xs">
+                      <td className="p-3.5 font-mono text-[var(--md-on-surface-variant)] dir-ltr text-right tabular-nums">
+                        <div className="text-[var(--md-primary-text)] font-bold text-xs">
                           {displayCode ? (
-                            <span className="bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/40">
+                            <span className="m3-badge m3-badge-primary font-mono text-[11px]">
                               {prod.itemCode ? `ITM: ${prod.itemCode}` : prod.partNumber ? `OEM: ${prod.partNumber}` : prod.sku}
                             </span>
                           ) : (
                             '-'
                           )}
                         </div>
-                        {prod.barcode && <div className="text-[10px] text-slate-400 font-mono mt-1">📊 {prod.barcode}</div>}
+                        {prod.barcode && <div className="text-[10px] text-[var(--md-on-surface-variant)] font-mono mt-1">📊 {prod.barcode}</div>}
                       </td>
 
                       {/* Tiered Pricing */}
                       <td className="p-3.5 text-xs">
-                        <div className="space-y-0.5 font-mono">
-                          <div className="text-emerald-400 font-bold">
+                        <div className="space-y-0.5 font-mono tabular-nums">
+                          <div className="text-[var(--md-success)] font-bold">
                             تجزئة: {formatAmount(prod.selling_price ?? prod.retailPrice ?? 0)}
                           </div>
                           {(prod.halfWholesalePrice > 0 || prod.wholesalePrice > 0) && (
-                            <div className="text-[11px] text-slate-400">
+                            <div className="text-[11px] text-[var(--md-on-surface-variant)]">
                               جملة: {formatAmount(prod.wholesalePrice || prod.halfWholesalePrice || 0)}
                             </div>
                           )}
                           {prod.majorUnitPrice > 0 && prod.majorUnitName && (
-                            <div className="text-[10px] text-teal-300">
+                            <div className="text-[10px] text-[var(--md-primary-text)] font-semibold">
                               {prod.majorUnitName}: {formatAmount(prod.majorUnitPrice)}
                             </div>
                           )}
@@ -982,12 +980,12 @@ export const ProductsTab: React.FC = () => {
 
                       {/* Stock with Cartons Breakdown & Movements */}
                       <td className="p-3.5">
-                        <div className="space-y-1.5 min-w-[170px]">
+                        <div className="space-y-1.5 min-w-[175px]">
                           <div className="flex items-center gap-1.5">
                             {renderStockBreakdown(prod)}
                             {isLow && (
                               <span title={`تنبيه مخزون: الحد الأدنى ${prod.min_stock_level ?? 5}`}>
-                                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                                <AlertTriangle className="w-4 h-4 text-[var(--md-warning)] shrink-0" />
                               </span>
                             )}
                           </div>
@@ -995,22 +993,22 @@ export const ProductsTab: React.FC = () => {
                           {(() => {
                             const m = computeLiveProductStockMetrics(prod);
                             return (
-                              <div className="grid grid-cols-2 gap-1 text-[10px] font-mono bg-slate-950/70 p-1.5 rounded-lg border border-slate-800">
-                                <div className="text-slate-400">
+                              <div className="grid grid-cols-2 gap-1 text-[10px] font-mono tabular-nums bg-[var(--md-surface-container-low)] p-1.5 rounded-[var(--md-radius-sm)] border border-[var(--md-outline-variant)]">
+                                <div className="text-[var(--md-on-surface-variant)]">
                                   <span>الوارد: </span>
-                                  <span className="font-bold text-slate-200" title={m.formattedIncoming}>
+                                  <span className="font-bold text-[var(--md-on-surface)]" title={m.formattedIncoming}>
                                     {formatNumber(m.totalIncoming)}
                                   </span>
                                 </div>
-                                <div className="text-blue-400">
+                                <div className="text-[var(--md-info)]">
                                   <span>مباع اليوم: </span>
                                   <span className="font-bold">{formatNumber(m.soldToday)}</span>
                                 </div>
-                                <div className="text-purple-400">
+                                <div className="text-[var(--md-secondary)]">
                                   <span>إجمالي المباع: </span>
                                   <span className="font-bold">{formatNumber(m.totalSold)}</span>
                                 </div>
-                                <div className="text-emerald-400">
+                                <div className="text-[var(--md-success)]">
                                   <span>المتبقي: </span>
                                   <span className="font-bold" title={m.formattedRemaining}>{formatNumber(m.remainingStock)}</span>
                                 </div>
@@ -1026,7 +1024,7 @@ export const ProductsTab: React.FC = () => {
                           <div className="space-y-1">
                             {renderExpiryBadge(prod.expiryDate)}
                             {prod.batchNumber && (
-                              <div className="text-[10px] text-slate-400 font-mono">
+                              <div className="text-[10px] text-[var(--md-on-surface-variant)] font-mono">
                                 دفعة: {prod.batchNumber}
                               </div>
                             )}
@@ -1036,15 +1034,15 @@ export const ProductsTab: React.FC = () => {
                         {prod.activityType === 'battery' && (
                           <div className="space-y-1">
                             {prod.batterySpec && (
-                              <div className="text-xs font-semibold text-amber-300 flex items-center gap-1">
-                                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                              <div className="text-xs font-semibold text-[var(--md-warning)] flex items-center gap-1">
+                                <Zap className="w-3.5 h-3.5 shrink-0" />
                                 {prod.batterySpec}
                               </div>
                             )}
-                            <div className="text-[10px] text-slate-400 flex items-center gap-2">
+                            <div className="text-[10px] text-[var(--md-on-surface-variant)] flex items-center gap-2 tabular-nums">
                               <span>ضمان: {prod.warrantyMonths || 12} شهر</span>
                               {prod.scrapDiscountValue > 0 && (
-                                <span className="text-emerald-400">رجيع: {prod.scrapDiscountValue} YER</span>
+                                <span className="text-[var(--md-success)] font-semibold">رجيع: {prod.scrapDiscountValue} YER</span>
                               )}
                             </div>
                           </div>
@@ -1053,14 +1051,18 @@ export const ProductsTab: React.FC = () => {
                         {prod.activityType === 'tire' && (
                           <div className="space-y-1">
                             {prod.tireSize && (
-                              <div className="text-xs font-bold text-cyan-300 font-mono flex items-center gap-1">
+                              <div className="text-xs font-bold text-[var(--md-info)] font-mono flex items-center gap-1">
                                 <span>🛞 مقاس: {prod.tireSize}</span>
                               </div>
                             )}
-                            <div className="text-[10px] text-slate-400 flex items-center gap-1.5 flex-wrap">
-                              {prod.tireProductionDot && <span className="bg-slate-800 px-1 py-0.2 rounded font-mono">DOT: {prod.tireProductionDot}</span>}
+                            <div className="text-[10px] text-[var(--md-on-surface-variant)] flex items-center gap-1.5 flex-wrap">
+                              {prod.tireProductionDot && (
+                                <span className="bg-[var(--md-surface-container-high)] text-[var(--md-on-surface)] px-1.5 py-0.5 rounded font-mono">
+                                  DOT: {prod.tireProductionDot}
+                                </span>
+                              )}
                               {prod.tirePlyOrigin && <span>{prod.tirePlyOrigin}</span>}
-                              {prod.warrantyMonths && <span className="text-teal-300">ضمان: {prod.warrantyMonths} شهر</span>}
+                              {prod.warrantyMonths && <span className="text-[var(--md-primary-text)] font-semibold">ضمان: {prod.warrantyMonths} شهر</span>}
                             </div>
                           </div>
                         )}
@@ -1068,12 +1070,12 @@ export const ProductsTab: React.FC = () => {
                         {prod.activityType === 'oil' && (
                           <div className="space-y-1">
                             {prod.viscosityGrade && (
-                              <div className="text-xs font-semibold text-blue-300 flex items-center gap-1">
-                                <Droplet className="w-3.5 h-3.5 text-blue-400" />
+                              <div className="text-xs font-semibold text-[var(--md-info)] flex items-center gap-1">
+                                <Droplet className="w-3.5 h-3.5 shrink-0" />
                                 لزوجة: {prod.viscosityGrade}
                               </div>
                             )}
-                            <div className="text-[10px] text-slate-400">
+                            <div className="text-[10px] text-[var(--md-on-surface-variant)] tabular-nums">
                               {prod.oemCode && <span>OEM: {prod.oemCode} | </span>}
                               <span>سعة: {prod.litersPerUnit || 1} لتر</span>
                             </div>
@@ -1082,30 +1084,30 @@ export const ProductsTab: React.FC = () => {
 
                         {prod.activityType === 'fuel' && (
                           <div className="space-y-1">
-                            <div className="text-xs font-bold text-amber-300 flex items-center gap-1">
+                            <div className="text-xs font-bold text-[var(--md-warning)] flex items-center gap-1">
                               ⛽ وقود / غاز مسال
                             </div>
-                            <div className="text-[10px] text-slate-400">
+                            <div className="text-[10px] text-[var(--md-on-surface-variant)]">
                               مضخات وعدادات وخزانات
                             </div>
                           </div>
                         )}
 
                         {(!prod.activityType || prod.activityType === 'general') && (
-                          <span className="text-slate-500 text-[11px]">-</span>
+                          <span className="text-[var(--md-on-surface-variant)] text-[11px]">-</span>
                         )}
                       </td>
 
                       {/* Status */}
                       <td className="p-3.5">
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${
+                          className={`m3-badge text-[10px] ${
                             prod.is_active !== false
-                              ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/60'
-                              : 'bg-slate-800 text-slate-400 border border-slate-700/60'
+                              ? 'm3-badge-success'
+                              : 'bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] border border-[var(--md-outline-variant)]'
                           }`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${prod.is_active !== false ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+                          <span className={`w-1.5 h-1.5 rounded-full ${prod.is_active !== false ? 'bg-[var(--md-success)]' : 'bg-[var(--md-on-surface-variant)]'}`} />
                           {prod.is_active !== false ? 'نشط' : 'معطل'}
                         </span>
                       </td>
@@ -1116,16 +1118,16 @@ export const ProductsTab: React.FC = () => {
                           <button
                             onClick={() => handleOpenEdit(prod)}
                             title="تعديل المنتج"
-                            className="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                            className="m3-btn-tonal !min-h-[32px] !px-2 !py-1.5"
                           >
-                            <Edit2 className="w-4 h-4" />
+                            <Edit2 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleDeleteProduct(prod)}
                             title="حذف المنتج"
-                            className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-950/40 rounded-lg transition-colors cursor-pointer"
+                            className="m3-btn-danger !min-h-[32px] !px-2 !py-1.5"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
@@ -1140,28 +1142,28 @@ export const ProductsTab: React.FC = () => {
 
       {/* CREATE / EDIT PRODUCT MODAL */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-150" dir="rtl">
-          <div className="bg-slate-900 rounded-2xl border border-slate-800 shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden text-right text-slate-100">
-            <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-950">
-              <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-emerald-950 text-emerald-400 border border-emerald-800/60 flex items-center justify-center">
+        <div className="m3-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-150" dir="rtl">
+          <div className="m3-modal-surface w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden text-right text-[var(--md-on-surface)]">
+            <div className="flex items-center justify-between p-4 border-b border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)]">
+              <h3 className="font-bold text-[var(--md-on-surface)] text-sm flex items-center gap-2">
+                <div className="w-8 h-8 rounded-[var(--md-radius-sm)] bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] flex items-center justify-center">
                   <Package className="w-4 h-4" />
                 </div>
                 <span>{editingProduct ? 'تعديل بيانات الصنف' : 'إضافة صنف جديد متعدد الأنشطة'}</span>
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-slate-800 cursor-pointer"
+                className="text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] p-1.5 rounded-[var(--md-radius-sm)] hover:bg-[var(--md-surface-container-high)] cursor-pointer transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleSaveProduct} className="p-5 space-y-4 text-xs overflow-y-auto flex-1 custom-scrollbar">
-              
+
               {/* Activity Type Selection */}
-              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
-                <label className="block text-slate-300 font-bold">نوع النشاط التجاري للصنف:</label>
+              <div className="bg-[var(--md-surface-container-low)] p-3.5 rounded-[var(--md-radius-md)] border border-[var(--md-outline-variant)] space-y-2">
+                <label className="block text-[var(--md-on-surface)] font-bold">نوع النشاط التجاري للصنف:</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                   {[
                     { id: 'food', label: '🍏 مواد غذائية', sub: 'صلاحية وتتبع' },
@@ -1184,14 +1186,14 @@ export const ProductsTab: React.FC = () => {
                           partNumber: newAct === 'oil' ? (formData.partNumber || autoCode) : formData.partNumber,
                         });
                       }}
-                      className={`p-2 rounded-xl text-right border transition-all cursor-pointer ${
+                      className={`p-2 rounded-[var(--md-radius-md)] text-right border transition-all cursor-pointer ${
                         formData.activityType === act.id
-                          ? 'bg-emerald-600/20 border-emerald-500 text-white shadow-sm ring-1 ring-emerald-500/50'
-                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'
+                          ? 'bg-[var(--md-primary-container)] border-[var(--md-primary)] text-[var(--md-on-primary-container)] shadow-sm'
+                          : 'bg-[var(--md-surface-container)] border-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-container-high)] hover:text-[var(--md-on-surface)]'
                       }`}
                     >
                       <div className="font-bold text-xs">{act.label}</div>
-                      <div className="text-[10px] text-slate-400 truncate">{act.sub}</div>
+                      <div className="text-[10px] opacity-80 truncate">{act.sub}</div>
                     </button>
                   ))}
                 </div>
@@ -1200,24 +1202,24 @@ export const ProductsTab: React.FC = () => {
               {/* Basic Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="sm:col-span-2">
-                  <label className="block text-slate-300 font-semibold mb-1">اسم الصنف / المنتج <span className="text-red-400">*</span></label>
+                  <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">اسم الصنف / المنتج <span className="text-[var(--md-error)]">*</span></label>
                   <input
                     type="text"
                     required
                     placeholder="مثال: شاي سيلاني فاخر 100 كيس / بطارية هانكوك 70A / إطار يوكوهاما 205/55R16"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    className="m3-input text-xs"
                   />
                 </div>
 
                 {/* Dynamic Item Code / Part Number Field */}
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1 flex items-center justify-between">
+                  <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1 flex items-center justify-between">
                     <span>
                       {formData.activityType === 'oil' ? 'رقم القطعة (Part Number / OEM)' : 'رقم الصنف / المنتج (Item Code)'}
                     </span>
-                    <span className="text-[10px] text-blue-400 font-normal">تسلسلي تلقائي</span>
+                    <span className="text-[10px] text-[var(--md-info)] font-normal">تسلسلي تلقائي</span>
                   </label>
                   <input
                     type="text"
@@ -1231,43 +1233,43 @@ export const ProductsTab: React.FC = () => {
                         setFormData({ ...formData, itemCode: val });
                       }
                     }}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-blue-300 font-bold placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono dir-ltr text-right"
+                    className="m3-input text-xs font-bold font-mono dir-ltr text-right text-[var(--md-info)]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">رمز المنتج (SKU)</label>
+                  <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">رمز المنتج (SKU)</label>
                   <input
                     type="text"
                     placeholder="SKU-1001"
                     value={formData.sku}
                     onChange={(e) => setFormData({ ...formData, sku: normalizeScannedBarcode(toEnglishDigits(e.target.value)) })}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono dir-ltr text-right"
+                    className="m3-input text-xs font-mono dir-ltr text-right"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1 flex items-center justify-between">
+                  <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1 flex items-center justify-between">
                     <span>الباركود الأساسي (Barcode)</span>
-                    <span className="text-[10px] text-emerald-400 font-mono">USB / HID Normalizer</span>
+                    <span className="text-[10px] text-[var(--md-primary-text)] font-mono">USB / HID Normalizer</span>
                   </label>
                   <input
                     type="text"
                     placeholder="629100022112"
                     value={formData.barcode}
                     onChange={(e) => setFormData({ ...formData, barcode: normalizeScannedBarcode(e.target.value) })}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono dir-ltr text-right"
+                    className="m3-input text-xs font-mono dir-ltr text-right"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">الفئة / التصنيف</label>
+                  <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">الفئة / التصنيف</label>
                   <input
                     type="text"
                     placeholder="مواد غذائية، بطاريات، زيوت..."
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    className="m3-input text-xs"
                   />
                 </div>
 
@@ -1278,14 +1280,14 @@ export const ProductsTab: React.FC = () => {
                     ))}
                   </datalist>
 
-                  <label className="block text-slate-300 font-semibold mb-1">الوحدة الأساسية (Base Unit)</label>
+                  <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1">الوحدة الأساسية (Base Unit)</label>
                   <input
                     type="text"
                     list="packaging-units-list"
                     placeholder="حبة، علبة، لتر، كيلو..."
                     value={formData.baseUnitName}
                     onChange={(e) => setFormData({ ...formData, baseUnitName: e.target.value, unit: e.target.value })}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    className="m3-input text-xs"
                   />
                   <div className="flex items-center gap-1 mt-1.5 flex-wrap">
                     {['قطعة / حبة', 'باكت / شدة', 'كرتون', 'قطمة', 'كيس / شوال', 'دبة / جالون', 'درزن', 'كيلوجرام', 'لتر'].map((u) => (
@@ -1293,10 +1295,10 @@ export const ProductsTab: React.FC = () => {
                         key={u}
                         type="button"
                         onClick={() => setFormData({ ...formData, baseUnitName: u, unit: u })}
-                        className={`text-[10px] px-2 py-0.5 rounded-full border transition-all cursor-pointer ${
+                        className={`text-[10px] px-2 py-0.5 rounded-[var(--md-radius-sm)] border transition-all cursor-pointer ${
                           formData.baseUnitName === u
-                            ? 'bg-emerald-600/30 text-emerald-300 border-emerald-500/60 font-bold'
-                            : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white hover:bg-slate-800'
+                            ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border-[var(--md-primary)]/40 font-bold'
+                            : 'bg-[var(--md-surface-container-low)] text-[var(--md-on-surface-variant)] border-[var(--md-outline-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)]'
                         }`}
                       >
                         {u}
@@ -1307,20 +1309,20 @@ export const ProductsTab: React.FC = () => {
               </div>
 
               {/* Auto Sub-Unit Pricing Calculator Panel */}
-              <div className="bg-gradient-to-br from-emerald-950/70 via-slate-950 to-teal-950/60 p-3.5 rounded-xl border border-emerald-500/40 shadow-lg space-y-3">
+              <div className="bg-[var(--md-primary-container)]/35 p-3.5 rounded-[var(--md-radius-md)] border border-[var(--md-primary)]/30 space-y-3">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-[var(--md-radius-sm)] bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] flex items-center justify-center shrink-0">
                       <Calculator className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-white text-xs flex items-center gap-1.5">
+                      <h4 className="font-bold text-[var(--md-on-surface)] text-xs flex items-center gap-1.5 flex-wrap">
                         <span>حاسبة تسعير التجزئة التلقائية</span>
-                        <span className="text-[10px] font-mono px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 rounded border border-emerald-500/30">
+                        <span className="m3-badge m3-badge-primary text-[10px] font-mono">
                           Auto Sub-Unit Pricing
                         </span>
                       </h4>
-                      <p className="text-[10px] text-slate-400">
+                      <p className="text-[10px] text-[var(--md-on-surface-variant)]">
                         احسب تكلفة وسعر بيع القطعة/الحبة آلياً من تكلفة الكرتون/الشوال وهامش الربح
                       </p>
                     </div>
@@ -1328,7 +1330,7 @@ export const ProductsTab: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowAutoPricingCalc(!showAutoPricingCalc)}
-                    className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 transition-all flex items-center gap-1.5 cursor-pointer"
+                    className="m3-btn-tonal !min-h-[34px] !px-3 text-[11px]"
                   >
                     <Calculator className="w-3.5 h-3.5" />
                     <span>{showAutoPricingCalc ? 'إخفاء الحاسبة' : 'فتح الحاسبة التلقائية ⚡'}</span>
@@ -1336,10 +1338,10 @@ export const ProductsTab: React.FC = () => {
                 </div>
 
                 {showAutoPricingCalc && (
-                  <div className="space-y-3 pt-2 border-t border-emerald-900/50 animate-in fade-in duration-200">
+                  <div className="space-y-3 pt-2.5 border-t border-[var(--md-outline-variant)] animate-in fade-in duration-200">
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                       <div>
-                        <label className="block text-slate-300 text-[11px] font-semibold mb-1">
+                        <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">
                           نوع الوحدة الكبرى
                         </label>
                         <input
@@ -1348,11 +1350,11 @@ export const ProductsTab: React.FC = () => {
                           placeholder="كرتون / شوال"
                           value={calcBulkUnit}
                           onChange={(e) => setCalcBulkUnit(e.target.value)}
-                          className="w-full p-2 bg-slate-900 border border-emerald-800/60 rounded-lg text-white font-medium text-xs"
+                          className="m3-input !h-9 text-xs font-medium"
                         />
                       </div>
                       <div>
-                        <label className="block text-slate-300 text-[11px] font-semibold mb-1">
+                        <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">
                           تكلفة شراء {calcBulkUnit || 'الكرتون'} ({getActiveCurrencySymbol()})
                         </label>
                         <input
@@ -1360,11 +1362,11 @@ export const ProductsTab: React.FC = () => {
                           placeholder="مثال: 24000"
                           value={calcBulkCost}
                           onChange={(e) => setCalcBulkCost(toEnglishDigits(e.target.value))}
-                          className="w-full p-2 bg-slate-900 border border-emerald-800/60 rounded-lg text-emerald-300 font-mono font-bold text-xs"
+                          className="m3-input !h-9 text-xs font-mono font-bold text-[var(--md-success)] tabular-nums"
                         />
                       </div>
                       <div>
-                        <label className="block text-slate-300 text-[11px] font-semibold mb-1">
+                        <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">
                           معامل التحويل (كم حبة بالكرتون؟)
                         </label>
                         <input
@@ -1372,11 +1374,11 @@ export const ProductsTab: React.FC = () => {
                           placeholder="مثال: 24"
                           value={calcConversionFactor}
                           onChange={(e) => setCalcConversionFactor(toEnglishDigits(e.target.value))}
-                          className="w-full p-2 bg-slate-900 border border-emerald-800/60 rounded-lg text-white font-mono font-bold text-xs"
+                          className="m3-input !h-9 text-xs font-mono font-bold tabular-nums"
                         />
                       </div>
                       <div>
-                        <label className="block text-slate-300 text-[11px] font-semibold mb-1">
+                        <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">
                           هامش ربح التجزئة %
                         </label>
                         <input
@@ -1384,53 +1386,49 @@ export const ProductsTab: React.FC = () => {
                           placeholder="20"
                           value={calcProfitMarginPercent}
                           onChange={(e) => setCalcProfitMarginPercent(toEnglishDigits(e.target.value))}
-                          className="w-full p-2 bg-slate-900 border border-emerald-800/60 rounded-lg text-cyan-300 font-mono font-bold text-xs"
+                          className="m3-input !h-9 text-xs font-mono font-bold text-[var(--md-info)] tabular-nums"
                         />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-950/80 p-2.5 rounded-xl border border-emerald-900/60 text-center">
-                      <div className="p-1.5 bg-slate-900/90 rounded-lg border border-slate-800">
-                        <div className="text-[10px] text-slate-400">تكلفة القطعة الفردية</div>
-                        <div className="text-xs font-mono font-bold text-slate-200">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-[var(--md-surface-container-low)] p-2.5 rounded-[var(--md-radius-md)] border border-[var(--md-outline-variant)] text-center">
+                      <div className="p-2 bg-[var(--md-surface-container)] rounded-[var(--md-radius-sm)] border border-[var(--md-outline-variant)]">
+                        <div className="text-[10px] text-[var(--md-on-surface-variant)]">تكلفة القطعة الفردية</div>
+                        <div className="text-xs font-mono font-bold text-[var(--md-on-surface)] tabular-nums mt-0.5">
                           {formatNumber(calcSingleUnitCost)} <span className="text-[9px] font-sans">{getActiveCurrencySymbol()}</span>
                         </div>
                       </div>
-                      <div className="p-1.5 bg-emerald-950/60 rounded-lg border border-emerald-800/50">
-                        <div className="text-[10px] text-emerald-400 font-bold">سعر التجزئة المقترح</div>
-                        <div className="text-xs font-mono font-bold text-emerald-300">
+                      <div className="p-2 bg-[var(--md-success-container)]/60 rounded-[var(--md-radius-sm)] border border-[var(--md-success)]/30">
+                        <div className="text-[10px] text-[var(--md-on-success-container)] font-bold">سعر التجزئة المقترح</div>
+                        <div className="text-xs font-mono font-bold text-[var(--md-on-success-container)] tabular-nums mt-0.5">
                           {formatNumber(calcSuggestedRetailPrice)} <span className="text-[9px] font-sans">{getActiveCurrencySymbol()}</span>
                         </div>
                       </div>
-                      <div className="p-1.5 bg-slate-900/90 rounded-lg border border-slate-800">
-                        <div className="text-[10px] text-slate-400">سعر الجملة المقترح</div>
-                        <div className="text-xs font-mono font-bold text-slate-200">
+                      <div className="p-2 bg-[var(--md-surface-container)] rounded-[var(--md-radius-sm)] border border-[var(--md-outline-variant)]">
+                        <div className="text-[10px] text-[var(--md-on-surface-variant)]">سعر الجملة المقترح</div>
+                        <div className="text-xs font-mono font-bold text-[var(--md-on-surface)] tabular-nums mt-0.5">
                           {formatNumber(calcSuggestedWholesalePrice)} <span className="text-[9px] font-sans">{getActiveCurrencySymbol()}</span>
                         </div>
                       </div>
-                      <div className="p-1.5 bg-slate-900/90 rounded-lg border border-slate-800">
-                        <div className="text-[10px] text-slate-400">سعر بيع {calcBulkUnit || 'الكرتون'}</div>
-                        <div className="text-xs font-mono font-bold text-amber-300">
+                      <div className="p-2 bg-[var(--md-warning-container)]/50 rounded-[var(--md-radius-sm)] border border-[var(--md-warning)]/30">
+                        <div className="text-[10px] text-[var(--md-on-warning-container)] font-semibold">سعر بيع {calcBulkUnit || 'الكرتون'}</div>
+                        <div className="text-xs font-mono font-bold text-[var(--md-on-warning-container)] tabular-nums mt-0.5">
                           {formatNumber(calcBulkPriceToApply)} <span className="text-[9px] font-sans">{getActiveCurrencySymbol()}</span>
                         </div>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between gap-3 flex-wrap">
-                      <div className="text-[10px] text-slate-400">
+                      <div className="text-[10px] text-[var(--md-on-surface-variant)]">
                         💡 بالضغط على الزر أدناه، سيتم تحديث أسعار التجزئة والجملة وسعر وتكلفة {calcBulkUnit || 'الكرتون'} فوراً
                       </div>
                       <button
                         type="button"
                         onClick={handleApplyCalculatedPricing}
                         disabled={calcSingleUnitCost <= 0}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-md ${
-                          calcSingleUnitCost > 0
-                            ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-950/60 border border-emerald-400/40 active:scale-95'
-                            : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
-                        }`}
+                        className={calcSingleUnitCost > 0 ? 'm3-btn-primary !min-h-[36px] text-xs' : 'm3-btn-outlined !min-h-[36px] text-xs opacity-50 cursor-not-allowed'}
                       >
-                        <Sparkles className="w-4 h-4 text-emerald-300" />
+                        <Sparkles className="w-4 h-4" />
                         <span>تطبيق الأسعار والتكلفة تلقائياً على الصنف</span>
                       </button>
                     </div>
@@ -1439,45 +1437,45 @@ export const ProductsTab: React.FC = () => {
               </div>
 
               {/* Multi-UOM Section */}
-              <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-3">
-                <div className="flex items-center gap-2 font-bold text-white text-xs border-b border-slate-800 pb-1.5">
-                  <Layers className="w-4 h-4 text-emerald-400" />
+              <div className="bg-[var(--md-surface-container-low)] p-3.5 rounded-[var(--md-radius-md)] border border-[var(--md-outline-variant)] space-y-3">
+                <div className="flex items-center gap-2 font-bold text-[var(--md-on-surface)] text-xs border-b border-[var(--md-outline-variant)] pb-2">
+                  <Layers className="w-4 h-4 text-[var(--md-primary-text)]" />
                   <span>تعدد وحدات القياس والتحويل (Multi-UOM)</span>
                 </div>
 
                 {/* Sub Unit */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <div>
-                    <label className="block text-slate-400 text-[11px] mb-1">الوحدة الفرعية (Sub Unit)</label>
+                    <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">الوحدة الفرعية (Sub Unit)</label>
                     <input
                       type="text"
                       list="packaging-units-list"
                       placeholder="باكت، درزن..."
                       value={formData.subUnitName}
                       onChange={(e) => setFormData({ ...formData, subUnitName: e.target.value })}
-                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100"
+                      className="m3-input !h-9 text-xs"
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-400 text-[11px] mb-1">معامل التحويل (كم حبة في الباكت؟)</label>
+                    <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">معامل التحويل (كم حبة في الباكت؟)</label>
                     <input
                       type="number"
                       step="any"
                       placeholder="12"
                       value={formData.subUnitFactor}
                       onChange={(e) => setFormData({ ...formData, subUnitFactor: e.target.value })}
-                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-mono"
+                      className="m3-input !h-9 text-xs font-mono tabular-nums"
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-400 text-[11px] mb-1">سعر بيع الباكت / الدرزن</label>
+                    <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">سعر بيع الباكت / الدرزن</label>
                     <input
                       type="number"
                       step="any"
                       placeholder="0.00"
                       value={formData.subUnitPrice}
                       onChange={(e) => setFormData({ ...formData, subUnitPrice: e.target.value })}
-                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-mono text-emerald-400"
+                      className="m3-input !h-9 text-xs font-mono font-bold text-[var(--md-success)] tabular-nums"
                     />
                   </div>
                 </div>
@@ -1485,51 +1483,51 @@ export const ProductsTab: React.FC = () => {
                 {/* Major Unit */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <div>
-                    <label className="block text-slate-400 text-[11px] mb-1">الوحدة الكبرى (Major Unit)</label>
+                    <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">الوحدة الكبرى (Major Unit)</label>
                     <input
                       type="text"
                       list="packaging-units-list"
                       placeholder="كرتون، شوال، طبلية..."
                       value={formData.majorUnitName}
                       onChange={(e) => setFormData({ ...formData, majorUnitName: e.target.value })}
-                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100"
+                      className="m3-input !h-9 text-xs"
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-400 text-[11px] mb-1">معامل الكرتون (كم حبة بالكرتون؟)</label>
+                    <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">معامل الكرتون (كم حبة بالكرتون؟)</label>
                     <input
                       type="number"
                       step="any"
                       placeholder="24"
                       value={formData.majorUnitFactor}
                       onChange={(e) => setFormData({ ...formData, majorUnitFactor: e.target.value })}
-                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-mono"
+                      className="m3-input !h-9 text-xs font-mono tabular-nums"
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-400 text-[11px] mb-1">سعر بيع الكرتون / الشوال</label>
+                    <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">سعر بيع الكرتون / الشوال</label>
                     <input
                       type="number"
                       step="any"
                       placeholder="0.00"
                       value={formData.majorUnitPrice}
                       onChange={(e) => setFormData({ ...formData, majorUnitPrice: e.target.value })}
-                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-mono text-emerald-400"
+                      className="m3-input !h-9 text-xs font-mono font-bold text-[var(--md-success)] tabular-nums"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Tiered Pricing Section */}
-              <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-3">
-                <div className="flex items-center gap-2 font-bold text-white text-xs border-b border-slate-800 pb-1.5">
-                  <DollarSign className="w-4 h-4 text-emerald-400" />
+              <div className="bg-[var(--md-surface-container-low)] p-3.5 rounded-[var(--md-radius-md)] border border-[var(--md-outline-variant)] space-y-3">
+                <div className="flex items-center gap-2 font-bold text-[var(--md-on-surface)] text-xs border-b border-[var(--md-outline-variant)] pb-2">
+                  <DollarSign className="w-4 h-4 text-[var(--md-primary-text)]" />
                   <span>مستويات التسعير المتعددة (Tiered Pricing)</span>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   <div>
-                    <label className="block text-slate-400 text-[11px] mb-1">سعر التجزئة (Retail)</label>
+                    <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">سعر التجزئة (Retail)</label>
                     <input
                       type="number"
                       step="any"
@@ -1542,65 +1540,65 @@ export const ProductsTab: React.FC = () => {
                           retailPrice: e.target.value,
                         })
                       }
-                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-emerald-400 font-mono font-bold"
+                      className="m3-input !h-9 text-xs text-[var(--md-success)] font-mono font-bold tabular-nums"
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-400 text-[11px] mb-1">سعر نصف الجملة</label>
+                    <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">سعر نصف الجملة</label>
                     <input
                       type="number"
                       step="any"
                       placeholder="0.00"
                       value={formData.halfWholesalePrice}
                       onChange={(e) => setFormData({ ...formData, halfWholesalePrice: e.target.value })}
-                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 font-mono"
+                      className="m3-input !h-9 text-xs font-mono tabular-nums"
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-400 text-[11px] mb-1">سعر الجملة (Wholesale)</label>
+                    <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">سعر الجملة (Wholesale)</label>
                     <input
                       type="number"
                       step="any"
                       placeholder="0.00"
                       value={formData.wholesalePrice}
                       onChange={(e) => setFormData({ ...formData, wholesalePrice: e.target.value })}
-                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 font-mono font-bold"
+                      className="m3-input !h-9 text-xs font-mono font-bold tabular-nums"
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-400 text-[11px] mb-1">سعر عملاء كبار (VIP)</label>
+                    <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">سعر عملاء كبار (VIP)</label>
                     <input
                       type="number"
                       step="any"
                       placeholder="0.00"
                       value={formData.vipPrice}
                       onChange={(e) => setFormData({ ...formData, vipPrice: e.target.value })}
-                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-teal-300 font-mono font-bold"
+                      className="m3-input !h-9 text-xs text-[var(--md-primary-text)] font-mono font-bold tabular-nums"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                   <div>
-                    <label className="block text-slate-400 text-[11px] mb-1">سعر الشراء (التكلفة الأساسية للوحدة الصغرى)</label>
+                    <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">سعر الشراء (التكلفة الأساسية للوحدة الصغرى)</label>
                     <input
                       type="number"
                       step="any"
                       placeholder="0.00"
                       value={formData.purchasePrice}
                       onChange={(e) => setFormData({ ...formData, purchasePrice: e.target.value })}
-                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 font-mono"
+                      className="m3-input !h-9 text-xs font-mono tabular-nums"
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-400 text-[11px] mb-1">الرصيد الافتتاحي بالوحدة الصغرى ({formData.baseUnitName || 'حبة/كيلو'})</label>
+                    <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">الرصيد الافتتاحي بالوحدة الصغرى ({formData.baseUnitName || 'حبة/كيلو'})</label>
                     <input
                       type="number"
                       step="any"
                       placeholder="0"
                       value={formData.currentStock}
                       onChange={(e) => setFormData({ ...formData, currentStock: e.target.value })}
-                      className="w-full p-2 bg-slate-900 border border-emerald-500/50 rounded-lg text-emerald-300 font-mono font-bold"
+                      className="m3-input !h-9 text-xs font-mono font-bold text-[var(--md-primary-text)] tabular-nums"
                     />
                   </div>
                 </div>
@@ -1615,19 +1613,19 @@ export const ProductsTab: React.FC = () => {
 
                   if (mFactor > 1) {
                     return (
-                      <div className="p-3 bg-slate-900/90 rounded-xl border border-emerald-500/30 space-y-2">
+                      <div className="p-3 bg-[var(--md-surface-container)] rounded-[var(--md-radius-md)] border border-[var(--md-primary)]/30 space-y-2">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-emerald-400 font-bold flex items-center gap-1.5">
-                            <Boxes className="w-4 h-4 text-emerald-400" />
+                          <span className="text-[var(--md-primary-text)] font-bold flex items-center gap-1.5">
+                            <Boxes className="w-4 h-4" />
                             <span>تحديد الرصيد بعدد ({mUnit}):</span>
                           </span>
-                          <span className="text-[10px] text-slate-400 font-mono">
+                          <span className="text-[10px] text-[var(--md-on-surface-variant)] font-mono tabular-nums">
                             1 {mUnit} = {mFactor} {bUnit}
                           </span>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                           <div>
-                            <label className="block text-slate-400 text-[10px] mb-1">
+                            <label className="block text-[var(--md-on-surface-variant)] text-[10px] font-semibold mb-1">
                               العدد بالوحدة الكبرى ({mUnit})
                             </label>
                             <input
@@ -1640,12 +1638,12 @@ export const ProductsTab: React.FC = () => {
                                 const convertedBase = Math.round(val * mFactor * 100) / 100;
                                 setFormData({ ...formData, currentStock: String(convertedBase) });
                               }}
-                              className="w-full p-2 bg-slate-950 border border-slate-700 rounded-lg text-white font-mono font-bold text-xs"
+                              className="m3-input !h-9 text-xs font-mono font-bold tabular-nums"
                             />
                           </div>
-                          <div className="flex flex-col justify-center text-xs bg-slate-950/70 p-2 rounded-lg border border-slate-800">
-                            <span className="text-[10px] text-slate-400 font-semibold">إجمالي الرصيد المحسوب:</span>
-                            <span className="text-emerald-300 font-bold font-mono text-xs">
+                          <div className="flex flex-col justify-center text-xs bg-[var(--md-surface-container-low)] p-2 rounded-[var(--md-radius-sm)] border border-[var(--md-outline-variant)]">
+                            <span className="text-[10px] text-[var(--md-on-surface-variant)] font-semibold">إجمالي الرصيد المحسوب:</span>
+                            <span className="text-[var(--md-primary-text)] font-bold font-mono text-xs tabular-nums">
                               {baseQty} {bUnit} {mFactor > 1 && baseQty > 0 ? `(يعادل ${Number((baseQty / mFactor).toFixed(2))} ${mUnit})` : ''}
                             </span>
                           </div>
@@ -1659,38 +1657,38 @@ export const ProductsTab: React.FC = () => {
 
               {/* Conditional Activity Specific Fields */}
               {formData.activityType === 'food' && (
-                <div className="bg-emerald-950/30 p-3.5 rounded-xl border border-emerald-800/40 space-y-3">
-                  <div className="flex items-center gap-2 font-bold text-emerald-400 text-xs border-b border-emerald-900/60 pb-1.5">
+                <div className="bg-[var(--md-success-container)]/30 p-3.5 rounded-[var(--md-radius-md)] border border-[var(--md-success)]/30 space-y-3">
+                  <div className="flex items-center gap-2 font-bold text-[var(--md-success)] text-xs border-b border-[var(--md-outline-variant)] pb-2">
                     <Apple className="w-4 h-4" />
                     <span>بيانات المواد الغذائية والصلاحية (FEFO Tracking)</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     <div>
-                      <label className="block text-slate-300 text-[11px] mb-1">رقم التشغيلة (Batch Number)</label>
+                      <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">رقم التشغيلة (Batch Number)</label>
                       <input
                         type="text"
                         placeholder="BATCH-2026-01"
                         value={formData.batchNumber}
                         onChange={(e) => setFormData({ ...formData, batchNumber: e.target.value })}
-                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-mono"
+                        className="m3-input !h-9 text-xs font-mono"
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-300 text-[11px] mb-1">تاريخ الإنتاج</label>
+                      <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">تاريخ الإنتاج</label>
                       <input
                         type="date"
                         value={formData.productionDate}
                         onChange={(e) => setFormData({ ...formData, productionDate: e.target.value })}
-                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100"
+                        className="m3-input !h-9 text-xs"
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-300 text-[11px] mb-1">تاريخ انتهاء الصلاحية <span className="text-amber-400">*</span></label>
+                      <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">تاريخ انتهاء الصلاحية <span className="text-[var(--md-warning)]">*</span></label>
                       <input
                         type="date"
                         value={formData.expiryDate}
                         onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-amber-300 font-bold"
+                        className="m3-input !h-9 text-xs font-bold text-[var(--md-warning)]"
                       />
                     </div>
                   </div>
@@ -1698,40 +1696,40 @@ export const ProductsTab: React.FC = () => {
               )}
 
               {formData.activityType === 'battery' && (
-                <div className="bg-amber-950/30 p-3.5 rounded-xl border border-amber-800/40 space-y-3">
-                  <div className="flex items-center gap-2 font-bold text-amber-400 text-xs border-b border-amber-900/60 pb-1.5">
+                <div className="bg-[var(--md-warning-container)]/30 p-3.5 rounded-[var(--md-radius-md)] border border-[var(--md-warning)]/30 space-y-3">
+                  <div className="flex items-center gap-2 font-bold text-[var(--md-warning)] text-xs border-b border-[var(--md-outline-variant)] pb-2">
                     <Zap className="w-4 h-4" />
                     <span>مواصفات البطاريات والضمان والرجيع (Warranty & Scrap)</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     <div>
-                      <label className="block text-slate-300 text-[11px] mb-1">سعة ومواصفات البطارية</label>
+                      <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">سعة ومواصفات البطارية</label>
                       <input
                         type="text"
                         placeholder="مثال: 70Ah - 12V SMF"
                         value={formData.batterySpec}
                         onChange={(e) => setFormData({ ...formData, batterySpec: e.target.value })}
-                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-bold"
+                        className="m3-input !h-9 text-xs font-bold"
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-300 text-[11px] mb-1">مدة الضمان بالشهور</label>
+                      <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">مدة الضمان بالشهور</label>
                       <input
                         type="number"
                         placeholder="12"
                         value={formData.warrantyMonths}
                         onChange={(e) => setFormData({ ...formData, warrantyMonths: e.target.value })}
-                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-mono"
+                        className="m3-input !h-9 text-xs font-mono tabular-nums"
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-300 text-[11px] mb-1">قيمة خصم الرجيع (البطارية التالفة)</label>
+                      <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">قيمة خصم الرجيع (البطارية التالفة)</label>
                       <input
                         type="number"
                         placeholder="50"
                         value={formData.scrapDiscountValue}
                         onChange={(e) => setFormData({ ...formData, scrapDiscountValue: e.target.value })}
-                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-emerald-400 font-mono font-bold"
+                        className="m3-input !h-9 text-xs text-[var(--md-success)] font-mono font-bold tabular-nums"
                       />
                     </div>
                   </div>
@@ -1741,9 +1739,9 @@ export const ProductsTab: React.FC = () => {
                       id="requiresSerial"
                       checked={formData.requiresSerial}
                       onChange={(e) => setFormData({ ...formData, requiresSerial: e.target.checked })}
-                      className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                      className="w-4 h-4 rounded accent-[var(--md-primary)] cursor-pointer"
                     />
-                    <label htmlFor="requiresSerial" className="text-slate-300 font-semibold cursor-pointer">
+                    <label htmlFor="requiresSerial" className="text-[var(--md-on-surface)] font-semibold cursor-pointer">
                       يلزم تسجيل الرقم التسلسلي (Serial No.) عند البيع لشهادة الضمان
                     </label>
                   </div>
@@ -1751,41 +1749,41 @@ export const ProductsTab: React.FC = () => {
               )}
 
               {formData.activityType === 'oil' && (
-                <div className="bg-blue-950/30 p-3.5 rounded-xl border border-blue-800/40 space-y-3">
-                  <div className="flex items-center gap-2 font-bold text-blue-400 text-xs border-b border-blue-900/60 pb-1.5">
+                <div className="bg-[var(--md-info-container)]/30 p-3.5 rounded-[var(--md-radius-md)] border border-[var(--md-info)]/30 space-y-3">
+                  <div className="flex items-center gap-2 font-bold text-[var(--md-info)] text-xs border-b border-[var(--md-outline-variant)] pb-2">
                     <Droplet className="w-4 h-4" />
                     <span>مواصفات الزيوت والشحوم وقطع الغيار (Viscosity & OEM)</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     <div>
-                      <label className="block text-slate-300 text-[11px] mb-1">درجة اللزوجة (Viscosity Grade)</label>
+                      <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">درجة اللزوجة (Viscosity Grade)</label>
                       <input
                         type="text"
                         placeholder="مثال: 20W-50 أو 5W-30 أو 10W-40"
                         value={formData.viscosityGrade}
                         onChange={(e) => setFormData({ ...formData, viscosityGrade: e.target.value })}
-                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-bold"
+                        className="m3-input !h-9 text-xs font-bold"
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-300 text-[11px] mb-1">كود المطابقة (OEM Part Code)</label>
+                      <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">كود المطابقة (OEM Part Code)</label>
                       <input
                         type="text"
                         placeholder="PET-20W50-SL"
                         value={formData.oemCode}
                         onChange={(e) => setFormData({ ...formData, oemCode: e.target.value })}
-                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-mono"
+                        className="m3-input !h-9 text-xs font-mono"
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-300 text-[11px] mb-1">سعة العبوة باللتر</label>
+                      <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">سعة العبوة باللتر</label>
                       <input
                         type="number"
                         step="any"
                         placeholder="4"
                         value={formData.litersPerUnit}
                         onChange={(e) => setFormData({ ...formData, litersPerUnit: e.target.value })}
-                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-mono"
+                        className="m3-input !h-9 text-xs font-mono tabular-nums"
                       />
                     </div>
                   </div>
@@ -1794,52 +1792,52 @@ export const ProductsTab: React.FC = () => {
 
               {/* Tires Section (قسم الإطارات والكفرات) */}
               {formData.activityType === 'tire' && (
-                <div className="bg-sky-950/30 p-3.5 rounded-xl border border-sky-800/40 space-y-3">
-                  <div className="flex items-center gap-2 font-bold text-sky-400 text-xs border-b border-sky-900/60 pb-1.5">
+                <div className="bg-[var(--md-info-container)]/30 p-3.5 rounded-[var(--md-radius-md)] border border-[var(--md-info)]/30 space-y-3">
+                  <div className="flex items-center gap-2 font-bold text-[var(--md-info)] text-xs border-b border-[var(--md-outline-variant)] pb-2">
                     <span className="text-base">🛞</span>
                     <span>مواصفات إطارات السيارات والكفرات والضمان (Tires Spec & Warranty)</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     <div>
-                      <label className="block text-slate-300 text-[11px] mb-1">مقاس الإطار (Tire Size) <span className="text-sky-400">*</span></label>
+                      <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">مقاس الإطار (Tire Size) <span className="text-[var(--md-info)]">*</span></label>
                       <input
                         type="text"
                         placeholder="مثال: 205/55 R16 أو 265/65 R17"
                         value={formData.tireSize}
                         onChange={(e) => setFormData({ ...formData, tireSize: e.target.value })}
-                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-bold font-mono"
+                        className="m3-input !h-9 text-xs font-bold font-mono"
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-300 text-[11px] mb-1">تاريخ الصنع DOT (الأسبوع والسنة)</label>
+                      <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">تاريخ الصنع DOT (الأسبوع والسنة)</label>
                       <input
                         type="text"
                         placeholder="مثال: الأسبوع 40 - 2025"
                         value={formData.tireProductionDot}
                         onChange={(e) => setFormData({ ...formData, tireProductionDot: e.target.value })}
-                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-mono"
+                        className="m3-input !h-9 text-xs font-mono"
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-300 text-[11px] mb-1">بلد المنشأ ونقشة الغاط (Ply / Origin)</label>
+                      <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">بلد المنشأ ونقشة الغاط (Ply / Origin)</label>
                       <input
                         type="text"
                         placeholder="مثال: ياباني - 8 غاط"
                         value={formData.tirePlyOrigin}
                         onChange={(e) => setFormData({ ...formData, tirePlyOrigin: e.target.value })}
-                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100"
+                        className="m3-input !h-9 text-xs"
                       />
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                     <div>
-                      <label className="block text-slate-300 text-[11px] mb-1">مدة الضمان بالأشهر (ضد عيوب التصنيع)</label>
+                      <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">مدة الضمان بالأشهر (ضد عيوب التصنيع)</label>
                       <input
                         type="number"
                         placeholder="12"
                         value={formData.warrantyMonths}
                         onChange={(e) => setFormData({ ...formData, warrantyMonths: e.target.value })}
-                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-mono"
+                        className="m3-input !h-9 text-xs font-mono tabular-nums"
                       />
                     </div>
                   </div>
@@ -1848,18 +1846,18 @@ export const ProductsTab: React.FC = () => {
 
               {/* Fuel Station Section */}
               {formData.activityType === 'fuel' && (
-                <div className="bg-amber-950/30 p-3.5 rounded-xl border border-amber-800/40 space-y-3">
-                  <div className="flex items-center gap-2 font-bold text-amber-400 text-xs border-b border-amber-900/60 pb-1.5">
+                <div className="bg-[var(--md-warning-container)]/30 p-3.5 rounded-[var(--md-radius-md)] border border-[var(--md-warning)]/30 space-y-3">
+                  <div className="flex items-center gap-2 font-bold text-[var(--md-warning)] text-xs border-b border-[var(--md-outline-variant)] pb-2">
                     <span className="text-base">⛽</span>
                     <span>بيانات محطة الوقود والغاز وربط الخزان (Fuel Station Spec)</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     <div>
-                      <label className="block text-slate-300 text-[11px] mb-1">نوع الوقود / المشتق</label>
+                      <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">نوع الوقود / المشتق</label>
                       <select
                         value={formData.fuelType}
                         onChange={(e) => setFormData({ ...formData, fuelType: e.target.value as any })}
-                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-bold"
+                        className="m3-select !h-9 text-xs font-bold"
                       >
                         <option value="petrol_91">بترول عادي 91</option>
                         <option value="petrol_95">بترول ممتاز 95</option>
@@ -1868,23 +1866,23 @@ export const ProductsTab: React.FC = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-slate-300 text-[11px] mb-1">معرف الخزان الأرضي (Tank ID)</label>
+                      <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">معرف الخزان الأرضي (Tank ID)</label>
                       <input
                         type="text"
                         placeholder="TANK-01"
                         value={formData.tankId}
                         onChange={(e) => setFormData({ ...formData, tankId: e.target.value })}
-                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-mono"
+                        className="m3-input !h-9 text-xs font-mono"
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-300 text-[11px] mb-1">معرف طرمبة التعبئة (Meter ID)</label>
+                      <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold mb-1">معرف طرمبة التعبئة (Meter ID)</label>
                       <input
                         type="text"
                         placeholder="PUMP-01-MTR"
                         value={formData.meterId}
                         onChange={(e) => setFormData({ ...formData, meterId: e.target.value })}
-                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 font-mono"
+                        className="m3-input !h-9 text-xs font-mono"
                       />
                     </div>
                   </div>
@@ -1897,24 +1895,24 @@ export const ProductsTab: React.FC = () => {
                   id="isActive"
                   checked={formData.isActive}
                   onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                  className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                  className="w-4 h-4 rounded accent-[var(--md-primary)] cursor-pointer"
                 />
-                <label htmlFor="isActive" className="text-slate-300 font-semibold cursor-pointer">
+                <label htmlFor="isActive" className="text-[var(--md-on-surface)] font-semibold cursor-pointer">
                   صنف نشط ومتاح في البيع والشراء والتحويل
                 </label>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--md-outline-variant)]">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 border border-slate-700 text-slate-300 rounded-xl hover:bg-slate-800 font-semibold transition-colors cursor-pointer"
+                  className="m3-btn-outlined text-xs"
                 >
                   إلغاء
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-950/50 border border-emerald-500/40 transition-all active:scale-95 cursor-pointer"
+                  className="m3-btn-primary text-xs"
                 >
                   حفظ الصنف
                 </button>

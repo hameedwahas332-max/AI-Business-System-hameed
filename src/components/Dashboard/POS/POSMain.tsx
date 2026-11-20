@@ -1404,17 +1404,17 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
   });
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4.5rem)] bg-slate-950 text-slate-100 overflow-hidden font-sans" dir="rtl">
+    <div className="flex flex-col h-[calc(100vh-4.5rem)] bg-[var(--md-surface)] text-[var(--md-on-surface)] overflow-hidden font-sans" dir="rtl">
       {/* Top POS Action & Status Bar */}
-      <header className="bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 px-4 py-2.5 flex items-center justify-between gap-3 shrink-0">
+      <header className="bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] px-4 py-2.5 flex items-center justify-between gap-3 shrink-0">
         {/* Left Status: Shift & Cashier */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsShiftModalOpen(true)}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all ${
+            className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer ${
               currentShift
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
-                : 'bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20'
+                ? 'bg-[var(--md-success-container)] border-[var(--md-success)]/30 text-[var(--md-on-success-container)] hover:opacity-90'
+                : 'bg-[var(--md-error-container)] border-[var(--md-error)]/30 text-[var(--md-on-error-container)] hover:opacity-90'
             }`}
             title="إدارة وردية الكاشير وحركات الدرج (F9)"
           >
@@ -1424,12 +1424,12 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
 
           {/* Daily Sales Quick Stat */}
           {dailySummary && (
-            <div className="hidden lg:flex items-center gap-3 px-3 py-1 bg-slate-800/60 rounded-xl text-xs border border-slate-800">
-              <span className="text-slate-400">مبيعات اليوم:</span>
-              <span className="font-black text-emerald-400">
+            <div className="hidden lg:flex items-center gap-3 px-3 py-1 bg-[var(--md-surface-container)] rounded-xl text-xs border border-[var(--md-outline-variant)]">
+              <span className="text-[var(--md-on-surface-variant)]">مبيعات اليوم:</span>
+              <span className="font-black text-[var(--md-primary-text)] tabular-nums">
                 {Number(dailySummary.netSales || 0).toLocaleString()} {currSym}
               </span>
-              <span className="text-slate-500">({dailySummary.totalInvoices || 0} فاتورة)</span>
+              <span className="text-[var(--md-on-surface-variant)] tabular-nums">({dailySummary.totalInvoices || 0} فاتورة)</span>
             </div>
           )}
         </div>
@@ -1440,17 +1440,17 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
           <button
             type="button"
             onClick={() => setIsPosDailySalesOpen(true)}
-            className="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+            className="m3-btn-tonal text-xs px-3 py-1.5 flex items-center gap-1.5 cursor-pointer"
             title="عرض سجل مبيعات الكاشير اليومية وإعادة الطباعة والمرتجع"
           >
-            <FileText className="w-3.5 h-3.5 text-emerald-400" />
+            <FileText className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
             <span>📜 سجل مبيعات النقطة ({todayPosSales.length})</span>
           </button>
 
           {/* Quick Item Manual Sale (F3) */}
           <button
             onClick={() => setIsQuickItemOpen(true)}
-            className="px-3 py-1.5 bg-blue-600/15 hover:bg-blue-600/25 text-blue-400 border border-blue-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+            className="px-3 py-1.5 bg-[var(--md-info-container)] text-[var(--md-on-info-container)] border border-[var(--md-info)]/30 hover:opacity-90 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-opacity cursor-pointer"
             title="إضافة صنف يدوي غير مسجل (F3)"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -1460,13 +1460,13 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
           {/* Held Sales Drawer Button (F7) */}
           <button
             onClick={() => setIsHeldDrawerOpen(true)}
-            className="relative px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+            className="relative px-3 py-1.5 bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)] border border-[var(--md-warning)]/30 hover:opacity-90 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-opacity cursor-pointer"
             title="عرض الفواتير المعلقة (F7)"
           >
             <Pause className="w-3.5 h-3.5" />
             <span>المعلق (F7)</span>
             {heldSales.length > 0 && (
-              <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black flex items-center justify-center -mr-1">
+              <span className="w-5 h-5 rounded-full bg-[var(--md-warning)] text-[var(--md-on-primary)] text-[10px] font-black flex items-center justify-center -mr-1 tabular-nums">
                 {heldSales.length}
               </span>
             )}
@@ -1475,7 +1475,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
           {/* Sales Returns Modal (F8) */}
           <button
             onClick={() => setIsReturnsModalOpen(true)}
-            className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+            className="px-3 py-1.5 bg-[var(--md-error-container)] text-[var(--md-on-error-container)] border border-[var(--md-error)]/30 hover:opacity-90 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-opacity cursor-pointer"
             title="مرتجع مبيعات واسترداد (F8)"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -1485,7 +1485,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
           {/* POS AI Assistant */}
           <button
             onClick={() => setIsAIAssistantOpen(true)}
-            className="px-3 py-1.5 bg-purple-600/15 hover:bg-purple-600/25 text-purple-400 border border-purple-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+            className="px-3 py-1.5 bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] border border-[var(--md-secondary)]/30 hover:opacity-90 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-opacity cursor-pointer"
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">مساعد POS</span>
@@ -1498,7 +1498,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
           <select
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
-            className="bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1 text-xs font-bold text-slate-200 focus:outline-none focus:border-emerald-500"
+            className="m3-select text-xs font-bold py-1.5 px-2.5 w-auto"
           >
             <option value="YER">ريال يمني (YER)</option>
             <option value="SAR">ريال سعودي (SAR)</option>
@@ -1509,7 +1509,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
           {onNavigateToInvoices && (
             <button
               onClick={onNavigateToInvoices}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-slate-700 transition-all"
+              className="m3-btn-outlined px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
               title="الانتقال إلى سجل الفواتير الشامل"
             >
               <FileText className="w-3.5 h-3.5" />
@@ -1522,11 +1522,11 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
       {/* Main Workspace: Left Catalog + Right Cart */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Side: Product Search, Category Pills, & Catalog Grid */}
-        <section className="flex-1 flex flex-col min-w-0 border-l border-slate-800/80 bg-slate-950/60 p-4 space-y-3">
+        <section className="flex-1 flex flex-col min-w-0 border-l border-[var(--md-outline-variant)] bg-[var(--md-surface)] p-4 space-y-3">
           {/* Price Tier Selector Bar */}
-          <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-800 p-2 rounded-2xl shrink-0 overflow-x-auto">
-            <span className="text-xs font-bold text-slate-400 px-1 shrink-0 flex items-center gap-1">
-              <Tag className="w-3.5 h-3.5 text-emerald-400" />
+          <div className="flex items-center gap-2 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] p-2 rounded-2xl shrink-0 overflow-x-auto">
+            <span className="text-xs font-bold text-[var(--md-on-surface-variant)] px-1 shrink-0 flex items-center gap-1">
+              <Tag className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
               مستوى التسعير:
             </span>
             {[
@@ -1539,10 +1539,10 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                 key={tier.id}
                 type="button"
                 onClick={() => setSelectedPriceTier(tier.id as PriceTier)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap border ${
                   selectedPriceTier === tier.id
-                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-950/40 border border-emerald-400/40'
-                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] border-[var(--md-primary)]'
+                    : 'bg-[var(--md-surface-container)] text-[var(--md-on-surface-variant)] border-[var(--md-outline-variant)] hover:bg-[var(--md-surface-container-high)] hover:text-[var(--md-on-surface)]'
                 }`}
               >
                 <span>{tier.icon}</span>
@@ -1554,7 +1554,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
           {/* Universal Fast Search & Barcode Bar */}
           <form onSubmit={handleBarcodeSubmit} className="flex gap-2">
             <div className="relative flex-1">
-              <Barcode className="w-5 h-5 text-emerald-400 absolute right-3.5 top-2.5" />
+              <Barcode className="w-5 h-5 text-[var(--md-primary-text)] absolute right-3.5 top-2.5 pointer-events-none" />
               <input
                 ref={searchInputRef}
                 type="text"
@@ -1569,14 +1569,14 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                   }
                 }}
                 placeholder="امسح الباركود بجهاز المسح، أو ابحث بالاسم والرمز (SKU)... [ / للتركيز ]"
-                className="w-full bg-slate-900 border border-slate-700/80 rounded-2xl pr-11 pl-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-inner"
+                className="m3-input w-full rounded-2xl pr-11 pl-4 py-2.5 text-sm"
               />
             </div>
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="px-3 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-xl text-xs"
+                className="m3-btn-outlined px-3 text-xs cursor-pointer"
               >
                 مسح
               </button>
@@ -1585,18 +1585,18 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
 
           {/* Barcode Scanner Unmatched Alert & 1-Click Quick Register */}
           {scannedUnmatchedBarcode && (
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3 flex items-center justify-between gap-3 text-xs animate-in fade-in">
-              <div className="flex items-center gap-2 text-amber-300">
-                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+            <div className="bg-[var(--md-warning-container)] border border-[var(--md-warning)]/30 rounded-2xl p-3 flex items-center justify-between gap-3 text-xs animate-in fade-in">
+              <div className="flex items-center gap-2 text-[var(--md-on-warning-container)]">
+                <AlertTriangle className="w-4 h-4 text-[var(--md-warning)] shrink-0" />
                 <span>
-                  الباركود <strong className="font-mono text-amber-200">{scannedUnmatchedBarcode}</strong> غير مسجل في المخزون.
+                  الباركود <strong className="font-mono">{scannedUnmatchedBarcode}</strong> غير مسجل في المخزون.
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setIsQuickItemOpen(true)}
-                  className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold rounded-xl text-xs hover:from-emerald-500 hover:to-teal-500 shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
+                  className="m3-btn-primary px-3 py-1.5 text-xs flex items-center gap-1.5 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>تسجيل وبيع الصنف سريعاً (F3)</span>
@@ -1604,7 +1604,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                 <button
                   type="button"
                   onClick={() => setScannedUnmatchedBarcode(null)}
-                  className="p-1 text-slate-400 hover:text-white"
+                  className="p-1 text-[var(--md-on-warning-container)] hover:opacity-75 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1614,12 +1614,12 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
 
           {/* Barcode Scan Success Toast */}
           {barcodeToast && barcodeToast.type === 'success' && (
-            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-2.5 flex items-center justify-between text-xs text-emerald-300 animate-in fade-in">
+            <div className="bg-[var(--md-success-container)] border border-[var(--md-success)]/30 rounded-2xl p-2.5 flex items-center justify-between text-xs text-[var(--md-on-success-container)] animate-in fade-in">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-[var(--md-success)] shrink-0" />
                 <span className="font-medium">{barcodeToast.message}</span>
               </div>
-              <span className="text-[10px] text-emerald-400 font-mono bg-emerald-500/20 px-2 py-0.5 rounded-full">
+              <span className="m3-badge m3-badge-success text-[10px] font-mono">
                 ⚡ HID Scanner Beep
               </span>
             </div>
@@ -1629,10 +1629,10 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
           <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar shrink-0">
             <button
               onClick={() => setSelectedCategory('ALL')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-colors border cursor-pointer ${
                 selectedCategory === 'ALL'
-                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/40'
-                  : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
+                  ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] border-[var(--md-primary)]'
+                  : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)]'
               }`}
             >
               جميع الأصناف ({products.length})
@@ -1641,10 +1641,10 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-colors border cursor-pointer ${
                   selectedCategory === cat
-                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/40'
-                    : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
+                    ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] border-[var(--md-primary)]'
+                    : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)]'
                 }`}
               >
                 {cat}
@@ -1655,19 +1655,19 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
           {/* Product Grid */}
           <div className="flex-1 overflow-y-auto custom-scrollbar">
             {loading ? (
-              <div className="flex items-center justify-center h-64 text-slate-400 gap-2">
-                <RefreshCw className="w-5 h-5 animate-spin text-emerald-400" />
+              <div className="flex items-center justify-center h-64 text-[var(--md-on-surface-variant)] gap-2">
+                <RefreshCw className="w-5 h-5 animate-spin text-[var(--md-primary-text)]" />
                 <span>جاري تحميل دليل المنتجات والأسعار...</span>
               </div>
             ) : filteredProducts.length === 0 ? (
               <div className="text-center py-20 space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 text-slate-500 flex items-center justify-center mx-auto">
+                <div className="w-12 h-12 rounded-2xl bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)] flex items-center justify-center mx-auto">
                   <Package className="w-6 h-6" />
                 </div>
-                <p className="text-sm font-medium text-slate-400">لا توجد منتجات مطابقة لـ "{searchQuery}"</p>
+                <p className="text-sm font-medium text-[var(--md-on-surface-variant)]">لا توجد منتجات مطابقة لـ "{searchQuery}"</p>
                 <button
                   onClick={() => setIsQuickItemOpen(true)}
-                  className="px-4 py-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-xl text-xs font-bold hover:bg-blue-600/30"
+                  className="px-4 py-2 bg-[var(--md-info-container)] text-[var(--md-on-info-container)] border border-[var(--md-info)]/30 rounded-xl text-xs font-bold hover:opacity-90 cursor-pointer"
                 >
                   إضافة كصنف سريع / بيع مباشر
                 </button>
@@ -1683,31 +1683,31 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                     <button
                       key={p.id}
                       onClick={() => handleAddToCart(p)}
-                      className="group p-3.5 bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800/90 hover:border-emerald-500/50 rounded-2xl text-right transition-all flex flex-col justify-between shadow-sm hover:shadow-lg active:scale-98"
+                      className="m3-card group p-3.5 hover:bg-[var(--md-surface-container-high)] hover:border-[var(--md-primary)]/50 text-right transition-all flex flex-col justify-between cursor-pointer active:scale-[0.98]"
                     >
                       <div>
-                        <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1.5">
+                        <div className="flex items-center justify-between text-[11px] text-[var(--md-on-surface-variant)] mb-1.5">
                           <span className="truncate">{p.category || 'عام'}</span>
                           {p.barcode && (
-                            <span className="text-[10px] text-slate-500 font-mono">{p.barcode}</span>
+                            <span className="text-[10px] text-[var(--md-on-surface-variant)] font-mono">{p.barcode}</span>
                           )}
                         </div>
-                        <h4 className="text-sm font-bold text-white group-hover:text-emerald-300 transition-colors line-clamp-2 leading-snug">
+                        <h4 className="text-sm font-bold text-[var(--md-on-surface)] group-hover:text-[var(--md-primary-text)] transition-colors line-clamp-2 leading-snug">
                           {p.name}
                         </h4>
                       </div>
 
-                      <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between">
-                        <div className="text-base font-black text-emerald-400">
+                      <div className="mt-3 pt-2.5 border-t border-[var(--md-outline-variant)] flex items-center justify-between">
+                        <div className="text-base font-black text-[var(--md-primary-text)] tabular-nums">
                           {price.toLocaleString()} <span className="text-[11px] font-bold">{currSym}</span>
                         </div>
                         <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          className={`m3-badge text-[10px] font-bold ${
                             stock <= 0
-                              ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                              ? 'm3-badge-error'
                               : isLowStock
-                              ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                              : 'bg-slate-800 text-emerald-400 border border-slate-700/80 font-mono'
+                              ? 'm3-badge-warning'
+                              : 'm3-badge-success font-mono'
                           }`}
                           title={`الرصيد: ${formatProductStock(stock, p)}`}
                         >
@@ -1723,9 +1723,9 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
         </section>
 
         {/* Right Side: Smart Cart & Checkout Counter Panel */}
-        <aside className="w-full max-w-md bg-slate-900 flex flex-col shrink-0 shadow-2xl border-r border-slate-800/80">
+        <aside className="w-full max-w-md bg-[var(--md-surface-container-low)] flex flex-col shrink-0 border-r border-[var(--md-outline-variant)]">
           {/* Customer Selection Block */}
-          <div className="p-3.5 border-b border-slate-800 bg-slate-900/60">
+          <div className="p-3.5 border-b border-[var(--md-outline-variant)] bg-[var(--md-surface-container-lowest)]">
             <POSCustomerSelector
               customers={customers}
               selectedCustomer={selectedCustomer}
@@ -1740,11 +1740,11 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
           <div className="flex-1 overflow-y-auto p-3.5 space-y-2.5 custom-scrollbar">
             {cart.length === 0 ? (
               <div className="text-center py-24 space-y-3">
-                <div className="w-14 h-14 rounded-3xl bg-slate-800/60 text-slate-600 flex items-center justify-center mx-auto">
+                <div className="w-14 h-14 rounded-3xl bg-[var(--md-surface-container)] text-[var(--md-on-surface-variant)] flex items-center justify-center mx-auto border border-[var(--md-outline-variant)]">
                   <ShoppingBag className="w-7 h-7" />
                 </div>
-                <h4 className="text-sm font-bold text-slate-400">سلة المبيعات فارغة</h4>
-                <p className="text-xs text-slate-500 max-w-[200px] mx-auto">
+                <h4 className="text-sm font-bold text-[var(--md-on-surface)]">سلة المبيعات فارغة</h4>
+                <p className="text-xs text-[var(--md-on-surface-variant)] max-w-[200px] mx-auto">
                   اختر من دليل المنتجات أو امسح الباركود للبدء
                 </p>
               </div>
@@ -1752,19 +1752,19 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
               cart.map((item, idx) => (
                 <div
                   key={item.id || idx}
-                  className="p-3 bg-slate-800/40 border border-slate-800/80 rounded-2xl space-y-2 hover:border-slate-700 transition-all"
+                  className="p-3 bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-2xl space-y-2 hover:border-[var(--md-outline)] transition-colors"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <h4 className="text-xs font-bold text-white truncate">{item.name}</h4>
+                        <h4 className="text-xs font-bold text-[var(--md-on-surface)] truncate">{item.name}</h4>
                         {(item.itemCode || item.partNumber || item.sku) && (
-                          <span className="font-mono text-[10px] font-bold text-blue-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700">
+                          <span className="font-mono text-[10px] font-bold text-[var(--md-on-info-container)] bg-[var(--md-info-container)] px-1.5 py-0.5 rounded border border-[var(--md-info)]/30">
                             {item.itemCode || item.partNumber || item.sku}
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 flex-wrap">
+                      <div className="flex items-center gap-2 text-[11px] text-[var(--md-on-surface-variant)] mt-0.5 flex-wrap">
                         {(() => {
                           const prod = products.find((p) => p.id === item.productId || p.id === item.product_id);
                           const unitCostPrice = Math.round(
@@ -1778,7 +1778,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                           return (
                             <div className="flex flex-col gap-0.5">
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="text-[10px] text-slate-500">السعر:</span>
+                                <span className="text-[10px] text-[var(--md-on-surface-variant)]">السعر:</span>
                                 <input
                                   type="text"
                                   inputMode="decimal"
@@ -1787,29 +1787,29 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                                   value={item.unitPrice === 0 || (item.unitPrice as any) === '' ? '' : item.unitPrice}
                                   onChange={(e) => handleUpdatePrice(idx, parseEnglishNumber(e.target.value, 0))}
                                   placeholder={unitCostPrice > 0 ? String(unitCostPrice) : '0'}
-                                  className={`w-20 bg-slate-900 border rounded-lg px-2 py-0.5 text-xs text-left font-mono font-bold focus:outline-none placeholder:text-slate-400/35 select-none font-mono ${
+                                  className={`w-20 border rounded-lg px-2 py-0.5 text-xs text-left font-mono font-bold tabular-nums focus:outline-none select-none ${
                                     isBelowCost
-                                      ? 'border-rose-500 bg-rose-500/10 text-rose-400 ring-1 ring-rose-500/40'
-                                      : 'border-slate-700 text-emerald-400 focus:border-blue-500'
+                                      ? 'border-[var(--md-error)] bg-[var(--md-error-container)] text-[var(--md-on-error-container)] ring-1 ring-[var(--md-error)]/40'
+                                      : 'bg-[var(--md-surface-container-lowest)] border-[var(--md-outline-variant)] text-[var(--md-primary-text)] focus:border-[var(--md-primary)]'
                                   }`}
                                 />
-                                <span className="text-[10px] text-slate-400">{currency}</span>
+                                <span className="text-[10px] text-[var(--md-on-surface-variant)]">{currency}</span>
 
                                 {/* Discrete Pro Cost Peek */}
                                 {unitCostPrice > 0 && (
                                   <span
-                                    className="text-[10px] text-slate-400/25 hover:text-slate-300 transition-opacity cursor-help select-none group/cost inline-flex items-center"
+                                    className="text-[10px] text-[var(--md-on-surface-variant)]/40 hover:text-[var(--md-on-surface)] transition-opacity cursor-help select-none group/cost inline-flex items-center"
                                     title={`سعر التكلفة: ${unitCostPrice}`}
                                   >
                                     <span className="group-hover/cost:hidden">ك: ••••</span>
-                                    <span className="hidden group-hover/cost:inline font-mono">ك: {unitCostPrice}</span>
+                                    <span className="hidden group-hover/cost:inline font-mono tabular-nums">ك: {unitCostPrice}</span>
                                   </span>
                                 )}
                               </div>
 
                               {/* Real-Time Row Warning Badge */}
                               {isBelowCost && (
-                                <div className="text-[10px] text-rose-400 font-bold flex items-center gap-1 bg-rose-500/10 border border-rose-500/30 rounded-md px-1.5 py-0.5 leading-tight">
+                                <div className="text-[10px] text-[var(--md-on-error-container)] font-bold flex items-center gap-1 bg-[var(--md-error-container)] border border-[var(--md-error)]/30 rounded-md px-1.5 py-0.5 leading-tight">
                                   <span>⚠️ أقل من التكلفة ({unitCostPrice})</span>
                                 </div>
                               )}
@@ -1820,11 +1820,11 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                         {/* Unit Selector Dropdown */}
                         {item.productId && (
                           <div className="flex items-center gap-1">
-                            <span className="text-[10px] text-slate-500">الوحدة:</span>
+                            <span className="text-[10px] text-[var(--md-on-surface-variant)]">الوحدة:</span>
                             <select
                               value={item.selectedUnit || 'base'}
                               onChange={(e) => handleUpdateItemUnit(idx, e.target.value as any)}
-                              className="bg-slate-900 border border-slate-700 text-slate-200 text-[10px] font-bold rounded-md px-1.5 py-0.5 focus:outline-none"
+                              className="bg-[var(--md-surface-container-lowest)] border border-[var(--md-outline-variant)] text-[var(--md-on-surface)] text-[10px] font-bold rounded-md px-1.5 py-0.5 focus:outline-none focus:border-[var(--md-primary)]"
                             >
                               <option value="base">{item.baseUnitName || item.unit || 'حبة'}</option>
                               {item.subUnitName && (
@@ -1838,14 +1838,14 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                         )}
 
                         {!item.productId && (
-                          <span className="text-[10px] text-blue-400 font-medium">صنف يدوي</span>
+                          <span className="text-[10px] text-[var(--md-info)] font-medium">صنف يدوي</span>
                         )}
                       </div>
                     </div>
 
                     <button
                       onClick={() => handleRemoveCartItem(idx)}
-                      className="p-1 text-slate-500 hover:text-rose-400 rounded-lg transition-colors cursor-pointer"
+                      className="p-1 text-[var(--md-on-surface-variant)] hover:text-[var(--md-error)] rounded-lg transition-colors cursor-pointer"
                       title="حذف الصنف"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -1854,31 +1854,31 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
 
                   {/* Battery Spec & Inline Warranty & Scrap Discount Controls */}
                   {item.activityType === 'battery' && (
-                    <div className="bg-amber-950/20 border border-amber-800/40 rounded-xl p-2 space-y-1.5 text-xs">
-                      <div className="flex items-center justify-between text-[10px] text-amber-300 font-bold">
+                    <div className="bg-[var(--md-warning-container)]/50 border border-[var(--md-warning)]/30 rounded-xl p-2 space-y-1.5 text-xs">
+                      <div className="flex items-center justify-between text-[10px] text-[var(--md-on-warning-container)] font-bold">
                         <span className="flex items-center gap-1">
-                          <Zap className="w-3 h-3 text-amber-400" />
+                          <Zap className="w-3 h-3 text-[var(--md-warning)]" />
                           بيانات الضمان واستبدال الرجيع
                         </span>
                         {item.warrantyEndDate && (
-                          <span className="text-[9px] text-slate-400 font-mono">
+                          <span className="text-[9px] text-[var(--md-on-surface-variant)] font-mono">
                             ضمان {item.warrantyMonths || 12} شهر (حتى {item.warrantyEndDate})
                           </span>
                         )}
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label className="block text-[9px] text-slate-400 mb-0.5">الرقم التسلسلي (Serial No)</label>
+                          <label className="block text-[9px] text-[var(--md-on-surface-variant)] mb-0.5">الرقم التسلسلي (Serial No)</label>
                           <input
                             type="text"
                             placeholder="SN-BAT..."
                             value={item.serialNumber || ''}
                             onChange={(e) => handleUpdateSerial(idx, e.target.value)}
-                            className="w-full bg-slate-900 border border-amber-500/40 rounded px-1.5 py-1 text-[10px] text-white font-mono focus:outline-none"
+                            className="m3-input w-full px-1.5 py-1 text-[10px] font-mono rounded-lg"
                           />
                         </div>
                         <div>
-                          <label className="block text-[9px] text-slate-400 mb-0.5">خصم رجيع بطارية قديمة</label>
+                          <label className="block text-[9px] text-[var(--md-on-surface-variant)] mb-0.5">خصم رجيع بطارية قديمة</label>
                           <input
                             type="text"
                             inputMode="decimal"
@@ -1887,7 +1887,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                             placeholder="0.00"
                             value={item.scrapDiscount || ''}
                             onChange={(e) => handleUpdateScrapDiscount(idx, parseEnglishNumber(e.target.value, 0))}
-                            className="w-full bg-slate-900 border border-emerald-500/40 rounded px-1.5 py-1 text-[10px] text-emerald-400 font-mono font-bold focus:outline-none"
+                            className="m3-input w-full px-1.5 py-1 text-[10px] text-[var(--md-primary-text)] font-mono font-bold rounded-lg"
                           />
                         </div>
                       </div>
@@ -1896,32 +1896,32 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
 
                   {/* Tires Spec (قسم الإطارات في الكاشير) */}
                   {item.activityType === 'tire' && (
-                    <div className="bg-sky-950/20 border border-sky-800/40 rounded-xl p-2 space-y-1 text-xs">
-                      <div className="flex items-center justify-between text-[10px] text-sky-300 font-bold">
+                    <div className="bg-[var(--md-info-container)]/50 border border-[var(--md-info)]/30 rounded-xl p-2 space-y-1 text-xs">
+                      <div className="flex items-center justify-between text-[10px] text-[var(--md-on-info-container)] font-bold">
                         <span className="flex items-center gap-1">
                           <span>🛞</span>
                           بيانات وضمان الإطار
                         </span>
                         {item.warrantyMonths && (
-                          <span className="text-[9px] text-sky-300 font-mono font-bold">
+                          <span className="text-[9px] text-[var(--md-on-info-container)] font-mono font-bold">
                             ضمان {item.warrantyMonths} شهر
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 text-[10px] text-slate-300 font-mono flex-wrap">
-                        {item.tireSize && <span className="bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700">مقاس: {item.tireSize}</span>}
-                        {item.tireProductionDot && <span className="bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700">DOT: {item.tireProductionDot}</span>}
-                        {item.tirePlyOrigin && <span className="bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700">{item.tirePlyOrigin}</span>}
+                      <div className="flex items-center gap-2 text-[10px] text-[var(--md-on-surface)] font-mono flex-wrap">
+                        {item.tireSize && <span className="bg-[var(--md-surface-container-lowest)] px-1.5 py-0.5 rounded border border-[var(--md-outline-variant)]">مقاس: {item.tireSize}</span>}
+                        {item.tireProductionDot && <span className="bg-[var(--md-surface-container-lowest)] px-1.5 py-0.5 rounded border border-[var(--md-outline-variant)]">DOT: {item.tireProductionDot}</span>}
+                        {item.tirePlyOrigin && <span className="bg-[var(--md-surface-container-lowest)] px-1.5 py-0.5 rounded border border-[var(--md-outline-variant)]">{item.tirePlyOrigin}</span>}
                       </div>
                     </div>
                   )}
 
                   {/* Qty & Item Total Controls */}
-                  <div className="flex items-center justify-between pt-1 border-t border-slate-800/50">
-                    <div className="flex items-center gap-1 bg-slate-900 rounded-xl p-1 border border-slate-800">
+                  <div className="flex items-center justify-between pt-1 border-t border-[var(--md-outline-variant)]">
+                    <div className="flex items-center gap-1 bg-[var(--md-surface-container-lowest)] rounded-xl p-1 border border-[var(--md-outline-variant)]">
                       <button
                         onClick={() => handleUpdateQty(idx, item.quantity - 1)}
-                        className="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center cursor-pointer"
+                        className="w-6 h-6 rounded-lg bg-[var(--md-surface-container)] hover:bg-[var(--md-surface-container-high)] text-[var(--md-on-surface)] font-bold text-xs flex items-center justify-center cursor-pointer"
                       >
                         -
                       </button>
@@ -1932,18 +1932,18 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                         lang="en"
                         value={item.quantity}
                         onChange={(e) => handleUpdateQty(idx, parseEnglishNumber(e.target.value, 1))}
-                        className="w-12 bg-transparent text-center font-black text-xs text-white focus:outline-none font-mono"
+                        className="w-12 bg-transparent text-center font-black text-xs text-[var(--md-on-surface)] focus:outline-none font-mono tabular-nums"
                       />
                       <button
                         onClick={() => handleUpdateQty(idx, item.quantity + 1)}
-                        className="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center cursor-pointer"
+                        className="w-6 h-6 rounded-lg bg-[var(--md-surface-container)] hover:bg-[var(--md-surface-container-high)] text-[var(--md-on-surface)] font-bold text-xs flex items-center justify-center cursor-pointer"
                       >
                         +
                       </button>
                     </div>
 
                     {/* Total for this line */}
-                    <div className="text-sm font-black text-emerald-400">
+                    <div className="text-sm font-black text-[var(--md-primary-text)] tabular-nums">
                       {Math.max(
                         0,
                         item.quantity * item.unitPrice - (Number(item.discount) || 0) - (Number(item.scrapDiscount) || 0)
@@ -1957,11 +1957,11 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
           </div>
 
           {/* Cart Financial Summary & Checkout Footer */}
-          <div className="p-4 bg-slate-950/80 border-t border-slate-800/80 space-y-3">
+          <div className="p-4 bg-[var(--md-surface-container-lowest)] border-t border-[var(--md-outline-variant)] space-y-3">
             {/* Global Discount & Tax Row */}
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="flex items-center justify-between bg-slate-900 p-2 rounded-xl border border-slate-800">
-                <span className="text-slate-400">خصم الفاتورة:</span>
+              <div className="flex items-center justify-between bg-[var(--md-surface-container)] p-2 rounded-xl border border-[var(--md-outline-variant)]">
+                <span className="text-[var(--md-on-surface-variant)]">خصم الفاتورة:</span>
                 <input
                   type="number"
                   min="0"
@@ -1969,16 +1969,16 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                   value={cartDiscount || ''}
                   onChange={(e) => setCartDiscount(parseFloat(e.target.value) || 0)}
                   placeholder="0.00"
-                  className="w-16 bg-slate-800 text-left px-2 py-0.5 rounded text-xs text-rose-400 font-bold focus:outline-none"
+                  className="w-16 bg-[var(--md-surface-container-lowest)] border border-[var(--md-outline-variant)] text-left px-2 py-0.5 rounded text-xs text-[var(--md-error)] font-bold tabular-nums focus:outline-none focus:border-[var(--md-primary)]"
                 />
               </div>
 
-              <div className="flex items-center justify-between bg-slate-900 p-2 rounded-xl border border-slate-800">
-                <span className="text-slate-400">الضريبة (%):</span>
+              <div className="flex items-center justify-between bg-[var(--md-surface-container)] p-2 rounded-xl border border-[var(--md-outline-variant)]">
+                <span className="text-[var(--md-on-surface-variant)]">الضريبة (%):</span>
                 <select
                   value={cartTaxRate}
                   onChange={(e) => setCartTaxRate(parseFloat(e.target.value) || 0)}
-                  className="bg-slate-800 text-white rounded px-2 py-0.5 text-xs focus:outline-none"
+                  className="bg-[var(--md-surface-container-lowest)] border border-[var(--md-outline-variant)] text-[var(--md-on-surface)] rounded px-2 py-0.5 text-xs focus:outline-none focus:border-[var(--md-primary)]"
                 >
                   <option value={0}>0% (معفى)</option>
                   <option value={5}>5%</option>
@@ -1989,26 +1989,26 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
 
             {/* Warning Banner when item is below cost in POS */}
             {hasBelowCostInCart && (
-              <div className="p-2.5 bg-rose-500/15 border border-rose-500/40 rounded-xl text-rose-300 text-xs font-bold flex items-center gap-2 animate-pulse shadow-md shadow-rose-950/20">
-                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+              <div className="p-2.5 bg-[var(--md-error-container)] border border-[var(--md-error)]/40 rounded-xl text-[var(--md-on-error-container)] text-xs font-bold flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-[var(--md-error)] shrink-0" />
                 <span>⛔ تنبيه رقابي: لا يمكن إتمام البيع بسعر أقل من سعر الشراء لمنع الخسائر!</span>
               </div>
             )}
 
             {/* Totals Breakdown */}
-            <div className="space-y-1 text-xs text-slate-400 pt-1">
+            <div className="space-y-1 text-xs text-[var(--md-on-surface-variant)] pt-1 tabular-nums">
               <div className="flex justify-between">
                 <span>المجموع الفرعي:</span>
-                <span className="text-slate-200">{subtotal.toLocaleString()} {currSym}</span>
+                <span className="text-[var(--md-on-surface)] font-medium">{subtotal.toLocaleString()} {currSym}</span>
               </div>
               {cartDiscount > 0 && (
-                <div className="flex justify-between text-rose-400">
+                <div className="flex justify-between text-[var(--md-error)]">
                   <span>إجمالي الخصم:</span>
                   <span>-{cartDiscount.toLocaleString()} {currSym}</span>
                 </div>
               )}
               {taxAmount > 0 && (
-                <div className="flex justify-between text-slate-300">
+                <div className="flex justify-between text-[var(--md-on-surface)]">
                   <span>مبلغ الضريبة ({cartTaxRate}%):</span>
                   <span>+{taxAmount.toLocaleString()} {currSym}</span>
                 </div>
@@ -2016,15 +2016,15 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
             </div>
 
             {/* Grand Total Highlight */}
-            <div className="p-3.5 bg-gradient-to-r from-slate-900 to-slate-800 border border-slate-700/80 rounded-2xl flex flex-col gap-1.5 shadow-sm">
+            <div className="p-3.5 bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-2xl flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-300">المجموع الصافي:</span>
-                <div className="text-2xl font-black text-emerald-400 font-mono">
-                  {grandTotal.toLocaleString()} <span className="text-xs font-bold text-slate-300">{currSym}</span>
+                <span className="text-xs font-bold text-[var(--md-on-surface-variant)]">المجموع الصافي:</span>
+                <div className="text-2xl font-black text-[var(--md-primary-text)] font-mono tabular-nums">
+                  {grandTotal.toLocaleString()} <span className="text-xs font-bold text-[var(--md-on-surface-variant)]">{currSym}</span>
                 </div>
               </div>
               {currency !== 'YER' && (
-                <div className="flex items-center justify-between text-[11px] text-amber-300/90 pt-1 border-t border-slate-800/80 font-mono">
+                <div className="flex items-center justify-between text-[11px] text-[var(--md-secondary)] pt-1 border-t border-[var(--md-outline-variant)] font-mono tabular-nums">
                   <span>المعادل بالريال اليمني:</span>
                   <span className="font-bold">
                     ≈ {formatNumber(toBaseCurrencyAmount(grandTotal, currency))} YER
@@ -2038,7 +2038,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
               <button
                 onClick={handleClearCart}
                 disabled={cart.length === 0}
-                className="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-rose-400 rounded-xl text-xs font-bold disabled:opacity-40 transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer"
+                className="py-2.5 bg-[var(--md-surface-container)] hover:bg-[var(--md-error-container)] text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-error-container)] border border-[var(--md-outline-variant)] rounded-xl text-xs font-bold disabled:opacity-40 transition-colors flex flex-col items-center justify-center gap-0.5 cursor-pointer"
                 title="إلغاء وتفريغ السلة (F2)"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -2048,7 +2048,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
               <button
                 onClick={handleHoldSale}
                 disabled={cart.length === 0}
-                className="py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-bold disabled:opacity-40 transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer"
+                className="py-2.5 bg-[var(--md-warning-container)] hover:opacity-90 text-[var(--md-on-warning-container)] border border-[var(--md-warning)]/30 rounded-xl text-xs font-bold disabled:opacity-40 transition-opacity flex flex-col items-center justify-center gap-0.5 cursor-pointer"
                 title="تعليق الفاتورة الحالية (F8)"
               >
                 <Pause className="w-3.5 h-3.5" />
@@ -2058,27 +2058,27 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
               <button
                 onClick={handleHoldCreditSale}
                 disabled={cart.length === 0}
-                className="py-2.5 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/40 rounded-xl text-xs font-bold disabled:opacity-40 transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer shadow-sm hover:border-orange-500"
+                className="py-2.5 bg-[var(--md-secondary-container)] hover:opacity-90 text-[var(--md-on-secondary-container)] border border-[var(--md-secondary)]/30 rounded-xl text-xs font-bold disabled:opacity-40 transition-opacity flex flex-col items-center justify-center gap-0.5 cursor-pointer"
                 title="تعليق فاتورة آجل باسم العميل لمتابعتها أو ترحيلها لحسابه لاحقاً"
               >
-                <Clock className="w-3.5 h-3.5 text-orange-400 animate-pulse" />
+                <Clock className="w-3.5 h-3.5" />
                 <span className="text-[10px] font-black">تعليق آجل</span>
               </button>
 
               <button
                 onClick={handleQuickCashCheckout}
                 disabled={cart.length === 0 || checkoutLoading || hasBelowCostInCart}
-                className="py-2.5 bg-emerald-700/30 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-bold disabled:opacity-40 transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer shadow-sm disabled:cursor-not-allowed"
+                className="py-2.5 bg-[var(--md-primary-container)] hover:opacity-90 text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/30 rounded-xl text-xs font-bold disabled:opacity-40 transition-opacity flex flex-col items-center justify-center gap-0.5 cursor-pointer disabled:cursor-not-allowed"
                 title={hasBelowCostInCart ? 'لا يمكن البيع بسعر أقل من سعر الشراء' : 'دفع نقدي فوري وإصدار الفاتورة فوراً (F9)'}
               >
-                <Banknote className="w-3.5 h-3.5 text-emerald-400" />
+                <Banknote className="w-3.5 h-3.5" />
                 <span className="text-[10px] font-black">نقدي (F9)</span>
               </button>
 
               <button
                 onClick={handleOpenPaymentModal}
                 disabled={cart.length === 0 || hasBelowCostInCart}
-                className="py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-black shadow-lg shadow-blue-950/40 disabled:opacity-40 transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer disabled:cursor-not-allowed"
+                className="m3-btn-primary py-2.5 px-1 text-xs font-black disabled:opacity-40 flex flex-col items-center justify-center gap-0.5 cursor-pointer disabled:cursor-not-allowed"
                 title={hasBelowCostInCart ? 'لا يمكن البيع بسعر أقل من سعر الشراء' : 'سداد ودفع متعدد / آجل / محافظ (F10)'}
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
@@ -2090,39 +2090,39 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
       </div>
 
       {/* Hardware Keyboard Shortcuts Legend Bar */}
-      <footer className="bg-slate-900/95 border-t border-slate-800 px-4 py-2 flex items-center justify-between text-[11px] text-slate-400 overflow-x-auto shrink-0 select-none z-10">
-        <div className="flex items-center gap-1.5 text-slate-300 font-bold shrink-0">
-          <Keyboard className="w-3.5 h-3.5 text-emerald-400" />
+      <footer className="bg-[var(--md-surface-container-low)] border-t border-[var(--md-outline-variant)] px-4 py-2 flex items-center justify-between text-[11px] text-[var(--md-on-surface-variant)] overflow-x-auto shrink-0 select-none z-10">
+        <div className="flex items-center gap-1.5 text-[var(--md-on-surface)] font-bold shrink-0">
+          <Keyboard className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
           <span>اختصارات الكاشير (بدون ماوس):</span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={() => searchInputRef.current?.focus()}
-            className="flex items-center gap-1 px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            className="flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--md-surface-container)] hover:bg-[var(--md-surface-container-high)] text-[var(--md-on-surface)] border border-[var(--md-outline-variant)] transition-colors cursor-pointer"
             title="التركيز الفوري على حقل البحث والباركود (F2)"
           >
-            <kbd className="px-1.5 py-0.5 bg-slate-700/80 border border-slate-600 rounded text-[10px] font-mono text-emerald-400 font-bold">F2</kbd>
+            <kbd className="px-1.5 py-0.5 bg-[var(--md-surface-container-lowest)] border border-[var(--md-outline-variant)] rounded text-[10px] font-mono text-[var(--md-primary-text)] font-bold">F2</kbd>
             <span>بحث وباركود</span>
           </button>
 
           <button
             type="button"
             onClick={handleF4Action}
-            className="flex items-center gap-1 px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            className="flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--md-surface-container)] hover:bg-[var(--md-surface-container-high)] text-[var(--md-on-surface)] border border-[var(--md-outline-variant)] transition-colors cursor-pointer"
             title="تعديل كمية الصنف المحدد أو تبديل الوحدة (F4)"
           >
-            <kbd className="px-1.5 py-0.5 bg-slate-700/80 border border-slate-600 rounded text-[10px] font-mono text-cyan-400 font-bold">F4</kbd>
+            <kbd className="px-1.5 py-0.5 bg-[var(--md-surface-container-lowest)] border border-[var(--md-outline-variant)] rounded text-[10px] font-mono text-[var(--md-info)] font-bold">F4</kbd>
             <span>تبديل الوحدة / الكمية</span>
           </button>
 
           <button
             type="button"
             onClick={handleCycleTier}
-            className="flex items-center gap-1 px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            className="flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--md-surface-container)] hover:bg-[var(--md-surface-container-high)] text-[var(--md-on-surface)] border border-[var(--md-outline-variant)] transition-colors cursor-pointer"
             title="تبديل مستوى السعر: تجزئة / نصف جملة / جملة / VIP (F6)"
           >
-            <kbd className="px-1.5 py-0.5 bg-slate-700/80 border border-slate-600 rounded text-[10px] font-mono text-purple-400 font-bold">F6</kbd>
+            <kbd className="px-1.5 py-0.5 bg-[var(--md-surface-container-lowest)] border border-[var(--md-outline-variant)] rounded text-[10px] font-mono text-[var(--md-secondary)] font-bold">F6</kbd>
             <span>تبديل السعر ({selectedPriceTier})</span>
           </button>
 
@@ -2132,10 +2132,10 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
               if (cart.length > 0) handleHoldSale();
               else setIsHeldDrawerOpen((prev) => !prev);
             }}
-            className="flex items-center gap-1 px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            className="flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--md-surface-container)] hover:bg-[var(--md-surface-container-high)] text-[var(--md-on-surface)] border border-[var(--md-outline-variant)] transition-colors cursor-pointer"
             title="تعليق الفاتورة أو استدعاء المعلق (F8)"
           >
-            <kbd className="px-1.5 py-0.5 bg-slate-700/80 border border-slate-600 rounded text-[10px] font-mono text-amber-400 font-bold">F8</kbd>
+            <kbd className="px-1.5 py-0.5 bg-[var(--md-surface-container-lowest)] border border-[var(--md-outline-variant)] rounded text-[10px] font-mono text-[var(--md-warning)] font-bold">F8</kbd>
             <span>تعليق / استدعاء</span>
           </button>
 
@@ -2143,10 +2143,10 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
             type="button"
             onClick={handleQuickCashCheckout}
             disabled={cart.length === 0 || checkoutLoading}
-            className="flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 transition-colors disabled:opacity-40 cursor-pointer"
+            className="flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/30 hover:opacity-90 transition-opacity disabled:opacity-40 cursor-pointer"
             title="دفع نقدي سريع وإصدار الفاتورة فوراً (F9)"
           >
-            <kbd className="px-1.5 py-0.5 bg-slate-700/80 border border-slate-600 rounded text-[10px] font-mono text-emerald-400 font-bold">F9</kbd>
+            <kbd className="px-1.5 py-0.5 bg-[var(--md-surface-container-lowest)] border border-[var(--md-outline-variant)] rounded text-[10px] font-mono text-[var(--md-primary-text)] font-bold">F9</kbd>
             <span>نقدي سريع</span>
           </button>
 
@@ -2154,10 +2154,10 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
             type="button"
             onClick={handleOpenPaymentModal}
             disabled={cart.length === 0}
-            className="flex items-center gap-1 px-2 py-0.5 rounded bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 transition-colors disabled:opacity-40 cursor-pointer"
+            className="flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--md-info-container)] text-[var(--md-on-info-container)] border border-[var(--md-info)]/30 hover:opacity-90 transition-opacity disabled:opacity-40 cursor-pointer"
             title="دفع متعدد وسداد آجل (F10)"
           >
-            <kbd className="px-1.5 py-0.5 bg-slate-700/80 border border-slate-600 rounded text-[10px] font-mono text-blue-400 font-bold">F10</kbd>
+            <kbd className="px-1.5 py-0.5 bg-[var(--md-surface-container-lowest)] border border-[var(--md-outline-variant)] rounded text-[10px] font-mono text-[var(--md-info)] font-bold">F10</kbd>
             <span>دفع متعدد</span>
           </button>
         </div>
@@ -2176,22 +2176,22 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
 
       {/* Credit Hold Quick Customer Picker Modal */}
       {isCreditHoldPickerOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" dir="rtl">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-lg flex flex-col shadow-2xl overflow-hidden animate-scale-up">
-            <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-gradient-to-r from-orange-950/30 to-slate-900">
+        <div className="m3-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in" dir="rtl">
+          <div className="m3-modal-surface w-full max-w-lg flex flex-col overflow-hidden animate-scale-up">
+            <div className="p-5 border-b border-[var(--md-outline-variant)] flex items-center justify-between bg-[var(--md-surface-container-low)]">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-orange-500/20 border border-orange-500/30 rounded-2xl text-orange-400">
+                <div className="p-2.5 bg-[var(--md-warning-container)] border border-[var(--md-warning)]/30 rounded-2xl text-[var(--md-on-warning-container)]">
                   <Clock className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-white">تعليق فاتورة آجل باسم العميل</h3>
-                  <p className="text-xs text-slate-400">حدد العميل لتعليق الفاتورة باسمه تمهيداً لترحيلها لحسابه لاحقاً</p>
+                  <h3 className="text-base font-black text-[var(--md-on-surface)]">تعليق فاتورة آجل باسم العميل</h3>
+                  <p className="text-xs text-[var(--md-on-surface-variant)]">حدد العميل لتعليق الفاتورة باسمه تمهيداً لترحيلها لحسابه لاحقاً</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsCreditHoldPickerOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                className="p-1.5 text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)] rounded-xl transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2199,20 +2199,20 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
 
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                  اسم العميل <span className="text-rose-400">*</span>
+                <label className="block text-xs font-bold text-[var(--md-on-surface)] mb-1.5">
+                  اسم العميل <span className="text-[var(--md-error)]">*</span>
                 </label>
                 <input
                   type="text"
                   value={creditHoldCustomerName}
                   onChange={(e) => setCreditHoldCustomerName(e.target.value)}
                   placeholder="ابحث أو أدخل اسم العميل..."
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500"
+                  className="m3-input w-full text-sm"
                   autoFocus
                 />
                 {/* Quick select matching customers */}
                 {creditHoldCustomerName.trim().length > 0 && (
-                  <div className="mt-2 max-h-36 overflow-y-auto space-y-1 bg-slate-950/80 border border-slate-800 rounded-xl p-1.5">
+                  <div className="mt-2 max-h-36 overflow-y-auto space-y-1 bg-[var(--md-surface-container-lowest)] border border-[var(--md-outline-variant)] rounded-xl p-1.5">
                     {customers
                       .filter((c) =>
                         (c.name || '').toLowerCase().includes(creditHoldCustomerName.toLowerCase()) ||
@@ -2227,10 +2227,10 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                             setCreditHoldCustomerName(c.name);
                             if (c.phone) setCreditHoldCustomerPhone(c.phone);
                           }}
-                          className="w-full text-right px-3 py-1.5 rounded-lg text-xs hover:bg-orange-500/20 hover:text-orange-300 text-slate-300 flex items-center justify-between transition-colors"
+                          className="w-full text-right px-3 py-1.5 rounded-lg text-xs hover:bg-[var(--md-warning-container)] hover:text-[var(--md-on-warning-container)] text-[var(--md-on-surface)] flex items-center justify-between transition-colors cursor-pointer"
                         >
                           <span className="font-bold">{c.name}</span>
-                          <span className="text-[11px] text-slate-400 font-mono">{c.phone || 'بدون هاتف'}</span>
+                          <span className="text-[11px] text-[var(--md-on-surface-variant)] font-mono">{c.phone || 'بدون هاتف'}</span>
                         </button>
                       ))}
                   </div>
@@ -2238,7 +2238,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                <label className="block text-xs font-bold text-[var(--md-on-surface)] mb-1.5">
                   رقم الهاتف (اختياري)
                 </label>
                 <input
@@ -2247,26 +2247,26 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                   value={creditHoldCustomerPhone}
                   onChange={(e) => setCreditHoldCustomerPhone(e.target.value)}
                   placeholder="مثال: 777000111"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white text-right font-mono focus:outline-none focus:border-orange-500"
+                  className="m3-input w-full text-sm text-right font-mono"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center justify-between">
+                <label className="block text-xs font-bold text-[var(--md-on-surface)] mb-1.5 flex items-center justify-between">
                   <span>المستلم / الساحب</span>
-                  <span className="text-[10px] text-sky-400 font-normal">اختياري</span>
+                  <span className="text-[10px] text-[var(--md-info)] font-normal">اختياري</span>
                 </label>
                 <input
                   type="text"
                   value={creditHoldReceivedBy}
                   onChange={(e) => setCreditHoldReceivedBy(e.target.value)}
                   placeholder="مثال: الأخ محمد السائق / سيارة رقم..."
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500"
+                  className="m3-input w-full text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                <label className="block text-xs font-bold text-[var(--md-on-surface)] mb-1.5">
                   ملاحظة على التعليق الآجل (اختياري)
                 </label>
                 <input
@@ -2274,23 +2274,23 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                   value={creditHoldNote}
                   onChange={(e) => setCreditHoldNote(e.target.value)}
                   placeholder="مثال: بانتظار استلام السائق / طلب هاتفي"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500"
+                  className="m3-input w-full text-sm"
                 />
               </div>
 
-              <div className="p-3 bg-orange-500/10 border border-orange-500/20 rounded-xl text-xs text-orange-300 flex items-center justify-between">
+              <div className="p-3 bg-[var(--md-warning-container)] border border-[var(--md-warning)]/30 rounded-xl text-xs text-[var(--md-on-warning-container)] flex items-center justify-between">
                 <span>إجمالي الفاتورة المعلقة:</span>
-                <span className="font-mono font-black text-sm text-white">
+                <span className="font-mono font-black text-sm tabular-nums">
                   {formatNumber(grandTotal)} {currency}
                 </span>
               </div>
             </div>
 
-            <div className="p-4 bg-slate-950/60 border-t border-slate-800 flex items-center justify-end gap-2">
+            <div className="p-4 bg-[var(--md-surface-container-low)] border-t border-[var(--md-outline-variant)] flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setIsCreditHoldPickerOpen(false)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                className="m3-btn-outlined px-4 py-2 text-xs font-bold cursor-pointer"
               >
                 إلغاء
               </button>
@@ -2314,7 +2314,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                     receivedBy: creditHoldReceivedBy.trim() || undefined,
                   });
                 }}
-                className="px-5 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-black shadow-lg shadow-orange-950/50 transition-all flex items-center gap-1.5 cursor-pointer"
+                className="m3-btn-primary px-5 py-2 text-xs font-black flex items-center gap-1.5 cursor-pointer"
               >
                 <Clock className="w-4 h-4" />
                 <span>تأكيد التعليق الآجل</span>
@@ -2393,17 +2393,17 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
 
       {/* POS Daily Sales Log Modal */}
       {isPosDailySalesOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" dir="rtl">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+        <div className="m3-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in" dir="rtl">
+          <div className="m3-modal-surface w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
             {/* Modal Header */}
-            <div className="p-4 border-b border-slate-800/80 bg-slate-950/60 flex items-center justify-between">
+            <div className="p-4 border-b border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-2xl bg-[var(--md-primary-container)] border border-[var(--md-primary)]/20 text-[var(--md-on-primary-container)] flex items-center justify-center">
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-white">سجل مبيعات النقطة اليومية (POS Sales Log)</h3>
-                  <p className="text-xs text-slate-400">
+                  <h3 className="text-base font-black text-[var(--md-on-surface)]">سجل مبيعات النقطة اليومية (POS Sales Log)</h3>
+                  <p className="text-xs text-[var(--md-on-surface-variant)]">
                     استعراض فواتير وإيصالات الكاشير لليوم الحالي ({todayDateStr}) مع إمكانية إعادة الطباعة والمرتجع
                   </p>
                 </div>
@@ -2411,45 +2411,45 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
               <button
                 type="button"
                 onClick={() => setIsPosDailySalesOpen(false)}
-                className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-xl bg-[var(--md-surface-container)] hover:bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] flex items-center justify-center transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Quick KPI Overview */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-slate-900/40 border-b border-slate-800/80">
-              <div className="bg-slate-950/60 border border-slate-800 p-3 rounded-2xl flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-[var(--md-surface-container-lowest)] border-b border-[var(--md-outline-variant)]">
+              <div className="m3-card p-3 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] flex items-center justify-center shrink-0">
                   <Banknote className="w-5 h-5" />
                 </div>
                 <div>
-                  <span className="text-[11px] font-bold text-slate-400 block">إجمالي مبيعات اليوم</span>
-                  <span className="text-base font-black text-emerald-400">
+                  <span className="text-[11px] font-bold text-[var(--md-on-surface-variant)] block">إجمالي مبيعات اليوم</span>
+                  <span className="text-base font-black text-[var(--md-primary-text)] tabular-nums">
                     {todayPosSales.reduce((acc, it) => acc + Number(it.total || 0), 0).toLocaleString()} {currSym}
                   </span>
                 </div>
               </div>
 
-              <div className="bg-slate-950/60 border border-slate-800 p-3 rounded-2xl flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0">
+              <div className="m3-card p-3 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[var(--md-info-container)] text-[var(--md-on-info-container)] flex items-center justify-center shrink-0">
                   <CheckCircle2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <span className="text-[11px] font-bold text-slate-400 block">عدد فواتير الكاشير اليوم</span>
-                  <span className="text-base font-black text-blue-400">
+                  <span className="text-[11px] font-bold text-[var(--md-on-surface-variant)] block">عدد فواتير الكاشير اليوم</span>
+                  <span className="text-base font-black text-[var(--md-info)] tabular-nums">
                     {todayPosSales.length} فاتورة
                   </span>
                 </div>
               </div>
 
-              <div className="bg-slate-950/60 border border-slate-800 p-3 rounded-2xl flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center shrink-0">
+              <div className="m3-card p-3 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] flex items-center justify-center shrink-0">
                   <Package className="w-5 h-5" />
                 </div>
                 <div>
-                  <span className="text-[11px] font-bold text-slate-400 block">إجمالي القطع المباعة</span>
-                  <span className="text-base font-black text-purple-400">
+                  <span className="text-[11px] font-bold text-[var(--md-on-surface-variant)] block">إجمالي القطع المباعة</span>
+                  <span className="text-base font-black text-[var(--md-secondary)] tabular-nums">
                     {todayPosSales.reduce((acc, it) => acc + Number(it.itemsCount || 0), 0)} قطعة
                   </span>
                 </div>
@@ -2457,18 +2457,18 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
             </div>
 
             {/* Search Filter Bar */}
-            <div className="p-3 border-b border-slate-800 flex items-center gap-3">
+            <div className="p-3 border-b border-[var(--md-outline-variant)] flex items-center gap-3">
               <div className="relative flex-1">
-                <Search className="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
+                <Search className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute right-3 top-2.5 pointer-events-none" />
                 <input
                   type="text"
                   value={salesLogSearch}
                   onChange={(e) => setSalesLogSearch(e.target.value)}
                   placeholder="ابحث برقم الفاتورة أو اسم العميل..."
-                  className="w-full bg-slate-950 border border-slate-700/80 rounded-xl pr-9 pl-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                  className="m3-input w-full pr-9 pl-3 py-2 text-xs"
                 />
               </div>
-              <span className="text-xs text-slate-400 shrink-0">
+              <span className="text-xs text-[var(--md-on-surface-variant)] shrink-0 tabular-nums">
                 المعروض: {todayPosSales.filter(s => !salesLogSearch.trim() || s.invoiceNumber?.toLowerCase().includes(salesLogSearch.toLowerCase()) || s.customerName?.toLowerCase().includes(salesLogSearch.toLowerCase())).length}
               </span>
             </div>
@@ -2476,26 +2476,26 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
             {/* Sales Table */}
             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
               {todayPosSales.length === 0 ? (
-                <div className="text-center py-12 text-slate-400 space-y-2">
-                  <FileText className="w-10 h-10 mx-auto text-slate-600 opacity-50" />
-                  <p className="text-sm font-bold">لا توجد عمليات بيع مسجلة لنقطة البيع اليوم حتى الآن.</p>
-                  <p className="text-xs text-slate-500">أي فاتورة أو عملية بيع كاشير جديدة ستظهر هنا فوراً وتخصم من المخزون المركزي.</p>
+                <div className="text-center py-12 text-[var(--md-on-surface-variant)] space-y-2">
+                  <FileText className="w-10 h-10 mx-auto opacity-40" />
+                  <p className="text-sm font-bold text-[var(--md-on-surface)]">لا توجد عمليات بيع مسجلة لنقطة البيع اليوم حتى الآن.</p>
+                  <p className="text-xs text-[var(--md-on-surface-variant)]">أي فاتورة أو عملية بيع كاشير جديدة ستظهر هنا فوراً وتخصم من المخزون المركزي.</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-right text-xs">
-                    <thead>
-                      <tr className="border-b border-slate-800 text-slate-400">
-                        <th className="py-2.5 px-3">رقم الفاتورة</th>
-                        <th className="py-2.5 px-3">الوقت</th>
-                        <th className="py-2.5 px-3">العميل</th>
-                        <th className="py-2.5 px-3">طريقة الدفع</th>
-                        <th className="py-2.5 px-3">عدد الأصناف</th>
-                        <th className="py-2.5 px-3">الإجمالي الصافي</th>
-                        <th className="py-2.5 px-3 text-center">الإجراءات</th>
+                <div className="overflow-x-auto rounded-xl border border-[var(--md-outline-variant)]">
+                  <table className="m3-table w-full text-right text-xs">
+                    <thead className="m3-thead">
+                      <tr>
+                        <th className="m3-th">رقم الفاتورة</th>
+                        <th className="m3-th">الوقت</th>
+                        <th className="m3-th">العميل</th>
+                        <th className="m3-th">طريقة الدفع</th>
+                        <th className="m3-th">عدد الأصناف</th>
+                        <th className="m3-th">الإجمالي الصافي</th>
+                        <th className="m3-th text-center">الإجراءات</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60 font-mono">
+                    <tbody className="divide-y divide-[var(--md-outline-variant)] font-mono">
                       {todayPosSales
                         .filter(s =>
                           !salesLogSearch.trim() ||
@@ -2503,17 +2503,17 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                           s.customerName?.toLowerCase().includes(salesLogSearch.toLowerCase())
                         )
                         .map((s, idx) => (
-                          <tr key={s.id || idx} className="hover:bg-slate-800/40 transition-colors">
-                            <td className="py-3 px-3 font-bold text-emerald-400">{s.invoiceNumber}</td>
-                            <td className="py-3 px-3 text-slate-300 font-sans">{s.timeFormatted || 'الآن'}</td>
-                            <td className="py-3 px-3 text-slate-200 font-sans font-medium">{s.customerName || 'عميل نقدي'}</td>
+                          <tr key={s.id || idx} className="hover:bg-[var(--md-surface-container-low)] transition-colors">
+                            <td className="py-3 px-3 font-bold text-[var(--md-primary-text)]">{s.invoiceNumber}</td>
+                            <td className="py-3 px-3 text-[var(--md-on-surface-variant)] font-sans">{s.timeFormatted || 'الآن'}</td>
+                            <td className="py-3 px-3 text-[var(--md-on-surface)] font-sans font-medium">{s.customerName || 'عميل نقدي'}</td>
                             <td className="py-3 px-3 font-sans">
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                              <span className="m3-badge m3-badge-primary text-[10px]">
                                 {s.paymentMethod === 'CASH' ? 'نقداً' : s.paymentMethod}
                               </span>
                             </td>
-                            <td className="py-3 px-3 text-slate-300">{s.itemsCount || s.items?.length || 1} قطع</td>
-                            <td className="py-3 px-3 font-black text-emerald-400">
+                            <td className="py-3 px-3 text-[var(--md-on-surface-variant)] tabular-nums">{s.itemsCount || s.items?.length || 1} قطع</td>
+                            <td className="py-3 px-3 font-black text-[var(--md-primary-text)] tabular-nums">
                               {Number(s.total || 0).toLocaleString()} {s.currencySymbol || currSym}
                             </td>
                             <td className="py-3 px-3">
@@ -2543,10 +2543,10 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                                       );
                                     }
                                   }}
-                                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                                  className="m3-btn-outlined px-2.5 py-1 text-xs font-bold flex items-center gap-1 cursor-pointer"
                                   title="طباعة إيصال الفاتورة"
                                 >
-                                  <Printer className="w-3.5 h-3.5 text-blue-400" />
+                                  <Printer className="w-3.5 h-3.5 text-[var(--md-info)]" />
                                   <span>طباعة</span>
                                 </button>
                                 <button
@@ -2555,7 +2555,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                                     setIsPosDailySalesOpen(false);
                                     setIsReturnsModalOpen(true);
                                   }}
-                                  className="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                                  className="px-2.5 py-1 bg-[var(--md-error-container)] hover:opacity-90 text-[var(--md-on-error-container)] border border-[var(--md-error)]/30 rounded-lg text-xs font-bold flex items-center gap-1 transition-opacity cursor-pointer"
                                   title="بدء استرجاع أو استبدال أصناف هذه الفاتورة"
                                 >
                                   <RotateCcw className="w-3.5 h-3.5" />
@@ -2572,11 +2572,11 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-3 bg-slate-950/80 border-t border-slate-800 flex justify-end">
+            <div className="p-3 bg-[var(--md-surface-container-low)] border-t border-[var(--md-outline-variant)] flex justify-end">
               <button
                 type="button"
                 onClick={() => setIsPosDailySalesOpen(false)}
-                className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                className="m3-btn-outlined px-5 py-2 text-xs font-bold cursor-pointer"
               >
                 إغلاق
               </button>

@@ -161,22 +161,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-emerald-900/50 rounded-2xl w-full max-w-lg shadow-2xl text-slate-100 overflow-hidden relative my-8">
-        
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="m3-modal-surface w-full max-w-lg overflow-hidden relative my-8">
         {/* Modal Header */}
-        <div className="px-6 py-5 border-b border-slate-800 bg-slate-950/80 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <AppIcon className="w-10 h-10 drop-shadow-md" />
-            <div>
-              <h2 className="text-base font-bold text-white">
+        <div className="px-6 py-5 border-b border-[var(--md-outline-variant)] bg-[var(--md-surface-container)] flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <AppIcon className="w-10 h-10 shrink-0" />
+            <div className="min-w-0">
+              <h2 className="text-base font-bold text-[var(--md-on-surface)] truncate">
                 {mode === 'account' && 'بيانات المحل التجاري وحساب الإدارة'}
                 {mode === 'login' && 'تسجيل الدخول - نظام المحاسبي الذكي ERP'}
                 {mode === 'register' && 'إنشاء حساب جديد - نظام المحاسبي الذكي ERP'}
                 {mode === 'forgot' && 'استعادة كلمة المرور'}
                 {mode === 'reset' && 'تعيين كلمة مرور جديدة'}
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-[var(--md-on-surface-variant)] mt-0.5 leading-snug">
                 {mode === 'account' && 'بيانات المحل الدائمة وإدارة الجلسة وأمان النظام'}
                 {mode === 'login' && 'أدخل معلومات حسابك للوصول إلى لوحة التحكم واستعادة متجرك'}
                 {mode === 'register' && 'سجل محلك مع الحفظ الدائم في قاعدة البيانات وقرص السيرفر'}
@@ -185,21 +184,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+          <button
+            type="button"
+            onClick={onClose}
+            className="m3-btn-text p-2 min-h-[36px] shrink-0"
+            aria-label="إغلاق"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Mode Selector Tabs */}
         {mode !== 'account' ? (
-          <div className="flex border-b border-slate-800 bg-slate-950">
+          <div className="flex border-b border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)]">
             <button
               type="button"
               onClick={() => { setMode('login'); setError(null); setSuccess(null); setDuplicateEmailError(false); }}
-              className={`flex-1 py-3 text-xs font-semibold transition-colors border-b-2 ${
+              className={`flex-1 py-3 text-xs font-semibold transition-colors border-b-2 cursor-pointer ${
                 mode === 'login'
-                  ? 'border-emerald-500 text-emerald-400 bg-slate-900 font-bold'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
+                  ? 'border-[var(--md-primary)] text-[var(--md-primary)] bg-[var(--md-surface-container)] font-bold'
+                  : 'border-transparent text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
               }`}
             >
               تسجيل دخول مستخدم
@@ -207,20 +211,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <button
               type="button"
               onClick={() => { setMode('register'); setError(null); setSuccess(null); setDuplicateEmailError(false); }}
-              className={`flex-1 py-3 text-xs font-semibold transition-colors border-b-2 ${
+              className={`flex-1 py-3 text-xs font-semibold transition-colors border-b-2 cursor-pointer ${
                 mode === 'register'
-                  ? 'border-emerald-500 text-emerald-400 bg-slate-900 font-bold'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
+                  ? 'border-[var(--md-primary)] text-[var(--md-primary)] bg-[var(--md-surface-container)] font-bold'
+                  : 'border-transparent text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
               }`}
             >
               إنشاء حساب محل جديد
             </button>
           </div>
         ) : (
-          <div className="flex border-b border-slate-800 bg-slate-950 px-6 py-2.5 items-center justify-between">
+          <div className="flex border-b border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] px-6 py-3 items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs font-bold text-emerald-400">حساب متصل ونشط • حفظ دائم</span>
+              <span
+                className="w-2.5 h-2.5 rounded-full shrink-0"
+                style={{ backgroundColor: 'var(--md-success)' }}
+              />
+              <span className="text-xs font-bold" style={{ color: 'var(--md-success)' }}>
+                حساب متصل ونشط • حفظ دائم
+              </span>
             </div>
             <button
               type="button"
@@ -228,7 +237,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 logout();
                 setMode('login');
               }}
-              className="text-xs font-semibold text-rose-400 hover:text-rose-300 hover:underline"
+              className="m3-btn-text text-xs px-2"
+              style={{ color: 'var(--md-error)' }}
             >
               تسجيل الخروج والتبديل لحساب آخر
             </button>
@@ -236,38 +246,63 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         )}
 
         {/* Form / Content Body */}
-        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
           {/* PROMINENT DUPLICATE EMAIL WARNING BANNER WITH 1-CLICK BUTTON */}
           {duplicateEmailError && (
-            <div className="p-4 bg-amber-950/90 border-2 border-amber-500 rounded-xl text-amber-200 text-xs space-y-3 shadow-lg">
-              <div className="flex items-center gap-2.5 font-bold text-sm text-amber-300">
-                <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0" />
-                <span>⚠️ هذا الحساب موجود مسبقاً، يرجى عمل تسجيل دخول</span>
+            <div
+              className="p-4 rounded-2xl text-xs space-y-3 border"
+              style={{
+                backgroundColor: 'var(--md-warning-container)',
+                borderColor: 'var(--md-secondary)',
+                color: 'var(--md-on-warning-container)',
+              }}
+            >
+              <div className="flex items-center gap-2 font-bold text-sm">
+                <ShieldAlert className="w-5 h-5 shrink-0" style={{ color: 'var(--md-secondary)' }} />
+                <span>هذا الحساب موجود مسبقاً، يرجى عمل تسجيل دخول</span>
               </div>
-              <p className="text-[11px] text-amber-200/90 leading-relaxed">
-                البريد الإلكتروني <span className="font-mono text-white font-bold bg-slate-900 px-1.5 py-0.5 rounded">{email}</span> مسجل مسبقاً في النظام ومحفوظ في الخادم. اضغط الزر أدناه للانتقال الفوري إلى تسجيل الدخول ومتابعة عملك.
+              <p className="text-xs leading-relaxed opacity-90">
+                البريد الإلكتروني{' '}
+                <span className="font-mono font-bold px-1.5 py-0.5 rounded bg-[var(--md-surface-container-lowest)] text-[var(--md-on-surface)]">
+                  {email}
+                </span>{' '}
+                مسجل مسبقاً في النظام ومحفوظ في الخادم. اضغط الزر أدناه للانتقال الفوري إلى تسجيل الدخول ومتابعة عملك.
               </p>
               <button
                 type="button"
                 onClick={handleSwitchToLoginWithEmail}
-                className="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                className="m3-btn-primary w-full"
               >
-                <KeyRound className="w-4 h-4 text-slate-950" />
+                <KeyRound className="w-4 h-4" />
                 <span>الانتقال إلى تسجيل الدخول بهذا البريد</span>
               </button>
             </div>
           )}
 
           {error && !duplicateEmailError && (
-            <div className="p-3 bg-rose-950/80 border border-rose-800 rounded-xl text-rose-300 text-xs flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 shrink-0 text-rose-400" />
+            <div
+              className="p-3 rounded-xl text-xs flex items-center gap-2 border"
+              style={{
+                backgroundColor: 'var(--md-error-container)',
+                borderColor: 'var(--md-error)',
+                color: 'var(--md-on-error-container)',
+              }}
+            >
+              <ShieldAlert className="w-4 h-4 shrink-0" style={{ color: 'var(--md-error)' }} />
               <span>{error}</span>
             </div>
           )}
 
           {success && (
-            <div className="p-3 bg-emerald-950/80 border border-emerald-800 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+            <div
+              className="p-3 rounded-xl text-xs flex items-center gap-2 border"
+              style={{
+                backgroundColor: 'var(--md-success-container)',
+                borderColor: 'var(--md-success)',
+                color: 'var(--md-on-success-container)',
+              }}
+            >
+              <CheckCircle2 className="w-4 h-4 shrink-0" style={{ color: 'var(--md-success)' }} />
               <span>{success}</span>
             </div>
           )}
@@ -275,39 +310,65 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           {/* ACCOUNT DETAILS & PERMANENT DATA VIEW */}
           {mode === 'account' && (
             <div className="space-y-4">
-              <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 font-bold">
+              <div className="m3-card p-4 space-y-4">
+                <div className="flex items-center justify-between gap-3 pb-3 border-b border-[var(--md-outline-variant)]">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                      style={{
+                        backgroundColor: 'var(--md-primary-container)',
+                        color: 'var(--md-on-primary-container)',
+                      }}
+                    >
                       <Building2 className="w-5 h-5" />
                     </div>
-                    <div>
-                      <div className="text-[11px] text-slate-400">اسم المحل / المنشأة التجارية المسجل:</div>
-                      <div className="text-sm font-bold text-white">{company?.name || 'مؤسسة تجارية'}</div>
+                    <div className="min-w-0">
+                      <div className="text-[11px] text-[var(--md-on-surface-variant)]">
+                        اسم المحل / المنشأة التجارية المسجل:
+                      </div>
+                      <div className="text-sm font-bold text-[var(--md-on-surface)] truncate">
+                        {company?.name || 'مؤسسة تجارية'}
+                      </div>
                     </div>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold">
+                  <span
+                    className="m3-badge shrink-0"
+                    style={{
+                      backgroundColor: 'var(--md-success-container)',
+                      color: 'var(--md-on-success-container)',
+                      borderColor: 'transparent',
+                    }}
+                  >
                     حساب دائم نشط
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 text-xs pt-1">
+                <div className="grid grid-cols-2 gap-4 text-xs">
                   <div>
-                    <span className="text-slate-400">اسم المدير:</span>
-                    <div className="font-semibold text-slate-200 mt-0.5">{user?.full_name || 'المدير العام'}</div>
+                    <span className="text-[var(--md-on-surface-variant)]">اسم المدير:</span>
+                    <div className="font-semibold text-[var(--md-on-surface)] mt-1">
+                      {user?.full_name || 'المدير العام'}
+                    </div>
                   </div>
                   <div>
-                    <span className="text-slate-400">البريد الإلكتروني:</span>
-                    <div className="font-mono text-slate-200 mt-0.5">{user?.email}</div>
+                    <span className="text-[var(--md-on-surface-variant)]">البريد الإلكتروني:</span>
+                    <div className="font-mono text-[var(--md-on-surface)] mt-1 truncate">
+                      {user?.email}
+                    </div>
                   </div>
                   <div>
-                    <span className="text-slate-400">العملة الأساسية:</span>
-                    <div className="font-semibold text-slate-200 mt-0.5">{company?.currency || 'SAR'}</div>
+                    <span className="text-[var(--md-on-surface-variant)]">العملة الأساسية:</span>
+                    <div className="font-semibold font-mono text-[var(--md-on-surface)] mt-1">
+                      {company?.currency || 'SAR'}
+                    </div>
                   </div>
                   <div>
-                    <span className="text-slate-400">حالة التخزين:</span>
-                    <div className="text-emerald-400 font-bold mt-0.5 flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span className="text-[var(--md-on-surface-variant)]">حالة التخزين:</span>
+                    <div
+                      className="font-bold mt-1 flex items-center gap-1"
+                      style={{ color: 'var(--md-success)' }}
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                       <span>قاعدة البيانات + القرص الدائم</span>
                     </div>
                   </div>
@@ -315,17 +376,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               </div>
 
               {/* Account Deletion Protected Section */}
-              <div className="p-4 bg-rose-950/20 border border-rose-900/50 rounded-xl space-y-3">
-                <div className="flex items-center justify-between">
+              <div
+                className="p-4 rounded-2xl border space-y-3"
+                style={{
+                  backgroundColor: 'var(--md-error-container)',
+                  borderColor: 'var(--md-error)',
+                }}
+              >
+                <div className="flex items-center justify-between gap-3">
                   <div>
-                    <h4 className="text-xs font-bold text-rose-300">منطقة الأمان والحذف النهائي</h4>
-                    <p className="text-[11px] text-slate-400 mt-0.5">الحساب لا يُحذف تلقائياً أبداً إلا بطلب صريح وتأكيد كلمة المرور</p>
+                    <h4 className="text-xs font-bold" style={{ color: 'var(--md-on-error-container)' }}>
+                      منطقة الأمان والحذف النهائي
+                    </h4>
+                    <p className="text-[11px] text-[var(--md-on-surface-variant)] mt-0.5">
+                      الحساب لا يُحذف تلقائياً أبداً إلا بطلب صريح وتأكيد كلمة المرور
+                    </p>
                   </div>
                   {!showDeleteConfirm && (
                     <button
                       type="button"
                       onClick={() => setShowDeleteConfirm(true)}
-                      className="px-3 py-1.5 rounded-lg bg-rose-950 border border-rose-800 text-rose-300 hover:bg-rose-900 text-xs font-bold transition-colors cursor-pointer"
+                      className="m3-btn-outlined text-xs px-3 shrink-0"
+                      style={{
+                        borderColor: 'var(--md-error)',
+                        color: 'var(--md-on-error-container)',
+                      }}
                     >
                       حذف الحساب نهائياً
                     </button>
@@ -333,24 +408,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 </div>
 
                 {showDeleteConfirm && (
-                  <form onSubmit={handleDeleteAccountSubmit} className="pt-2 border-t border-rose-900/40 space-y-3">
-                    <p className="text-xs text-rose-200 font-medium leading-relaxed">
-                      ⚠️ تحذير: سيتم حذف الحساب وبيانات المحل بشكل نهائي ولا يمكن التراجع. يرجى إدخال كلمة المرور لتأكيد الحذف:
+                  <form onSubmit={handleDeleteAccountSubmit} className="pt-3 border-t border-[var(--md-outline-variant)] space-y-3">
+                    <p className="text-xs font-medium leading-relaxed" style={{ color: 'var(--md-on-error-container)' }}>
+                      تحذير: سيتم حذف الحساب وبيانات المحل بشكل نهائي ولا يمكن التراجع. يرجى إدخال كلمة المرور لتأكيد الحذف:
                     </p>
                     {deleteError && (
-                      <div className="p-2 bg-rose-950 text-rose-300 text-xs rounded border border-rose-800">
+                      <div
+                        className="p-2.5 text-xs rounded-xl border"
+                        style={{
+                          backgroundColor: 'var(--md-surface-container-lowest)',
+                          borderColor: 'var(--md-error)',
+                          color: 'var(--md-error)',
+                        }}
+                      >
                         {deleteError}
                       </div>
                     )}
                     <div className="relative">
-                      <Lock className="w-4 h-4 text-slate-500 absolute top-3 right-3" />
+                      <Lock className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute top-1/2 -translate-y-1/2 right-3 pointer-events-none" />
                       <input
                         type="password"
                         required
                         value={deletePassword}
                         onChange={(e) => setDeletePassword(e.target.value)}
                         placeholder="أدخل كلمة مرور الحساب للتأكيد"
-                        className="w-full pr-10 pl-3 py-2 bg-slate-950 border border-rose-800/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
+                        className="m3-input pr-10 pl-3"
                         dir="ltr"
                       />
                     </div>
@@ -358,14 +440,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                       <button
                         type="submit"
                         disabled={isDeleting}
-                        className="flex-1 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition-colors cursor-pointer disabled:opacity-50"
+                        className="m3-btn-primary flex-1 text-xs"
+                        style={{
+                          backgroundColor: 'var(--md-error)',
+                          color: '#FFFFFF',
+                        }}
                       >
                         {isDeleting ? 'جاري الحذف...' : 'تأكيد الحذف النهائي للحساب'}
                       </button>
                       <button
                         type="button"
                         onClick={() => { setShowDeleteConfirm(false); setDeletePassword(''); setDeleteError(null); }}
-                        className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
+                        className="m3-btn-outlined px-4 text-xs"
                       >
                         إلغاء
                       </button>
@@ -379,260 +465,293 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           {/* Form for Login, Register, Forgot, Reset */}
           {mode !== 'account' && (
             <form onSubmit={handleSubmit} className="space-y-4">
-
-          {/* FORGOT PASSWORD FORM */}
-          {mode === 'forgot' && (
-            <div className="space-y-4">
-              <div className="p-3 bg-slate-950 border border-emerald-900/50 rounded-xl text-slate-300 text-xs leading-relaxed">
-                أدخل بريدك الإلكتروني المسجل في النظام وسنقوم بتوليد وإرسال رمز التحقق لإعادة تعيين كلمة المرور بشكل آمن ومحمي.
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">البريد الإلكتروني المسجل *</label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-500 absolute top-3 right-3" />
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@company.com"
-                    className="w-full pr-10 pl-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center justify-between pt-2">
-                <button
-                  type="button"
-                  onClick={() => { setMode('login'); setError(null); setSuccess(null); }}
-                  className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
-                >
-                  العودة لتسجيل الدخول
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setMode('reset'); setError(null); setSuccess(null); }}
-                  className="text-xs text-emerald-400 hover:text-emerald-300 hover:underline"
-                >
-                  لديك رمز بالفعل؟
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* RESET PASSWORD FORM */}
-          {mode === 'reset' && (
-            <div className="space-y-4">
-              <div className="p-3 bg-slate-950 border border-amber-800/60 rounded-xl text-amber-300 text-xs leading-relaxed">
-                أدخل رمز إعادة التعيين (Reset Token) المرسل إليك مع كلمة المرور الجديدة لتحديث حسابك.
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">رمز إعادة التعيين (Reset Token) *</label>
-                <div className="relative">
-                  <KeyRound className="w-4 h-4 text-slate-500 absolute top-3 right-3" />
-                  <input
-                    type="text"
-                    required
-                    value={resetToken}
-                    onChange={(e) => setResetToken(e.target.value)}
-                    placeholder="أدخل رمز التحقق (Hex Token)"
-                    className="w-full pr-10 pl-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">كلمة المرور الجديدة *</label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-500 absolute top-3 right-3" />
-                  <input
-                    type="password"
-                    required
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="كلمة مرور قوية جديدة (6 أحرف على الأقل)"
-                    className="w-full pr-10 pl-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center justify-between pt-2">
-                <button
-                  type="button"
-                  onClick={() => { setMode('login'); setError(null); setSuccess(null); }}
-                  className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
-                >
-                  العودة لتسجيل الدخول
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setMode('forgot'); setError(null); setSuccess(null); }}
-                  className="text-xs text-emerald-400 hover:text-emerald-300 hover:underline"
-                >
-                  طلب رمز جديد
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* REGISTER EXTRA FIELDS */}
-          {mode === 'register' && (
-            <div className="space-y-4 border-b border-slate-800 pb-4">
-              <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
-                1. بيانات المؤسسة والشركة (Tenant Info)
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">اسم الشركة / المؤسسة *</label>
-                <div className="relative">
-                  <Building2 className="w-4 h-4 text-slate-500 absolute top-3 right-3" />
-                  <input
-                    type="text"
-                    required
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    placeholder="مثال: شركة الأمل لتجارة الأغذية"
-                    className="w-full pr-10 pl-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">رمز المؤسسة (Code)</label>
-                  <input
-                    type="text"
-                    value={companyCode}
-                    onChange={(e) => setCompanyCode(e.target.value)}
-                    placeholder="alamal-trade"
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">العملة الأساسية</label>
-                  <select
-                    value={currency}
-                    onChange={(e) => setCurrency(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500 transition-colors"
-                  >
-                    <option value="YER">ريال يمني (YER)</option>
-                    <option value="SAR">ريال سعودي (SAR)</option>
-                    <option value="USD">دولار أمريكي (USD)</option>
-                    <option value="AED">درهم إماراتي (AED)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">الرقم الضريبي (إن وجد)</label>
-                  <input
-                    type="text"
-                    value={taxNumber}
-                    onChange={(e) => setTaxNumber(e.target.value)}
-                    placeholder="TAX-339900"
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">الدولة</label>
-                  <input
-                    type="text"
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                    placeholder="YE"
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* COMMON LOGIN / REGISTER USER FIELDS */}
-          {(mode === 'login' || mode === 'register') && (
-            <div className="space-y-4">
-              {mode === 'register' && (
-                <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
-                  2. حساب المدير المسؤول (Company Admin)
-                </div>
-              )}
-
-              {mode === 'register' && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">الاسم الكامل *</label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-slate-500 absolute top-3 right-3" />
-                    <input
-                      type="text"
-                      required={mode === 'register'}
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder="محمد أحمد العبسي"
-                      className="w-full pr-10 pl-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
-                    />
+              {/* FORGOT PASSWORD FORM */}
+              {mode === 'forgot' && (
+                <div className="space-y-4">
+                  <div className="m3-card p-3.5 text-[var(--md-on-surface-variant)] text-xs leading-relaxed">
+                    أدخل بريدك الإلكتروني المسجل في النظام وسنقوم بتوليد وإرسال رمز التحقق لإعادة تعيين كلمة المرور بشكل آمن ومحمي.
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)]">
+                      البريد الإلكتروني المسجل *
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute top-1/2 -translate-y-1/2 right-3 pointer-events-none" />
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="name@company.com"
+                        className="m3-input pr-10 pl-3"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      type="button"
+                      onClick={() => { setMode('login'); setError(null); setSuccess(null); }}
+                      className="m3-btn-text text-xs px-2"
+                    >
+                      العودة لتسجيل الدخول
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setMode('reset'); setError(null); setSuccess(null); }}
+                      className="m3-btn-text text-xs px-2"
+                      style={{ color: 'var(--md-primary)' }}
+                    >
+                      لديك رمز بالفعل؟
+                    </button>
                   </div>
                 </div>
               )}
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">البريد الإلكتروني *</label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-500 absolute top-3 right-3" />
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@company.com"
-                    className="w-full pr-10 pl-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold text-slate-300">كلمة المرور *</label>
-                  {mode === 'login' && (
+              {/* RESET PASSWORD FORM */}
+              {mode === 'reset' && (
+                <div className="space-y-4">
+                  <div
+                    className="p-3.5 rounded-xl border text-xs leading-relaxed"
+                    style={{
+                      backgroundColor: 'var(--md-warning-container)',
+                      borderColor: 'var(--md-secondary)',
+                      color: 'var(--md-on-warning-container)',
+                    }}
+                  >
+                    أدخل رمز إعادة التعيين (Reset Token) المرسل إليك مع كلمة المرور الجديدة لتحديث حسابك.
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)]">
+                      رمز إعادة التعيين (Reset Token) *
+                    </label>
+                    <div className="relative">
+                      <KeyRound className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute top-1/2 -translate-y-1/2 right-3 pointer-events-none" />
+                      <input
+                        type="text"
+                        required
+                        value={resetToken}
+                        onChange={(e) => setResetToken(e.target.value)}
+                        placeholder="أدخل رمز التحقق (Hex Token)"
+                        className="m3-input pr-10 pl-3 font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)]">
+                      كلمة المرور الجديدة *
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute top-1/2 -translate-y-1/2 right-3 pointer-events-none" />
+                      <input
+                        type="password"
+                        required
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="كلمة مرور قوية جديدة (6 أحرف على الأقل)"
+                        className="m3-input pr-10 pl-3"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      type="button"
+                      onClick={() => { setMode('login'); setError(null); setSuccess(null); }}
+                      className="m3-btn-text text-xs px-2"
+                    >
+                      العودة لتسجيل الدخول
+                    </button>
                     <button
                       type="button"
                       onClick={() => { setMode('forgot'); setError(null); setSuccess(null); }}
-                      className="text-[11px] text-emerald-400 hover:text-emerald-300 hover:underline"
+                      className="m3-btn-text text-xs px-2"
+                      style={{ color: 'var(--md-primary)' }}
                     >
-                      نسيت كلمة المرور؟
+                      طلب رمز جديد
                     </button>
-                  )}
-                </div>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-500 absolute top-3 right-3" />
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pr-10 pl-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
-                  />
-                </div>
-              </div>
-
-              {mode === 'register' && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">رقم الهاتف / الجوال</label>
-                  <div className="relative">
-                    <Phone className="w-4 h-4 text-slate-500 absolute top-3 right-3" />
-                    <input
-                      type="text"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+967 770 000 000"
-                      className="w-full pr-10 pl-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
-                    />
                   </div>
                 </div>
               )}
-            </div>
-          )}
+
+              {/* REGISTER EXTRA FIELDS */}
+              {mode === 'register' && (
+                <div className="space-y-4 border-b border-[var(--md-outline-variant)] pb-4">
+                  <div className="text-xs font-bold text-[var(--md-primary)]">
+                    1. بيانات المؤسسة والشركة (Tenant Info)
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)]">
+                      اسم الشركة / المؤسسة *
+                    </label>
+                    <div className="relative">
+                      <Building2 className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute top-1/2 -translate-y-1/2 right-3 pointer-events-none" />
+                      <input
+                        type="text"
+                        required
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        placeholder="مثال: شركة الأمل لتجارة الأغذية"
+                        className="m3-input pr-10 pl-3"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)]">
+                        رمز المؤسسة (Code)
+                      </label>
+                      <input
+                        type="text"
+                        value={companyCode}
+                        onChange={(e) => setCompanyCode(e.target.value)}
+                        placeholder="alamal-trade"
+                        className="m3-input font-mono"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)]">
+                        العملة الأساسية
+                      </label>
+                      <select
+                        value={currency}
+                        onChange={(e) => setCurrency(e.target.value)}
+                        className="m3-select"
+                      >
+                        <option value="YER">ريال يمني (YER)</option>
+                        <option value="SAR">ريال سعودي (SAR)</option>
+                        <option value="USD">دولار أمريكي (USD)</option>
+                        <option value="AED">درهم إماراتي (AED)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)]">
+                        الرقم الضريبي (إن وجد)
+                      </label>
+                      <input
+                        type="text"
+                        value={taxNumber}
+                        onChange={(e) => setTaxNumber(e.target.value)}
+                        placeholder="TAX-339900"
+                        className="m3-input font-mono"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)]">
+                        الدولة
+                      </label>
+                      <input
+                        type="text"
+                        value={country}
+                        onChange={(e) => setCountry(e.target.value)}
+                        placeholder="YE"
+                        className="m3-input"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* COMMON LOGIN / REGISTER USER FIELDS */}
+              {(mode === 'login' || mode === 'register') && (
+                <div className="space-y-4">
+                  {mode === 'register' && (
+                    <div className="text-xs font-bold text-[var(--md-primary)]">
+                      2. حساب المدير المسؤول (Company Admin)
+                    </div>
+                  )}
+
+                  {mode === 'register' && (
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)]">
+                        الاسم الكامل *
+                      </label>
+                      <div className="relative">
+                        <User className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute top-1/2 -translate-y-1/2 right-3 pointer-events-none" />
+                        <input
+                          type="text"
+                          required={mode === 'register'}
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                          placeholder="محمد أحمد العبسي"
+                          className="m3-input pr-10 pl-3"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)]">
+                      البريد الإلكتروني *
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute top-1/2 -translate-y-1/2 right-3 pointer-events-none" />
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="name@company.com"
+                        className="m3-input pr-10 pl-3"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)]">
+                        كلمة المرور *
+                      </label>
+                      {mode === 'login' && (
+                        <button
+                          type="button"
+                          onClick={() => { setMode('forgot'); setError(null); setSuccess(null); }}
+                          className="text-xs font-semibold hover:underline cursor-pointer"
+                          style={{ color: 'var(--md-primary)' }}
+                        >
+                          نسيت كلمة المرور؟
+                        </button>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute top-1/2 -translate-y-1/2 right-3 pointer-events-none" />
+                      <input
+                        type="password"
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="m3-input pr-10 pl-3"
+                      />
+                    </div>
+                  </div>
+
+                  {mode === 'register' && (
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-[var(--md-on-surface-variant)]">
+                        رقم الهاتف / الجوال
+                      </label>
+                      <div className="relative">
+                        <Phone className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute top-1/2 -translate-y-1/2 right-3 pointer-events-none" />
+                        <input
+                          type="text"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          placeholder="+967 770 000 000"
+                          className="m3-input pr-10 pl-3 font-mono"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all shadow-lg shadow-emerald-950/50 disabled:opacity-50 mt-2 cursor-pointer"
+                className="m3-btn-primary w-full mt-2"
               >
                 {isSubmitting
                   ? 'جاري التنفيذ...'
