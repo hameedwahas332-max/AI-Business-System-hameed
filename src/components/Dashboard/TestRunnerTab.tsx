@@ -553,32 +553,32 @@ export const TestRunnerTab: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 text-right font-sans" dir="rtl">
-      {/* Top Header Card - Theme: Emerald (#0F766E), Forest (#064E3B), Gold (#C9A227) */}
-      <div className="p-6 bg-gradient-to-l from-emerald-950/80 via-slate-900 to-slate-900 border border-emerald-900/50 rounded-3xl shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+    <div className="space-y-6 text-right font-sans text-[var(--md-on-surface)]" dir="rtl">
+      {/* Top Header Card */}
+      <div className="m3-card-elevated p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-inner">
+          <div className="w-12 h-12 rounded-2xl bg-[var(--md-primary-container)] border border-[var(--md-primary)]/25 flex items-center justify-center text-[var(--md-on-primary-container)] shrink-0">
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-xl font-black text-white">
+              <h2 className="text-xl font-black text-[var(--md-on-surface)]">
                 حزمة التحقق والاختبار الشاملة (17 سيناريو مالي ومزامنة سيادية)
               </h2>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30">
+              <span className="m3-badge bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] border border-[var(--md-secondary)]/30 font-mono">
                 CR-2026-TAURI-OFFLINE-SYNC-001
               </span>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[var(--md-on-surface-variant)]">
               فحص واعتماد محرك المزامنة دون اتصال بالإنترنت، متانة الـ WAL، توازن دفتر الأستاذ، وحسم التعارضات
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-shrink-0">
+        <div className="flex items-center gap-2.5 flex-shrink-0 flex-wrap">
           <button
             onClick={handleExportCertificationReport}
-            className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
+            className="m3-btn-outlined flex items-center gap-2 px-4 py-2.5 text-xs font-bold cursor-pointer"
             title="تصدير شهادة الاعتماد الفني بصيغة JSON"
           >
             <Download className="w-4 h-4" />
@@ -588,11 +588,7 @@ export const TestRunnerTab: React.FC = () => {
           <button
             onClick={handleRunAll}
             disabled={isRunningAll}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black shadow-lg transition cursor-pointer ${
-              isRunningAll
-                ? 'bg-emerald-800 text-emerald-300 cursor-not-allowed'
-                : 'bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white'
-            }`}
+            className="m3-btn-primary flex items-center gap-2 px-5 py-2.5 text-xs font-black cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <Play className={`w-4 h-4 fill-current ${isRunningAll ? 'animate-spin' : ''}`} />
             <span>{isRunningAll ? 'جارِ تنفيذ الفحوصات...' : 'تشغيل الفحص الشامل لـ 17 سيناريو'}</span>
@@ -603,65 +599,65 @@ export const TestRunnerTab: React.FC = () => {
       {/* KPI Overview Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Scenarios */}
-        <div className="p-4 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-between">
+        <div className="m3-card p-4 flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-xs text-slate-400 font-bold">السيناريوهات المعيارية</span>
-            <div className="text-2xl font-black text-white font-mono">{stats.total} سيناريو</div>
-            <span className="text-[10px] text-slate-500">تغطي كافة متطلبات الاعتماد الفني</span>
+            <span className="text-xs text-[var(--md-on-surface-variant)] font-bold">السيناريوهات المعيارية</span>
+            <div className="text-2xl font-black text-[var(--md-on-surface)] font-mono tabular-nums">{stats.total} سيناريو</div>
+            <span className="text-[11px] text-[var(--md-on-surface-variant)]">تغطي كافة متطلبات الاعتماد الفني</span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-300">
+          <div className="w-10 h-10 rounded-xl bg-[var(--md-surface-container-high)] border border-[var(--md-outline-variant)] flex items-center justify-center text-[var(--md-on-surface)]">
             <Layers className="w-5 h-5" />
           </div>
         </div>
 
         {/* Passed Scenarios */}
-        <div className="p-4 bg-slate-900 border border-emerald-900/40 rounded-2xl flex items-center justify-between">
+        <div className="m3-card p-4 flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-xs text-emerald-400 font-bold">السيناريوهات الناجحة</span>
-            <div className="text-2xl font-black text-emerald-400 font-mono">{stats.passed}</div>
-            <span className="text-[10px] text-emerald-500/80">نسبة الامتثال: {stats.percent}%</span>
+            <span className="text-xs text-[var(--md-success)] font-bold">السيناريوهات الناجحة</span>
+            <div className="text-2xl font-black text-[var(--md-success)] font-mono tabular-nums">{stats.passed}</div>
+            <span className="text-[11px] text-[var(--md-on-surface-variant)] tabular-nums">نسبة الامتثال: {stats.percent}%</span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-950 border border-emerald-800 flex items-center justify-center text-emerald-400">
+          <div className="w-10 h-10 rounded-xl bg-[var(--md-success-container)] border border-[var(--md-success)]/25 flex items-center justify-center text-[var(--md-on-success-container)]">
             <CheckCircle2 className="w-5 h-5" />
           </div>
         </div>
 
         {/* Failed Scenarios */}
-        <div className="p-4 bg-slate-900 border border-rose-900/30 rounded-2xl flex items-center justify-between">
+        <div className="m3-card p-4 flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-xs text-rose-400 font-bold">الفحوصات غير المجتازة</span>
-            <div className="text-2xl font-black text-rose-400 font-mono">{stats.failed}</div>
-            <span className="text-[10px] text-rose-500/80">أخطاء متطلبات التوافق</span>
+            <span className="text-xs text-[var(--md-error)] font-bold">الفحوصات غير المجتازة</span>
+            <div className="text-2xl font-black text-[var(--md-error)] font-mono tabular-nums">{stats.failed}</div>
+            <span className="text-[11px] text-[var(--md-on-surface-variant)]">أخطاء متطلبات التوافق</span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-rose-950 border border-rose-800 flex items-center justify-center text-rose-400">
+          <div className="w-10 h-10 rounded-xl bg-[var(--md-error-container)] border border-[var(--md-error)]/25 flex items-center justify-center text-[var(--md-on-error-container)]">
             <XCircle className="w-5 h-5" />
           </div>
         </div>
 
         {/* Platform & Durability Engine */}
-        <div className="p-4 bg-slate-900 border border-amber-900/30 rounded-2xl flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-xs text-amber-400 font-bold">بيئة التشغيل النشطة</span>
-            <div className="text-sm font-black text-white truncate max-w-[170px]">
+        <div className="m3-card p-4 flex items-center justify-between">
+          <div className="space-y-1 min-w-0">
+            <span className="text-xs text-[var(--md-warning)] font-bold">بيئة التشغيل النشطة</span>
+            <div className="text-sm font-black text-[var(--md-on-surface)] truncate max-w-[170px]">
               {getDevicePlatform()}
             </div>
-            <span className="text-[10px] text-slate-500 font-mono">SQLite WAL Engine</span>
+            <span className="text-[11px] text-[var(--md-on-surface-variant)] font-mono">SQLite WAL Engine</span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-amber-950 border border-amber-800 flex items-center justify-center text-amber-400">
+          <div className="w-10 h-10 rounded-xl bg-[var(--md-warning-container)] border border-[var(--md-warning)]/25 flex items-center justify-center text-[var(--md-on-warning-container)] shrink-0">
             <Laptop className="w-5 h-5" />
           </div>
         </div>
       </div>
 
       {/* Progress Indicator */}
-      <div className="p-4 bg-slate-900 border border-slate-800 rounded-2xl space-y-2">
-        <div className="flex items-center justify-between text-xs font-bold text-slate-300">
+      <div className="m3-card p-4 space-y-2.5">
+        <div className="flex items-center justify-between text-xs font-bold text-[var(--md-on-surface)]">
           <span>مستوى اكتمال الفحوصات المعيارية:</span>
-          <span className="font-mono text-emerald-400">{stats.percent}% مكتمل</span>
+          <span className="font-mono text-[var(--md-primary-text)] tabular-nums">{stats.percent}% مكتمل</span>
         </div>
-        <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+        <div className="w-full h-2.5 bg-[var(--md-surface-container-highest)] rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-l from-emerald-500 to-teal-400 transition-all duration-300"
+            className="h-full bg-[var(--md-primary)] transition-all duration-300 rounded-full"
             style={{ width: `${stats.percent}%` }}
           />
         </div>
@@ -669,7 +665,7 @@ export const TestRunnerTab: React.FC = () => {
 
       {/* Category Filter Pills */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
-        <span className="text-slate-500 font-bold text-xs flex items-center gap-1">
+        <span className="text-[var(--md-on-surface-variant)] font-bold text-xs flex items-center gap-1 shrink-0">
           <Filter className="w-3.5 h-3.5" />
           <span>تصفية:</span>
         </span>
@@ -686,10 +682,10 @@ export const TestRunnerTab: React.FC = () => {
           <button
             key={tab.key}
             onClick={() => setSelectedCategory(tab.key)}
-            className={`px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-xl font-bold transition whitespace-nowrap cursor-pointer border ${
               selectedCategory === tab.key
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200'
+                ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] border-[var(--md-primary)]'
+                : 'bg-[var(--md-surface-container)] border-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-container-high)] hover:text-[var(--md-on-surface)]'
             }`}
           >
             {tab.label}
@@ -698,42 +694,42 @@ export const TestRunnerTab: React.FC = () => {
       </div>
 
       {/* Scenarios Table List */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-        <div className="px-5 py-3.5 bg-slate-950/60 border-b border-slate-800 flex items-center justify-between">
-          <span className="text-xs font-bold text-slate-300">قائمة السيناريوهات المعيارية ومخرجات التحقق:</span>
-          <span className="text-xs font-mono text-slate-400">17 سيناريو محدد</span>
+      <div className="m3-card overflow-hidden">
+        <div className="px-5 py-3.5 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] flex items-center justify-between">
+          <span className="text-xs font-bold text-[var(--md-on-surface)]">قائمة السيناريوهات المعيارية ومخرجات التحقق:</span>
+          <span className="text-xs font-mono text-[var(--md-on-surface-variant)] tabular-nums">17 سيناريو محدد</span>
         </div>
 
-        <div className="divide-y divide-slate-800/70">
+        <div className="divide-y divide-[var(--md-outline-variant)]">
           {filteredScenarios.map((sc) => (
-            <div key={sc.id} className="p-4 hover:bg-slate-800/30 transition flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div key={sc.id} className="p-4 hover:bg-[var(--md-surface-container-low)] transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="space-y-1.5 max-w-2xl">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="w-6 h-6 rounded-lg bg-slate-800 font-mono text-xs font-black flex items-center justify-center text-slate-300">
+                  <span className="w-6 h-6 rounded-lg bg-[var(--md-surface-container-high)] border border-[var(--md-outline-variant)] font-mono text-xs font-black flex items-center justify-center text-[var(--md-primary-text)] tabular-nums">
                     #{sc.id}
                   </span>
-                  <span className="font-bold text-white text-sm">{sc.title}</span>
-                  <span className="px-2 py-0.5 rounded-md text-[10px] bg-slate-800 text-slate-400 border border-slate-700">
+                  <span className="font-bold text-[var(--md-on-surface)] text-sm">{sc.title}</span>
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] border border-[var(--md-outline-variant)]">
                     {sc.categoryLabel}
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 leading-relaxed">{sc.description}</p>
+                <p className="text-xs text-[var(--md-on-surface-variant)] leading-relaxed">{sc.description}</p>
                 {sc.assertionResult && (
                   <div
-                    className={`text-xs font-mono p-2 rounded-xl mt-1.5 border flex items-center gap-2 ${
+                    className={`text-xs font-mono p-2.5 rounded-xl mt-1.5 border flex items-center gap-2 leading-relaxed ${
                       sc.status === 'passed'
-                        ? 'bg-emerald-950/40 text-emerald-300 border-emerald-900/60'
-                        : 'bg-rose-950/40 text-rose-300 border-rose-900/60'
+                        ? 'bg-[var(--md-success-container)] text-[var(--md-on-success-container)] border-[var(--md-success)]/35'
+                        : 'bg-[var(--md-error-container)] text-[var(--md-on-error-container)] border-[var(--md-error)]/35'
                     }`}
                   >
                     {sc.status === 'passed' ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                      <CheckCircle2 className="w-4 h-4 text-[var(--md-success)] flex-shrink-0" />
                     ) : (
-                      <XCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                      <XCircle className="w-4 h-4 text-[var(--md-error)] flex-shrink-0" />
                     )}
-                    <span>{sc.assertionResult}</span>
+                    <span className="break-words">{sc.assertionResult}</span>
                     {sc.durationMs !== undefined && (
-                      <span className="text-[10px] text-slate-500 mr-auto font-mono">
+                      <span className="text-[11px] opacity-80 mr-auto font-mono tabular-nums shrink-0">
                         ({sc.durationMs}ms)
                       </span>
                     )}
@@ -743,22 +739,22 @@ export const TestRunnerTab: React.FC = () => {
 
               <div className="flex items-center gap-3 flex-shrink-0 self-end md:self-center">
                 {sc.status === 'passed' ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                  <span className="m3-badge inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold bg-[var(--md-success-container)] text-[var(--md-on-success-container)] border border-[var(--md-success)]/35">
                     <Check className="w-3.5 h-3.5" />
                     <span>تم بنجاح (Passed)</span>
                   </span>
                 ) : sc.status === 'failed' ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30">
+                  <span className="m3-badge inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold bg-[var(--md-error-container)] text-[var(--md-on-error-container)] border border-[var(--md-error)]/35">
                     <XCircle className="w-3.5 h-3.5" />
                     <span>فشل الفحص (Failed)</span>
                   </span>
                 ) : sc.status === 'running' ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                  <span className="m3-badge inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)] border border-[var(--md-warning)]/35">
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                     <span>جارِ الفحص...</span>
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-bold bg-slate-800 text-slate-400">
+                  <span className="m3-badge inline-flex items-center gap-1 px-3 py-1 text-xs font-bold bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] border border-[var(--md-outline-variant)]">
                     <Clock className="w-3.5 h-3.5" />
                     <span>جاهز للاختبار</span>
                   </span>
@@ -767,7 +763,7 @@ export const TestRunnerTab: React.FC = () => {
                 <button
                   onClick={() => executeScenario(sc.id)}
                   disabled={sc.status === 'running'}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
+                  className="m3-btn-outlined px-3 py-1.5 text-xs font-bold cursor-pointer disabled:opacity-50"
                 >
                   فحص منفرد
                 </button>

@@ -1044,87 +1044,199 @@ export const EnterpriseControlCenterTab: React.FC = () => {
   const getRiskBadge = (risk: string) => {
     switch (risk) {
       case 'CRITICAL':
-        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-950 text-rose-300 border border-rose-800">حرج للغاية (Critical)</span>;
+        return (
+          <span
+            className="m3-badge font-bold"
+            style={{
+              backgroundColor: 'var(--md-error-container)',
+              color: 'var(--md-on-error-container)',
+              borderColor: 'var(--md-error)',
+            }}
+          >
+            حرج للغاية (Critical)
+          </span>
+        );
       case 'HIGH':
-        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-950 text-amber-300 border border-amber-800">عالي التأثير (High)</span>;
+        return (
+          <span
+            className="m3-badge font-bold"
+            style={{
+              backgroundColor: 'var(--md-warning-container)',
+              color: 'var(--md-on-warning-container)',
+              borderColor: 'var(--md-warning)',
+            }}
+          >
+            عالي التأثير (High)
+          </span>
+        );
       case 'MEDIUM':
-        return <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-sky-950 text-sky-300 border border-sky-800">متوسط (Medium)</span>;
+        return (
+          <span
+            className="m3-badge font-medium"
+            style={{
+              backgroundColor: 'var(--md-info-container)',
+              color: 'var(--md-on-info-container)',
+              borderColor: 'var(--md-info)',
+            }}
+          >
+            متوسط (Medium)
+          </span>
+        );
       default:
-        return <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-950 text-emerald-300 border border-emerald-800">منخفض (Low)</span>;
+        return (
+          <span
+            className="m3-badge font-medium"
+            style={{
+              backgroundColor: 'var(--md-success-container)',
+              color: 'var(--md-on-success-container)',
+              borderColor: 'var(--md-success)',
+            }}
+          >
+            منخفض (Low)
+          </span>
+        );
     }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Locked':
-        return <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-purple-950 text-purple-300 border border-purple-800"><Lock className="w-3 h-3" /> مقفل أساسي</span>;
+        return (
+          <span
+            className="m3-badge font-bold"
+            style={{
+              backgroundColor: 'var(--md-secondary-container)',
+              color: 'var(--md-on-secondary-container)',
+              borderColor: 'var(--md-secondary)',
+            }}
+          >
+            <Lock className="w-3 h-3" /> مقفل أساسي
+          </span>
+        );
       case 'Pending Approval':
-        return <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-amber-950 text-amber-300 border border-amber-800"><Clock className="w-3 h-3" /> قيد المراجعة</span>;
+        return (
+          <span
+            className="m3-badge font-bold"
+            style={{
+              backgroundColor: 'var(--md-warning-container)',
+              color: 'var(--md-on-warning-container)',
+              borderColor: 'var(--md-warning)',
+            }}
+          >
+            <Clock className="w-3 h-3" /> قيد المراجعة
+          </span>
+        );
       case 'Drifted':
-        return <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-rose-950 text-rose-300 border border-rose-800"><AlertTriangle className="w-3 h-3" /> انحراف غير مصرح</span>;
+        return (
+          <span
+            className="m3-badge font-bold"
+            style={{
+              backgroundColor: 'var(--md-error-container)',
+              color: 'var(--md-on-error-container)',
+              borderColor: 'var(--md-error)',
+            }}
+          >
+            <AlertTriangle className="w-3 h-3" /> انحراف غير مصرح
+          </span>
+        );
       case 'Custom':
-        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-950 text-blue-300 border border-blue-800">مخصص للمنشأة</span>;
+        return (
+          <span
+            className="m3-badge font-bold"
+            style={{
+              backgroundColor: 'var(--md-info-container)',
+              color: 'var(--md-on-info-container)',
+              borderColor: 'var(--md-info)',
+            }}
+          >
+            مخصص للمنشأة
+          </span>
+        );
       default:
-        return <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-800 text-slate-300 border border-slate-700">موروث (نظامي)</span>;
+        return (
+          <span className="m3-badge bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] border-[var(--md-outline-variant)]">
+            موروث (نظامي)
+          </span>
+        );
     }
   };
 
   return (
-    <div className="space-y-6 text-slate-100" dir="rtl">
+    <div className="space-y-6 text-right text-[var(--md-on-surface)] font-sans" dir="rtl">
       {/* Top Banner & Two-Level Mode Switcher */}
-      <div className="bg-slate-900/90 border border-emerald-900/50 rounded-2xl p-5 shadow-2xl backdrop-blur-md">
+      <div className="m3-card p-5">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-800 flex items-center justify-center text-white shadow-lg">
+          <div className="flex items-center gap-3.5">
+            <div
+              className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
+              style={{
+                backgroundColor: 'var(--md-primary)',
+                color: 'var(--md-on-primary)',
+              }}
+            >
               <Sliders className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                الإعدادات ومركز التحكم
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono">
+              <h1 className="text-xl font-bold text-[var(--md-on-surface)] flex items-center flex-wrap gap-2">
+                <span>الإعدادات ومركز التحكم</span>
+                <span
+                  className="m3-badge font-mono"
+                  style={{
+                    backgroundColor: 'var(--md-primary-container)',
+                    color: 'var(--md-on-primary-container)',
+                    borderColor: 'transparent',
+                  }}
+                >
                   Enterprise Suite
                 </span>
               </h1>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-[var(--md-on-surface-variant)] mt-0.5">
                 الحوكمة الشاملة، إدارة السياسات، أمان البيانات، دورة التعديل، والتحكم الفني المتقدم
               </p>
             </div>
           </div>
 
           {/* Level Switcher */}
-          <div className="flex items-center bg-slate-950/80 p-1.5 rounded-xl border border-slate-800">
+          <div className="flex flex-wrap items-center gap-1.5 bg-[var(--md-surface-container-low)] p-1.5 rounded-2xl border border-[var(--md-outline-variant)]">
             <button
               id="btn-switch-settings"
+              type="button"
               onClick={() => setActiveLevel('SETTINGS')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
                 activeLevel === 'SETTINGS'
-                  ? 'bg-emerald-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
+                  : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)]'
               }`}
             >
               <Sliders className="w-4 h-4" />
-              المستوى 1: إعدادات المنظومة
+              <span>المستوى 1: إعدادات المنظومة</span>
             </button>
             <button
               id="btn-switch-control-center"
+              type="button"
               onClick={() => setActiveLevel('CONTROL_CENTER')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
                 activeLevel === 'CONTROL_CENTER'
-                  ? 'bg-emerald-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
+                  : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)]'
               }`}
             >
               <Shield className="w-4 h-4" />
-              المستوى 2: مركز التحكم والسياسات
+              <span>المستوى 2: مركز التحكم والسياسات</span>
             </button>
 
             <button
               type="button"
               onClick={() => setIsRatesModalOpen(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-all cursor-pointer mr-1"
+              className="m3-btn-outlined h-9 px-3 text-xs font-bold"
+              style={{
+                backgroundColor: 'var(--md-secondary-container)',
+                borderColor: 'var(--md-secondary)',
+                color: 'var(--md-on-secondary-container)',
+              }}
               title="عرض وتعديل نشرة أسعار الصرف اليومية للعملات"
             >
-              <Coins className="w-4 h-4 text-amber-400" />
+              <Coins className="w-4 h-4 shrink-0" style={{ color: 'var(--md-secondary)' }} />
               <span>نشرة أسعار الصرف (YER / SAR / USD)</span>
             </button>
           </div>
@@ -1132,73 +1244,97 @@ export const EnterpriseControlCenterTab: React.FC = () => {
 
         {/* Governance & Real Infrastructure Bar */}
         {governance && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-4 pt-4 border-t border-slate-800/80">
-            <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
-              <div className="text-[11px] text-slate-400">مؤشر صحة المنظومة الحقيقي</div>
-              <div className="text-lg font-bold text-emerald-400 flex items-center gap-1.5 mt-0.5 font-mono tabular-nums">
-                <Activity className="w-4 h-4 text-emerald-400" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-4 pt-4 border-t border-[var(--md-outline-variant)]">
+            <div className="bg-[var(--md-surface-container-low)] p-3 rounded-xl border border-[var(--md-outline-variant)]">
+              <div className="text-[11px] text-[var(--md-on-surface-variant)]">مؤشر صحة المنظومة الحقيقي</div>
+              <div
+                className="text-lg font-bold flex items-center gap-1.5 mt-0.5 font-mono tabular-nums"
+                style={{ color: 'var(--md-success)' }}
+              >
+                <Activity className="w-4 h-4 shrink-0" />
                 <span>{computedHealthScore}%</span>
               </div>
             </div>
 
-            <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
-              <div className="text-[11px] text-slate-400">السياسات المعتمدة النشطة</div>
-              <div className="text-lg font-bold text-slate-200 flex items-center gap-1.5 mt-0.5 font-mono tabular-nums">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <div className="bg-[var(--md-surface-container-low)] p-3 rounded-xl border border-[var(--md-outline-variant)]">
+              <div className="text-[11px] text-[var(--md-on-surface-variant)]">السياسات المعتمدة النشطة</div>
+              <div className="text-lg font-bold text-[var(--md-on-surface)] flex items-center gap-1.5 mt-0.5 font-mono tabular-nums">
+                <ShieldCheck className="w-4 h-4 shrink-0" style={{ color: 'var(--md-primary)' }} />
                 <span>{settings.length} سياسة</span>
               </div>
             </div>
 
-            <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
-              <div className="text-[11px] text-slate-400">حالة الوضع الآمن (Safe Mode)</div>
-              <div className="flex items-center justify-between mt-0.5">
-                <span className={`text-xs font-bold ${governance.safeModeEnabled ? 'text-emerald-400' : 'text-amber-400'}`}>
+            <div className="bg-[var(--md-surface-container-low)] p-3 rounded-xl border border-[var(--md-outline-variant)]">
+              <div className="text-[11px] text-[var(--md-on-surface-variant)]">حالة الوضع الآمن (Safe Mode)</div>
+              <div className="flex items-center justify-between gap-2 mt-1">
+                <span
+                  className="text-xs font-bold"
+                  style={{ color: governance.safeModeEnabled ? 'var(--md-success)' : 'var(--md-warning)' }}
+                >
                   {governance.safeModeEnabled ? 'مفعّل (محمي)' : 'معطل'}
                 </span>
                 <button
                   id="btn-toggle-safemode"
+                  type="button"
                   onClick={handleToggleSafeMode}
                   disabled={actionLoading}
-                  className="text-[11px] px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300 border border-slate-700 cursor-pointer"
+                  className="m3-btn-outlined h-7 px-2.5 text-[11px]"
                 >
                   {governance.safeModeEnabled ? 'تعطيل' : 'تفعيل'}
                 </button>
               </div>
             </div>
 
-            <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
-              <div className="text-[11px] text-slate-400">قفل الطوارئ (Emergency Lock)</div>
-              <div className="flex items-center justify-between mt-0.5">
-                <span className={`text-xs font-bold ${governance.emergencyLockActive ? 'text-rose-400' : 'text-slate-400'}`}>
+            <div className="bg-[var(--md-surface-container-low)] p-3 rounded-xl border border-[var(--md-outline-variant)]">
+              <div className="text-[11px] text-[var(--md-on-surface-variant)]">قفل الطوارئ (Emergency Lock)</div>
+              <div className="flex items-center justify-between gap-2 mt-1">
+                <span
+                  className="text-xs font-bold"
+                  style={{
+                    color: governance.emergencyLockActive ? 'var(--md-error)' : 'var(--md-on-surface-variant)',
+                  }}
+                >
                   {governance.emergencyLockActive ? 'مغلق (نشط)' : 'مفتوح'}
                 </span>
                 <button
                   id="btn-toggle-emergency-lock"
+                  type="button"
                   onClick={handleToggleEmergencyLock}
                   disabled={actionLoading}
-                  className={`text-[11px] px-2 py-0.5 rounded border cursor-pointer ${
+                  className="m3-btn-outlined h-7 px-2.5 text-[11px]"
+                  style={
                     governance.emergencyLockActive
-                      ? 'bg-rose-950 text-rose-300 border-rose-800 hover:bg-rose-900'
-                      : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
-                  }`}
+                      ? {
+                          backgroundColor: 'var(--md-error-container)',
+                          borderColor: 'var(--md-error)',
+                          color: 'var(--md-on-error-container)',
+                        }
+                      : undefined
+                  }
                 >
                   {governance.emergencyLockActive ? 'إلغاء' : 'قفل'}
                 </button>
               </div>
             </div>
 
-            <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
-              <div className="text-[11px] text-slate-400">الطلبات المعلقة للمراجعة</div>
-              <div className="text-lg font-bold text-amber-400 flex items-center gap-1.5 mt-0.5 font-mono tabular-nums">
-                <FileCheck className="w-4 h-4 text-amber-400" />
+            <div className="bg-[var(--md-surface-container-low)] p-3 rounded-xl border border-[var(--md-outline-variant)]">
+              <div className="text-[11px] text-[var(--md-on-surface-variant)]">الطلبات المعلقة للمراجعة</div>
+              <div
+                className="text-lg font-bold flex items-center gap-1.5 mt-0.5 font-mono tabular-nums"
+                style={{ color: 'var(--md-secondary)' }}
+              >
+                <FileCheck className="w-4 h-4 shrink-0" />
                 <span>{changeRequests.filter((cr) => cr.status === 'PENDING_REVIEW').length} طلب</span>
               </div>
             </div>
 
-            <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
-              <div className="text-[11px] text-slate-400">قاعدة البيانات والنسخ B2</div>
-              <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5 mt-1 font-mono">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <div className="bg-[var(--md-surface-container-low)] p-3 rounded-xl border border-[var(--md-outline-variant)]">
+              <div className="text-[11px] text-[var(--md-on-surface-variant)]">قاعدة البيانات والنسخ B2</div>
+              <div className="text-xs font-bold text-[var(--md-on-surface)] flex items-center gap-1.5 mt-1.5 font-mono">
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: 'var(--md-success)' }}
+                />
                 <span>PostgreSQL: متصل</span>
               </div>
             </div>
@@ -1209,30 +1345,43 @@ export const EnterpriseControlCenterTab: React.FC = () => {
       {/* ========================================================================= */}
       {/* BUSINESS ACTIVITY ISOLATION & MODULE SETTINGS COCKPIT                      */}
       {/* ========================================================================= */}
-      <div className="bg-slate-900/90 border border-indigo-900/50 rounded-2xl p-5 shadow-2xl backdrop-blur-md space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+      <div className="m3-card p-5 space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[var(--md-outline-variant)] pb-3.5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center shadow-md">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+              style={{
+                backgroundColor: 'var(--md-primary-container)',
+                color: 'var(--md-on-primary-container)',
+              }}
+            >
               <Store className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-white">
+              <div className="flex items-center flex-wrap gap-2">
+                <h2 className="text-base font-bold text-[var(--md-on-surface)]">
                   تخصيص النظام حسب نشاط المنشأة التجاري (Business Isolation)
                 </h2>
-                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800 font-bold font-mono">
+                <span
+                  className="m3-badge font-mono"
+                  style={{
+                    backgroundColor: 'var(--md-primary-container)',
+                    color: 'var(--md-on-primary-container)',
+                    borderColor: 'transparent',
+                  }}
+                >
                   ACTIVE: {moduleSettings.activePreset}
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-[var(--md-on-surface-variant)] mt-0.5">
                 عزل شاشات النظام وإظهار الحقول والتبويبات المتوافقة فقط مع طبيعة عمل التاجر لتسريع العمليات ومنع التشتت
               </p>
             </div>
           </div>
 
           {/* Quick Currency Selector */}
-          <div className="flex items-center gap-2 bg-slate-950/80 p-1.5 rounded-xl border border-slate-800">
-            <span className="text-xs text-slate-400 font-semibold px-2">العملة الافتراضية:</span>
+          <div className="flex items-center gap-1.5 bg-[var(--md-surface-container-low)] p-1.5 rounded-xl border border-[var(--md-outline-variant)] shrink-0">
+            <span className="text-xs text-[var(--md-on-surface-variant)] font-semibold px-2">العملة الافتراضية:</span>
             {(['YER', 'SAR', 'USD'] as const).map((curr) => {
               const isSelected = (localStorage.getItem('erp_default_currency') || 'YER') === curr;
               return (
@@ -1248,11 +1397,19 @@ export const EnterpriseControlCenterTab: React.FC = () => {
                       });
                     } catch {}
                   }}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer font-mono ${
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer font-mono ${
                     isSelected
-                      ? 'bg-amber-500 text-slate-950 shadow-md font-black'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                      ? ''
+                      : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)]'
                   }`}
+                  style={
+                    isSelected
+                      ? {
+                          backgroundColor: 'var(--md-secondary)',
+                          color: 'var(--md-on-secondary)',
+                        }
+                      : undefined
+                  }
                 >
                   {curr}
                 </button>
@@ -1270,7 +1427,6 @@ export const EnterpriseControlCenterTab: React.FC = () => {
               icon: '🌐',
               badge: 'شامل كامل',
               desc: 'يعرض كافة الأقسام: محطة الوقود، البقالة، الإطارات والبطاريات، والزيوت وقطع الغيار دون أي حجب.',
-              color: 'from-blue-600/20 to-indigo-600/10 border-blue-500/40',
             },
             {
               key: 'grocery_only',
@@ -1278,7 +1434,6 @@ export const EnterpriseControlCenterTab: React.FC = () => {
               icon: '🍏',
               badge: 'أغذية وتموينات',
               desc: 'يعرض الأصناف، الصلاحية (FEFO)، والوحدات المتعددة، ويخفي البطاريات والإطارات والزيوت ومحطة الوقود.',
-              color: 'from-emerald-600/20 to-teal-600/10 border-emerald-500/40',
             },
             {
               key: 'fuel_station_only',
@@ -1286,7 +1441,6 @@ export const EnterpriseControlCenterTab: React.FC = () => {
               icon: '⛽',
               badge: 'محروقات وغاز',
               desc: 'يركز على عدادات الطرمبات، الخزانات الأرضية، وفروقات التبخر والمعايرة ويخفي البقالة والإطارات.',
-              color: 'from-amber-600/20 to-orange-600/10 border-amber-500/40',
             },
             {
               key: 'tires_batteries_only',
@@ -1294,7 +1448,6 @@ export const EnterpriseControlCenterTab: React.FC = () => {
               icon: '🛞',
               badge: 'إطارات وبطاريات',
               desc: 'يركز على مقاس الإطارات، كود DOT، سعة الأمبير، أرقام السيريال، شهادات الضمان، والرجيع.',
-              color: 'from-purple-600/20 to-pink-600/10 border-purple-500/40',
             },
             {
               key: 'autoparts_oils_only',
@@ -1302,7 +1455,6 @@ export const EnterpriseControlCenterTab: React.FC = () => {
               icon: '🛢️',
               badge: 'قطع غيار وزيوت',
               desc: 'يركز على رقم القطعة المصنعي OEM، درجات لزوجة الزيوت (20W-50)، وسعة اللتر والكراتين.',
-              color: 'from-cyan-600/20 to-blue-600/10 border-cyan-500/40',
             },
             {
               key: 'wholesale_retail_general',
@@ -1310,7 +1462,6 @@ export const EnterpriseControlCenterTab: React.FC = () => {
               icon: '📦',
               badge: 'تجارة عامة وجملة',
               desc: 'كروت أصناف عامة، مستويات التسعير المتعددة (جملة/تجزئة)، الباركود، والبيع بالكرتون.',
-              color: 'from-slate-700/30 to-slate-800/20 border-slate-700/60',
             },
           ].map((mode) => {
             const isActive = moduleSettings.activePreset === mode.key;
@@ -1324,39 +1475,58 @@ export const EnterpriseControlCenterTab: React.FC = () => {
                     text: `تم تفعيل ${mode.name} بنجاح وضبط شاشات المنظومة فورياً!`,
                   });
                 }}
-                className={`p-3.5 rounded-xl border transition-all cursor-pointer relative flex flex-col justify-between ${
+                className={`p-3.5 rounded-2xl border transition-colors cursor-pointer relative flex flex-col justify-between ${
                   isActive
-                    ? `bg-gradient-to-br ${mode.color} border-indigo-500 shadow-lg shadow-indigo-950/40 ring-1 ring-indigo-500/50`
-                    : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 hover:bg-slate-900/60'
+                    ? 'border-[var(--md-primary)] bg-[var(--md-primary-container)]/40'
+                    : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] hover:bg-[var(--md-surface-container-high)]'
                 }`}
               >
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xl">{mode.icon}</span>
                     <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                      className="m3-badge"
+                      style={
                         isActive
-                          ? 'bg-indigo-500 text-white shadow-sm'
-                          : 'bg-slate-800 text-slate-400'
-                      }`}
+                          ? {
+                              backgroundColor: 'var(--md-primary)',
+                              color: 'var(--md-on-primary)',
+                              borderColor: 'transparent',
+                            }
+                          : {
+                              backgroundColor: 'var(--md-surface-container-high)',
+                              color: 'var(--md-on-surface-variant)',
+                              borderColor: 'var(--md-outline-variant)',
+                            }
+                      }
                     >
                       {mode.badge}
                     </span>
                   </div>
-                  <h3 className="font-bold text-white text-xs leading-snug">{mode.name}</h3>
-                  <p className="text-[11px] text-slate-400 leading-relaxed">{mode.desc}</p>
+                  <h3 className="font-bold text-[var(--md-on-surface)] text-xs leading-snug">{mode.name}</h3>
+                  <p className="text-[11px] text-[var(--md-on-surface-variant)] leading-relaxed">{mode.desc}</p>
                 </div>
 
-                <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
-                  <span className={isActive ? 'text-indigo-300 font-bold' : 'text-slate-500'}>
+                <div className="mt-3 pt-2.5 border-t border-[var(--md-outline-variant)] flex items-center justify-between text-[11px]">
+                  <span
+                    className={isActive ? 'font-bold' : 'text-[var(--md-on-surface-variant)]'}
+                    style={isActive ? { color: 'var(--md-primary-text)' } : undefined}
+                  >
                     {isActive ? '✓ الوضع النشط حالياً' : 'انقر للتحويل إلى هذا الوضع'}
                   </span>
                   <div
-                    className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                      isActive
-                        ? 'bg-indigo-500 border-indigo-400 text-slate-950'
-                        : 'border-slate-700'
+                    className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                      isActive ? '' : 'border-[var(--md-outline)]'
                     }`}
+                    style={
+                      isActive
+                        ? {
+                            backgroundColor: 'var(--md-primary)',
+                            borderColor: 'var(--md-primary)',
+                            color: 'var(--md-on-primary)',
+                          }
+                        : undefined
+                    }
                   >
                     {isActive && <Check className="w-3 h-3 stroke-[3]" />}
                   </div>
@@ -1367,13 +1537,13 @@ export const EnterpriseControlCenterTab: React.FC = () => {
         </div>
 
         {/* Live Module Capability Toggles Ribbon */}
-        <div className="pt-3 border-t border-slate-800">
-          <div className="text-xs font-bold text-slate-300 mb-2 flex items-center gap-2">
-            <Sliders className="w-3.5 h-3.5 text-indigo-400" />
+        <div className="pt-3.5 border-t border-[var(--md-outline-variant)]">
+          <div className="text-xs font-bold text-[var(--md-on-surface)] mb-2.5 flex items-center gap-2">
+            <Sliders className="w-3.5 h-3.5" style={{ color: 'var(--md-primary)' }} />
             <span>مفاتيح التحكم المباشر في ميزات وتشغيل الأقسام:</span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
             {[
               {
                 key: 'enableMultiUnits',
@@ -1439,6 +1609,8 @@ export const EnterpriseControlCenterTab: React.FC = () => {
               <button
                 key={toggle.key}
                 type="button"
+                role="switch"
+                aria-checked={toggle.val}
                 onClick={() => {
                   updateModuleSettings({ [toggle.key]: !toggle.val });
                   setStatusMessage({
@@ -1446,25 +1618,34 @@ export const EnterpriseControlCenterTab: React.FC = () => {
                     text: `تم ${!toggle.val ? 'تفعيل' : 'تعطيل'} خيار "${toggle.label}"`,
                   });
                 }}
-                className={`p-2.5 rounded-xl border text-right transition-all flex flex-col justify-between cursor-pointer ${
+                className={`p-3 rounded-xl border text-right transition-colors flex flex-col justify-between gap-2.5 cursor-pointer ${
                   toggle.val
-                    ? 'bg-indigo-950/40 border-indigo-500/50 text-white'
-                    : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                    ? 'bg-[var(--md-primary-container)]/40 border-[var(--md-primary)] text-[var(--md-on-surface)]'
+                    : 'bg-[var(--md-surface-container-low)] border-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-container-high)]'
                 }`}
               >
-                <span className="text-[11px] font-semibold leading-tight">{toggle.label}</span>
-                <span
-                  className={`text-[10px] font-bold mt-2 font-mono flex items-center gap-1 ${
-                    toggle.val ? 'text-emerald-400' : 'text-slate-500'
-                  }`}
-                >
+                <span className="text-[11px] font-semibold leading-snug">{toggle.label}</span>
+                <div className="flex items-center justify-between gap-2 w-full">
                   <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      toggle.val ? 'bg-emerald-400' : 'bg-slate-600'
-                    }`}
-                  />
-                  {toggle.val ? 'مفعّل' : 'معطّل'}
-                </span>
+                    className="text-[10px] font-bold font-mono flex items-center gap-1"
+                    style={{
+                      color: toggle.val ? 'var(--md-success)' : 'var(--md-on-surface-variant)',
+                    }}
+                  >
+                    <span
+                      className="w-1.5 h-1.5 rounded-full shrink-0"
+                      style={{
+                        backgroundColor: toggle.val ? 'var(--md-success)' : 'var(--md-outline)',
+                      }}
+                    />
+                    {toggle.val ? 'مفعّل' : 'معطّل'}
+                  </span>
+                  {toggle.val ? (
+                    <ToggleRight className="w-5 h-5 shrink-0" style={{ color: 'var(--md-primary)' }} />
+                  ) : (
+                    <ToggleLeft className="w-5 h-5 shrink-0 text-[var(--md-outline)]" />
+                  )}
+                </div>
               </button>
             ))}
           </div>
@@ -1473,17 +1654,27 @@ export const EnterpriseControlCenterTab: React.FC = () => {
 
       {/* Real Enterprise Operational & Financial Counters Grid (100% Real from Backend Endpoints) */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between px-1">
+        <div className="flex items-center justify-between flex-wrap gap-2 px-1">
           <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-emerald-400" />
-            <h2 className="text-sm font-bold text-white">عدادات ومؤشرات المنشأة الحقيقية (Real Enterprise Cockpit)</h2>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
+            <TrendingUp className="w-4 h-4" style={{ color: 'var(--md-primary)' }} />
+            <h2 className="text-sm font-bold text-[var(--md-on-surface)]">
+              عدادات ومؤشرات المنشأة الحقيقية (Real Enterprise Cockpit)
+            </h2>
+            <span
+              className="m3-badge font-mono"
+              style={{
+                backgroundColor: 'var(--md-success-container)',
+                color: 'var(--md-on-success-container)',
+                borderColor: 'transparent',
+              }}
+            >
               LIVE DATA 100%
             </span>
           </div>
           <button
+            type="button"
             onClick={loadAllData}
-            className="text-xs text-slate-400 hover:text-emerald-400 flex items-center gap-1 transition-colors cursor-pointer"
+            className="m3-btn-text h-8 px-2.5 text-xs"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>تحديث العدادات</span>
@@ -1492,140 +1683,213 @@ export const EnterpriseControlCenterTab: React.FC = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
           {/* 1. Customers */}
-          <div className="p-4 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl shadow-lg transition-all space-y-2">
+          <div className="m3-card p-4 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400">العملاء والذمم المدينة</span>
-              <div className="w-8 h-8 rounded-xl bg-sky-500/15 text-sky-400 border border-sky-500/30 flex items-center justify-center">
+              <span className="text-xs font-semibold text-[var(--md-on-surface-variant)]">العملاء والذمم المدينة</span>
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: 'var(--md-info-container)',
+                  color: 'var(--md-on-info-container)',
+                }}
+              >
                 <Users className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-2xl font-black text-white font-mono tabular-nums">
-              {realCounters?.customersCount ?? 0} <span className="text-xs text-slate-400 font-normal">عميل مسجل</span>
+            <div className="text-2xl font-bold text-[var(--md-on-surface)] font-mono tabular-nums">
+              {realCounters?.customersCount ?? 0}{' '}
+              <span className="text-xs text-[var(--md-on-surface-variant)] font-sans font-normal">عميل مسجل</span>
             </div>
-            <div className="text-[11px] text-sky-400 font-mono tabular-nums flex items-center justify-between border-t border-slate-800/80 pt-1.5">
-              <span>مديونيات قائمة:</span>
-              <span className="font-bold">{(realCounters?.totalReceivables || 0).toLocaleString()} {currSym}</span>
+            <div className="text-[11px] font-mono tabular-nums flex items-center justify-between border-t border-[var(--md-outline-variant)] pt-2">
+              <span className="text-[var(--md-on-surface-variant)] font-sans">مديونيات قائمة:</span>
+              <span className="font-bold" style={{ color: 'var(--md-info)' }}>
+                {(realCounters?.totalReceivables || 0).toLocaleString()} {currSym}
+              </span>
             </div>
           </div>
 
           {/* 2. Suppliers */}
-          <div className="p-4 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl shadow-lg transition-all space-y-2">
+          <div className="m3-card p-4 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400">الموردين والذمم الدائنة</span>
-              <div className="w-8 h-8 rounded-xl bg-purple-500/15 text-purple-400 border border-purple-500/30 flex items-center justify-center">
+              <span className="text-xs font-semibold text-[var(--md-on-surface-variant)]">الموردين والذمم الدائنة</span>
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: 'var(--md-primary-container)',
+                  color: 'var(--md-on-primary-container)',
+                }}
+              >
                 <Truck className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-2xl font-black text-white font-mono tabular-nums">
-              {realCounters?.suppliersCount ?? 0} <span className="text-xs text-slate-400 font-normal">مورد معتمد</span>
+            <div className="text-2xl font-bold text-[var(--md-on-surface)] font-mono tabular-nums">
+              {realCounters?.suppliersCount ?? 0}{' '}
+              <span className="text-xs text-[var(--md-on-surface-variant)] font-sans font-normal">مورد معتمد</span>
             </div>
-            <div className="text-[11px] text-purple-400 font-mono tabular-nums flex items-center justify-between border-t border-slate-800/80 pt-1.5">
-              <span>مستحقات للموردين:</span>
-              <span className="font-bold">{(realCounters?.totalPayables || 0).toLocaleString()} {currSym}</span>
+            <div className="text-[11px] font-mono tabular-nums flex items-center justify-between border-t border-[var(--md-outline-variant)] pt-2">
+              <span className="text-[var(--md-on-surface-variant)] font-sans">مستحقات للموردين:</span>
+              <span className="font-bold" style={{ color: 'var(--md-primary-text)' }}>
+                {(realCounters?.totalPayables || 0).toLocaleString()} {currSym}
+              </span>
             </div>
           </div>
 
           {/* 3. Products & Inventory */}
-          <div className="p-4 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl shadow-lg transition-all space-y-2">
+          <div className="m3-card p-4 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400">أصناف المخزون والتنبيهات</span>
-              <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center justify-center">
+              <span className="text-xs font-semibold text-[var(--md-on-surface-variant)]">أصناف المخزون والتنبيهات</span>
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: 'var(--md-secondary-container)',
+                  color: 'var(--md-on-secondary-container)',
+                }}
+              >
                 <Package className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-2xl font-black text-white font-mono tabular-nums">
-              {realCounters?.productsCount ?? 0} <span className="text-xs text-slate-400 font-normal">صنف مسجل</span>
+            <div className="text-2xl font-bold text-[var(--md-on-surface)] font-mono tabular-nums">
+              {realCounters?.productsCount ?? 0}{' '}
+              <span className="text-xs text-[var(--md-on-surface-variant)] font-sans font-normal">صنف مسجل</span>
             </div>
-            <div className="text-[11px] text-amber-400 font-mono tabular-nums flex items-center justify-between border-t border-slate-800/80 pt-1.5">
-              <span>أصناف منخفضة: {realCounters?.lowStockCount ?? 0}</span>
-              <span className="font-bold">تقييم: {(realCounters?.inventoryValuation || 0).toLocaleString()} {currSym}</span>
+            <div className="text-[11px] font-mono tabular-nums flex items-center justify-between border-t border-[var(--md-outline-variant)] pt-2">
+              <span className="text-[var(--md-on-surface-variant)] font-sans">
+                أصناف منخفضة: <strong className="font-mono">{realCounters?.lowStockCount ?? 0}</strong>
+              </span>
+              <span className="font-bold" style={{ color: 'var(--md-secondary)' }}>
+                تقييم: {(realCounters?.inventoryValuation || 0).toLocaleString()} {currSym}
+              </span>
             </div>
           </div>
 
           {/* 4. Invoices */}
-          <div className="p-4 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl shadow-lg transition-all space-y-2">
+          <div className="m3-card p-4 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400">فواتير المبيعات الصادرة</span>
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+              <span className="text-xs font-semibold text-[var(--md-on-surface-variant)]">فواتير المبيعات الصادرة</span>
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: 'var(--md-success-container)',
+                  color: 'var(--md-on-success-container)',
+                }}
+              >
                 <FileText className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-2xl font-black text-white font-mono tabular-nums">
-              {realCounters?.invoicesCount ?? 0} <span className="text-xs text-slate-400 font-normal">فاتورة معتمدة</span>
+            <div className="text-2xl font-bold text-[var(--md-on-surface)] font-mono tabular-nums">
+              {realCounters?.invoicesCount ?? 0}{' '}
+              <span className="text-xs text-[var(--md-on-surface-variant)] font-sans font-normal">فاتورة معتمدة</span>
             </div>
-            <div className="text-[11px] text-emerald-400 font-mono flex items-center justify-between border-t border-slate-800/80 pt-1.5">
-              <span>الامتثال الضريبي:</span>
-              <span className="font-bold">ZATCA متطابق 100%</span>
+            <div className="text-[11px] font-mono flex items-center justify-between border-t border-[var(--md-outline-variant)] pt-2">
+              <span className="text-[var(--md-on-surface-variant)] font-sans">الامتثال الضريبي:</span>
+              <span className="font-bold" style={{ color: 'var(--md-success)' }}>
+                ZATCA متطابق 100%
+              </span>
             </div>
           </div>
 
           {/* 5. Sales Total */}
-          <div className="p-4 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl shadow-lg transition-all space-y-2">
+          <div className="m3-card p-4 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400">إجمالي المبيعات والإيرادات</span>
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+              <span className="text-xs font-semibold text-[var(--md-on-surface-variant)]">إجمالي المبيعات والإيرادات</span>
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: 'var(--md-success-container)',
+                  color: 'var(--md-on-success-container)',
+                }}
+              >
                 <DollarSign className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-2xl font-black text-emerald-400 font-mono tabular-nums">
-              {(realCounters?.salesTotal || 0).toLocaleString()} <span className="text-xs text-slate-400 font-normal">{currSym}</span>
+            <div className="text-2xl font-bold font-mono tabular-nums" style={{ color: 'var(--md-success)' }}>
+              {(realCounters?.salesTotal || 0).toLocaleString()}{' '}
+              <span className="text-xs text-[var(--md-on-surface-variant)] font-sans font-normal">{currSym}</span>
             </div>
-            <div className="text-[11px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-1.5">
-              <span>حالة المبيعات:</span>
-              <span className="text-emerald-400 font-bold font-mono">تدفق نقدي نشط</span>
+            <div className="text-[11px] flex items-center justify-between border-t border-[var(--md-outline-variant)] pt-2">
+              <span className="text-[var(--md-on-surface-variant)]">حالة المبيعات:</span>
+              <span className="font-bold font-mono" style={{ color: 'var(--md-success)' }}>
+                تدفق نقدي نشط
+              </span>
             </div>
           </div>
 
           {/* 6. Purchases Total */}
-          <div className="p-4 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl shadow-lg transition-all space-y-2">
+          <div className="m3-card p-4 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400">إجمالي المشتريات والتوريد</span>
-              <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center justify-center">
+              <span className="text-xs font-semibold text-[var(--md-on-surface-variant)]">إجمالي المشتريات والتوريد</span>
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: 'var(--md-secondary-container)',
+                  color: 'var(--md-on-secondary-container)',
+                }}
+              >
                 <Wallet className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-2xl font-black text-amber-400 font-mono tabular-nums">
-              {(realCounters?.purchasesTotal || 0).toLocaleString()} <span className="text-xs text-slate-400 font-normal">{currSym}</span>
+            <div className="text-2xl font-bold font-mono tabular-nums" style={{ color: 'var(--md-secondary)' }}>
+              {(realCounters?.purchasesTotal || 0).toLocaleString()}{' '}
+              <span className="text-xs text-[var(--md-on-surface-variant)] font-sans font-normal">{currSym}</span>
             </div>
-            <div className="text-[11px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-1.5">
-              <span>التكاليف المعتمدة:</span>
-              <span className="text-slate-300 font-bold font-mono">فواتير موردين مسجلة</span>
+            <div className="text-[11px] flex items-center justify-between border-t border-[var(--md-outline-variant)] pt-2">
+              <span className="text-[var(--md-on-surface-variant)]">التكاليف المعتمدة:</span>
+              <span className="text-[var(--md-on-surface)] font-bold font-mono">فواتير موردين مسجلة</span>
             </div>
           </div>
 
           {/* 7. Net Profit */}
-          <div className="p-4 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl shadow-lg transition-all space-y-2">
+          <div className="m3-card p-4 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400">صافي الأرباح التشغيلية</span>
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+              <span className="text-xs font-semibold text-[var(--md-on-surface-variant)]">صافي الأرباح التشغيلية</span>
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: 'var(--md-primary-container)',
+                  color: 'var(--md-on-primary-container)',
+                }}
+              >
                 <TrendingUp className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-2xl font-black text-emerald-300 font-mono tabular-nums">
-              {(realCounters?.netProfit || 0).toLocaleString()} <span className="text-xs text-slate-400 font-normal">{currSym}</span>
+            <div className="text-2xl font-bold font-mono tabular-nums" style={{ color: 'var(--md-primary-text)' }}>
+              {(realCounters?.netProfit || 0).toLocaleString()}{' '}
+              <span className="text-xs text-[var(--md-on-surface-variant)] font-sans font-normal">{currSym}</span>
             </div>
-            <div className="text-[11px] text-emerald-400 flex items-center justify-between border-t border-slate-800/80 pt-1.5">
-              <span>هامش الربح:</span>
-              <span className="font-bold font-mono">
-                {(realCounters?.salesTotal || 0) > 0 ? (((realCounters?.netProfit || 0) / realCounters.salesTotal) * 100).toFixed(1) : '40.9'}%
+            <div className="text-[11px] flex items-center justify-between border-t border-[var(--md-outline-variant)] pt-2">
+              <span className="text-[var(--md-on-surface-variant)]">هامش الربح:</span>
+              <span className="font-bold font-mono tabular-nums" style={{ color: 'var(--md-success)' }}>
+                {(realCounters?.salesTotal || 0) > 0
+                  ? (((realCounters?.netProfit || 0) / realCounters.salesTotal) * 100).toFixed(1)
+                  : '40.9'}
+                %
               </span>
             </div>
           </div>
 
           {/* 8. VAT Payable */}
-          <div className="p-4 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl shadow-lg transition-all space-y-2">
+          <div className="m3-card p-4 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400">ضريبة القيمة المضافة (15%)</span>
-              <div className="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 flex items-center justify-center">
+              <span className="text-xs font-semibold text-[var(--md-on-surface-variant)]">ضريبة القيمة المضافة (15%)</span>
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: 'var(--md-info-container)',
+                  color: 'var(--md-on-info-container)',
+                }}
+              >
                 <FileCheck className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-2xl font-black text-indigo-300 font-mono tabular-nums">
-              {(realCounters?.vatPayable || 0).toLocaleString()} <span className="text-xs text-slate-400 font-normal">{currSym}</span>
+            <div className="text-2xl font-bold font-mono tabular-nums" style={{ color: 'var(--md-info)' }}>
+              {(realCounters?.vatPayable || 0).toLocaleString()}{' '}
+              <span className="text-xs text-[var(--md-on-surface-variant)] font-sans font-normal">{currSym}</span>
             </div>
-            <div className="text-[11px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-1.5">
-              <span>حالة الإقرار:</span>
-              <span className="text-indigo-400 font-bold font-mono">محسوبة آلياً</span>
+            <div className="text-[11px] flex items-center justify-between border-t border-[var(--md-outline-variant)] pt-2">
+              <span className="text-[var(--md-on-surface-variant)]">حالة الإقرار:</span>
+              <span className="font-bold font-mono" style={{ color: 'var(--md-info)' }}>
+                محسوبة آلياً
+              </span>
             </div>
           </div>
         </div>
@@ -1634,21 +1898,39 @@ export const EnterpriseControlCenterTab: React.FC = () => {
       {/* Notification / Toast Message */}
       {statusMessage && (
         <div
-          className={`p-3 rounded-xl text-xs flex items-center justify-between border ${
+          className="p-3.5 rounded-2xl text-xs font-semibold flex items-center justify-between border"
+          style={
             statusMessage.type === 'success'
-              ? 'bg-emerald-950/80 border-emerald-800 text-emerald-300'
+              ? {
+                  backgroundColor: 'var(--md-success-container)',
+                  borderColor: 'var(--md-success)',
+                  color: 'var(--md-on-success-container)',
+                }
               : statusMessage.type === 'error'
-              ? 'bg-rose-950/80 border-rose-800 text-rose-300'
-              : 'bg-sky-950/80 border-sky-800 text-sky-300'
-          }`}
+              ? {
+                  backgroundColor: 'var(--md-error-container)',
+                  borderColor: 'var(--md-error)',
+                  color: 'var(--md-on-error-container)',
+                }
+              : {
+                  backgroundColor: 'var(--md-info-container)',
+                  borderColor: 'var(--md-info)',
+                  color: 'var(--md-on-info-container)',
+                }
+          }
         >
           <div className="flex items-center gap-2">
-            {statusMessage.type === 'success' && <CheckCircle className="w-4 h-4" />}
-            {statusMessage.type === 'error' && <AlertTriangle className="w-4 h-4" />}
-            {statusMessage.type === 'info' && <Sparkles className="w-4 h-4" />}
+            {statusMessage.type === 'success' && <CheckCircle className="w-4 h-4 shrink-0" />}
+            {statusMessage.type === 'error' && <AlertTriangle className="w-4 h-4 shrink-0" />}
+            {statusMessage.type === 'info' && <Sparkles className="w-4 h-4 shrink-0" />}
             <span>{statusMessage.text}</span>
           </div>
-          <button onClick={() => setStatusMessage(null)} className="text-slate-400 hover:text-white">
+          <button
+            type="button"
+            onClick={() => setStatusMessage(null)}
+            className="p-1 rounded-lg hover:opacity-80 transition-opacity cursor-pointer"
+            aria-label="إغلاق الرسالة"
+          >
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -1660,28 +1942,30 @@ export const EnterpriseControlCenterTab: React.FC = () => {
       {activeLevel === 'SETTINGS' && (
         <div className="space-y-5">
           {/* Controls Bar: Search & Category Filter & Scope Selector */}
-          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
+          <div className="m3-card p-3.5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
             {/* Search Input */}
             <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute right-3 top-2.5 text-slate-400" />
+              <Search className="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--md-on-surface-variant)] pointer-events-none" />
               <input
                 id="input-search-settings"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="ابحث في كافة إعدادات وسياسات المنظومة (بالاسم، الكود، الوصف)..."
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg pr-9 pl-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                className="m3-input w-full pr-10 pl-3 text-xs"
               />
             </div>
 
             {/* Scope Selector */}
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] text-slate-400 whitespace-nowrap">نطاق التعديل:</span>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs font-semibold text-[var(--md-on-surface-variant)] whitespace-nowrap">
+                نطاق التعديل:
+              </span>
               <select
                 id="select-scope"
                 value={selectedScope}
                 onChange={(e) => setSelectedScope(e.target.value)}
-                className="bg-slate-950 border border-slate-800 text-xs text-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-emerald-500"
+                className="m3-select text-xs min-w-[200px]"
               >
                 <option value="COMPANY">المنشأة العامة (Company Default)</option>
                 <option value="BRANCH">الفرع (Branch)</option>
@@ -1691,31 +1975,34 @@ export const EnterpriseControlCenterTab: React.FC = () => {
             </div>
           </div>
 
-          {/* Categories Pills */}
+          {/* Categories Filter Bar */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-2 custom-scrollbar">
             {categories.map((cat) => (
               <button
                 key={cat}
+                type="button"
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3 py-1.5 rounded-lg text-xs whitespace-nowrap transition-colors ${
+                className={`px-3.5 py-2 rounded-xl text-xs whitespace-nowrap transition-colors cursor-pointer border ${
                   selectedCategory === cat
-                    ? 'bg-emerald-600 text-white font-bold'
-                    : 'bg-slate-900 hover:bg-slate-800 text-slate-400 border border-slate-800'
+                    ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] border-transparent font-bold'
+                    : 'bg-[var(--md-surface-container)] hover:bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] border-[var(--md-outline-variant)]'
                 }`}
               >
-                {cat === 'ALL' ? 'كافة الفئات (20 مجالاً)' : (CATEGORY_NAMES_AR as Record<string, string>)[String(cat)] || String(cat)}
+                {cat === 'ALL'
+                  ? 'كافة الفئات (20 مجالاً)'
+                  : (CATEGORY_NAMES_AR as Record<string, string>)[String(cat)] || String(cat)}
               </button>
             ))}
           </div>
 
           {/* Settings Grid */}
           {loading ? (
-            <div className="text-center py-12 text-slate-400">
-              <RefreshCw className="w-8 h-8 animate-spin mx-auto text-emerald-500 mb-2" />
+            <div className="m3-card text-center py-12 text-[var(--md-on-surface-variant)] text-xs">
+              <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2" style={{ color: 'var(--md-primary)' }} />
               جاري جلب إعدادات المنظومة وسلاسل التوريث...
             </div>
           ) : filteredSettings.length === 0 ? (
-            <div className="text-center py-12 bg-slate-900/40 rounded-xl border border-slate-800 text-slate-400">
+            <div className="m3-card text-center py-12 text-[var(--md-on-surface-variant)] text-xs">
               لا توجد إعدادات مطابقة لبحثك في الفئة المحددة.
             </div>
           ) : (
@@ -1723,37 +2010,46 @@ export const EnterpriseControlCenterTab: React.FC = () => {
               {filteredSettings.map((item) => (
                 <div
                   key={item.definition.key}
-                  className="bg-slate-900/70 border border-slate-800 hover:border-slate-700 rounded-xl p-4 transition-all flex flex-col justify-between"
+                  className="m3-card p-4 flex flex-col justify-between"
                 >
                   <div>
                     {/* Header: Title & Badges */}
                     <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="font-bold text-sm text-white flex items-center gap-1.5">
-                          {item.definition.displayNameAr}
+                      <div className="min-w-0">
+                        <div className="font-bold text-sm text-[var(--md-on-surface)] flex items-center flex-wrap gap-1.5">
+                          <span>{item.definition.displayNameAr}</span>
                           {item.definition.isMandatory && (
-                            <span className="text-[10px] text-amber-400 bg-amber-950/60 px-1.5 py-0.2 rounded border border-amber-900/50">
+                            <span
+                              className="m3-badge"
+                              style={{
+                                backgroundColor: 'var(--md-secondary-container)',
+                                color: 'var(--md-on-secondary-container)',
+                                borderColor: 'transparent',
+                              }}
+                            >
                               إلزامي
                             </span>
                           )}
                         </div>
-                        <div className="text-[10px] font-mono text-slate-500">{item.definition.key}</div>
+                        <div className="text-[11px] font-mono text-[var(--md-on-surface-variant)] mt-0.5">
+                          {item.definition.key}
+                        </div>
                       </div>
-                      <div className="flex flex-col items-end gap-1">
+                      <div className="flex flex-col items-end gap-1 shrink-0">
                         {getRiskBadge(item.definition.riskLevel)}
                         {getStatusBadge(item.status)}
                       </div>
                     </div>
 
                     {/* Description */}
-                    <p className="text-xs text-slate-400 mt-2 line-clamp-2">
+                    <p className="text-xs text-[var(--md-on-surface-variant)] mt-2.5 line-clamp-2 leading-relaxed">
                       {item.definition.descriptionAr}
                     </p>
 
                     {/* Value Preview */}
-                    <div className="mt-3 bg-slate-950/80 rounded-lg p-2.5 border border-slate-800/80 flex items-center justify-between">
-                      <span className="text-[11px] text-slate-400">القيمة الفعالة:</span>
-                      <span className="font-mono text-xs font-bold text-emerald-400">
+                    <div className="mt-3 bg-[var(--md-surface-container-low)] rounded-xl p-2.5 border border-[var(--md-outline-variant)] flex items-center justify-between gap-2">
+                      <span className="text-[11px] text-[var(--md-on-surface-variant)]">القيمة الفعالة:</span>
+                      <span className="font-mono tabular-nums text-xs font-bold" style={{ color: 'var(--md-primary-text)' }}>
                         {typeof item.effectiveValue === 'boolean'
                           ? item.effectiveValue
                             ? 'مفعّل (True)'
@@ -1764,10 +2060,13 @@ export const EnterpriseControlCenterTab: React.FC = () => {
 
                     {/* Affected Modules */}
                     {Array.isArray(item.definition?.affectedModules) && item.definition.affectedModules.length > 0 && (
-                      <div className="flex items-center gap-1 mt-2 flex-wrap">
-                        <span className="text-[10px] text-slate-500">الوحدات المتأثرة:</span>
+                      <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+                        <span className="text-[11px] text-[var(--md-on-surface-variant)]">الوحدات المتأثرة:</span>
                         {item.definition.affectedModules.map((m) => (
-                          <span key={m} className="text-[10px] px-1.5 py-0.2 bg-slate-800 text-slate-300 rounded">
+                          <span
+                            key={m}
+                            className="text-[10px] font-mono px-2 py-0.5 bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] rounded-md border border-[var(--md-outline-variant)]"
+                          >
                             {m}
                           </span>
                         ))}
@@ -1776,23 +2075,24 @@ export const EnterpriseControlCenterTab: React.FC = () => {
                   </div>
 
                   {/* Actions */}
-                  <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between">
-                    <span className="text-[10px] text-slate-500">
+                  <div className="mt-4 pt-3 border-t border-[var(--md-outline-variant)] flex items-center justify-between gap-2">
+                    <span className="text-[11px] text-[var(--md-on-surface-variant)] font-mono">
                       المصدر: {item.sourceScope} ({item.sourceScopeId})
                     </span>
                     <button
                       id={`btn-edit-${item.definition.key}`}
+                      type="button"
                       onClick={() => {
                         setEditingSetting(item);
                         setEditValue(item.effectiveValue);
                         setEditReason('');
                       }}
                       disabled={item.definition.isLocked}
-                      className={`text-xs px-3 py-1.5 rounded-lg font-bold transition-all ${
+                      className={
                         item.definition.isLocked
-                          ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                          : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm'
-                      }`}
+                          ? 'h-9 px-3.5 rounded-xl text-xs font-bold bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] border border-[var(--md-outline-variant)] cursor-not-allowed'
+                          : 'm3-btn-primary h-9 px-3.5 text-xs'
+                      }
                     >
                       {item.definition.isLocked ? 'مقفل نظامياً' : 'تعديل الإعداد'}
                     </button>
@@ -1810,149 +2110,192 @@ export const EnterpriseControlCenterTab: React.FC = () => {
       {activeLevel === 'CONTROL_CENTER' && (
         <div className="space-y-5">
           {/* Sub Navigation */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar bg-slate-900/60 p-2 rounded-xl border border-slate-800">
+          <div className="m3-card p-2 flex items-center gap-1.5 overflow-x-auto custom-scrollbar">
             <button
+              type="button"
               onClick={() => setActiveSubTab('OVERVIEW')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                activeSubTab === 'OVERVIEW' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer ${
+                activeSubTab === 'OVERVIEW'
+                  ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
+                  : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)]'
               }`}
             >
               <Activity className="w-3.5 h-3.5" />
-              لوحة الحوكمة والسلامة
+              <span>لوحة الحوكمة والسلامة</span>
             </button>
             <button
+              type="button"
               onClick={() => setActiveSubTab('REQUESTS')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                activeSubTab === 'REQUESTS' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer ${
+                activeSubTab === 'REQUESTS'
+                  ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
+                  : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)]'
               }`}
             >
               <FileCheck className="w-3.5 h-3.5" />
-              مركز الموافقات والتغييرات ({changeRequests.filter((c) => c.status === 'PENDING_REVIEW').length})
+              <span className="tabular-nums">
+                مركز الموافقات والتغييرات ({changeRequests.filter((c) => c.status === 'PENDING_REVIEW').length})
+              </span>
             </button>
             <button
+              type="button"
               onClick={() => {
                 setActiveSubTab('DRIFT');
                 handleScanDrift();
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                activeSubTab === 'DRIFT' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer ${
+                activeSubTab === 'DRIFT'
+                  ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
+                  : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)]'
               }`}
             >
               <AlertTriangle className="w-3.5 h-3.5" />
-              فاحص الانحراف (Drift Scanner)
+              <span>فاحص الانحراف (Drift Scanner)</span>
             </button>
             <button
+              type="button"
               onClick={() => {
                 setActiveSubTab('VERSIONS');
                 handleLoadVersions();
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                activeSubTab === 'VERSIONS' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer ${
+                activeSubTab === 'VERSIONS'
+                  ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
+                  : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)]'
               }`}
             >
               <History className="w-3.5 h-3.5" />
-              سجل الإصدارات والتراجع
+              <span>سجل الإصدارات والتراجع</span>
             </button>
             <button
+              type="button"
               onClick={() => setActiveSubTab('SNAPSHOTS')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                activeSubTab === 'SNAPSHOTS' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer ${
+                activeSubTab === 'SNAPSHOTS'
+                  ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
+                  : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)]'
               }`}
             >
               <Database className="w-3.5 h-3.5" />
-              لقطات النظام والحالة المستقرة (LKG)
+              <span>لقطات النظام والحالة المستقرة (LKG)</span>
             </button>
             <button
+              type="button"
               onClick={() => {
                 setActiveSubTab('DIAGNOSTICS');
                 handleLoadDiagnostics();
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                activeSubTab === 'DIAGNOSTICS' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer ${
+                activeSubTab === 'DIAGNOSTICS'
+                  ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
+                  : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)]'
               }`}
             >
               <HelpCircle className="w-3.5 h-3.5" />
-              فاحص التشخيص (10 أسئلة)
+              <span>فاحص التشخيص (10 أسئلة)</span>
             </button>
             <button
+              type="button"
               onClick={() => setActiveSubTab('PRESETS')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                activeSubTab === 'PRESETS' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer ${
+                activeSubTab === 'PRESETS'
+                  ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
+                  : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)]'
               }`}
             >
               <Zap className="w-3.5 h-3.5" />
-              الإعدادات الجاهزة للأنشطة (Presets)
+              <span>الإعدادات الجاهزة للأنشطة (Presets)</span>
             </button>
             <button
+              type="button"
               onClick={() => setActiveSubTab('AI_ASSISTANT')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                activeSubTab === 'AI_ASSISTANT' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer ${
+                activeSubTab === 'AI_ASSISTANT'
+                  ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
+                  : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)]'
               }`}
             >
-              <Bot className="w-3.5 h-3.5 text-emerald-400" />
-              المساعد الذكي للسياسات (AI)
+              <Bot className="w-3.5 h-3.5" />
+              <span>المساعد الذكي للسياسات (AI)</span>
             </button>
           </div>
 
           {/* SubTab 1: Overview & Governance */}
           {activeSubTab === 'OVERVIEW' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 space-y-4">
-                <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  سياسات السلامة والحوكمة الإلزامية
+              <div className="m3-card p-5 space-y-4">
+                <h3 className="font-bold text-sm text-[var(--md-on-surface)] flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4" style={{ color: 'var(--md-primary)' }} />
+                  <span>سياسات السلامة والحوكمة الإلزامية</span>
                 </h3>
-                <div className="space-y-3 text-xs text-slate-300">
-                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+                <div className="space-y-3 text-xs">
+                  <div className="p-3.5 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] flex items-center justify-between gap-3">
                     <div>
-                      <div className="font-bold text-white">الوضع الآمن (Safe Mode)</div>
-                      <div className="text-[11px] text-slate-400">إلزامية تحويل التعديلات الحرجة إلى طلبات تغيير تتطلب موافقة رسمية</div>
+                      <div className="font-bold text-[var(--md-on-surface)]">الوضع الآمن (Safe Mode)</div>
+                      <div className="text-[11px] text-[var(--md-on-surface-variant)] mt-0.5">
+                        إلزامية تحويل التعديلات الحرجة إلى طلبات تغيير تتطلب موافقة رسمية
+                      </div>
                     </div>
-                    <span className="text-emerald-400 font-bold">نشط</span>
+                    <span className="font-bold shrink-0" style={{ color: 'var(--md-success)' }}>
+                      نشط
+                    </span>
                   </div>
-                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+                  <div className="p-3.5 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] flex items-center justify-between gap-3">
                     <div>
-                      <div className="font-bold text-white">حماية المبادئ المحاسبية المقفلة</div>
-                      <div className="text-[11px] text-slate-400">منع أي مساس بمبدأ القيد المزدوج الإلزامي</div>
+                      <div className="font-bold text-[var(--md-on-surface)]">حماية المبادئ المحاسبية المقفلة</div>
+                      <div className="text-[11px] text-[var(--md-on-surface-variant)] mt-0.5">
+                        منع أي مساس بمبدأ القيد المزدوج الإلزامي
+                      </div>
                     </div>
-                    <span className="text-purple-400 font-bold">مقفل نظامياً</span>
+                    <span className="font-bold shrink-0" style={{ color: 'var(--md-secondary)' }}>
+                      مقفل نظامياً
+                    </span>
                   </div>
-                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+                  <div className="p-3.5 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] flex items-center justify-between gap-3">
                     <div>
-                      <div className="font-bold text-white">التراجع التلقائي الآمن (Auto-Rollback)</div>
-                      <div className="text-[11px] text-slate-400">فحص فوري بعد كل تعديل والتراجع الفوري في حال حدوث أي خلل</div>
+                      <div className="font-bold text-[var(--md-on-surface)]">التراجع التلقائي الآمن (Auto-Rollback)</div>
+                      <div className="text-[11px] text-[var(--md-on-surface-variant)] mt-0.5">
+                        فحص فوري بعد كل تعديل والتراجع الفوري في حال حدوث أي خلل
+                      </div>
                     </div>
-                    <span className="text-emerald-400 font-bold">مفعّل</span>
+                    <span className="font-bold shrink-0" style={{ color: 'var(--md-success)' }}>
+                      مفعّل
+                    </span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 space-y-4">
-                <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-emerald-400" />
-                  هيكلية التوريث الصارمة (Hierarchy Order)
+              <div className="m3-card p-5 space-y-4">
+                <h3 className="font-bold text-sm text-[var(--md-on-surface)] flex items-center gap-2">
+                  <Layers className="w-4 h-4" style={{ color: 'var(--md-primary)' }} />
+                  <span>هيكلية التوريث الصارمة (Hierarchy Order)</span>
                 </h3>
                 <div className="space-y-2 text-xs">
-                  <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center gap-2 text-slate-400">
-                    <span className="w-5 h-5 rounded-full bg-slate-800 text-white flex items-center justify-center font-mono text-[10px]">1</span>
-                    <span className="font-bold text-white">النظام الأساسي (SYSTEM)</span> - القيمة الافتراضية العالمية
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center gap-2 text-slate-400">
-                    <span className="w-5 h-5 rounded-full bg-slate-800 text-white flex items-center justify-center font-mono text-[10px]">2</span>
-                    <span className="font-bold text-white">المنشأة (COMPANY)</span> - سياسات وهوية المنشأة العامة
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center gap-2 text-slate-400">
-                    <span className="w-5 h-5 rounded-full bg-slate-800 text-white flex items-center justify-center font-mono text-[10px]">3</span>
-                    <span className="font-bold text-white">الفرع (BRANCH)</span> - تخصيصات الفروع المستقلة
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center gap-2 text-slate-400">
-                    <span className="w-5 h-5 rounded-full bg-slate-800 text-white flex items-center justify-center font-mono text-[10px]">4</span>
-                    <span className="font-bold text-white">الدور (ROLE)</span> - قيود وحدود الصلاحيات الوظيفية
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center gap-2 text-slate-400">
-                    <span className="w-5 h-5 rounded-full bg-slate-800 text-white flex items-center justify-center font-mono text-[10px]">5</span>
-                    <span className="font-bold text-white">المستخدم (USER)</span> - التفضيلات الشخصية والواجهة
-                  </div>
+                  {[
+                    { step: 1, title: 'النظام الأساسي (SYSTEM)', desc: 'القيمة الافتراضية العالمية' },
+                    { step: 2, title: 'المنشأة (COMPANY)', desc: 'سياسات وهوية المنشأة العامة' },
+                    { step: 3, title: 'الفرع (BRANCH)', desc: 'تخصيصات الفروع المستقلة' },
+                    { step: 4, title: 'الدور (ROLE)', desc: 'قيود وحدود الصلاحيات الوظيفية' },
+                    { step: 5, title: 'المستخدم (USER)', desc: 'التفضيلات الشخصية والواجهة' },
+                  ].map((lvl) => (
+                    <div
+                      key={lvl.step}
+                      className="p-2.5 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] flex items-center gap-2.5 text-[var(--md-on-surface-variant)]"
+                    >
+                      <span
+                        className="w-6 h-6 rounded-full flex items-center justify-center font-mono tabular-nums text-[11px] font-bold shrink-0"
+                        style={{
+                          backgroundColor: 'var(--md-primary-container)',
+                          color: 'var(--md-on-primary-container)',
+                        }}
+                      >
+                        {lvl.step}
+                      </span>
+                      <span>
+                        <strong className="text-[var(--md-on-surface)]">{lvl.title}</strong> - {lvl.desc}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -1960,58 +2303,68 @@ export const EnterpriseControlCenterTab: React.FC = () => {
 
           {/* SubTab 2: Change Requests & Approvals */}
           {activeSubTab === 'REQUESTS' && (
-            <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 space-y-4">
-              <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                <FileCheck className="w-4 h-4 text-emerald-400" />
-                سجل طلبات التعديل والموافقات المعلقة
+            <div className="m3-card p-5 space-y-4">
+              <h3 className="font-bold text-sm text-[var(--md-on-surface)] flex items-center gap-2">
+                <FileCheck className="w-4 h-4" style={{ color: 'var(--md-primary)' }} />
+                <span>سجل طلبات التعديل والموافقات المعلقة</span>
               </h3>
               {changeRequests.length === 0 ? (
-                <div className="text-center py-8 text-slate-500 text-xs">لا توجد طلبات تعديل معلقة حالياً.</div>
+                <div className="text-center py-8 text-[var(--md-on-surface-variant)] text-xs">
+                  لا توجد طلبات تعديل معلقة حالياً.
+                </div>
               ) : (
                 <div className="space-y-3">
                   {changeRequests.map((cr) => (
                     <div
                       key={cr.id}
-                      className="p-4 rounded-xl bg-slate-950 border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+                      className="p-4 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
                     >
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-white text-sm">{cr.settingDisplayNameAr}</span>
-                          <span className="text-[10px] font-mono text-slate-500">{cr.settingKey}</span>
+                      <div className="space-y-1">
+                        <div className="flex items-center flex-wrap gap-2">
+                          <span className="font-bold text-[var(--md-on-surface)] text-sm">
+                            {cr.settingDisplayNameAr}
+                          </span>
+                          <span className="text-[11px] font-mono text-[var(--md-on-surface-variant)]">
+                            {cr.settingKey}
+                          </span>
                           {getRiskBadge(cr.riskLevel)}
                         </div>
-                        <div className="text-xs text-slate-400 mt-1">السبب: {cr.reason}</div>
-                        <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-2 font-mono">
+                        <div className="text-xs text-[var(--md-on-surface-variant)]">السبب: {cr.reason}</div>
+                        <div className="flex items-center flex-wrap gap-3 text-[11px] text-[var(--md-on-surface-variant)] pt-1 font-mono tabular-nums">
                           <span>طالب التعديل: {cr.requestedByName}</span>
                           <span>القيمة الحالية: {JSON.stringify(cr.oldValue)}</span>
-                          <ArrowRight className="w-3 h-3 inline text-emerald-400" />
-                          <span className="text-emerald-400 font-bold">القيمة المقترحة: {JSON.stringify(cr.newValue)}</span>
+                          <ArrowRight className="w-3.5 h-3.5 inline" style={{ color: 'var(--md-primary)' }} />
+                          <span className="font-bold" style={{ color: 'var(--md-primary-text)' }}>
+                            القيمة المقترحة: {JSON.stringify(cr.newValue)}
+                          </span>
                         </div>
                       </div>
 
                       {cr.status === 'PENDING_REVIEW' ? (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 shrink-0">
                           <button
                             id={`btn-approve-cr-${cr.id}`}
+                            type="button"
                             onClick={() => handleApproveRequest(cr.id)}
                             disabled={actionLoading}
-                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center gap-1"
+                            className="m3-btn-primary h-9 px-3.5 text-xs"
                           >
                             <Check className="w-3.5 h-3.5" />
-                            اعتماد وتطبيق
+                            <span>اعتماد وتطبيق</span>
                           </button>
                           <button
                             id={`btn-reject-cr-${cr.id}`}
+                            type="button"
                             onClick={() => handleRejectRequest(cr.id)}
                             disabled={actionLoading}
-                            className="px-3 py-1.5 bg-rose-950 hover:bg-rose-900 text-rose-300 border border-rose-800 rounded-lg text-xs font-bold flex items-center gap-1"
+                            className="m3-btn-danger h-9 px-3.5 text-xs"
                           >
                             <X className="w-3.5 h-3.5" />
-                            رفض
+                            <span>رفض</span>
                           </button>
                         </div>
                       ) : (
-                        <span className="text-xs font-bold text-slate-500">{cr.status}</span>
+                        <span className="m3-badge font-mono">{cr.status}</span>
                       )}
                     </div>
                   ))}
@@ -2022,50 +2375,74 @@ export const EnterpriseControlCenterTab: React.FC = () => {
 
           {/* SubTab 3: Drift Scanner */}
           {activeSubTab === 'DRIFT' && (
-            <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-amber-400" />
-                  فاحص الانحرافات والمطابقة التلقائية (Drift Scanner)
+            <div className="m3-card p-5 space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h3 className="font-bold text-sm text-[var(--md-on-surface)] flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4" style={{ color: 'var(--md-warning)' }} />
+                  <span>فاحص الانحرافات والمطابقة التلقائية (Drift Scanner)</span>
                 </h3>
                 <button
                   id="btn-re-scan-drift"
+                  type="button"
                   onClick={handleScanDrift}
                   disabled={actionLoading}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5"
+                  className="m3-btn-outlined h-9 px-3.5 text-xs"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${actionLoading ? 'animate-spin' : ''}`} />
-                  إعادة الفحص الآن
+                  <span>إعادة الفحص الآن</span>
                 </button>
               </div>
 
               {drifts.length === 0 ? (
-                <div className="text-center py-10 bg-slate-950/60 rounded-xl border border-slate-800 text-emerald-400 text-xs flex flex-col items-center gap-2">
-                  <CheckCircle className="w-8 h-8 text-emerald-500" />
-                  النظام متطابق تماماً مع السياسات الأساسية المعتمدة ولا توجد أي انحرافات مسجلة.
+                <div
+                  className="text-center py-10 rounded-xl border text-xs flex flex-col items-center gap-2 font-semibold"
+                  style={{
+                    backgroundColor: 'var(--md-success-container)',
+                    borderColor: 'var(--md-success)',
+                    color: 'var(--md-on-success-container)',
+                  }}
+                >
+                  <CheckCircle className="w-8 h-8" style={{ color: 'var(--md-success)' }} />
+                  <span>النظام متطابق تماماً مع السياسات الأساسية المعتمدة ولا توجد أي انحرافات مسجلة.</span>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {drifts.map((d) => (
                     <div
                       key={d.id}
-                      className="p-4 rounded-xl bg-slate-950 border border-rose-900/60 flex items-center justify-between gap-4"
+                      className="p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                      style={{
+                        backgroundColor: 'var(--md-error-container)',
+                        borderColor: 'var(--md-error)',
+                      }}
                     >
                       <div>
-                        <div className="font-bold text-sm text-rose-300 flex items-center gap-2">
-                          {d.settingDisplayNameAr}
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-rose-950 text-rose-400 border border-rose-800">
+                        <div
+                          className="font-bold text-sm flex items-center flex-wrap gap-2"
+                          style={{ color: 'var(--md-on-error-container)' }}
+                        >
+                          <span>{d.settingDisplayNameAr}</span>
+                          <span
+                            className="m3-badge font-mono"
+                            style={{
+                              backgroundColor: 'var(--md-surface-container)',
+                              color: 'var(--md-error)',
+                              borderColor: 'var(--md-error)',
+                            }}
+                          >
                             {d.driftType}
                           </span>
                         </div>
-                        <div className="text-xs text-slate-400 mt-1 font-mono">
-                          القيمة المتوقعة: {JSON.stringify(d.expectedValue)} | القيمة المكتشفة: {JSON.stringify(d.actualValue)}
+                        <div className="text-xs text-[var(--md-on-surface-variant)] mt-1 font-mono tabular-nums">
+                          القيمة المتوقعة: {JSON.stringify(d.expectedValue)} | القيمة المكتشفة:{' '}
+                          {JSON.stringify(d.actualValue)}
                         </div>
                       </div>
                       <button
+                        type="button"
                         onClick={() => handleReconcileDrift(d)}
                         disabled={actionLoading}
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold"
+                        className="m3-btn-primary h-9 px-3.5 text-xs shrink-0"
                       >
                         معالجة واستعادة الأصل
                       </button>
@@ -2078,30 +2455,39 @@ export const EnterpriseControlCenterTab: React.FC = () => {
 
           {/* SubTab 4: Versions & History */}
           {activeSubTab === 'VERSIONS' && (
-            <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 space-y-4">
-              <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                <History className="w-4 h-4 text-emerald-400" />
-                سجل الإصدارات وتاريخ التعديلات
+            <div className="m3-card p-5 space-y-4">
+              <h3 className="font-bold text-sm text-[var(--md-on-surface)] flex items-center gap-2">
+                <History className="w-4 h-4" style={{ color: 'var(--md-primary)' }} />
+                <span>سجل الإصدارات وتاريخ التعديلات</span>
               </h3>
               {versions.length === 0 ? (
-                <div className="text-center py-8 text-slate-500 text-xs">لا توجد إصدارات سابقة مسجلة.</div>
+                <div className="text-center py-8 text-[var(--md-on-surface-variant)] text-xs">
+                  لا توجد إصدارات سابقة مسجلة.
+                </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   {versions.map((v) => (
                     <div
                       key={v.id}
-                      className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs"
+                      className="p-3.5 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="font-mono font-bold text-emerald-400 bg-slate-900 px-2 py-1 rounded border border-slate-800">
+                        <span
+                          className="m3-badge font-mono tabular-nums font-bold"
+                          style={{
+                            backgroundColor: 'var(--md-primary-container)',
+                            color: 'var(--md-on-primary-container)',
+                            borderColor: 'transparent',
+                          }}
+                        >
                           #{v.versionNumber}
                         </span>
                         <div>
-                          <div className="font-bold text-white">{v.settingDisplayNameAr}</div>
-                          <div className="text-[11px] text-slate-400">{v.reason}</div>
+                          <div className="font-bold text-[var(--md-on-surface)]">{v.settingDisplayNameAr}</div>
+                          <div className="text-[11px] text-[var(--md-on-surface-variant)]">{v.reason}</div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4 text-slate-400 font-mono text-[11px]">
+                      <div className="flex items-center gap-4 text-[var(--md-on-surface-variant)] font-mono tabular-nums text-[11px]">
                         <span>بواسطة: {v.changerName}</span>
                         <span>{new Date(v.createdAt).toLocaleString('ar-SA')}</span>
                       </div>
@@ -2114,42 +2500,58 @@ export const EnterpriseControlCenterTab: React.FC = () => {
 
           {/* SubTab 5: Snapshots & LKG */}
           {activeSubTab === 'SNAPSHOTS' && (
-            <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                  <Database className="w-4 h-4 text-emerald-400" />
-                  لقطات النظام والحالة المستقرة الموثوقة (Last Known Good)
+            <div className="m3-card p-5 space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h3 className="font-bold text-sm text-[var(--md-on-surface)] flex items-center gap-2">
+                  <Database className="w-4 h-4" style={{ color: 'var(--md-primary)' }} />
+                  <span>لقطات النظام والحالة المستقرة الموثوقة (Last Known Good)</span>
                 </h3>
                 <button
                   id="btn-create-snapshot"
+                  type="button"
                   onClick={handleCreateSnapshot}
                   disabled={actionLoading}
-                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5"
+                  className="m3-btn-primary h-9 px-3.5 text-xs"
                 >
                   <CheckCircle className="w-3.5 h-3.5" />
-                  إنشاء لقطة جديدة الآن
+                  <span>إنشاء لقطة جديدة الآن</span>
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 {snapshots.map((snap) => (
-                  <div key={snap.id} className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-white text-sm">{snap.name}</span>
+                  <div
+                    key={snap.id}
+                    className="p-4 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] space-y-2"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-[var(--md-on-surface)] text-sm">{snap.name}</span>
                       {snap.isLastKnownGood && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">
+                        <span
+                          className="m3-badge"
+                          style={{
+                            backgroundColor: 'var(--md-success-container)',
+                            color: 'var(--md-on-success-container)',
+                            borderColor: 'transparent',
+                          }}
+                        >
                           حالة موثوقة (LKG)
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-400">{snap.description}</p>
-                    <div className="text-[10px] font-mono text-slate-500 truncate">SHA-256: {snap.checksum}</div>
-                    <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
-                      <span className="text-slate-500">{new Date(snap.createdAt).toLocaleDateString('ar-SA')}</span>
+                    <p className="text-xs text-[var(--md-on-surface-variant)]">{snap.description}</p>
+                    <div className="text-[11px] font-mono text-[var(--md-on-surface-variant)] truncate">
+                      SHA-256: {snap.checksum}
+                    </div>
+                    <div className="pt-2.5 border-t border-[var(--md-outline-variant)] flex items-center justify-between text-xs">
+                      <span className="text-[var(--md-on-surface-variant)] font-mono tabular-nums">
+                        {new Date(snap.createdAt).toLocaleDateString('ar-SA')}
+                      </span>
                       <button
+                        type="button"
                         onClick={() => handleRestoreSnapshot(snap.id)}
                         disabled={actionLoading}
-                        className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs"
+                        className="m3-btn-outlined h-8 px-3 text-xs"
                       >
                         استعادة هذه اللقطة
                       </button>
@@ -2162,21 +2564,33 @@ export const EnterpriseControlCenterTab: React.FC = () => {
 
           {/* SubTab 6: Diagnostics 10 Questions */}
           {activeSubTab === 'DIAGNOSTICS' && (
-            <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 space-y-4">
-              <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                <HelpCircle className="w-4 h-4 text-emerald-400" />
-                فاحص التشخيص والمساءلة الفنية (10 أسئلة إلزامية)
+            <div className="m3-card p-5 space-y-4">
+              <h3 className="font-bold text-sm text-[var(--md-on-surface)] flex items-center gap-2">
+                <HelpCircle className="w-4 h-4" style={{ color: 'var(--md-primary)' }} />
+                <span>فاحص التشخيص والمساءلة الفنية (10 أسئلة إلزامية)</span>
               </h3>
               <div className="space-y-3">
                 {diagnostics.map((d, idx) => (
-                  <div key={idx} className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
-                    <div className="font-bold text-xs text-emerald-400 flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-emerald-950 text-emerald-400 flex items-center justify-center font-mono text-[10px] border border-emerald-800">
+                  <div
+                    key={idx}
+                    className="p-3.5 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] space-y-1.5"
+                  >
+                    <div
+                      className="font-bold text-xs flex items-center gap-2"
+                      style={{ color: 'var(--md-primary-text)' }}
+                    >
+                      <span
+                        className="w-5 h-5 rounded-full flex items-center justify-center font-mono tabular-nums text-[10px] shrink-0"
+                        style={{
+                          backgroundColor: 'var(--md-primary-container)',
+                          color: 'var(--md-on-primary-container)',
+                        }}
+                      >
                         {idx + 1}
                       </span>
-                      {d.questionAr}
+                      <span>{d.questionAr}</span>
                     </div>
-                    <div className="text-xs text-slate-300 pr-7">{d.answerAr}</div>
+                    <div className="text-xs text-[var(--md-on-surface)] pr-7 leading-relaxed">{d.answerAr}</div>
                   </div>
                 ))}
               </div>
@@ -2185,27 +2599,41 @@ export const EnterpriseControlCenterTab: React.FC = () => {
 
           {/* SubTab 7: Business Presets */}
           {activeSubTab === 'PRESETS' && (
-            <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 space-y-4">
-              <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                <Zap className="w-4 h-4 text-emerald-400" />
-                الإعدادات الجاهزة للأنشطة التجارية (Business Presets)
+            <div className="m3-card p-5 space-y-4">
+              <h3 className="font-bold text-sm text-[var(--md-on-surface)] flex items-center gap-2">
+                <Zap className="w-4 h-4" style={{ color: 'var(--md-secondary)' }} />
+                <span>الإعدادات الجاهزة للأنشطة التجارية (Business Presets)</span>
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {presets.map((p) => (
-                  <div key={p.id} className="p-4 rounded-xl bg-slate-950 border border-slate-800 flex flex-col justify-between">
+                  <div
+                    key={p.id}
+                    className="p-4 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] flex flex-col justify-between"
+                  >
                     <div>
-                      <div className="font-bold text-white text-sm">{p.nameAr}</div>
-                      <p className="text-xs text-slate-400 mt-1">{p.descriptionAr}</p>
-                      <div className="mt-3 text-[11px] text-emerald-400 bg-emerald-950/40 p-2 rounded border border-emerald-900/40">
+                      <div className="font-bold text-[var(--md-on-surface)] text-sm">{p.nameAr}</div>
+                      <p className="text-xs text-[var(--md-on-surface-variant)] mt-1 leading-relaxed">
+                        {p.descriptionAr}
+                      </p>
+                      <div
+                        className="mt-3 text-[11px] font-medium p-2.5 rounded-xl"
+                        style={{
+                          backgroundColor: 'var(--md-primary-container)',
+                          color: 'var(--md-on-primary-container)',
+                        }}
+                      >
                         يوصى به لـ: {p.recommendedFor}
                       </div>
                     </div>
-                    <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
-                      <span className="text-[10px] text-slate-500">{Object.keys(p.settings || {}).length} إعداداً مخصصاً</span>
+                    <div className="mt-4 pt-3 border-t border-[var(--md-outline-variant)] flex items-center justify-between">
+                      <span className="text-[11px] text-[var(--md-on-surface-variant)] tabular-nums">
+                        {Object.keys(p.settings || {}).length} إعداداً مخصصاً
+                      </span>
                       <button
+                        type="button"
                         onClick={() => handlePreviewPreset(p)}
                         disabled={actionLoading}
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold"
+                        className="m3-btn-primary h-9 px-3.5 text-xs"
                       >
                         معاينة الفروقات وتطبيق
                       </button>
@@ -2218,13 +2646,13 @@ export const EnterpriseControlCenterTab: React.FC = () => {
 
           {/* SubTab 8: AI Configuration Assistant */}
           {activeSubTab === 'AI_ASSISTANT' && (
-            <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 space-y-4">
-              <div className="flex items-center gap-2 text-sm font-bold text-white">
-                <Bot className="w-5 h-5 text-emerald-400" />
-                المساعد الذكي لصياغة السياسات والإعدادات (AI Copilot)
+            <div className="m3-card p-5 space-y-4">
+              <div className="flex items-center gap-2 text-sm font-bold text-[var(--md-on-surface)]">
+                <Bot className="w-5 h-5" style={{ color: 'var(--md-primary)' }} />
+                <span>المساعد الذكي لصياغة السياسات والإعدادات (AI Copilot)</span>
               </div>
-              <p className="text-xs text-slate-400">
-                اطرح أي استفسار باللغة الطبيعية (مثل: "كيف أمنع البيع الآجل؟"، "تفعيل الضريبة 15%") وسيقوم المساعد بتحليل الأثر وصياغة مقترح رسمي.
+              <p className="text-xs text-[var(--md-on-surface-variant)] leading-relaxed">
+                اطرح أي استفسار باللغة الطبيعية (مثل: &quot;كيف أمنع البيع الآجل؟&quot;، &quot;تفعيل الضريبة 15%&quot;) وسيقوم المساعد بتحليل الأثر وصياغة مقترح رسمي.
               </p>
 
               <div className="flex gap-2">
@@ -2234,34 +2662,48 @@ export const EnterpriseControlCenterTab: React.FC = () => {
                   onChange={(e) => setAiPrompt(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleConsultAI()}
                   placeholder="اكتب استفسارك أو الإعداد الذي تريد تغييره هنا..."
-                  className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                  className="m3-input flex-1 text-xs"
                 />
                 <button
+                  type="button"
                   onClick={handleConsultAI}
                   disabled={actionLoading || !aiPrompt.trim()}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5"
+                  className="m3-btn-primary h-10 px-4 text-xs shrink-0"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  استشارة
+                  <span>استشارة</span>
                 </button>
               </div>
 
               {aiResponse && (
-                <div className="mt-4 p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
-                  <div className="text-xs text-slate-200">{aiResponse.messageAr}</div>
+                <div className="mt-4 p-4 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] space-y-3">
+                  <div className="text-xs text-[var(--md-on-surface)] leading-relaxed">{aiResponse.messageAr}</div>
                   {aiResponse.proposals && aiResponse.proposals.length > 0 && (
-                    <div className="space-y-2 pt-2 border-t border-slate-800">
-                      <div className="text-[11px] font-bold text-amber-400">المقترحات المصاغة للمراجعة:</div>
+                    <div className="space-y-2.5 pt-3 border-t border-[var(--md-outline-variant)]">
+                      <div className="text-[11px] font-bold" style={{ color: 'var(--md-secondary)' }}>
+                        المقترحات المصاغة للمراجعة:
+                      </div>
                       {aiResponse.proposals.map((prop: any, idx: number) => (
-                        <div key={idx} className="p-3 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between">
+                        <div
+                          key={idx}
+                          className="p-3.5 rounded-xl bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                        >
                           <div>
-                            <div className="font-bold text-xs text-white">{prop.settingDisplayNameAr}</div>
-                            <div className="text-[11px] text-slate-400">{prop.reasonAr}</div>
-                            <div className="text-[10px] font-mono text-emerald-400 mt-1">
+                            <div className="font-bold text-xs text-[var(--md-on-surface)]">
+                              {prop.settingDisplayNameAr}
+                            </div>
+                            <div className="text-[11px] text-[var(--md-on-surface-variant)] mt-0.5">
+                              {prop.reasonAr}
+                            </div>
+                            <div
+                              className="text-[11px] font-mono tabular-nums font-bold mt-1"
+                              style={{ color: 'var(--md-primary-text)' }}
+                            >
                               القيمة المقترحة: {JSON.stringify(prop.suggestedValue)}
                             </div>
                           </div>
                           <button
+                            type="button"
                             onClick={async () => {
                               try {
                                 setActionLoading(true);
@@ -2278,7 +2720,7 @@ export const EnterpriseControlCenterTab: React.FC = () => {
                                 setActionLoading(false);
                               }
                             }}
-                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold"
+                            className="m3-btn-primary h-9 px-3.5 text-xs shrink-0"
                           >
                             رفع طلب اعتماد
                           </button>
@@ -2295,26 +2737,35 @@ export const EnterpriseControlCenterTab: React.FC = () => {
 
       {/* Setting Edit Modal Dialog */}
       {editingSetting && editingSetting.definition && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" dir="rtl">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="font-bold text-base text-white">تعديل الإعداد: {editingSetting.definition.displayNameAr}</h3>
-              <button onClick={() => setEditingSetting(null)} className="text-slate-400 hover:text-white">
+        <div className="m3-backdrop fixed inset-0 z-50 flex items-center justify-center p-4" dir="rtl">
+          <div className="m3-modal-surface max-w-lg w-full p-5 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[var(--md-outline-variant)]">
+              <h3 className="font-bold text-base text-[var(--md-on-surface)]">
+                تعديل الإعداد: {editingSetting.definition.displayNameAr}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingSetting(null)}
+                className="p-1.5 rounded-lg text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] transition-colors cursor-pointer"
+                aria-label="إغلاق"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-3">
-              <div className="text-xs text-slate-400">{editingSetting.definition.descriptionAr}</div>
+            <div className="space-y-3.5">
+              <div className="text-xs text-[var(--md-on-surface-variant)] leading-relaxed">
+                {editingSetting.definition.descriptionAr}
+              </div>
 
               {/* Value Input depending on data type */}
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">القيمة الجديدة:</label>
-                {editingSetting.definition.dataType === 'boolean' ? (
+                <label className="block text-xs font-bold text-[var(--md-on-surface)] mb-1.5">القيمة الجديدة:</label>
+                {editingSetting.definition.dataType === 'boolean' || editingSetting.definition.dataType === 'BOOLEAN' ? (
                   <select
                     value={editValue ? 'true' : 'false'}
                     onChange={(e) => setEditValue(e.target.value === 'true')}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white"
+                    className="m3-select w-full text-xs"
                   >
                     <option value="true">مفعّل (True / نعم)</option>
                     <option value="false">معطل (False / لا)</option>
@@ -2323,7 +2774,7 @@ export const EnterpriseControlCenterTab: React.FC = () => {
                   <select
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white"
+                    className="m3-select w-full text-xs"
                   >
                     {editingSetting.definition.validationRules.options.map((opt: any) => (
                       <option key={opt.value} value={opt.value}>
@@ -2333,37 +2784,47 @@ export const EnterpriseControlCenterTab: React.FC = () => {
                   </select>
                 ) : editingSetting.definition.dataType === 'integer' ||
                   editingSetting.definition.dataType === 'decimal' ||
-                  editingSetting.definition.dataType === 'percentage' ? (
+                  editingSetting.definition.dataType === 'percentage' ||
+                  editingSetting.definition.dataType === 'NUMBER' ? (
                   <input
                     type="number"
                     value={editValue}
                     onChange={(e) => setEditValue(parseFloat(e.target.value))}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white"
+                    className="m3-input w-full text-xs font-mono tabular-nums"
                   />
                 ) : (
                   <input
                     type="text"
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white"
+                    className="m3-input w-full text-xs"
                   />
                 )}
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">سبب التعديل (إلزامي للتدقيق):</label>
+                <label className="block text-xs font-bold text-[var(--md-on-surface)] mb-1.5">
+                  سبب التعديل (إلزامي للتدقيق):
+                </label>
                 <input
                   type="text"
                   value={editReason}
                   onChange={(e) => setEditReason(e.target.value)}
                   placeholder="أدخل مبرر التعديل الفني أو الإداري..."
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white"
+                  className="m3-input w-full text-xs"
                 />
               </div>
 
               {/* Safety notice */}
               {editingSetting.definition.riskLevel === 'CRITICAL' || editingSetting.definition.riskLevel === 'HIGH' ? (
-                <div className="p-3 bg-amber-950/60 border border-amber-800 rounded-lg text-xs text-amber-300 flex items-start gap-2">
+                <div
+                  className="p-3 rounded-xl border text-xs flex items-start gap-2"
+                  style={{
+                    backgroundColor: 'var(--md-warning-container)',
+                    borderColor: 'var(--md-warning)',
+                    color: 'var(--md-on-warning-container)',
+                  }}
+                >
                   <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>
                     هذا الإعداد عالي التأثير ({editingSetting.definition.riskLevel}). في ظل تفعيل الوضع الآمن، سيتم توجيه
@@ -2373,21 +2834,23 @@ export const EnterpriseControlCenterTab: React.FC = () => {
               ) : null}
             </div>
 
-            <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2">
+            <div className="pt-3 border-t border-[var(--md-outline-variant)] flex items-center justify-end gap-2">
               <button
+                type="button"
                 onClick={() => setEditingSetting(null)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs"
+                className="m3-btn-outlined h-9 px-4 text-xs"
               >
                 إلغاء
               </button>
               <button
                 id="btn-confirm-save-setting"
+                type="button"
                 onClick={handleApplySetting}
                 disabled={actionLoading}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center gap-1"
+                className="m3-btn-primary h-9 px-4 text-xs"
               >
                 <Check className="w-3.5 h-3.5" />
-                حفظ وتطبيق
+                <span>حفظ وتطبيق</span>
               </button>
             </div>
           </div>
@@ -2396,11 +2859,18 @@ export const EnterpriseControlCenterTab: React.FC = () => {
 
       {/* Preset Diff Modal Dialog */}
       {presetDiffModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" dir="rtl">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-5 space-y-4 shadow-2xl max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="font-bold text-base text-white">معاينة فروقات الإعداد الجاهز: {presetDiffModal.preset.nameAr}</h3>
-              <button onClick={() => setPresetDiffModal(null)} className="text-slate-400 hover:text-white">
+        <div className="m3-backdrop fixed inset-0 z-50 flex items-center justify-center p-4" dir="rtl">
+          <div className="m3-modal-surface max-w-2xl w-full p-5 space-y-4 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-[var(--md-outline-variant)]">
+              <h3 className="font-bold text-base text-[var(--md-on-surface)]">
+                معاينة فروقات الإعداد الجاهز: {presetDiffModal.preset.nameAr}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setPresetDiffModal(null)}
+                className="p-1.5 rounded-lg text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] transition-colors cursor-pointer"
+                aria-label="إغلاق"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -2409,39 +2879,54 @@ export const EnterpriseControlCenterTab: React.FC = () => {
               {presetDiffModal.diffs.map((d: any) => (
                 <div
                   key={d.key}
-                  className={`p-3 rounded-lg border text-xs flex items-center justify-between ${
+                  className="p-3 rounded-xl border text-xs flex items-center justify-between gap-3"
+                  style={
                     d.willChange
-                      ? 'bg-amber-950/40 border-amber-800/80 text-amber-200'
-                      : 'bg-slate-950/60 border-slate-800 text-slate-400'
-                  }`}
+                      ? {
+                          backgroundColor: 'var(--md-warning-container)',
+                          borderColor: 'var(--md-warning)',
+                          color: 'var(--md-on-warning-container)',
+                        }
+                      : {
+                          backgroundColor: 'var(--md-surface-container-low)',
+                          borderColor: 'var(--md-outline-variant)',
+                          color: 'var(--md-on-surface-variant)',
+                        }
+                  }
                 >
                   <div>
-                    <div className="font-bold text-white">{d.displayNameAr}</div>
-                    <div className="font-mono text-[10px] text-slate-500">{d.key}</div>
+                    <div className="font-bold text-[var(--md-on-surface)]">{d.displayNameAr}</div>
+                    <div className="font-mono text-[10px] text-[var(--md-on-surface-variant)]">{d.key}</div>
                   </div>
-                  <div className="flex items-center gap-2 font-mono text-xs">
+                  <div className="flex items-center gap-2 font-mono tabular-nums text-xs shrink-0">
                     <span>{JSON.stringify(d.currentValue)}</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="font-bold text-emerald-400">{JSON.stringify(d.presetValue)}</span>
+                    <ArrowRight className="w-3.5 h-3.5" style={{ color: 'var(--md-primary)' }} />
+                    <span className="font-bold" style={{ color: 'var(--md-primary-text)' }}>
+                      {JSON.stringify(d.presetValue)}
+                    </span>
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
-              <span className="text-xs text-slate-400">سيتم أخذ لقطة حماية تلقائية قبل التطبيق.</span>
+            <div className="pt-3 border-t border-[var(--md-outline-variant)] flex items-center justify-between flex-wrap gap-2">
+              <span className="text-xs text-[var(--md-on-surface-variant)]">
+                سيتم أخذ لقطة حماية تلقائية قبل التطبيق.
+              </span>
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => setPresetDiffModal(null)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs"
+                  className="m3-btn-outlined h-9 px-4 text-xs"
                 >
                   إلغاء
                 </button>
                 <button
                   id="btn-confirm-apply-preset"
+                  type="button"
                   onClick={() => handleApplyPreset(presetDiffModal.preset.id)}
                   disabled={actionLoading}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold"
+                  className="m3-btn-primary h-9 px-4 text-xs"
                 >
                   تأكيد وتطبيق الإعداد الجاهز
                 </button>

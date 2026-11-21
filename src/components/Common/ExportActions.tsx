@@ -84,11 +84,11 @@ export const ExportActions: React.FC<ExportActionsProps> = ({
           type="button"
           disabled={disabled || isExporting}
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="m3-btn-outlined !min-h-[34px] !px-3 !py-1.5 text-xs disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--md-primary)]"
+          className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-emerald-800 rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
         >
-          <Download className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
+          <Download className="w-3.5 h-3.5 text-emerald-400" />
           <span>تصدير وطباعة</span>
-          <ChevronDown className="w-3 h-3 text-[var(--md-on-surface-variant)]" />
+          <ChevronDown className="w-3 h-3 text-slate-400" />
         </button>
 
         {isDropdownOpen && (
@@ -97,30 +97,30 @@ export const ExportActions: React.FC<ExportActionsProps> = ({
               className="fixed inset-0 z-40"
               onClick={() => setIsDropdownOpen(false)}
             />
-            <div className="m3-modal-surface absolute left-0 mt-1.5 w-48 !rounded-xl py-1.5 z-50 text-xs text-[var(--md-on-surface)]">
+            <div className="absolute left-0 mt-1.5 w-48 bg-slate-900 rounded-xl shadow-2xl border border-emerald-900/60 py-1.5 z-50 text-xs text-slate-200">
               <button
                 type="button"
                 onClick={handleExportExcel}
-                className="w-full text-right px-3 py-2 text-[var(--md-on-surface)] hover:bg-[var(--md-primary-container)] hover:text-[var(--md-on-primary-container)] flex items-center gap-2 font-medium transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--md-primary)]"
+                className="w-full text-right px-3 py-2 text-slate-200 hover:bg-emerald-950 hover:text-emerald-300 flex items-center gap-2 font-medium transition-colors"
               >
-                <FileSpreadsheet className="w-4 h-4 text-[var(--md-success)]" />
+                <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
                 <span>تصدير Excel (.xlsx)</span>
               </button>
               <button
                 type="button"
                 onClick={handleExportCSV}
-                className="w-full text-right px-3 py-2 text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] hover:text-[var(--md-primary-text)] flex items-center gap-2 font-medium transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--md-primary)]"
+                className="w-full text-right px-3 py-2 text-slate-200 hover:bg-slate-800 hover:text-emerald-300 flex items-center gap-2 font-medium transition-colors"
               >
-                <FileText className="w-4 h-4 text-[var(--md-primary-text)]" />
+                <FileText className="w-4 h-4 text-teal-400" />
                 <span>تصدير CSV (.csv)</span>
               </button>
-              <div className="border-t border-[var(--md-outline-variant)] my-1" />
+              <div className="border-t border-slate-800 my-1" />
               <button
                 type="button"
                 onClick={handlePrint}
-                className="w-full text-right px-3 py-2 text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] hover:text-[var(--md-primary-text)] flex items-center gap-2 font-medium transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--md-primary)]"
+                className="w-full text-right px-3 py-2 text-slate-200 hover:bg-slate-800 hover:text-emerald-300 flex items-center gap-2 font-medium transition-colors"
               >
-                <Printer className="w-4 h-4 text-[var(--md-primary-text)]" />
+                <Printer className="w-4 h-4 text-emerald-400" />
                 <span>طباعة / PDF</span>
               </button>
             </div>
@@ -131,16 +131,16 @@ export const ExportActions: React.FC<ExportActionsProps> = ({
   }
 
   return (
-    <div className={`inline-flex items-center gap-1.5 flex-wrap ${className}`}>
+    <div className={`inline-flex items-center gap-1.5 ${className}`}>
       {/* 1. Export Excel (.xlsx) - PRIMARY */}
       <button
         type="button"
         disabled={disabled || isExporting}
         onClick={handleExportExcel}
-        className="m3-btn-tonal !min-h-[34px] !px-3 !py-1.5 text-xs disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--md-primary)]"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-950/80 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-800/80 rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
         title="تصدير جدول البيانات إلى ملف Excel (.xlsx)"
       >
-        <FileSpreadsheet className="w-3.5 h-3.5" />
+        <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
         <span>تصدير Excel</span>
       </button>
 
@@ -149,10 +149,10 @@ export const ExportActions: React.FC<ExportActionsProps> = ({
         type="button"
         disabled={disabled || isExporting}
         onClick={handleExportCSV}
-        className="m3-btn-outlined !min-h-[34px] !px-3 !py-1.5 text-xs disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--md-primary)]"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
         title="تصدير جدول البيانات إلى ملف CSV (.csv)"
       >
-        <FileText className="w-3.5 h-3.5 text-[var(--md-on-surface-variant)]" />
+        <FileText className="w-3.5 h-3.5 text-slate-400" />
         <span>تصدير CSV</span>
       </button>
 
@@ -161,10 +161,10 @@ export const ExportActions: React.FC<ExportActionsProps> = ({
         type="button"
         disabled={disabled || isExporting}
         onClick={handlePrint}
-        className="m3-btn-outlined !min-h-[34px] !px-3 !py-1.5 text-xs !border-[var(--md-primary)]/40 !text-[var(--md-primary-text)] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--md-primary)]"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-teal-300 border border-teal-800/50 rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
         title="معاينة وطباعة التقرير أو حفظه بصيغة PDF"
       >
-        <Printer className="w-3.5 h-3.5" />
+        <Printer className="w-3.5 h-3.5 text-teal-400" />
         <span>طباعة / PDF</span>
       </button>
     </div>

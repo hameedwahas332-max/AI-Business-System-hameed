@@ -119,6 +119,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
     });
   };
 
+  useEffect(() => {
+    const handleToggleSidebar = () => toggleSidebar();
+    const handleNavigateTab = (e: Event) => {
+      const tab = (e as CustomEvent<{ tab?: TabType }>)?.detail?.tab;
+      if (tab) setActiveTab(tab);
+    };
+    window.addEventListener('erp:toggle-sidebar', handleToggleSidebar);
+    window.addEventListener('erp:navigate-tab', handleNavigateTab);
+    return () => {
+      window.removeEventListener('erp:toggle-sidebar', handleToggleSidebar);
+      window.removeEventListener('erp:navigate-tab', handleNavigateTab);
+    };
+  }, [setActiveTab]);
+
   const toggleSection = (sectionTitle: string) => {
     setCollapsedSections((prev) => {
       const next = { ...prev, [sectionTitle]: !prev[sectionTitle] };

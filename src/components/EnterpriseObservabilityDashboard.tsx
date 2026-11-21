@@ -4,16 +4,10 @@ import {
   Server,
   Cpu,
   HardDrive,
-  Clock,
   CheckCircle2,
   Layers,
   ShieldCheck,
-  AlertCircle,
-  Database,
-  ArrowUpRight,
-  TrendingDown,
   Sparkles,
-  Zap,
 } from 'lucide-react';
 
 export const EnterpriseObservabilityDashboard: React.FC = () => {
@@ -26,31 +20,54 @@ export const EnterpriseObservabilityDashboard: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6 text-slate-100">
+    <div className="space-y-6 text-right text-[var(--md-on-surface)] font-sans" dir="rtl">
       {/* Top Header Card */}
-      <div className="p-5 bg-slate-900 border border-slate-800 rounded-3xl shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 flex items-center justify-center">
+      <div className="m3-card p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div
+            className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
+            style={{
+              backgroundColor: 'var(--md-primary-container)',
+              color: 'var(--md-on-primary-container)',
+            }}
+          >
             <Activity className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-bold text-white">
+            <div className="flex items-center flex-wrap gap-2">
+              <h2 className="text-base sm:text-lg font-bold text-[var(--md-on-surface)]">
                 منصة المراقبة الشاملة والتتبع الموزع (Enterprise Observability)
               </h2>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-mono">
+              <span
+                className="m3-badge font-mono"
+                style={{
+                  backgroundColor: 'var(--md-primary-container)',
+                  color: 'var(--md-on-primary-container)',
+                  borderColor: 'transparent',
+                }}
+              >
                 OpenTelemetry Active
               </span>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[var(--md-on-surface-variant)] mt-0.5">
               تتبع الحزم البرمجية، تحليل الاختناقات، قياس الأداء اللحظي وكشف الحوادث بالذكاء الاصطناعي
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold flex items-center gap-1.5 font-mono">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        <div className="flex items-center gap-2 shrink-0">
+          <span
+            className="m3-badge px-3 py-1.5 font-mono tabular-nums"
+            style={{
+              backgroundColor: 'var(--md-success-container)',
+              color: 'var(--md-on-success-container)',
+              borderColor: 'transparent',
+            }}
+          >
+            <span
+              className="w-2 h-2 rounded-full shrink-0"
+              style={{ backgroundColor: 'var(--md-success)' }}
+            />
             <span>SLA 99.98%</span>
           </span>
         </div>
@@ -58,48 +75,48 @@ export const EnterpriseObservabilityDashboard: React.FC = () => {
 
       {/* 4 Core Performance KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2 shadow-lg">
-          <div className="flex items-center justify-between text-xs text-slate-400">
+        <div className="m3-card p-4 space-y-2">
+          <div className="flex items-center justify-between text-xs text-[var(--md-on-surface-variant)]">
             <span>زمن الاستجابة (P95 Latency)</span>
-            <Activity className="w-4 h-4 text-emerald-400" />
+            <Activity className="w-4 h-4" style={{ color: 'var(--md-success)' }} />
           </div>
-          <div className="text-2xl font-black font-mono tabular-nums text-white">38 ms</div>
-          <div className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3" />
+          <div className="text-2xl font-bold font-mono tabular-nums text-[var(--md-on-surface)]">38 ms</div>
+          <div className="text-[11px] font-semibold flex items-center gap-1" style={{ color: 'var(--md-success)' }}>
+            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
             <span>ضمن النطاق الأمثل (الهدف: &lt;100ms)</span>
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2 shadow-lg">
-          <div className="flex items-center justify-between text-xs text-slate-400">
+        <div className="m3-card p-4 space-y-2">
+          <div className="flex items-center justify-between text-xs text-[var(--md-on-surface-variant)]">
             <span>نسبة توفر الخدمات (Availability)</span>
-            <Server className="w-4 h-4 text-indigo-400" />
+            <Server className="w-4 h-4" style={{ color: 'var(--md-primary)' }} />
           </div>
-          <div className="text-2xl font-black font-mono tabular-nums text-white">99.98%</div>
-          <div className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3" />
+          <div className="text-2xl font-bold font-mono tabular-nums text-[var(--md-on-surface)]">99.98%</div>
+          <div className="text-[11px] font-semibold flex items-center gap-1" style={{ color: 'var(--md-success)' }}>
+            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
             <span>خوادم Cloud Run متوازنة</span>
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2 shadow-lg">
-          <div className="flex items-center justify-between text-xs text-slate-400">
+        <div className="m3-card p-4 space-y-2">
+          <div className="flex items-center justify-between text-xs text-[var(--md-on-surface-variant)]">
             <span>استهلاك المعالج (CPU Load)</span>
-            <Cpu className="w-4 h-4 text-blue-400" />
+            <Cpu className="w-4 h-4" style={{ color: 'var(--md-info)' }} />
           </div>
-          <div className="text-2xl font-black font-mono tabular-nums text-white">16%</div>
-          <div className="text-[10px] text-slate-400 font-semibold">
+          <div className="text-2xl font-bold font-mono tabular-nums text-[var(--md-on-surface)]">16%</div>
+          <div className="text-[11px] text-[var(--md-on-surface-variant)] font-medium">
             حمل تشغيلي مستقر جداً
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2 shadow-lg">
-          <div className="flex items-center justify-between text-xs text-slate-400">
+        <div className="m3-card p-4 space-y-2">
+          <div className="flex items-center justify-between text-xs text-[var(--md-on-surface-variant)]">
             <span>استهلاك الذاكرة (Memory Heap)</span>
-            <HardDrive className="w-4 h-4 text-amber-400" />
+            <HardDrive className="w-4 h-4" style={{ color: 'var(--md-secondary)' }} />
           </div>
-          <div className="text-2xl font-black font-mono tabular-nums text-white">68 MB</div>
-          <div className="text-[10px] text-slate-400 font-semibold font-mono">
+          <div className="text-2xl font-bold font-mono tabular-nums text-[var(--md-on-surface)]">68 MB</div>
+          <div className="text-[11px] text-[var(--md-on-surface-variant)] font-mono tabular-nums">
             Heap 68MB / Total 142MB
           </div>
         </div>
@@ -107,41 +124,54 @@ export const EnterpriseObservabilityDashboard: React.FC = () => {
 
       {/* AI Incident Detection & Distributed Tracing */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left: Distributed Traces (7 cols) */}
-        <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        {/* Distributed Traces (7 cols) */}
+        <div className="lg:col-span-7 m3-card p-5 space-y-4">
+          <div className="flex items-center justify-between border-b border-[var(--md-outline-variant)] pb-3">
             <div className="flex items-center gap-2">
-              <Layers className="w-4 h-4 text-indigo-400" />
-              <h3 className="text-sm font-bold text-white">سجل التتبع الموزع للطلبات (Distributed Tracing)</h3>
+              <Layers className="w-4 h-4" style={{ color: 'var(--md-primary)' }} />
+              <h3 className="text-sm font-bold text-[var(--md-on-surface)]">
+                سجل التتبع الموزع للطلبات (Distributed Tracing)
+              </h3>
             </div>
-            <span className="text-[11px] text-slate-500 font-mono">OpenTelemetry Spans</span>
+            <span className="text-[11px] text-[var(--md-on-surface-variant)] font-mono">OpenTelemetry Spans</span>
           </div>
 
           <div className="overflow-x-auto custom-scrollbar">
-            <table className="w-full text-right text-xs">
-              <thead>
-                <tr className="border-b border-slate-800 text-slate-400 font-semibold">
-                  <th className="pb-2">معرف التتبع</th>
-                  <th className="pb-2 px-2">الخدمة</th>
-                  <th className="pb-2 px-2">الطريقة</th>
-                  <th className="pb-2 px-2">المدة</th>
-                  <th className="pb-2 px-2">الحالة</th>
-                  <th className="pb-2 text-left">الوقت</th>
+            <table className="m3-table text-xs">
+              <thead className="m3-thead">
+                <tr>
+                  <th className="m3-th">معرف التتبع</th>
+                  <th className="m3-th">الخدمة</th>
+                  <th className="m3-th">الطريقة</th>
+                  <th className="m3-th">المدة</th>
+                  <th className="m3-th">الحالة</th>
+                  <th className="m3-th text-left">الوقت</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60 font-mono">
+              <tbody className="divide-y divide-[var(--md-outline-variant)] font-mono">
                 {traces.map((tr) => (
-                  <tr key={tr.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="py-2.5 font-bold text-indigo-400">{tr.id}</td>
-                    <td className="py-2.5 px-2 text-slate-200">{tr.service}</td>
-                    <td className="py-2.5 px-2 text-slate-400">{tr.method}</td>
-                    <td className="py-2.5 px-2 font-bold text-emerald-400">{tr.duration}</td>
-                    <td className="py-2.5 px-2">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <tr key={tr.id} className="hover:bg-[var(--md-surface-container-high)]/60 transition-colors">
+                    <td className="py-2.5 px-3 font-bold tabular-nums" style={{ color: 'var(--md-primary-text)' }}>
+                      {tr.id}
+                    </td>
+                    <td className="py-2.5 px-3 text-[var(--md-on-surface)]">{tr.service}</td>
+                    <td className="py-2.5 px-3 text-[var(--md-on-surface-variant)]">{tr.method}</td>
+                    <td className="py-2.5 px-3 font-bold tabular-nums" style={{ color: 'var(--md-success)' }}>
+                      {tr.duration}
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <span
+                        className="m3-badge font-mono tabular-nums"
+                        style={{
+                          backgroundColor: 'var(--md-success-container)',
+                          color: 'var(--md-on-success-container)',
+                          borderColor: 'transparent',
+                        }}
+                      >
                         {tr.status}
                       </span>
                     </td>
-                    <td className="py-2.5 text-left text-slate-500">{tr.time}</td>
+                    <td className="py-2.5 px-3 text-left font-sans text-[var(--md-on-surface-variant)]">{tr.time}</td>
                   </tr>
                 ))}
               </tbody>
@@ -149,48 +179,67 @@ export const EnterpriseObservabilityDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: AI Root Cause Analysis (5 cols) */}
-        <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4 flex flex-col justify-between">
+        {/* AI Root Cause Analysis (5 cols) */}
+        <div className="lg:col-span-5 m3-card p-5 space-y-4 flex flex-col justify-between">
           <div className="space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center justify-between border-b border-[var(--md-outline-variant)] pb-3">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                <h3 className="text-sm font-bold text-white">الذكاء الاصطناعي لكشف الحوادث</h3>
+                <Sparkles className="w-4 h-4" style={{ color: 'var(--md-secondary)' }} />
+                <h3 className="text-sm font-bold text-[var(--md-on-surface)]">الذكاء الاصطناعي لكشف الحوادث</h3>
               </div>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              <span
+                className="m3-badge tabular-nums"
+                style={{
+                  backgroundColor: 'var(--md-success-container)',
+                  color: 'var(--md-on-success-container)',
+                  borderColor: 'transparent',
+                }}
+              >
                 0 أعطال
               </span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-800/40 border border-slate-800 space-y-2">
-              <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
-                <CheckCircle2 className="w-4 h-4" />
+            <div className="p-4 rounded-2xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] space-y-2">
+              <div className="flex items-center gap-2 font-bold text-xs" style={{ color: 'var(--md-success)' }}>
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span>جميع الأنظمة تعمل بكفاءة 100%</span>
               </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed">
+              <p className="text-xs text-[var(--md-on-surface-variant)] leading-relaxed">
                 لم يتم رصد أي تسريب للذاكرة، أو بطء في استعلامات قواعد البيانات، أو أخطاء استجابة غير معالجة خلال آخر 24 ساعة.
               </p>
             </div>
 
             <div className="space-y-2 text-xs">
-              <div className="flex justify-between items-center p-2.5 rounded-xl bg-slate-800/30 border border-slate-800/60 font-mono">
-                <span className="text-slate-400">Database Query Pool:</span>
-                <span className="text-emerald-400 font-bold">14ms Average</span>
+              <div className="flex justify-between items-center p-3 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] font-mono">
+                <span className="text-[var(--md-on-surface-variant)]">Database Query Pool:</span>
+                <span className="font-bold tabular-nums" style={{ color: 'var(--md-success)' }}>
+                  14ms Average
+                </span>
               </div>
-              <div className="flex justify-between items-center p-2.5 rounded-xl bg-slate-800/30 border border-slate-800/60 font-mono">
-                <span className="text-slate-400">Cache Hit Ratio:</span>
-                <span className="text-indigo-400 font-bold">96.4%</span>
+              <div className="flex justify-between items-center p-3 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] font-mono">
+                <span className="text-[var(--md-on-surface-variant)]">Cache Hit Ratio:</span>
+                <span className="font-bold tabular-nums" style={{ color: 'var(--md-primary-text)' }}>
+                  96.4%
+                </span>
               </div>
-              <div className="flex justify-between items-center p-2.5 rounded-xl bg-slate-800/30 border border-slate-800/60 font-mono">
-                <span className="text-slate-400">Error Budget Burn Rate:</span>
-                <span className="text-emerald-400 font-bold">0.00%</span>
+              <div className="flex justify-between items-center p-3 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] font-mono">
+                <span className="text-[var(--md-on-surface-variant)]">Error Budget Burn Rate:</span>
+                <span className="font-bold tabular-nums" style={{ color: 'var(--md-success)' }}>
+                  0.00%
+                </span>
               </div>
             </div>
           </div>
 
-          <div className="p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[11px] flex items-center justify-between">
+          <div
+            className="p-3 rounded-2xl text-xs font-medium flex items-center justify-between gap-2"
+            style={{
+              backgroundColor: 'var(--md-primary-container)',
+              color: 'var(--md-on-primary-container)',
+            }}
+          >
             <span>التنبيهات التلقائية متصلة بمركز الإشعارات</span>
-            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+            <ShieldCheck className="w-4 h-4 shrink-0" style={{ color: 'var(--md-success)' }} />
           </div>
         </div>
       </div>

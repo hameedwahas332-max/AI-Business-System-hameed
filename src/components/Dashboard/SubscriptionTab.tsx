@@ -103,30 +103,30 @@ export const SubscriptionTab: React.FC = () => {
   };
 
   const getStatusColor = (percentage: number) => {
-    if (percentage >= 100) return 'bg-[var(--md-error)] text-[var(--md-on-primary)]';
-    if (percentage >= 90) return 'bg-[var(--md-warning)] text-[var(--md-on-primary)]';
-    if (percentage >= 80) return 'bg-[var(--md-secondary)] text-[var(--md-on-primary)]';
-    return 'bg-[var(--md-primary)] text-[var(--md-on-primary)]';
+    if (percentage >= 100) return 'bg-red-500 text-red-100';
+    if (percentage >= 90) return 'bg-orange-500 text-white';
+    if (percentage >= 80) return 'bg-amber-500 text-white';
+    return 'bg-blue-600 text-white';
   };
 
   const getProgressColor = (percentage: number) => {
-    if (percentage >= 100) return 'bg-[var(--md-error)]';
-    if (percentage >= 90) return 'bg-[var(--md-warning)]';
-    if (percentage >= 80) return 'bg-[var(--md-secondary)]';
-    return 'bg-[var(--md-primary)]';
+    if (percentage >= 100) return 'bg-red-600';
+    if (percentage >= 90) return 'bg-orange-500';
+    if (percentage >= 80) return 'bg-amber-500';
+    return 'bg-blue-500';
   };
 
   const getStatusBadge = (percentage: number) => {
-    if (percentage >= 100) return <span className="m3-badge m3-badge-error tabular-nums">تم تجاوز الحد (100%)</span>;
-    if (percentage >= 90) return <span className="m3-badge m3-badge-warning tabular-nums">تحذير حرج (&gt;=90%)</span>;
-    if (percentage >= 80) return <span className="m3-badge m3-badge-secondary tabular-nums">اقتراب من الحد (&gt;=80%)</span>;
-    return <span className="m3-badge m3-badge-success">طبيعي</span>;
+    if (percentage >= 100) return <span className="text-xs px-2 py-0.5 rounded bg-red-100 text-red-800 font-bold dark:bg-red-900/40 dark:text-red-300">تم تجاوز الحد (100%)</span>;
+    if (percentage >= 90) return <span className="text-xs px-2 py-0.5 rounded bg-orange-100 text-orange-800 font-bold dark:bg-orange-900/40 dark:text-orange-300">تحذير حرج (&gt;=90%)</span>;
+    if (percentage >= 80) return <span className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold dark:bg-amber-900/40 dark:text-amber-300">اقتراب من الحد (&gt;=80%)</span>;
+    return <span className="text-xs px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-medium dark:bg-emerald-900/40 dark:text-emerald-300">طبيعي</span>;
   };
 
   if (loading) {
     return (
-      <div className="p-8 flex items-center justify-center text-[var(--md-on-surface-variant)] gap-3">
-        <RefreshCw className="w-5 h-5 animate-spin text-[var(--md-primary-text)]" />
+      <div className="p-8 flex items-center justify-center text-slate-500 gap-3">
+        <RefreshCw className="w-5 h-5 animate-spin" />
         <span>جاري تحميل استهلاك الخطة والحدود...</span>
       </div>
     );
@@ -135,55 +135,54 @@ export const SubscriptionTab: React.FC = () => {
   const plan = usageData?.plan || 'FREE';
 
   return (
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-6 text-right text-[var(--md-on-surface)]" dir="rtl">
+    <div className="p-6 max-w-5xl mx-auto space-y-6 text-right" dir="rtl">
       
       {/* Header Section */}
-      <div className="m3-card-elevated p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-[var(--md-on-surface)] flex items-center gap-2">
-            <ShieldCheck className="w-6 h-6 text-[var(--md-primary-text)] shrink-0" />
-            <span>استهلاك الخطة والاشتراك (SaaS Usage & Metering)</span>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <ShieldCheck className="w-6 h-6 text-emerald-400" />
+            استهلاك الخطة والاشتراك (SaaS Usage & Metering)
           </h1>
-          <p className="text-xs sm:text-sm text-[var(--md-on-surface-variant)] mt-1">
+          <p className="text-sm text-slate-400 mt-1">
             متابعة دقيقة وحية لحدود الخطة المتاحة لشركتك مع حماية مفاصل العمليات من تجاوز الحصة.
           </p>
         </div>
         <button
-          type="button"
           onClick={fetchUsage}
-          className="m3-btn-outlined !min-h-[36px] text-xs self-start md:self-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--md-primary)]"
+          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-700 text-xs font-semibold text-slate-200 hover:bg-slate-800 transition-colors self-start md:self-auto cursor-pointer"
         >
-          <RefreshCw className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
-          <span>تحديث البيانات</span>
+          <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />
+          تحديث البيانات
         </button>
       </div>
 
       {error && (
-        <div className="p-4 rounded-xl bg-[var(--md-error-container)] border border-[var(--md-error)]/40 text-[var(--md-on-error-container)] text-sm flex items-center gap-2 font-semibold">
-          <AlertTriangle className="w-5 h-5 shrink-0 text-[var(--md-error)]" />
+        <div className="p-4 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-300 text-sm flex items-center gap-2">
+          <AlertTriangle className="w-5 h-5 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {successMessage && (
-        <div className="p-4 rounded-xl bg-[var(--md-success-container)] border border-[var(--md-success)]/40 text-[var(--md-on-success-container)] text-sm flex items-center gap-2 font-semibold">
-          <CheckCircle2 className="w-5 h-5 shrink-0 text-[var(--md-success)]" />
+        <div className="p-4 rounded-xl bg-emerald-950/80 border border-emerald-800 text-emerald-300 text-sm flex items-center gap-2">
+          <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
           <span>{successMessage}</span>
         </div>
       )}
 
       {/* Plan Banner Card */}
-      <div className="m3-card-elevated p-6 border-[var(--md-primary)]/35 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900 to-[#061a14] border border-emerald-900/50 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-2">
-          <div className="text-xs font-bold text-[var(--md-primary-text)] tracking-wider uppercase">الخطة الحالية المفعّلة</div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-3xl font-extrabold tracking-tight text-[var(--md-on-surface)]">{plan} PLAN</span>
-            <span className="m3-badge m3-badge-success">
+          <div className="text-xs font-bold text-emerald-400 tracking-wider uppercase">الخطة الحالية المفعّلة</div>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl font-extrabold tracking-tight">{plan} PLAN</span>
+            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
               نشط
             </span>
           </div>
           {usageData?.billingPeriodStart && usageData?.billingPeriodEnd && (
-            <p className="text-xs text-[var(--md-on-surface-variant)] font-mono tabular-nums">
+            <p className="text-xs text-slate-400 font-mono">
               دورة الفوترة: {new Date(usageData.billingPeriodStart).toLocaleDateString('ar-SA')} - {new Date(usageData.billingPeriodEnd).toLocaleDateString('ar-SA')}
             </p>
           )}
@@ -192,31 +191,34 @@ export const SubscriptionTab: React.FC = () => {
         {/* Change Plan Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
           <button
-            type="button"
             disabled={updatingPlan || plan === 'FREE'}
             onClick={() => handlePlanChange('FREE')}
-            className={`!min-h-[36px] !px-3.5 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--md-primary)] ${
-              plan === 'FREE' ? 'm3-btn-primary' : 'm3-btn-outlined'
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              plan === 'FREE'
+                ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-900/40'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
             }`}
           >
             مجانية (FREE)
           </button>
           <button
-            type="button"
             disabled={updatingPlan || plan === 'PRO'}
             onClick={() => handlePlanChange('PRO')}
-            className={`!min-h-[36px] !px-3.5 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--md-primary)] ${
-              plan === 'PRO' ? 'm3-btn-primary' : 'm3-btn-outlined'
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              plan === 'PRO'
+                ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-900/40'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
             }`}
           >
             احترافية (PRO)
           </button>
           <button
-            type="button"
             disabled={updatingPlan || plan === 'ENTERPRISE'}
             onClick={() => handlePlanChange('ENTERPRISE')}
-            className={`!min-h-[36px] !px-3.5 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--md-primary)] ${
-              plan === 'ENTERPRISE' ? 'm3-btn-primary' : 'm3-btn-outlined'
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              plan === 'ENTERPRISE'
+                ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-900/40'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
             }`}
           >
             شركات (ENTERPRISE)
@@ -229,28 +231,28 @@ export const SubscriptionTab: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           
           {/* 1. Invoices Metric */}
-          <div className="m3-card p-5 space-y-3">
-            <div className="flex items-center justify-between gap-2">
+          <div className="p-5 rounded-2xl bg-slate-900 border border-emerald-900/40 shadow-xl space-y-3">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-[var(--md-primary-container)] border border-[var(--md-primary)]/30 text-[var(--md-on-primary-container)]">
+                <div className="p-2 rounded-xl bg-emerald-950 border border-emerald-800 text-emerald-400">
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-[var(--md-on-surface)] text-sm">فواتير المبيعات الشهرية</h3>
-                  <p className="text-xs text-[var(--md-on-surface-variant)]">Invoices Per Month</p>
+                  <h3 className="font-bold text-white text-sm">فواتير المبيعات الشهرية</h3>
+                  <p className="text-xs text-slate-400">Invoices Per Month</p>
                 </div>
               </div>
               {getStatusBadge(usageData.invoices.percentage)}
             </div>
 
             <div className="flex items-baseline justify-between text-xs font-semibold">
-              <span className="text-[var(--md-on-surface-variant)]">
-                المستغرق: <strong className="text-[var(--md-on-surface)] text-base font-mono tabular-nums">{usageData.invoices.used}</strong> / <span className="font-mono tabular-nums">{usageData.invoices.limit === -1 ? 'غير محدود' : usageData.invoices.limit}</span>
+              <span className="text-slate-300">
+                المستغرق: <strong className="text-white text-base font-mono">{usageData.invoices.used}</strong> / {usageData.invoices.limit === -1 ? 'غير محدود' : usageData.invoices.limit}
               </span>
-              <span className="text-[var(--md-primary-text)] font-mono tabular-nums font-bold">{usageData.invoices.limit === -1 ? '0%' : `${usageData.invoices.percentage}%`}</span>
+              <span className="text-emerald-400 font-mono">{usageData.invoices.limit === -1 ? '0%' : `${usageData.invoices.percentage}%`}</span>
             </div>
 
-            <div className="w-full h-2.5 bg-[var(--md-surface-container-high)] rounded-full overflow-hidden border border-[var(--md-outline-variant)]">
+            <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
               <div
                 className={`h-full transition-all duration-500 ${getProgressColor(usageData.invoices.percentage)}`}
                 style={{ width: `${usageData.invoices.limit === -1 ? 0 : Math.min(100, usageData.invoices.percentage)}%` }}
@@ -259,28 +261,28 @@ export const SubscriptionTab: React.FC = () => {
           </div>
 
           {/* 2. Active Users Metric */}
-          <div className="m3-card p-5 space-y-3">
-            <div className="flex items-center justify-between gap-2">
+          <div className="p-5 rounded-2xl bg-slate-900 border border-emerald-900/40 shadow-xl space-y-3">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-[var(--md-info-container)] border border-[var(--md-info)]/30 text-[var(--md-on-info-container)]">
+                <div className="p-2 rounded-xl bg-teal-950 border border-teal-800 text-teal-400">
                   <Users className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-[var(--md-on-surface)] text-sm">المستخدمين النشطين</h3>
-                  <p className="text-xs text-[var(--md-on-surface-variant)]">Active Users Count</p>
+                  <h3 className="font-bold text-white text-sm">المستخدمين النشطين</h3>
+                  <p className="text-xs text-slate-400">Active Users Count</p>
                 </div>
               </div>
               {getStatusBadge(usageData.users.percentage)}
             </div>
 
             <div className="flex items-baseline justify-between text-xs font-semibold">
-              <span className="text-[var(--md-on-surface-variant)]">
-                المستخدمين الحاليين: <strong className="text-[var(--md-on-surface)] text-base font-mono tabular-nums">{usageData.users.used}</strong> / <span className="font-mono tabular-nums">{usageData.users.limit === -1 ? 'غير محدود' : usageData.users.limit}</span>
+              <span className="text-slate-300">
+                المستخدمين الحاليين: <strong className="text-white text-base font-mono">{usageData.users.used}</strong> / {usageData.users.limit === -1 ? 'غير محدود' : usageData.users.limit}
               </span>
-              <span className="text-[var(--md-info)] font-mono tabular-nums font-bold">{usageData.users.limit === -1 ? '0%' : `${usageData.users.percentage}%`}</span>
+              <span className="text-teal-400 font-mono">{usageData.users.limit === -1 ? '0%' : `${usageData.users.percentage}%`}</span>
             </div>
 
-            <div className="w-full h-2.5 bg-[var(--md-surface-container-high)] rounded-full overflow-hidden border border-[var(--md-outline-variant)]">
+            <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
               <div
                 className={`h-full transition-all duration-500 ${getProgressColor(usageData.users.percentage)}`}
                 style={{ width: `${usageData.users.limit === -1 ? 0 : Math.min(100, usageData.users.percentage)}%` }}
@@ -289,28 +291,28 @@ export const SubscriptionTab: React.FC = () => {
           </div>
 
           {/* 3. OCR Documents Metric */}
-          <div className="m3-card p-5 space-y-3">
-            <div className="flex items-center justify-between gap-2">
+          <div className="p-5 rounded-2xl bg-slate-900 border border-emerald-900/40 shadow-xl space-y-3">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-[var(--md-secondary-container)] border border-[var(--md-secondary)]/30 text-[var(--md-on-secondary-container)]">
+                <div className="p-2 rounded-xl bg-amber-950 border border-amber-800 text-amber-400">
                   <ScrollText className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-[var(--md-on-surface)] text-sm">الفحص الضوئي (OCR)</h3>
-                  <p className="text-xs text-[var(--md-on-surface-variant)]">OCR Scans Per Month</p>
+                  <h3 className="font-bold text-white text-sm">الفحص الضوئي (OCR)</h3>
+                  <p className="text-xs text-slate-400">OCR Scans Per Month</p>
                 </div>
               </div>
               {getStatusBadge(usageData.ocr.percentage)}
             </div>
 
             <div className="flex items-baseline justify-between text-xs font-semibold">
-              <span className="text-[var(--md-on-surface-variant)]">
-                المستخدم: <strong className="text-[var(--md-on-surface)] text-base font-mono tabular-nums">{usageData.ocr.used}</strong> / <span className="font-mono tabular-nums">{usageData.ocr.limit === -1 ? 'غير محدود' : usageData.ocr.limit}</span>
+              <span className="text-slate-300">
+                المستخدم: <strong className="text-white text-base font-mono">{usageData.ocr.used}</strong> / {usageData.ocr.limit === -1 ? 'غير محدود' : usageData.ocr.limit}
               </span>
-              <span className="text-[var(--md-secondary)] font-mono tabular-nums font-bold">{usageData.ocr.limit === -1 ? '0%' : `${usageData.ocr.percentage}%`}</span>
+              <span className="text-amber-400 font-mono">{usageData.ocr.limit === -1 ? '0%' : `${usageData.ocr.percentage}%`}</span>
             </div>
 
-            <div className="w-full h-2.5 bg-[var(--md-surface-container-high)] rounded-full overflow-hidden border border-[var(--md-outline-variant)]">
+            <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
               <div
                 className={`h-full transition-all duration-500 ${getProgressColor(usageData.ocr.percentage)}`}
                 style={{ width: `${usageData.ocr.limit === -1 ? 0 : Math.min(100, usageData.ocr.percentage)}%` }}
@@ -319,28 +321,28 @@ export const SubscriptionTab: React.FC = () => {
           </div>
 
           {/* 4. Storage Bytes Metric */}
-          <div className="m3-card p-5 space-y-3">
-            <div className="flex items-center justify-between gap-2">
+          <div className="p-5 rounded-2xl bg-slate-900 border border-emerald-900/40 shadow-xl space-y-3">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-[var(--md-success-container)] border border-[var(--md-success)]/30 text-[var(--md-on-success-container)]">
+                <div className="p-2 rounded-xl bg-emerald-950 border border-emerald-800 text-emerald-400">
                   <HardDrive className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-[var(--md-on-surface)] text-sm">السعة التخزينية للمرفقات</h3>
-                  <p className="text-xs text-[var(--md-on-surface-variant)]">Storage Usage</p>
+                  <h3 className="font-bold text-white text-sm">السعة التخزينية للمرفقات</h3>
+                  <p className="text-xs text-slate-400">Storage Usage</p>
                 </div>
               </div>
               {getStatusBadge(usageData.storage.percentage)}
             </div>
 
             <div className="flex items-baseline justify-between text-xs font-semibold">
-              <span className="text-[var(--md-on-surface-variant)]">
-                المستخدم: <strong className="text-[var(--md-on-surface)] text-base font-mono tabular-nums">{formatBytes(usageData.storage.usedBytes)}</strong> / <span className="font-mono tabular-nums">{formatBytes(usageData.storage.limitBytes)}</span>
+              <span className="text-slate-300">
+                المستخدم: <strong className="text-white text-base font-mono">{formatBytes(usageData.storage.usedBytes)}</strong> / {formatBytes(usageData.storage.limitBytes)}
               </span>
-              <span className="text-[var(--md-success)] font-mono tabular-nums font-bold">{usageData.storage.limitBytes === -1 ? '0%' : `${usageData.storage.percentage}%`}</span>
+              <span className="text-emerald-400 font-mono">{usageData.storage.limitBytes === -1 ? '0%' : `${usageData.storage.percentage}%`}</span>
             </div>
 
-            <div className="w-full h-2.5 bg-[var(--md-surface-container-high)] rounded-full overflow-hidden border border-[var(--md-outline-variant)]">
+            <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
               <div
                 className={`h-full transition-all duration-500 ${getProgressColor(usageData.storage.percentage)}`}
                 style={{ width: `${usageData.storage.limitBytes === -1 ? 0 : Math.min(100, usageData.storage.percentage)}%` }}
@@ -350,28 +352,28 @@ export const SubscriptionTab: React.FC = () => {
 
           {/* 5. AI Requests Metric */}
           {usageData.aiRequests && (
-            <div className="m3-card p-5 space-y-3 md:col-span-2">
-              <div className="flex items-center justify-between gap-2">
+            <div className="p-5 rounded-2xl bg-slate-900 border border-emerald-900/40 shadow-xl space-y-3 md:col-span-2">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-[var(--md-primary-container)] border border-[var(--md-primary)]/30 text-[var(--md-on-primary-container)]">
+                  <div className="p-2 rounded-xl bg-emerald-950 border border-emerald-800 text-emerald-400">
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-[var(--md-on-surface)] text-sm">استعلامات الذكاء الاصطناعي الشهرية</h3>
-                    <p className="text-xs text-[var(--md-on-surface-variant)]">AI Requests Per Month</p>
+                    <h3 className="font-bold text-white text-sm">استعلامات الذكاء الاصطناعي الشهرية</h3>
+                    <p className="text-xs text-slate-400">AI Requests Per Month</p>
                   </div>
                 </div>
                 {getStatusBadge(usageData.aiRequests.percentage)}
               </div>
 
               <div className="flex items-baseline justify-between text-xs font-semibold">
-                <span className="text-[var(--md-on-surface-variant)]">
-                  المستغرق: <strong className="text-[var(--md-on-surface)] text-base font-mono tabular-nums">{usageData.aiRequests.used}</strong> / <span className="font-mono tabular-nums">{usageData.aiRequests.limit === -1 ? 'غير محدود' : usageData.aiRequests.limit}</span>
+                <span className="text-slate-300">
+                  المستغرق: <strong className="text-white text-base font-mono">{usageData.aiRequests.used}</strong> / {usageData.aiRequests.limit === -1 ? 'غير محدود' : usageData.aiRequests.limit}
                 </span>
-                <span className="text-[var(--md-primary-text)] font-mono tabular-nums font-bold">{usageData.aiRequests.limit === -1 ? '0%' : `${usageData.aiRequests.percentage}%`}</span>
+                <span className="text-emerald-400 font-mono">{usageData.aiRequests.limit === -1 ? '0%' : `${usageData.aiRequests.percentage}%`}</span>
               </div>
 
-              <div className="w-full h-2.5 bg-[var(--md-surface-container-high)] rounded-full overflow-hidden border border-[var(--md-outline-variant)]">
+              <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
                 <div
                   className={`h-full transition-all duration-500 ${getProgressColor(usageData.aiRequests.percentage)}`}
                   style={{ width: `${usageData.aiRequests.limit === -1 ? 0 : Math.min(100, usageData.aiRequests.percentage)}%` }}

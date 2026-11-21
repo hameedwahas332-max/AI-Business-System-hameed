@@ -705,23 +705,21 @@ export const BackupRestoreTab: React.FC = () => {
   const latestBackup = backups.length > 0 ? backups[0] : null;
 
   return (
-    <div className="space-y-6 text-slate-100 animate-in fade-in duration-200" dir="rtl">
-      
+    <div className="space-y-6 text-[var(--md-on-surface)] animate-in fade-in duration-200" dir="rtl">
+
       {/* Header Bar */}
-      <div className="bg-slate-900 border border-emerald-900/40 rounded-2xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-transparent rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-        
+      <div className="m3-card-elevated p-5 sm:p-6 relative overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
           <div className="space-y-1">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center shadow-lg shadow-emerald-950/50">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/25 flex items-center justify-center shrink-0">
                 <Database className="w-5 h-5" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                <h1 className="text-xl sm:text-2xl font-black text-[var(--md-on-surface)] tracking-tight">
                   النسخ الاحتياطي والاستعادة
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-400 font-medium">
+                <p className="text-xs sm:text-sm text-[var(--md-on-surface-variant)] font-medium">
                   حماية بيانات النظام وإنشاء نسخ احتياطية قابلة للاستعادة
                 </p>
               </div>
@@ -743,9 +741,9 @@ export const BackupRestoreTab: React.FC = () => {
               onClick={fetchData}
               disabled={loading}
               title="تحديث البيانات"
-              className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-700/60 transition-colors disabled:opacity-50"
+              className="m3-btn-outlined p-2.5 disabled:opacity-50"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-emerald-400' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-[var(--md-primary-text)]' : ''}`} />
             </button>
 
             {/* Export JSON Full */}
@@ -753,10 +751,10 @@ export const BackupRestoreTab: React.FC = () => {
               id="export-json-backup-button"
               onClick={handleExportFullJSONBackup}
               disabled={actionLoading === 'export-json'}
-              className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 rounded-xl font-bold text-xs sm:text-sm border border-emerald-800/50 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-60 shadow-sm"
+              className="m3-btn-tonal px-3.5 py-2.5 text-xs sm:text-sm font-bold flex items-center gap-2 disabled:opacity-60"
               title="تصدير نسخة احتياطية محلية JSON تتضمن خزانات الوقود، التحويلات، وإعدادات الأنشطة"
             >
-              <Download className="w-4 h-4 text-emerald-400" />
+              <Download className="w-4 h-4" />
               <span>تصدير JSON شامل</span>
             </button>
 
@@ -764,10 +762,10 @@ export const BackupRestoreTab: React.FC = () => {
             <button
               id="import-json-backup-button"
               onClick={() => fileInputRef.current?.click()}
-              className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-teal-300 hover:text-teal-200 rounded-xl font-bold text-xs sm:text-sm border border-teal-800/50 flex items-center gap-2 transition-all active:scale-95 shadow-sm"
+              className="m3-btn-outlined px-3.5 py-2.5 text-xs sm:text-sm font-bold flex items-center gap-2"
               title="استيراد واستعادة من ملف JSON محلي"
             >
-              <Upload className="w-4 h-4 text-teal-400" />
+              <Upload className="w-4 h-4 text-[var(--md-primary-text)]" />
               <span>استيراد ملف JSON</span>
             </button>
 
@@ -776,7 +774,7 @@ export const BackupRestoreTab: React.FC = () => {
               id="create-backup-main-button"
               onClick={handleCreateBackup}
               disabled={actionLoading === 'create' || loading}
-              className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-bold text-xs sm:text-sm shadow-lg shadow-emerald-950/60 border border-emerald-500/40 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-60"
+              className="m3-btn-primary px-4 py-2.5 text-xs sm:text-sm font-bold flex items-center gap-2 disabled:opacity-60"
             >
               {actionLoading === 'create' ? (
                 <>
@@ -796,24 +794,32 @@ export const BackupRestoreTab: React.FC = () => {
 
       {/* Notifications / Alerts */}
       {error && (
-        <div className="p-4 bg-red-950/40 border border-red-800/60 rounded-xl text-red-300 text-xs sm:text-sm flex items-center justify-between gap-3 shadow-lg">
+        <div className="p-4 bg-[var(--md-error-container)] border border-[var(--md-error)]/35 rounded-2xl text-[var(--md-on-error-container)] text-xs sm:text-sm flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-            <span>{error}</span>
+            <AlertCircle className="w-4 h-4 text-[var(--md-error)] shrink-0" />
+            <span className="font-medium">{error}</span>
           </div>
-          <button onClick={() => setError(null)} className="text-red-400 hover:text-red-200">
+          <button
+            onClick={() => setError(null)}
+            className="p-1 rounded-lg hover:bg-[var(--md-error)]/15 text-[var(--md-on-error-container)] transition-colors"
+            aria-label="إغلاق التنبيه"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
       {successMessage && (
-        <div className="p-4 bg-emerald-950/40 border border-emerald-800/60 rounded-xl text-emerald-300 text-xs sm:text-sm flex items-center justify-between gap-3 shadow-lg">
+        <div className="p-4 bg-[var(--md-success-container)] border border-[var(--md-success)]/35 rounded-2xl text-[var(--md-on-success-container)] text-xs sm:text-sm flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>{successMessage}</span>
+            <CheckCircle2 className="w-4 h-4 text-[var(--md-success)] shrink-0" />
+            <span className="font-medium">{successMessage}</span>
           </div>
-          <button onClick={() => setSuccessMessage(null)} className="text-emerald-400 hover:text-emerald-200">
+          <button
+            onClick={() => setSuccessMessage(null)}
+            className="p-1 rounded-lg hover:bg-[var(--md-success)]/15 text-[var(--md-on-success-container)] transition-colors"
+            aria-label="إغلاق التنبيه"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -821,33 +827,45 @@ export const BackupRestoreTab: React.FC = () => {
 
       {/* Compact System Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        
+
         {/* Card 1: آخر نسخة احتياطية */}
-        <div className="bg-slate-900/90 border border-slate-800/80 rounded-2xl p-4 shadow-md flex items-center gap-3.5 relative overflow-hidden group hover:border-emerald-900/60 transition-all">
-          <div className="w-11 h-11 rounded-xl bg-emerald-950/80 border border-emerald-800/40 text-emerald-400 flex items-center justify-center shrink-0">
+        <div className="m3-card p-4 flex items-center gap-3.5 relative overflow-hidden transition-colors hover:border-[var(--md-primary)]/40">
+          <div className="w-11 h-11 rounded-xl bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/20 flex items-center justify-center shrink-0">
             <Clock className="w-5 h-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-semibold text-slate-400">آخر نسخة احتياطية</div>
-            <div className="text-sm font-bold text-slate-100 truncate mt-0.5 font-mono">
+            <div className="text-[11px] font-semibold text-[var(--md-on-surface-variant)]">آخر نسخة احتياطية</div>
+            <div className="text-sm font-bold text-[var(--md-on-surface)] truncate mt-0.5 font-mono tabular-nums">
               {latestBackup ? formatDate(latestBackup.created_at) : 'لا توجد نسخ بعد'}
             </div>
-            <div className="text-[10px] text-slate-500 mt-0.5">
+            <div className="text-[11px] text-[var(--md-on-surface-variant)] mt-0.5 tabular-nums">
               {latestBackup ? `${latestBackup.records_count || 0} سجل مسجل` : 'جاهز لأول نسخة'}
             </div>
           </div>
         </div>
 
         {/* Card 2: الحالة */}
-        <div className="bg-slate-900/90 border border-slate-800/80 rounded-2xl p-4 shadow-md flex items-center gap-3.5 relative overflow-hidden group hover:border-emerald-900/60 transition-all">
-          <div className="w-11 h-11 rounded-xl bg-teal-950/80 border border-teal-800/40 text-teal-400 flex items-center justify-center shrink-0">
+        <div className="m3-card p-4 flex items-center gap-3.5 relative overflow-hidden transition-colors hover:border-[var(--md-primary)]/40">
+          <div className="w-11 h-11 rounded-xl bg-[var(--md-success-container)] text-[var(--md-on-success-container)] border border-[var(--md-success)]/20 flex items-center justify-center shrink-0">
             <ShieldCheck className="w-5 h-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-semibold text-slate-400">الحالة</div>
+            <div className="text-[11px] font-semibold text-[var(--md-on-surface-variant)]">الحالة</div>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className={`w-2 h-2 rounded-full ${latestBackup?.status === 'FAILED' ? 'bg-red-500' : 'bg-emerald-500 animate-pulse'}`} />
-              <span className="text-sm font-bold text-emerald-400">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  latestBackup?.status === 'FAILED'
+                    ? 'bg-[var(--md-error)]'
+                    : 'bg-[var(--md-success)] animate-pulse'
+                }`}
+              />
+              <span
+                className={`text-sm font-bold ${
+                  latestBackup?.status === 'FAILED'
+                    ? 'text-[var(--md-error)]'
+                    : 'text-[var(--md-success)]'
+                }`}
+              >
                 {latestBackup?.status === 'VERIFIED'
                   ? 'مكتمل وموثق'
                   : latestBackup?.status === 'COMPLETED'
@@ -857,82 +875,82 @@ export const BackupRestoreTab: React.FC = () => {
                   : 'جاهز للحماية'}
               </span>
             </div>
-            <div className="text-[10px] text-slate-500 mt-0.5">عزل المستأجر نشط (PostgreSQL)</div>
+            <div className="text-[11px] text-[var(--md-on-surface-variant)] mt-0.5">عزل المستأجر نشط (PostgreSQL)</div>
           </div>
         </div>
 
         {/* Card 3: حجم النسخة */}
-        <div className="bg-slate-900/90 border border-slate-800/80 rounded-2xl p-4 shadow-md flex items-center gap-3.5 relative overflow-hidden group hover:border-emerald-900/60 transition-all">
-          <div className="w-11 h-11 rounded-xl bg-indigo-950/80 border border-indigo-800/40 text-indigo-400 flex items-center justify-center shrink-0">
+        <div className="m3-card p-4 flex items-center gap-3.5 relative overflow-hidden transition-colors hover:border-[var(--md-primary)]/40">
+          <div className="w-11 h-11 rounded-xl bg-[var(--md-info-container)] text-[var(--md-on-info-container)] border border-[var(--md-info)]/20 flex items-center justify-center shrink-0">
             <HardDrive className="w-5 h-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-semibold text-slate-400">حجم النسخة</div>
-            <div className="text-sm font-bold text-indigo-300 mt-0.5 font-mono">
+            <div className="text-[11px] font-semibold text-[var(--md-on-surface-variant)]">حجم النسخة</div>
+            <div className="text-sm font-bold text-[var(--md-on-surface)] mt-0.5 font-mono tabular-nums">
               {latestBackup ? formatBytes(Number(latestBackup.file_size || 0)) : '0 B'}
             </div>
-            <div className="text-[10px] text-slate-500 mt-0.5">
+            <div className="text-[11px] text-[var(--md-on-surface-variant)] mt-0.5 tabular-nums">
               إجمالي التخزين: {formatBytes(stats?.totalStorageBytes || 0)}
             </div>
           </div>
         </div>
 
         {/* Card 4: تاريخ التحقق */}
-        <div className="bg-slate-900/90 border border-slate-800/80 rounded-2xl p-4 shadow-md flex items-center gap-3.5 relative overflow-hidden group hover:border-emerald-900/60 transition-all">
-          <div className="w-11 h-11 rounded-xl bg-amber-950/80 border border-amber-800/40 text-amber-400 flex items-center justify-center shrink-0">
+        <div className="m3-card p-4 flex items-center gap-3.5 relative overflow-hidden transition-colors hover:border-[var(--md-primary)]/40">
+          <div className="w-11 h-11 rounded-xl bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)] border border-[var(--md-warning)]/20 flex items-center justify-center shrink-0">
             <FileCheck2 className="w-5 h-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-semibold text-slate-400">تاريخ التحقق</div>
-            <div className="text-sm font-bold text-amber-300 truncate mt-0.5 font-mono">
+            <div className="text-[11px] font-semibold text-[var(--md-on-surface-variant)]">تاريخ التحقق</div>
+            <div className="text-sm font-bold text-[var(--md-on-surface)] truncate mt-0.5 font-mono tabular-nums">
               {latestBackup?.verified_at
                 ? formatDate(latestBackup.verified_at)
                 : latestBackup
                 ? 'توقيع SHA-256 سليم'
                 : '—'}
             </div>
-            <div className="text-[10px] text-slate-500 mt-0.5">تكامل وتطابق التجزئة الرقمية</div>
+            <div className="text-[11px] text-[var(--md-on-surface-variant)] mt-0.5">تكامل وتطابق التجزئة الرقمية</div>
           </div>
         </div>
 
       </div>
 
       {/* Backup History Table Section */}
-      <div className="bg-slate-900 border border-slate-800/80 rounded-2xl overflow-hidden shadow-xl">
-        
+      <div className="m3-card overflow-hidden">
+
         {/* Table Header Controls */}
-        <div className="p-4 sm:p-5 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/50">
+        <div className="p-4 sm:p-5 border-b border-[var(--md-outline-variant)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[var(--md-surface-container-low)]">
           <div className="flex items-center gap-2">
-            <History className="w-4 h-4 text-emerald-400" />
-            <h2 className="text-sm sm:text-base font-bold text-white">سجل النسخ الاحتياطية</h2>
-            <span className="text-[10px] px-2 py-0.5 bg-emerald-950/80 text-emerald-400 rounded-full border border-emerald-800/50 font-mono font-bold">
+            <History className="w-4 h-4 text-[var(--md-primary-text)]" />
+            <h2 className="text-sm sm:text-base font-bold text-[var(--md-on-surface)]">سجل النسخ الاحتياطية</h2>
+            <span className="m3-badge bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/25 font-mono tabular-nums">
               {backups.length} نسخة
             </span>
           </div>
 
-          <div className="text-xs text-slate-400 flex items-center gap-2">
-            <Lock className="w-3.5 h-3.5 text-emerald-500" />
+          <div className="text-xs text-[var(--md-on-surface-variant)] flex items-center gap-2">
+            <Lock className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
             <span>مشفر ومحمي بتوقيع رقمي غير قابل للتلاعب</span>
           </div>
         </div>
 
         {/* Table / Empty / Loading */}
         {loading && backups.length === 0 ? (
-          <div className="p-12 text-center text-slate-400 space-y-3">
-            <RefreshCw className="w-7 h-7 animate-spin mx-auto text-emerald-500" />
-            <p className="text-xs">جاري تحميل سجل النسخ الاحتياطية للمؤسسة...</p>
+          <div className="p-12 text-center text-[var(--md-on-surface-variant)] space-y-3">
+            <RefreshCw className="w-7 h-7 animate-spin mx-auto text-[var(--md-primary-text)]" />
+            <p className="text-xs font-medium">جاري تحميل سجل النسخ الاحتياطية للمؤسسة...</p>
           </div>
         ) : backups.length === 0 ? (
           <div className="p-12 text-center space-y-3">
-            <Database className="w-10 h-10 mx-auto text-slate-600" />
-            <h3 className="text-sm font-bold text-slate-300">لا توجد نسخ احتياطية مسجلة بعد</h3>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            <Database className="w-10 h-10 mx-auto text-[var(--md-outline)]" />
+            <h3 className="text-sm font-bold text-[var(--md-on-surface)]">لا توجد نسخ احتياطية مسجلة بعد</h3>
+            <p className="text-xs text-[var(--md-on-surface-variant)] max-w-sm mx-auto">
               يمكنك تأمين بيانات مؤسستك وحفظ نقطة استعادة فورية بالضغط على "إنشاء نسخة احتياطية الآن".
             </p>
             <button
               onClick={handleCreateBackup}
               disabled={actionLoading === 'create'}
-              className="mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-colors inline-flex items-center gap-1.5"
+              className="m3-btn-primary mt-2 px-4 py-2 text-xs font-bold inline-flex items-center gap-1.5"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>إنشاء أول نسخة احتياطية</span>
@@ -940,58 +958,58 @@ export const BackupRestoreTab: React.FC = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-right text-xs text-slate-300">
-              <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 font-semibold uppercase tracking-wider text-[11px]">
+            <table className="m3-table w-full text-right text-xs">
+              <thead className="m3-thead">
                 <tr>
-                  <th className="p-3.5">رقم النسخة</th>
-                  <th className="p-3.5">التاريخ</th>
-                  <th className="p-3.5">الحجم</th>
-                  <th className="p-3.5">المستخدم</th>
-                  <th className="p-3.5">الحالة</th>
-                  <th className="p-3.5">التحقق</th>
-                  <th className="p-3.5 text-center">الإجراءات</th>
+                  <th className="m3-th">رقم النسخة</th>
+                  <th className="m3-th">التاريخ</th>
+                  <th className="m3-th">الحجم</th>
+                  <th className="m3-th">المستخدم</th>
+                  <th className="m3-th">الحالة</th>
+                  <th className="m3-th">التحقق</th>
+                  <th className="m3-th text-center">الإجراءات</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60 font-medium">
+              <tbody className="divide-y divide-[var(--md-outline-variant)] font-medium text-[var(--md-on-surface)]">
                 {backups.map((b) => {
                   const isVerifying = actionLoading === `verify-${b.id}`;
                   const isDownloading = actionLoading === `download-${b.id}`;
                   const isDeleting = actionLoading === `delete-${b.id}`;
 
                   return (
-                    <tr key={b.id} className="hover:bg-slate-800/40 transition-colors">
-                      
+                    <tr key={b.id} className="hover:bg-[var(--md-surface-container-low)] transition-colors">
+
                       {/* رقم النسخة */}
-                      <td className="p-3.5 font-mono text-[11px] text-slate-200">
+                      <td className="p-3.5 font-mono text-[11px] tabular-nums">
                         <div className="flex items-center gap-1.5">
-                          <Database className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                          <span className="font-bold">{b.id.substring(0, 8)}...</span>
+                          <Database className="w-3.5 h-3.5 text-[var(--md-primary-text)] shrink-0" />
+                          <span className="font-bold text-[var(--md-on-surface)]">{b.id.substring(0, 8)}...</span>
                         </div>
-                        <div className="text-[9px] text-slate-500 truncate max-w-[140px] font-sans">
+                        <div className="text-[10px] text-[var(--md-on-surface-variant)] truncate max-w-[160px] font-sans mt-0.5">
                           {b.file_name}
                         </div>
                       </td>
 
                       {/* التاريخ */}
-                      <td className="p-3.5 font-mono text-slate-300 text-[11px] whitespace-nowrap">
+                      <td className="p-3.5 font-mono text-[var(--md-on-surface)] text-[11px] whitespace-nowrap tabular-nums">
                         {formatDate(b.created_at)}
                       </td>
 
                       {/* الحجم */}
-                      <td className="p-3.5 font-mono text-slate-200 text-[11px] whitespace-nowrap">
-                        <div>{formatBytes(Number(b.file_size || 0))}</div>
-                        <div className="text-[9px] text-slate-500">
+                      <td className="p-3.5 font-mono text-[var(--md-on-surface)] text-[11px] whitespace-nowrap tabular-nums">
+                        <div className="font-semibold">{formatBytes(Number(b.file_size || 0))}</div>
+                        <div className="text-[10px] text-[var(--md-on-surface-variant)]">
                           {b.tables_count || 0} جداول • {b.records_count || 0} سجل
                         </div>
                       </td>
 
                       {/* المستخدم */}
-                      <td className="p-3.5 text-slate-300">
+                      <td className="p-3.5 text-[var(--md-on-surface)]">
                         <div className="flex items-center gap-1.5">
-                          <User className="w-3.5 h-3.5 text-slate-500" />
+                          <User className="w-3.5 h-3.5 text-[var(--md-on-surface-variant)]" />
                           <span className="font-medium text-[11px]">{b.initiated_by_name || 'مدير النظام'}</span>
                         </div>
-                        <div className="text-[9px] text-slate-500 font-mono">
+                        <div className="text-[10px] text-[var(--md-on-surface-variant)] font-mono mt-0.5">
                           {b.backup_type === 'MANUAL' ? 'يدوي (Manual)' : b.backup_type}
                         </div>
                       </td>
@@ -999,18 +1017,18 @@ export const BackupRestoreTab: React.FC = () => {
                       {/* الحالة */}
                       <td className="p-3.5 whitespace-nowrap">
                         {b.status === 'VERIFIED' ? (
-                          <span className="px-2 py-0.5 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-800/60 font-bold text-[10px] inline-flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          <span className="m3-badge bg-[var(--md-success-container)] text-[var(--md-on-success-container)] border border-[var(--md-success)]/30 inline-flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
                             <span>موثوقة</span>
                           </span>
                         ) : b.status === 'COMPLETED' ? (
-                          <span className="px-2 py-0.5 rounded-md bg-teal-950 text-teal-300 border border-teal-800/60 font-bold text-[10px] inline-flex items-center gap-1">
-                            <Check className="w-3 h-3 text-teal-400" />
+                          <span className="m3-badge bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-primary)]/30 inline-flex items-center gap-1">
+                            <Check className="w-3 h-3" />
                             <span>مكتملة</span>
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-md bg-red-950 text-red-300 border border-red-800/60 font-bold text-[10px] inline-flex items-center gap-1">
-                            <AlertTriangle className="w-3 h-3 text-red-400" />
+                          <span className="m3-badge bg-[var(--md-error-container)] text-[var(--md-on-error-container)] border border-[var(--md-error)]/35 inline-flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3" />
                             <span>فشل</span>
                           </span>
                         )}
@@ -1018,12 +1036,12 @@ export const BackupRestoreTab: React.FC = () => {
 
                       {/* التحقق */}
                       <td className="p-3.5">
-                        <div className="flex items-center gap-1 text-[11px] text-emerald-400 font-mono">
-                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                        <div className="flex items-center gap-1 text-[11px] text-[var(--md-primary-text)] font-mono font-semibold">
+                          <ShieldCheck className="w-3.5 h-3.5" />
                           <span>SHA-256</span>
                         </div>
                         {b.checksum && (
-                          <div className="text-[9px] text-slate-500 font-mono truncate max-w-[100px]" title={b.checksum}>
+                          <div className="text-[10px] text-[var(--md-on-surface-variant)] font-mono truncate max-w-[100px]" title={b.checksum}>
                             {b.checksum.substring(0, 10)}...
                           </div>
                         )}
@@ -1032,16 +1050,16 @@ export const BackupRestoreTab: React.FC = () => {
                       {/* الإجراءات */}
                       <td className="p-3.5">
                         <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                          
+
                           {/* تنزيل Download */}
                           <button
                             id={`download-backup-${b.id}`}
                             onClick={() => handleDownloadBackup(b)}
                             disabled={isDownloading}
                             title="تنزيل ملف النسخة الاحتياطية"
-                            className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-emerald-400 rounded-lg border border-slate-700 transition-colors disabled:opacity-50"
+                            className="p-1.5 bg-[var(--md-surface-container-high)] hover:bg-[var(--md-primary-container)] text-[var(--md-on-surface)] hover:text-[var(--md-on-primary-container)] rounded-lg border border-[var(--md-outline-variant)] transition-colors disabled:opacity-50"
                           >
-                            <Download className={`w-3.5 h-3.5 ${isDownloading ? 'animate-bounce text-emerald-400' : ''}`} />
+                            <Download className={`w-3.5 h-3.5 ${isDownloading ? 'animate-bounce text-[var(--md-primary-text)]' : ''}`} />
                           </button>
 
                           {/* تحقق Verify */}
@@ -1050,28 +1068,28 @@ export const BackupRestoreTab: React.FC = () => {
                             onClick={() => handleVerifyBackup(b)}
                             disabled={isVerifying}
                             title="فحص والتحقق من التوقيع الرقمي"
-                            className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-teal-400 rounded-lg border border-slate-700 transition-colors disabled:opacity-50"
+                            className="p-1.5 bg-[var(--md-surface-container-high)] hover:bg-[var(--md-primary-container)] text-[var(--md-on-surface)] hover:text-[var(--md-on-primary-container)] rounded-lg border border-[var(--md-outline-variant)] transition-colors disabled:opacity-50"
                           >
-                            <FileCheck2 className={`w-3.5 h-3.5 ${isVerifying ? 'animate-spin text-teal-400' : ''}`} />
+                            <FileCheck2 className={`w-3.5 h-3.5 ${isVerifying ? 'animate-spin text-[var(--md-primary-text)]' : ''}`} />
                           </button>
 
-                          {/* استعادة Restore (Dangerous action) */}
+                          {/* استعادة Restore (Dangerous action - highlighted with --md-error) */}
                           <button
                             id={`restore-backup-${b.id}`}
                             onClick={() => openRestoreModal(b)}
                             title="استعادة هذه النسخة الاحتياطية"
-                            className="p-1.5 bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 hover:text-amber-100 rounded-lg border border-amber-800/60 transition-colors"
+                            className="p-1.5 bg-[var(--md-error-container)] hover:bg-[var(--md-error)] text-[var(--md-on-error-container)] hover:text-[var(--md-on-error)] rounded-lg border border-[var(--md-error)]/40 transition-colors"
                           >
                             <RotateCcw className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* حذف Delete */}
+                          {/* حذف Delete (Dangerous action - highlighted with --md-error) */}
                           <button
                             id={`delete-backup-${b.id}`}
                             onClick={() => openDeleteModal(b)}
                             disabled={isDeleting}
                             title="حذف النسخة الاحتياطية"
-                            className="p-1.5 bg-red-950/40 hover:bg-red-900/60 text-red-400 hover:text-red-200 rounded-lg border border-red-900/50 transition-colors disabled:opacity-50"
+                            className="p-1.5 bg-[var(--md-error-container)] hover:bg-[var(--md-error)] text-[var(--md-error)] hover:text-[var(--md-on-error)] rounded-lg border border-[var(--md-error)]/45 transition-colors disabled:opacity-50"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -1093,70 +1111,70 @@ export const BackupRestoreTab: React.FC = () => {
       {/* RESTORE DIALOG / MODAL                                       */}
       {/* ============================================================ */}
       {isRestoreModalOpen && selectedBackupForRestore && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-150" dir="rtl">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5 text-slate-100 relative">
-            
+        <div className="m3-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-150" dir="rtl">
+          <div className="m3-modal-surface w-full max-w-lg p-6 space-y-5 text-[var(--md-on-surface)] relative">
+
             {/* Modal Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className="flex items-center justify-between pb-3 border-b border-[var(--md-outline-variant)]">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-amber-950 border border-amber-700/60 text-amber-400 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-[var(--md-error-container)] border border-[var(--md-error)]/35 text-[var(--md-error)] flex items-center justify-center">
                   <RotateCcw className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white">تأكيد استعادة النسخة الاحتياطية</h3>
-                  <p className="text-xs text-slate-400">مراجعة تفاصيل النسخة قبل بدء الاستبدال</p>
+                  <h3 className="text-base font-bold text-[var(--md-on-surface)]">تأكيد استعادة النسخة الاحتياطية</h3>
+                  <p className="text-xs text-[var(--md-on-surface-variant)]">مراجعة تفاصيل النسخة قبل بدء الاستبدال</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsRestoreModalOpen(false)}
                 disabled={isRestoring}
-                className="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-slate-800"
+                className="text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] p-1.5 rounded-lg hover:bg-[var(--md-surface-container-high)] transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Backup Details Grid */}
-            <div className="grid grid-cols-2 gap-3 bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 text-xs">
+            <div className="grid grid-cols-2 gap-3 bg-[var(--md-surface-container-low)] p-4 rounded-xl border border-[var(--md-outline-variant)] text-xs">
               <div>
-                <span className="text-slate-500 block text-[11px]">النسخة المختارة:</span>
-                <span className="font-mono font-bold text-emerald-400">{selectedBackupForRestore.id.substring(0, 12)}...</span>
+                <span className="text-[var(--md-on-surface-variant)] block text-[11px]">النسخة المختارة:</span>
+                <span className="font-mono font-bold text-[var(--md-primary-text)] tabular-nums">{selectedBackupForRestore.id.substring(0, 12)}...</span>
               </div>
               <div>
-                <span className="text-slate-500 block text-[11px]">تاريخ النسخة:</span>
-                <span className="font-mono text-slate-200">{formatDate(selectedBackupForRestore.created_at)}</span>
+                <span className="text-[var(--md-on-surface-variant)] block text-[11px]">تاريخ النسخة:</span>
+                <span className="font-mono text-[var(--md-on-surface)] tabular-nums">{formatDate(selectedBackupForRestore.created_at)}</span>
               </div>
               <div>
-                <span className="text-slate-500 block text-[11px]">حجم النسخة:</span>
-                <span className="font-mono text-slate-200">{formatBytes(Number(selectedBackupForRestore.file_size || 0))}</span>
+                <span className="text-[var(--md-on-surface-variant)] block text-[11px]">حجم النسخة:</span>
+                <span className="font-mono text-[var(--md-on-surface)] tabular-nums">{formatBytes(Number(selectedBackupForRestore.file_size || 0))}</span>
               </div>
               <div>
-                <span className="text-slate-500 block text-[11px]">حالة التحقق:</span>
-                <span className="text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
+                <span className="text-[var(--md-on-surface-variant)] block text-[11px]">حالة التحقق:</span>
+                <span className="text-[var(--md-success)] font-semibold flex items-center gap-1 mt-0.5">
                   <CheckCircle2 className="w-3 h-3" />
                   <span>SHA-256 سليم</span>
                 </span>
               </div>
               <div>
-                <span className="text-slate-500 block text-[11px]">إصدار النظام:</span>
-                <span className="font-mono text-slate-300">{selectedBackupForRestore.system_version || 'v2.4.0'}</span>
+                <span className="text-[var(--md-on-surface-variant)] block text-[11px]">إصدار النظام:</span>
+                <span className="font-mono text-[var(--md-on-surface)] tabular-nums">{selectedBackupForRestore.system_version || 'v2.4.0'}</span>
               </div>
               <div>
-                <span className="text-slate-500 block text-[11px]">إصدار قاعدة البيانات:</span>
-                <span className="font-mono text-slate-300">{selectedBackupForRestore.db_version || 'PostgreSQL 16'}</span>
+                <span className="text-[var(--md-on-surface-variant)] block text-[11px]">إصدار قاعدة البيانات:</span>
+                <span className="font-mono text-[var(--md-on-surface)] tabular-nums">{selectedBackupForRestore.db_version || 'PostgreSQL 16'}</span>
               </div>
             </div>
 
             {/* Warning Box */}
-            <div className="p-4 bg-amber-950/40 border border-amber-700/60 rounded-xl text-amber-200 space-y-1">
-              <div className="flex items-center gap-2 font-bold text-amber-400 text-xs sm:text-sm">
-                <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+            <div className="p-4 bg-[var(--md-error-container)] border border-[var(--md-error)]/40 rounded-xl text-[var(--md-on-error-container)] space-y-1">
+              <div className="flex items-center gap-2 font-bold text-[var(--md-error)] text-xs sm:text-sm">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>تحذير أمني هام</span>
               </div>
-              <p className="text-xs text-amber-200/90 leading-relaxed font-semibold">
+              <p className="text-xs leading-relaxed font-semibold">
                 استعادة هذه النسخة قد تستبدل البيانات الحالية.
               </p>
-              <p className="text-[11px] text-amber-300/70">
+              <p className="text-[11px] opacity-90">
                 سيتم استرجاع جميع السجلات والجداول وحركات المخزون والمحاسبة إلى الحالة التي كانت عليها وقت إنشاء النسخة.
               </p>
             </div>
@@ -1167,7 +1185,7 @@ export const BackupRestoreTab: React.FC = () => {
                 id="cancel-restore-button"
                 onClick={() => setIsRestoreModalOpen(false)}
                 disabled={isRestoring}
-                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700 transition-colors disabled:opacity-50"
+                className="m3-btn-outlined px-4 py-2.5 text-xs font-semibold disabled:opacity-50"
               >
                 إلغاء
               </button>
@@ -1176,7 +1194,7 @@ export const BackupRestoreTab: React.FC = () => {
                 id="confirm-restore-button"
                 onClick={handleExecuteRestore}
                 disabled={isRestoring}
-                className="px-5 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-amber-950/60 border border-amber-500/50 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+                className="m3-btn-danger px-5 py-2.5 text-xs font-bold flex items-center gap-2 disabled:opacity-50"
               >
                 {isRestoring ? (
                   <>
@@ -1200,33 +1218,33 @@ export const BackupRestoreTab: React.FC = () => {
       {/* DELETE CONFIRMATION DIALOG                                   */}
       {/* ============================================================ */}
       {isDeleteModalOpen && selectedBackupForDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-150" dir="rtl">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4 text-slate-100">
-            
+        <div className="m3-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-150" dir="rtl">
+          <div className="m3-modal-surface w-full max-w-md p-6 space-y-4 text-[var(--md-on-surface)]">
+
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-red-950 border border-red-800 text-red-400 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-[var(--md-error-container)] border border-[var(--md-error)]/35 text-[var(--md-error)] flex items-center justify-center shrink-0">
                 <Trash2 className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white">حذف النسخة الاحتياطية</h3>
-                <p className="text-xs text-slate-400">هل أنت متأكد من حذف هذه النسخة نهائياً؟</p>
+                <h3 className="text-sm font-bold text-[var(--md-on-surface)]">حذف النسخة الاحتياطية</h3>
+                <p className="text-xs text-[var(--md-on-surface-variant)]">هل أنت متأكد من حذف هذه النسخة نهائياً؟</p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-400 bg-slate-950 p-3 rounded-xl border border-slate-800 font-mono">
+            <p className="text-xs text-[var(--md-on-surface)] bg-[var(--md-surface-container-low)] p-3 rounded-xl border border-[var(--md-outline-variant)] font-mono tabular-nums break-all">
               الملف: {selectedBackupForDelete.file_name} ({formatBytes(selectedBackupForDelete.file_size)})
             </p>
 
             <div className="flex items-center justify-end gap-2.5 pt-2">
               <button
                 onClick={() => setIsDeleteModalOpen(false)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700"
+                className="m3-btn-outlined px-4 py-2 text-xs font-semibold"
               >
                 إلغاء
               </button>
               <button
                 onClick={handleExecuteDelete}
-                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold shadow-lg"
+                className="m3-btn-danger px-4 py-2 text-xs font-bold"
               >
                 تأكيد الحذف
               </button>
@@ -1240,24 +1258,24 @@ export const BackupRestoreTab: React.FC = () => {
       {/* JSON FILE IMPORT & RESTORE MODAL                             */}
       {/* ============================================================ */}
       {isJsonRestoreModalOpen && jsonUploadData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm animate-in fade-in duration-150" dir="rtl">
-          <div className="w-full max-w-lg bg-slate-900 border border-teal-800/80 rounded-2xl p-6 shadow-2xl space-y-5 text-slate-100 relative">
-            
+        <div className="m3-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-150" dir="rtl">
+          <div className="m3-modal-surface w-full max-w-lg p-6 space-y-5 text-[var(--md-on-surface)] relative">
+
             {/* Modal Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className="flex items-center justify-between pb-3 border-b border-[var(--md-outline-variant)]">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-teal-950 border border-teal-600/60 text-teal-400 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-[var(--md-primary-container)] border border-[var(--md-primary)]/30 text-[var(--md-on-primary-container)] flex items-center justify-center">
                   <FileCode className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white">استعادة نسخة احتياطية من ملف JSON</h3>
-                  <p className="text-xs text-slate-400">فحص الحالات الموسعة المكتشفة في الملف قبل اعتمادها</p>
+                  <h3 className="text-base font-bold text-[var(--md-on-surface)]">استعادة نسخة احتياطية من ملف JSON</h3>
+                  <p className="text-xs text-[var(--md-on-surface-variant)]">فحص الحالات الموسعة المكتشفة في الملف قبل اعتمادها</p>
                 </div>
               </div>
               <button
                 onClick={() => { setIsJsonRestoreModalOpen(false); setJsonUploadData(null); }}
                 disabled={isRestoring}
-                className="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-slate-800"
+                className="text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] p-1.5 rounded-lg hover:bg-[var(--md-surface-container-high)] transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1265,48 +1283,48 @@ export const BackupRestoreTab: React.FC = () => {
 
             {/* File Info */}
             <div className="space-y-2">
-              <div className="text-[11px] font-semibold text-slate-400">الحالات والبيانات المكتشفة بالنسخة:</div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                
+              <div className="text-[11px] font-semibold text-[var(--md-on-surface-variant)]">الحالات والبيانات المكتشفة بالنسخة:</div>
+              <div className="grid grid-cols-2 gap-2.5 text-xs">
+
                 {/* Module Settings */}
-                <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <div className="p-3 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-[var(--md-success)] shrink-0" />
                   <div>
-                    <div className="font-bold text-slate-200">إعدادات الأنشطة</div>
-                    <div className="text-[10px] text-slate-400">
+                    <div className="font-bold text-[var(--md-on-surface)]">إعدادات الأنشطة</div>
+                    <div className="text-[10px] text-[var(--md-on-surface-variant)]">
                       {jsonUploadData.extended_states?.erp_module_settings_v1?.businessMode || 'نمط متعدد الأنشطة'}
                     </div>
                   </div>
                 </div>
 
                 {/* Fuel Station */}
-                <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl flex items-center gap-2">
-                  <Fuel className="w-4 h-4 text-amber-400 shrink-0" />
+                <div className="p-3 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl flex items-center gap-2.5">
+                  <Fuel className="w-4 h-4 text-[var(--md-warning)] shrink-0" />
                   <div>
-                    <div className="font-bold text-slate-200">محطة الوقود والغاز</div>
-                    <div className="text-[10px] text-slate-400">
+                    <div className="font-bold text-[var(--md-on-surface)]">محطة الوقود والغاز</div>
+                    <div className="text-[10px] text-[var(--md-on-surface-variant)] tabular-nums">
                       {jsonUploadData.extended_states?.fuel_station?.tanks?.length || 4} خزانات • عدادات
                     </div>
                   </div>
                 </div>
 
                 {/* Warehouses & Transfers */}
-                <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-teal-400 shrink-0" />
+                <div className="p-3 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl flex items-center gap-2.5">
+                  <Building2 className="w-4 h-4 text-[var(--md-primary-text)] shrink-0" />
                   <div>
-                    <div className="font-bold text-slate-200">المستودعات والتحويلات</div>
-                    <div className="text-[10px] text-slate-400">
+                    <div className="font-bold text-[var(--md-on-surface)]">المستودعات والتحويلات</div>
+                    <div className="text-[10px] text-[var(--md-on-surface-variant)] tabular-nums">
                       {jsonUploadData.extended_states?.warehouses?.length || 3} مستودعات وفروع
                     </div>
                   </div>
                 </div>
 
                 {/* Sales Reps */}
-                <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl flex items-center gap-2">
-                  <Users className="w-4 h-4 text-indigo-400 shrink-0" />
+                <div className="p-3 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl flex items-center gap-2.5">
+                  <Users className="w-4 h-4 text-[var(--md-info)] shrink-0" />
                   <div>
-                    <div className="font-bold text-slate-200">مناديب المبيعات</div>
-                    <div className="text-[10px] text-slate-400">
+                    <div className="font-bold text-[var(--md-on-surface)]">مناديب المبيعات</div>
+                    <div className="text-[10px] text-[var(--md-on-surface-variant)] tabular-nums">
                       {jsonUploadData.extended_states?.sales_reps?.length || 3} مناديب معتمدين
                     </div>
                   </div>
@@ -1316,8 +1334,8 @@ export const BackupRestoreTab: React.FC = () => {
             </div>
 
             {/* Warning Note */}
-            <div className="p-3.5 bg-teal-950/40 border border-teal-800/60 rounded-xl text-teal-200 text-xs flex items-start gap-2.5">
-              <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0 mt-0.5" />
+            <div className="p-3.5 bg-[var(--md-error-container)] border border-[var(--md-error)]/35 rounded-xl text-[var(--md-on-error-container)] text-xs flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-[var(--md-error)] shrink-0 mt-0.5" />
               <span>
                 سيتم استرجاع وتحديث كافة إعدادات الأنشطة، خزانات الوقود، المستودعات، ومناديب المبيعات وحفظها في قاعدة البيانات وسجلات المتصفح فوراً.
               </span>
@@ -1328,7 +1346,7 @@ export const BackupRestoreTab: React.FC = () => {
               <button
                 onClick={() => { setIsJsonRestoreModalOpen(false); setJsonUploadData(null); }}
                 disabled={isRestoring}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700"
+                className="m3-btn-outlined px-4 py-2 text-xs font-semibold disabled:opacity-50"
               >
                 إلغاء
               </button>
@@ -1336,7 +1354,7 @@ export const BackupRestoreTab: React.FC = () => {
                 id="confirm-json-restore-button"
                 onClick={handleConfirmJSONRestore}
                 disabled={isRestoring}
-                className="px-5 py-2.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-teal-950/60 border border-teal-500/50 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+                className="m3-btn-danger px-5 py-2.5 text-xs font-bold flex items-center gap-2 disabled:opacity-50"
               >
                 {isRestoring ? (
                   <>

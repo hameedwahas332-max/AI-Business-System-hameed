@@ -414,9 +414,9 @@ export const ProductionDataInitializationTab: React.FC<{ companyId?: string }> =
 
   if (loading && !readiness) {
     return (
-      <div className="flex items-center justify-center p-16 text-slate-500">
-        <RefreshCw className="w-8 h-8 animate-spin text-emerald-600 ml-3" />
-        <span>جاري فحص الجاهزية التشغيلية لبيئة الإنتاج...</span>
+      <div className="flex items-center justify-center p-16 text-[var(--md-on-surface-variant)]" dir="rtl">
+        <RefreshCw className="w-8 h-8 animate-spin text-[var(--md-primary-text)] ml-3" />
+        <span className="font-medium">جاري فحص الجاهزية التشغيلية لبيئة الإنتاج...</span>
       </div>
     );
   }
@@ -425,50 +425,62 @@ export const ProductionDataInitializationTab: React.FC<{ companyId?: string }> =
   const isBlocked = readiness?.overallReadiness === 'BLOCKED';
 
   return (
-    <div className="space-y-6 text-slate-100" dir="rtl">
+    <div className="space-y-6 text-[var(--md-on-surface)]" dir="rtl">
       {/* Header Banner */}
-      <div className="bg-slate-900 rounded-2xl p-6 shadow-xl border border-emerald-900/50">
+      <div className="m3-card-elevated p-6">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className={`p-3.5 rounded-xl border ${isReady ? 'bg-emerald-950 border-emerald-800 text-emerald-400' : isBlocked ? 'bg-rose-950 border-rose-800 text-rose-400' : 'bg-amber-950 border-amber-800 text-amber-400'}`}>
+            <div
+              className={`p-3.5 rounded-2xl border shrink-0 ${
+                isReady
+                  ? 'bg-[var(--md-success-container)] border-[var(--md-success)]/30 text-[var(--md-on-success-container)]'
+                  : isBlocked
+                  ? 'bg-[var(--md-error-container)] border-[var(--md-error)]/30 text-[var(--md-on-error-container)]'
+                  : 'bg-[var(--md-warning-container)] border-[var(--md-warning)]/30 text-[var(--md-on-warning-container)]'
+              }`}
+            >
               <ShieldCheck className="w-8 h-8" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold text-white">إدارة وتهيئة بيانات الإنتاج الفعلي وتأهيل المنشأة</h2>
-                <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                  readiness?.summary.environment === 'PRODUCTION' ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-                }`}>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-xl font-bold text-[var(--md-on-surface)]">إدارة وتهيئة بيانات الإنتاج الفعلي وتأهيل المنشأة</h2>
+                <span
+                  className={`m3-badge font-mono ${
+                    readiness?.summary.environment === 'PRODUCTION'
+                      ? 'bg-[var(--md-error-container)] text-[var(--md-on-error-container)] border border-[var(--md-error)]/35'
+                      : 'bg-[var(--md-success-container)] text-[var(--md-on-success-container)] border border-[var(--md-success)]/35'
+                  }`}
+                >
                   {readiness?.summary.environment || 'PRODUCTION'}
                 </span>
               </div>
-              <p className="text-sm text-slate-400 mt-1">
+              <p className="text-sm text-[var(--md-on-surface-variant)] mt-1">
                 بوابة الحماية والانتقال الآمن من بيئة التطوير إلى بيئة التشغيل الفعلي (Phase 8.6)
               </p>
             </div>
           </div>
 
-          <div className="flex items-center flex-wrap gap-3">
+          <div className="flex items-center flex-wrap gap-2.5">
             <button
               onClick={handleSeedDemoData}
               disabled={actionLoading === 'seed'}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-200 border border-emerald-800 text-xs sm:text-sm font-semibold rounded-xl transition cursor-pointer"
+              className="m3-btn-tonal inline-flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold cursor-pointer disabled:opacity-50"
             >
-              <Zap className="w-4 h-4 text-emerald-400" />
+              <Zap className="w-4 h-4" />
               زرع بيانات تجريبية (Seed Demo)
             </button>
             <button
               onClick={handleCleanupSampleData}
               disabled={actionLoading === 'cleanup'}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-rose-950/80 hover:bg-rose-900 text-rose-200 border border-rose-800 text-xs sm:text-sm font-semibold rounded-xl transition cursor-pointer"
+              className="m3-btn-danger inline-flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold cursor-pointer disabled:opacity-50"
             >
-              <Trash2 className="w-4 h-4 text-rose-400" />
+              <Trash2 className="w-4 h-4" />
               حذف وتصفير البيانات التجريبية
             </button>
             <button
               onClick={fetchReadiness}
               disabled={loading}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-xl border border-slate-700 transition cursor-pointer"
+              className="m3-btn-outlined inline-flex items-center gap-2 px-4 py-2 text-sm font-medium cursor-pointer disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               تحديث الفحص
@@ -477,7 +489,7 @@ export const ProductionDataInitializationTab: React.FC<{ companyId?: string }> =
               <button
                 onClick={handleActivateProduction}
                 disabled={actionLoading === 'activate' || !readiness.doubleEntryBalanced}
-                className="inline-flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-semibold rounded-xl shadow-lg shadow-emerald-950 transition cursor-pointer"
+                className="m3-btn-primary inline-flex items-center gap-2 px-5 py-2 disabled:opacity-50 text-sm font-semibold cursor-pointer"
               >
                 <Lock className="w-4 h-4" />
                 تأكيد الجاهزية والتشغيل الفعلي
@@ -488,82 +500,114 @@ export const ProductionDataInitializationTab: React.FC<{ companyId?: string }> =
 
         {/* Feedback Alert */}
         {feedback && (
-          <div className={`mt-4 p-4 rounded-xl flex items-start gap-3 text-sm border ${
-            feedback.type === 'success' ? 'bg-emerald-950/80 text-emerald-200 border-emerald-800' :
-            feedback.type === 'error' ? 'bg-rose-950/80 text-rose-200 border-rose-800' :
-            'bg-slate-850 text-cyan-200 border-cyan-800'
-          }`}>
-            {feedback.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" /> :
-             feedback.type === 'error' ? <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" /> :
-             <Info className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />}
-            <div className="flex-1">{feedback.message}</div>
-            <button onClick={() => setFeedback(null)} className="text-slate-400 hover:text-white font-bold">×</button>
+          <div
+            className={`mt-4 p-4 rounded-xl flex items-start gap-3 text-sm border ${
+              feedback.type === 'success'
+                ? 'bg-[var(--md-success-container)] text-[var(--md-on-success-container)] border-[var(--md-success)]/35'
+                : feedback.type === 'error'
+                ? 'bg-[var(--md-error-container)] text-[var(--md-on-error-container)] border-[var(--md-error)]/35'
+                : 'bg-[var(--md-info-container)] text-[var(--md-on-info-container)] border-[var(--md-info)]/35'
+            }`}
+          >
+            {feedback.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5 text-[var(--md-success)] shrink-0 mt-0.5" />
+            ) : feedback.type === 'error' ? (
+              <AlertTriangle className="w-5 h-5 text-[var(--md-error)] shrink-0 mt-0.5" />
+            ) : (
+              <Info className="w-5 h-5 text-[var(--md-info)] shrink-0 mt-0.5" />
+            )}
+            <div className="flex-1 font-medium">{feedback.message}</div>
+            <button
+              onClick={() => setFeedback(null)}
+              className="opacity-75 hover:opacity-100 font-bold px-1.5 rounded-lg"
+              aria-label="إغلاق الرسالة"
+            >
+              ×
+            </button>
           </div>
         )}
 
         {/* Master Readiness Gauge */}
-        <div className="mt-6 pt-6 border-t border-slate-800 grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-slate-950 rounded-xl p-4 border border-emerald-900/30">
-            <div className="text-xs text-slate-400 font-medium">مستوى الجاهزية الكلي</div>
+        <div className="mt-6 pt-6 border-t border-[var(--md-outline-variant)] grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-[var(--md-surface-container-low)] rounded-xl p-4 border border-[var(--md-outline-variant)]">
+            <div className="text-xs text-[var(--md-on-surface-variant)] font-medium">مستوى الجاهزية الكلي</div>
             <div className="flex items-center justify-between mt-2">
-              <span className="text-2xl font-bold text-white font-mono">{readiness?.readinessScorePercent || 0}%</span>
-              <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
-                isReady ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : isBlocked ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-amber-950 text-amber-300 border border-amber-800'
-              }`}>
+              <span className="text-2xl font-bold text-[var(--md-on-surface)] font-mono tabular-nums">
+                {readiness?.readinessScorePercent || 0}%
+              </span>
+              <span
+                className={`m3-badge ${
+                  isReady
+                    ? 'bg-[var(--md-success-container)] text-[var(--md-on-success-container)] border border-[var(--md-success)]/30'
+                    : isBlocked
+                    ? 'bg-[var(--md-error-container)] text-[var(--md-on-error-container)] border border-[var(--md-error)]/30'
+                    : 'bg-[var(--md-warning-container)] text-[var(--md-on-warning-container)] border border-[var(--md-warning)]/30'
+                }`}
+              >
                 {isReady ? 'جاهز للإنتاج' : isBlocked ? 'محظور / به خلل' : 'قيد الاستكمال'}
               </span>
             </div>
-            <div className="w-full bg-slate-800 h-2 rounded-full mt-3 overflow-hidden">
+            <div className="w-full bg-[var(--md-surface-container-highest)] h-2 rounded-full mt-3 overflow-hidden">
               <div
-                className={`h-full transition-all duration-500 ${isReady ? 'bg-emerald-500' : isBlocked ? 'bg-rose-500' : 'bg-amber-500'}`}
+                className={`h-full transition-all duration-500 rounded-full ${
+                  isReady
+                    ? 'bg-[var(--md-success)]'
+                    : isBlocked
+                    ? 'bg-[var(--md-error)]'
+                    : 'bg-[var(--md-warning)]'
+                }`}
                 style={{ width: `${readiness?.readinessScorePercent || 0}%` }}
               />
             </div>
           </div>
 
-          <div className="bg-slate-950 rounded-xl p-4 border border-emerald-900/30">
-            <div className="text-xs text-slate-400 font-medium">قاعدة البيانات والهجرات</div>
+          <div className="bg-[var(--md-surface-container-low)] rounded-xl p-4 border border-[var(--md-outline-variant)]">
+            <div className="text-xs text-[var(--md-on-surface-variant)] font-medium">قاعدة البيانات والهجرات</div>
             <div className="flex items-center gap-2 mt-2">
               {readiness?.databaseVerified && readiness.migrationsVerified ? (
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                <CheckCircle2 className="w-5 h-5 text-[var(--md-success)]" />
               ) : (
-                <XCircle className="w-5 h-5 text-rose-400" />
+                <XCircle className="w-5 h-5 text-[var(--md-error)]" />
               )}
-              <span className="text-base font-bold text-white font-mono">
+              <span className="text-base font-bold text-[var(--md-on-surface)] font-mono tabular-nums">
                 {readiness?.summary.appliedMigrationsCount} هجرة مطبقة
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-2">الإصدار: {readiness?.summary.schemaVersion}</p>
+            <p className="text-xs text-[var(--md-on-surface-variant)] mt-2 font-mono tabular-nums">
+              الإصدار: {readiness?.summary.schemaVersion}
+            </p>
           </div>
 
-          <div className="bg-slate-950 rounded-xl p-4 border border-emerald-900/30">
-            <div className="text-xs text-slate-400 font-medium">ميزان القيد المزدوج (Debit = Credit)</div>
+          <div className="bg-[var(--md-surface-container-low)] rounded-xl p-4 border border-[var(--md-outline-variant)]">
+            <div className="text-xs text-[var(--md-on-surface-variant)] font-medium">ميزان القيد المزدوج (Debit = Credit)</div>
             <div className="flex items-center gap-2 mt-2">
               {readiness?.doubleEntryBalanced ? (
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                <CheckCircle2 className="w-5 h-5 text-[var(--md-success)]" />
               ) : (
-                <AlertTriangle className="w-5 h-5 text-rose-400" />
+                <AlertTriangle className="w-5 h-5 text-[var(--md-error)]" />
               )}
-              <span className="text-base font-bold text-white">
+              <span className="text-base font-bold text-[var(--md-on-surface)]">
                 {readiness?.doubleEntryBalanced ? 'متوازن بدقة 100%' : 'يوجد فارق حسابي'}
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-2">الفارق: {readiness?.summary.ledgerBalanceDifference || 0} ر.س</p>
+            <p className="text-xs text-[var(--md-on-surface-variant)] mt-2 tabular-nums">
+              الفارق: {readiness?.summary.ledgerBalanceDifference || 0} ر.س
+            </p>
           </div>
 
-          <div className="bg-slate-950 rounded-xl p-4 border border-emerald-900/30">
-            <div className="text-xs text-slate-400 font-medium">حالة المنشأة والمسؤول</div>
+          <div className="bg-[var(--md-surface-container-low)] rounded-xl p-4 border border-[var(--md-outline-variant)]">
+            <div className="text-xs text-[var(--md-on-surface-variant)] font-medium">حالة المنشأة والمسؤول</div>
             <div className="flex items-center gap-2 mt-2">
               {readiness?.tenantCreated && readiness.adminCreated ? (
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                <CheckCircle2 className="w-5 h-5 text-[var(--md-success)]" />
               ) : (
-                <XCircle className="w-5 h-5 text-amber-400" />
+                <XCircle className="w-5 h-5 text-[var(--md-warning)]" />
               )}
-              <span className="text-base font-bold text-white">
+              <span className="text-base font-bold text-[var(--md-on-surface)]">
                 {readiness?.summary.onboardingState || 'غير مكتمل'}
               </span>
             </div>
-            <p className="text-xs text-emerald-400 mt-2">حظر البيانات التجريبية: نشط</p>
+            <p className="text-xs text-[var(--md-success)] font-medium mt-2">حظر البيانات التجريبية: نشط</p>
           </div>
         </div>
       </div>
@@ -571,129 +615,131 @@ export const ProductionDataInitializationTab: React.FC<{ companyId?: string }> =
       {/* 4-Quadrant Control Center */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Quadrant 1: Tenant Onboarding Wizard */}
-        <div className="bg-slate-900 rounded-2xl p-6 shadow-xl border border-emerald-900/40">
-          <div className="flex items-center gap-3 pb-4 border-b border-slate-800">
-            <div className="p-2.5 rounded-xl bg-emerald-950 border border-emerald-800 text-emerald-400">
+        <div className="m3-card p-6">
+          <div className="flex items-center gap-3 pb-4 border-b border-[var(--md-outline-variant)]">
+            <div className="p-2.5 rounded-xl bg-[var(--md-primary-container)] border border-[var(--md-primary)]/25 text-[var(--md-on-primary-container)]">
               <Building2 className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-white">تأسيس منشأة التاجر والمسؤول الأول</h3>
-              <p className="text-xs text-slate-400">تهيئة الحساب الفعلي وتوليد المفاتيح والروابط الآمنة</p>
+              <h3 className="font-bold text-[var(--md-on-surface)]">تأسيس منشأة التاجر والمسؤول الأول</h3>
+              <p className="text-xs text-[var(--md-on-surface-variant)]">تهيئة الحساب الفعلي وتوليد المفاتيح والروابط الآمنة</p>
             </div>
           </div>
 
           {readiness?.tenantCreated && readiness.adminCreated ? (
-            <div className="mt-6 flex flex-col items-center justify-center p-6 bg-emerald-950/60 rounded-xl border border-emerald-800/60">
-              <ShieldCheck className="w-12 h-12 text-emerald-400 mb-3" />
-              <h4 className="text-sm font-bold text-emerald-200">تم تأسيس المنشأة بنجاح</h4>
-              <p className="text-xs text-emerald-300 mt-1 text-center">المنشأة والمسؤول الأول جاهزان للعمل. حالة التهيئة: {readiness.summary.onboardingState}</p>
+            <div className="mt-6 flex flex-col items-center justify-center p-6 bg-[var(--md-success-container)] rounded-xl border border-[var(--md-success)]/35 text-[var(--md-on-success-container)]">
+              <ShieldCheck className="w-12 h-12 text-[var(--md-success)] mb-3" />
+              <h4 className="text-sm font-bold">تم تأسيس المنشأة بنجاح</h4>
+              <p className="text-xs opacity-90 mt-1 text-center">
+                المنشأة والمسؤول الأول جاهزان للعمل. حالة التهيئة: {readiness.summary.onboardingState}
+              </p>
             </div>
           ) : (
             <form onSubmit={handleCreateTenant} className="space-y-4 mt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">اسم المنشأة الفعلي *</label>
+                  <label className="block text-xs font-semibold text-[var(--md-on-surface)] mb-1">اسم المنشأة الفعلي *</label>
+                  <input
+                    type="text"
+                    value={tenantName}
+                    onChange={(e) => setTenantName(e.target.value)}
+                    placeholder="مثال: شركة آفاق الأعمال للتجارة"
+                    className="m3-input w-full px-3 py-2 text-sm"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--md-on-surface)] mb-1">الرقم الضريبي (اختياري)</label>
+                  <input
+                    type="text"
+                    value={tenantTaxNo}
+                    onChange={(e) => setTenantTaxNo(e.target.value)}
+                    placeholder="300XXXXXXXXXXXX"
+                    className="m3-input w-full px-3 py-2 text-sm font-mono tabular-nums"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--md-on-surface)] mb-1">اسم المسؤول الأول *</label>
+                  <input
+                    type="text"
+                    value={adminName}
+                    onChange={(e) => setAdminName(e.target.value)}
+                    placeholder="مثال: عبدالله القحطاني"
+                    className="m3-input w-full px-3 py-2 text-sm"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--md-on-surface)] mb-1">البريد الإلكتروني للإنتاج *</label>
+                  <input
+                    type="email"
+                    value={tenantEmail}
+                    onChange={(e) => setTenantEmail(e.target.value)}
+                    placeholder="admin@afaq-trading.sa"
+                    className="m3-input w-full px-3 py-2 text-sm"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[var(--md-on-surface)] mb-1">كلمة مرور المسؤول الآمنة *</label>
                 <input
-                  type="text"
-                  value={tenantName}
-                  onChange={(e) => setTenantName(e.target.value)}
-                  placeholder="مثال: شركة آفاق الأعمال للتجارة"
-                  className="w-full px-3 py-2 text-sm bg-slate-950 border border-slate-700 rounded-xl text-slate-200 focus:border-emerald-500 outline-none"
+                  type="password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="m3-input w-full px-3 py-2 text-sm"
                   required
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">الرقم الضريبي (اختياري)</label>
-                <input
-                  type="text"
-                  value={tenantTaxNo}
-                  onChange={(e) => setTenantTaxNo(e.target.value)}
-                  placeholder="300XXXXXXXXXXXX"
-                  className="w-full px-3 py-2 text-sm bg-slate-950 border border-slate-700 rounded-xl text-slate-200 focus:border-emerald-500 outline-none"
-                />
+              <div className="flex items-center justify-between pt-2 flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handlePreBackup}
+                  disabled={actionLoading === 'backup' || !readiness?.summary.companyId}
+                  className="m3-btn-outlined inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold cursor-pointer disabled:opacity-50"
+                >
+                  <FileCheck className="w-4 h-4 text-[var(--md-primary-text)]" />
+                  إنشاء نسخة احتياطية أولية (Pre-Backup)
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={actionLoading === 'tenant'}
+                  className="m3-btn-primary inline-flex items-center gap-2 px-5 py-2 text-xs font-bold cursor-pointer disabled:opacity-50"
+                >
+                  <Building2 className="w-4 h-4" />
+                  تأسيس المنشأة والمسؤول
+                </button>
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">اسم المسؤول الأول *</label>
-                <input
-                  type="text"
-                  value={adminName}
-                  onChange={(e) => setAdminName(e.target.value)}
-                  placeholder="مثال: عبدالله القحطاني"
-                  className="w-full px-3 py-2 text-sm bg-slate-950 border border-slate-700 rounded-xl text-slate-200 focus:border-emerald-500 outline-none"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">البريد الإلكتروني للإنتاج *</label>
-                <input
-                  type="email"
-                  value={tenantEmail}
-                  onChange={(e) => setTenantEmail(e.target.value)}
-                  placeholder="admin@afaq-trading.sa"
-                  className="w-full px-3 py-2 text-sm bg-slate-950 border border-slate-700 rounded-xl text-slate-200 focus:border-emerald-500 outline-none"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">كلمة مرور المسؤول الآمنة *</label>
-              <input
-                type="password"
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
-                placeholder="••••••••••••"
-                className="w-full px-3 py-2 text-sm bg-slate-950 border border-slate-700 rounded-xl text-slate-200 focus:border-emerald-500 outline-none"
-                required
-              />
-            </div>
-
-            <div className="flex items-center justify-between pt-2">
-              <button
-                type="button"
-                onClick={handlePreBackup}
-                disabled={actionLoading === 'backup' || !readiness?.summary.companyId}
-                className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl transition cursor-pointer"
-              >
-                <FileCheck className="w-4 h-4 text-emerald-400" />
-                إنشاء نسخة احتياطية أولية (Pre-Backup)
-              </button>
-
-              <button
-                type="submit"
-                disabled={actionLoading === 'tenant'}
-                className="inline-flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl shadow-lg shadow-emerald-950 transition cursor-pointer"
-              >
-                <Building2 className="w-4 h-4" />
-                تأسيس المنشأة والمسؤول
-              </button>
-            </div>
-          </form>
+            </form>
           )}
         </div>
 
         {/* Quadrant 2: Safe Data Import Pipeline */}
-        <div className="bg-slate-900 rounded-2xl p-6 shadow-xl border border-emerald-900/40">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div className="m3-card p-6">
+          <div className="flex items-center justify-between gap-3 pb-4 border-b border-[var(--md-outline-variant)] flex-wrap">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-emerald-950 border border-emerald-800 text-emerald-400">
+              <div className="p-2.5 rounded-xl bg-[var(--md-primary-container)] border border-[var(--md-primary)]/25 text-[var(--md-on-primary-container)]">
                 <Upload className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bold text-white">محرك استيراد البيانات الآمن (Dry-Run & Commit)</h3>
-                <p className="text-xs text-slate-400">استيراد العملاء، الموردين، المنتجات والأرصدة الافتتاحية</p>
+                <h3 className="font-bold text-[var(--md-on-surface)]">محرك استيراد البيانات الآمن (Dry-Run & Commit)</h3>
+                <p className="text-xs text-[var(--md-on-surface-variant)]">استيراد العملاء، الموردين، المنتجات والأرصدة الافتتاحية</p>
               </div>
             </div>
 
             <select
               value={importDomain}
               onChange={(e) => setImportDomain(e.target.value as any)}
-              className="text-xs font-semibold bg-slate-950 border border-slate-700 text-slate-200 rounded-xl px-3 py-1.5 outline-none"
+              className="m3-select text-xs font-semibold px-3 py-1.5"
             >
               <option value="CUSTOMERS">العملاء (Customers)</option>
               <option value="SUPPLIERS">الموردين (Suppliers)</option>
@@ -707,17 +753,17 @@ export const ProductionDataInitializationTab: React.FC<{ companyId?: string }> =
               onChange={(e) => setImportRawJson(e.target.value)}
               rows={4}
               placeholder="ضع مصفوفة البيانات بتنسيق JSON هنا..."
-              className="w-full p-3 font-mono text-xs border border-slate-700 rounded-xl bg-slate-950 text-slate-200 focus:border-emerald-500 outline-none"
+              className="m3-input w-full p-3 font-mono text-xs"
             />
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <button
                 type="button"
                 onClick={handleImportPreview}
                 disabled={actionLoading === 'preview'}
-                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl transition cursor-pointer"
+                className="m3-btn-outlined inline-flex items-center gap-2 px-4 py-2 text-xs font-bold cursor-pointer disabled:opacity-50"
               >
-                <Play className="w-3.5 h-3.5 text-emerald-400" />
+                <Play className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
                 فحص تجريبي (Dry Run)
               </button>
 
@@ -726,7 +772,7 @@ export const ProductionDataInitializationTab: React.FC<{ companyId?: string }> =
                   type="button"
                   onClick={handleImportCommit}
                   disabled={actionLoading === 'commit' || importPreview.errorRecords > 0}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl shadow-lg shadow-emerald-950 transition cursor-pointer"
+                  className="m3-btn-primary inline-flex items-center gap-2 px-4 py-2 text-xs font-bold cursor-pointer disabled:opacity-50"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   ترحيل وتثبيت ({importPreview.validRecords} سجل)
@@ -736,23 +782,23 @@ export const ProductionDataInitializationTab: React.FC<{ companyId?: string }> =
 
             {/* Preview Results Box */}
             {importPreview && (
-              <div className="p-3 bg-slate-950 rounded-xl border border-emerald-900/40 text-xs space-y-2">
-                <div className="flex items-center justify-between font-bold text-slate-200">
+              <div className="p-3 bg-[var(--md-surface-container-low)] rounded-xl border border-[var(--md-outline-variant)] text-xs space-y-2">
+                <div className="flex items-center justify-between font-bold text-[var(--md-on-surface)]">
                   <span>نتائج الفحص التجريبي للملف:</span>
-                  <span className="text-emerald-400 font-mono">ID: {importPreview.importId}</span>
+                  <span className="text-[var(--md-primary-text)] font-mono tabular-nums">ID: {importPreview.importId}</span>
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className="bg-slate-900 p-2 rounded-lg border border-slate-800">
-                    <div className="text-slate-400">صالح للترحيل</div>
-                    <div className="font-bold text-emerald-400 text-sm font-mono">{importPreview.validRecords}</div>
+                  <div className="bg-[var(--md-surface-container)] p-2 rounded-lg border border-[var(--md-outline-variant)]">
+                    <div className="text-[var(--md-on-surface-variant)]">صالح للترحيل</div>
+                    <div className="font-bold text-[var(--md-success)] text-sm font-mono tabular-nums">{importPreview.validRecords}</div>
                   </div>
-                  <div className="bg-slate-900 p-2 rounded-lg border border-slate-800">
-                    <div className="text-slate-400">تحذيرات</div>
-                    <div className="font-bold text-amber-400 text-sm font-mono">{importPreview.warningRecords}</div>
+                  <div className="bg-[var(--md-surface-container)] p-2 rounded-lg border border-[var(--md-outline-variant)]">
+                    <div className="text-[var(--md-on-surface-variant)]">تحذيرات</div>
+                    <div className="font-bold text-[var(--md-warning)] text-sm font-mono tabular-nums">{importPreview.warningRecords}</div>
                   </div>
-                  <div className="bg-slate-900 p-2 rounded-lg border border-slate-800">
-                    <div className="text-slate-400">أخطاء مانعة</div>
-                    <div className="font-bold text-rose-400 text-sm font-mono">{importPreview.errorRecords}</div>
+                  <div className="bg-[var(--md-surface-container)] p-2 rounded-lg border border-[var(--md-outline-variant)]">
+                    <div className="text-[var(--md-on-surface-variant)]">أخطاء مانعة</div>
+                    <div className="font-bold text-[var(--md-error)] text-sm font-mono tabular-nums">{importPreview.errorRecords}</div>
                   </div>
                 </div>
               </div>
@@ -761,30 +807,30 @@ export const ProductionDataInitializationTab: React.FC<{ companyId?: string }> =
         </div>
 
         {/* Quadrant 3: Test Probe Transaction & Invariant Verification */}
-        <div className="bg-slate-900 rounded-2xl p-6 shadow-xl border border-emerald-900/40">
-          <div className="flex items-center gap-3 pb-4 border-b border-slate-800">
-            <div className="p-2.5 rounded-xl bg-amber-950 border border-amber-800 text-amber-400">
+        <div className="m3-card p-6">
+          <div className="flex items-center gap-3 pb-4 border-b border-[var(--md-outline-variant)]">
+            <div className="p-2.5 rounded-xl bg-[var(--md-warning-container)] border border-[var(--md-warning)]/30 text-[var(--md-on-warning-container)]">
               <Zap className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-white">معاملة الفحص التشغيلي التجريبية وعكس القيد</h3>
-              <p className="text-xs text-slate-400">فحص دورة الفاتورة والدفع والقيد المزدوج وعكسها محاسبياً</p>
+              <h3 className="font-bold text-[var(--md-on-surface)]">معاملة الفحص التشغيلي التجريبية وعكس القيد</h3>
+              <p className="text-xs text-[var(--md-on-surface-variant)]">فحص دورة الفاتورة والدفع والقيد المزدوج وعكسها محاسبياً</p>
             </div>
           </div>
 
           <div className="space-y-4 mt-4">
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <p className="text-xs text-[var(--md-on-surface-variant)] leading-relaxed">
               يقوم هذا الإجراء بإنشاء فاتورة اختبارية بمبلغ 1.00 ر.س ودفعها آلياً للتحقق من مسار الترحيل لدفتر الأستاذ وحركة المخزون، ثم إتاحة عكس القيد محاسبياً لضمان عدم تلوث بيانات الإنتاج.
             </p>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <button
                 type="button"
                 onClick={handleExecuteProbe}
                 disabled={actionLoading === 'probe' || !readiness?.summary.companyId}
-                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-amber-200 bg-amber-950/80 border border-amber-800 hover:bg-amber-900 rounded-xl transition cursor-pointer"
+                className="m3-btn-tonal inline-flex items-center gap-2 px-4 py-2 text-xs font-bold cursor-pointer disabled:opacity-50"
               >
-                <Play className="w-3.5 h-3.5 text-amber-400" />
+                <Play className="w-3.5 h-3.5" />
                 تنفيذ معاملة الفحص (1.00 ر.س)
               </button>
 
@@ -793,7 +839,7 @@ export const ProductionDataInitializationTab: React.FC<{ companyId?: string }> =
                   type="button"
                   onClick={handleReverseProbe}
                   disabled={actionLoading === 'reverse'}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 rounded-xl transition cursor-pointer"
+                  className="m3-btn-danger inline-flex items-center gap-2 px-4 py-2 text-xs font-bold cursor-pointer disabled:opacity-50"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   عكس القيد محاسبياً
@@ -802,8 +848,8 @@ export const ProductionDataInitializationTab: React.FC<{ companyId?: string }> =
             </div>
 
             {testProbeResult && (
-              <div className="p-3 bg-emerald-950/80 rounded-xl border border-emerald-800 text-xs space-y-1 text-emerald-200 font-mono">
-                <div className="font-bold text-white">معاملة الفحص مسجلة ومتطابقة:</div>
+              <div className="p-3 bg-[var(--md-success-container)] rounded-xl border border-[var(--md-success)]/35 text-xs space-y-1 text-[var(--md-on-success-container)] font-mono tabular-nums">
+                <div className="font-bold font-sans">معاملة الفحص مسجلة ومتطابقة:</div>
                 <div>معرف المعاملة: {testProbeResult.testTransactionId}</div>
                 <div>إجمالي المدين: {testProbeResult.debitTotal} ر.س | إجمالي الدائن: {testProbeResult.creditTotal} ر.س</div>
               </div>
@@ -812,56 +858,56 @@ export const ProductionDataInitializationTab: React.FC<{ companyId?: string }> =
         </div>
 
         {/* Quadrant 4: Comprehensive Ledger & Data Reconciliation Summary */}
-        <div className="bg-slate-900 rounded-2xl p-6 shadow-xl border border-emerald-900/40">
-          <div className="flex items-center gap-3 pb-4 border-b border-slate-800">
-            <div className="p-2.5 rounded-xl bg-emerald-950 border border-emerald-800 text-emerald-400">
+        <div className="m3-card p-6">
+          <div className="flex items-center gap-3 pb-4 border-b border-[var(--md-outline-variant)]">
+            <div className="p-2.5 rounded-xl bg-[var(--md-primary-container)] border border-[var(--md-primary)]/25 text-[var(--md-on-primary-container)]">
               <Scale className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-white">مطابقة وتطابق الأرصدة ودفتر الأستاذ العام</h3>
-              <p className="text-xs text-slate-400">التأكد التام من استيفاء شروط النزاهة المحاسبية (Debit = Credit)</p>
+              <h3 className="font-bold text-[var(--md-on-surface)]">مطابقة وتطابق الأرصدة ودفتر الأستاذ العام</h3>
+              <p className="text-xs text-[var(--md-on-surface-variant)]">التأكد التام من استيفاء شروط النزاهة المحاسبية (Debit = Credit)</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3 mt-4 text-xs">
-            <div className="bg-slate-950 p-3 rounded-xl border border-emerald-900/30">
-              <div className="text-slate-400">إجمالي المدين (Debit)</div>
-              <div className="text-base font-bold text-emerald-400 font-mono mt-1">
+            <div className="bg-[var(--md-surface-container-low)] p-3 rounded-xl border border-[var(--md-outline-variant)]">
+              <div className="text-[var(--md-on-surface-variant)]">إجمالي المدين (Debit)</div>
+              <div className="text-base font-bold text-[var(--md-primary-text)] font-mono tabular-nums mt-1">
                 {readiness?.reconciliation.ledgerDebitTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })} ر.س
               </div>
             </div>
 
-            <div className="bg-slate-950 p-3 rounded-xl border border-emerald-900/30">
-              <div className="text-slate-400">إجمالي الدائن (Credit)</div>
-              <div className="text-base font-bold text-emerald-400 font-mono mt-1">
+            <div className="bg-[var(--md-surface-container-low)] p-3 rounded-xl border border-[var(--md-outline-variant)]">
+              <div className="text-[var(--md-on-surface-variant)]">إجمالي الدائن (Credit)</div>
+              <div className="text-base font-bold text-[var(--md-primary-text)] font-mono tabular-nums mt-1">
                 {readiness?.reconciliation.ledgerCreditTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })} ر.س
               </div>
             </div>
 
-            <div className="bg-slate-950 p-3 rounded-xl border border-emerald-900/30">
-              <div className="text-slate-400">العملاء والأرصدة الافتتاحية</div>
-              <div className="font-bold text-slate-200 mt-1 font-mono">
+            <div className="bg-[var(--md-surface-container-low)] p-3 rounded-xl border border-[var(--md-outline-variant)]">
+              <div className="text-[var(--md-on-surface-variant)]">العملاء والأرصدة الافتتاحية</div>
+              <div className="font-bold text-[var(--md-on-surface)] mt-1 font-mono tabular-nums">
                 {readiness?.reconciliation.customersCount} عميل ({readiness?.reconciliation.customerOpeningBalanceTotal} ر.س)
               </div>
             </div>
 
-            <div className="bg-slate-950 p-3 rounded-xl border border-emerald-900/30">
-              <div className="text-slate-400">الموردين والأرصدة الافتتاحية</div>
-              <div className="font-bold text-slate-200 mt-1 font-mono">
+            <div className="bg-[var(--md-surface-container-low)] p-3 rounded-xl border border-[var(--md-outline-variant)]">
+              <div className="text-[var(--md-on-surface-variant)]">الموردين والأرصدة الافتتاحية</div>
+              <div className="font-bold text-[var(--md-on-surface)] mt-1 font-mono tabular-nums">
                 {readiness?.reconciliation.suppliersCount} مورد ({readiness?.reconciliation.supplierOpeningBalanceTotal} ر.س)
               </div>
             </div>
 
-            <div className="bg-slate-950 p-3 rounded-xl border border-emerald-900/30">
-              <div className="text-slate-400">المنتجات وإجمالي المخزون</div>
-              <div className="font-bold text-slate-200 mt-1 font-mono">
+            <div className="bg-[var(--md-surface-container-low)] p-3 rounded-xl border border-[var(--md-outline-variant)]">
+              <div className="text-[var(--md-on-surface-variant)]">المنتجات وإجمالي المخزون</div>
+              <div className="font-bold text-[var(--md-on-surface)] mt-1 font-mono tabular-nums">
                 {readiness?.reconciliation.productsCount} منتج ({readiness?.reconciliation.stockUnitsTotal} وحدة)
               </div>
             </div>
 
-            <div className="bg-slate-950 p-3 rounded-xl border border-emerald-900/30">
-              <div className="text-slate-400">الفواتير والدفعات</div>
-              <div className="font-bold text-slate-200 mt-1 font-mono">
+            <div className="bg-[var(--md-surface-container-low)] p-3 rounded-xl border border-[var(--md-outline-variant)]">
+              <div className="text-[var(--md-on-surface-variant)]">الفواتير والدفعات</div>
+              <div className="font-bold text-[var(--md-on-surface)] mt-1 font-mono tabular-nums">
                 {readiness?.reconciliation.invoicesCount} فاتورة / {readiness?.reconciliation.paymentsCount} دفعة
               </div>
             </div>

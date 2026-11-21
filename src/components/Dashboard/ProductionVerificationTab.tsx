@@ -239,23 +239,21 @@ export const ProductionVerificationTab: React.FC = () => {
   });
 
   return (
-    <div className="space-y-6 text-slate-100">
-      
+    <div className="space-y-6 text-[var(--md-on-surface)]" dir="rtl">
+
       {/* Executive Header Banner */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900 to-[#061a14] border border-emerald-900/50 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        
+      <div className="m3-card-elevated p-6 relative overflow-hidden">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-10">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-semibold">
-              <Award className="w-3.5 h-3.5 text-emerald-400" />
+            <div className="m3-badge inline-flex items-center gap-2 px-3 py-1 bg-[var(--md-primary-container)] border border-[var(--md-primary)]/30 text-[var(--md-on-primary-container)] text-xs font-semibold">
+              <Award className="w-3.5 h-3.5" />
               <span>Phase 8.3 — Live Production Verification Suite</span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
-              <ShieldCheck className="w-7 h-7 text-emerald-400 shrink-0" />
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--md-on-surface)] flex items-center gap-2.5">
+              <ShieldCheck className="w-7 h-7 text-[var(--md-primary-text)] shrink-0" />
               <span>وحدة التحقق التشغيلي المباشر (19 Live Production Verification Tests)</span>
             </h1>
-            <p className="text-xs text-slate-300 max-w-3xl leading-relaxed">
+            <p className="text-xs text-[var(--md-on-surface-variant)] max-w-3xl leading-relaxed">
               تقوم هذه الوحدة بتشغيل حزمة الفحص الشامل المباشر المكونة من 19 اختباراً حرجاً للتأكد من بروتوكول التشفير HTTPS، صحة الاتصال بالـ API، قواعد العزل المتعدد للمؤسسات، ومطابقة قيود المدين والدائن في دفتر الأستاذ.
             </p>
           </div>
@@ -264,7 +262,7 @@ export const ProductionVerificationTab: React.FC = () => {
             <button
               onClick={runLiveVerificationSuite}
               disabled={isRunning || !isAuthenticated}
-              className="w-full sm:w-auto px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-900/40 flex items-center justify-center gap-2.5 transition-all disabled:opacity-50 cursor-pointer"
+              className="m3-btn-primary w-full sm:w-auto px-5 py-3 font-bold text-xs flex items-center justify-center gap-2.5 disabled:opacity-50 cursor-pointer"
             >
               {isRunning ? (
                 <>
@@ -273,7 +271,7 @@ export const ProductionVerificationTab: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <Play className="w-4 h-4 fill-white" />
+                  <Play className="w-4 h-4 fill-current" />
                   <span>تشغيل الفحص المباشر الشامل (Run All 19 Tests)</span>
                 </>
               )}
@@ -284,59 +282,59 @@ export const ProductionVerificationTab: React.FC = () => {
 
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        
+
         {/* Total Tests */}
-        <div className="p-4 rounded-xl bg-slate-900 border border-emerald-900/40 shadow-xl flex items-center justify-between">
+        <div className="m3-card p-4 flex items-center justify-between">
           <div className="space-y-1">
-            <div className="text-[11px] font-semibold text-slate-400">إجمالي الاختبارات الحرجة</div>
-            <div className="text-2xl font-extrabold text-white font-mono">19 / 19</div>
-            <div className="text-[10px] text-slate-500">Phase 8.3 Suite Certified</div>
+            <div className="text-[11px] font-semibold text-[var(--md-on-surface-variant)]">إجمالي الاختبارات الحرجة</div>
+            <div className="text-2xl font-extrabold text-[var(--md-on-surface)] font-mono tabular-nums">19 / 19</div>
+            <div className="text-[10px] text-[var(--md-on-surface-variant)]">Phase 8.3 Suite Certified</div>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-emerald-950/80 border border-emerald-800/60 flex items-center justify-center text-emerald-400">
+          <div className="w-12 h-12 rounded-xl bg-[var(--md-primary-container)] border border-[var(--md-primary)]/25 flex items-center justify-center text-[var(--md-on-primary-container)]">
             <Layers className="w-6 h-6" />
           </div>
         </div>
 
         {/* Compliance Rate */}
-        <div className="p-4 rounded-xl bg-slate-900 border border-emerald-900/40 shadow-xl flex items-center justify-between">
+        <div className="m3-card p-4 flex items-center justify-between">
           <div className="space-y-1">
-            <div className="text-[11px] font-semibold text-slate-400">نسبة نجاح الفحص المباشر</div>
-            <div className="text-2xl font-extrabold text-emerald-400 font-mono">
+            <div className="text-[11px] font-semibold text-[var(--md-on-surface-variant)]">نسبة نجاح الفحص المباشر</div>
+            <div className="text-2xl font-extrabold text-[var(--md-success)] font-mono tabular-nums">
               {summary ? `${Math.round((summary.passed / summary.total) * 100)}%` : '100%'}
             </div>
-            <div className="text-[10px] text-emerald-400 font-bold">0 Failures Detected</div>
+            <div className="text-[10px] text-[var(--md-success)] font-bold">0 Failures Detected</div>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-emerald-950/80 border border-emerald-800/60 flex items-center justify-center text-emerald-400">
+          <div className="w-12 h-12 rounded-xl bg-[var(--md-success-container)] border border-[var(--md-success)]/25 flex items-center justify-center text-[var(--md-on-success-container)]">
             <CheckCircle2 className="w-6 h-6" />
           </div>
         </div>
 
         {/* Tenant Isolation Status */}
-        <div className="p-4 rounded-xl bg-slate-900 border border-emerald-900/40 shadow-xl flex items-center justify-between">
-          <div className="space-y-1">
-            <div className="text-[11px] font-semibold text-slate-400">حالة عزل البيانات (Multi-Tenant)</div>
-            <div className="text-sm font-bold text-white">مضمون ومفروض 100%</div>
-            <div className="text-[10px] text-emerald-400 font-mono truncate max-w-[140px]">
+        <div className="m3-card p-4 flex items-center justify-between">
+          <div className="space-y-1 min-w-0">
+            <div className="text-[11px] font-semibold text-[var(--md-on-surface-variant)]">حالة عزل البيانات (Multi-Tenant)</div>
+            <div className="text-sm font-bold text-[var(--md-on-surface)]">مضمون ومفروض 100%</div>
+            <div className="text-[10px] text-[var(--md-primary-text)] font-mono truncate max-w-[140px]">
               {company ? company.name : 'مؤسسة معزولة'}
             </div>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-teal-950/80 border border-teal-800/60 flex items-center justify-center text-teal-400">
+          <div className="w-12 h-12 rounded-xl bg-[var(--md-info-container)] border border-[var(--md-info)]/25 flex items-center justify-center text-[var(--md-on-info-container)] shrink-0">
             <Lock className="w-6 h-6" />
           </div>
         </div>
 
         {/* Last Execution Metrics */}
-        <div className="p-4 rounded-xl bg-slate-900 border border-emerald-900/40 shadow-xl flex items-center justify-between">
+        <div className="m3-card p-4 flex items-center justify-between">
           <div className="space-y-1">
-            <div className="text-[11px] font-semibold text-slate-400">زمن التنفيذ الأخير</div>
-            <div className="text-2xl font-extrabold text-white font-mono">
+            <div className="text-[11px] font-semibold text-[var(--md-on-surface-variant)]">زمن التنفيذ الأخير</div>
+            <div className="text-2xl font-extrabold text-[var(--md-on-surface)] font-mono tabular-nums">
               {summary?.durationMs ? `${summary.durationMs} ms` : '380 ms'}
             </div>
-            <div className="text-[10px] text-slate-400">
+            <div className="text-[10px] text-[var(--md-on-surface-variant)] tabular-nums">
               آخر تشغيل: {lastExecutedAt || 'الآن'}
             </div>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-amber-950/80 border border-amber-800/60 flex items-center justify-center text-amber-400">
+          <div className="w-12 h-12 rounded-xl bg-[var(--md-warning-container)] border border-[var(--md-warning)]/25 flex items-center justify-center text-[var(--md-on-warning-container)]">
             <Activity className="w-6 h-6" />
           </div>
         </div>
@@ -344,18 +342,18 @@ export const ProductionVerificationTab: React.FC = () => {
       </div>
 
       {/* Filter and Search Toolbar */}
-      <div className="p-4 rounded-xl bg-slate-900 border border-emerald-900/40 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-        
+      <div className="m3-card p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+
         {/* Category Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
           {categories.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border ${
                 selectedCategory === cat
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] border-[var(--md-primary)]'
+                  : 'bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] border-[var(--md-outline-variant)] hover:bg-[var(--md-surface-container-highest)] hover:text-[var(--md-on-surface)]'
               }`}
             >
               {cat === 'ALL' ? 'جميع الاختيارات (19)' : cat}
@@ -365,61 +363,61 @@ export const ProductionVerificationTab: React.FC = () => {
 
         {/* Search Input */}
         <div className="relative w-full md:w-64">
-          <Search className="w-4 h-4 text-slate-400 absolute right-3 top-2.5 pointer-events-none" />
+          <Search className="w-4 h-4 text-[var(--md-on-surface-variant)] absolute right-3 top-2.5 pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="بحث بالاسم أو الفئة..."
-            className="w-full pr-9 pl-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+            className="m3-input w-full pr-9 pl-3 py-2 text-xs"
           />
         </div>
 
       </div>
 
       {/* Test List Table */}
-      <div className="bg-slate-900 rounded-2xl border border-emerald-900/40 shadow-xl overflow-hidden">
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
-          <div className="text-xs font-bold text-white flex items-center gap-2">
-            <FileCheck className="w-4 h-4 text-emerald-400" />
+      <div className="m3-card overflow-hidden">
+        <div className="p-4 border-b border-[var(--md-outline-variant)] flex items-center justify-between bg-[var(--md-surface-container-low)]">
+          <div className="text-xs font-bold text-[var(--md-on-surface)] flex items-center gap-2">
+            <FileCheck className="w-4 h-4 text-[var(--md-primary-text)]" />
             <span>سجل نتائج الفحص للـ 19 اختباراً (Live Test Inspection Log)</span>
           </div>
-          <div className="text-[11px] font-mono text-slate-400">
+          <div className="text-[11px] font-mono text-[var(--md-on-surface-variant)] tabular-nums">
             عرض {filteredTests.length} من أصل 19 اختباراً
           </div>
         </div>
 
-        <div className="divide-y divide-slate-800/80">
+        <div className="divide-y divide-[var(--md-outline-variant)]">
           {filteredTests.map((test) => {
             const isExpanded = expandedTestId === test.id;
             const isPassed = test.status === 'PASSED';
 
             return (
-              <div key={test.id} className="transition-colors hover:bg-slate-800/40">
+              <div key={test.id} className="transition-colors hover:bg-[var(--md-surface-container-low)]">
                 <div
                   onClick={() => setExpandedTestId(isExpanded ? null : test.id)}
                   className="p-4 flex items-center justify-between gap-4 cursor-pointer"
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
-                    <span className="w-7 h-7 rounded-lg bg-slate-800 font-mono text-xs font-bold text-emerald-400 flex items-center justify-center shrink-0">
+                    <span className="w-7 h-7 rounded-lg bg-[var(--md-surface-container-high)] border border-[var(--md-outline-variant)] font-mono text-xs font-bold text-[var(--md-primary-text)] flex items-center justify-center shrink-0 tabular-nums">
                       #{test.id}
                     </span>
 
                     {isPassed ? (
-                      <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                      <CheckCircle2 className="w-5 h-5 text-[var(--md-success)] shrink-0" />
                     ) : (
-                      <XCircle className="w-5 h-5 text-rose-400 shrink-0" />
+                      <XCircle className="w-5 h-5 text-[var(--md-error)] shrink-0" />
                     )}
 
                     <div className="min-w-0">
-                      <div className="text-xs font-bold text-slate-100 truncate">
+                      <div className="text-xs font-bold text-[var(--md-on-surface)] truncate">
                         {test.name}
                       </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-medium">
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] border border-[var(--md-outline-variant)] font-medium">
                           {test.category}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-mono">
+                        <span className="text-[10px] text-[var(--md-on-surface-variant)] font-mono">
                           Key: {test.key}
                         </span>
                       </div>
@@ -428,16 +426,20 @@ export const ProductionVerificationTab: React.FC = () => {
 
                   <div className="flex items-center gap-3 shrink-0">
                     <span
-                      className={`px-2.5 py-1 rounded-full text-[10px] font-bold font-mono ${
+                      className={`m3-badge font-mono ${
                         isPassed
-                          ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-                          : 'bg-rose-950 text-rose-300 border border-rose-800'
+                          ? 'bg-[var(--md-success-container)] text-[var(--md-on-success-container)] border border-[var(--md-success)]/35'
+                          : 'bg-[var(--md-error-container)] text-[var(--md-on-error-container)] border border-[var(--md-error)]/35'
                       }`}
                     >
                       {test.status}
                     </span>
 
-                    <button className="text-slate-400 hover:text-slate-200">
+                    <button
+                      type="button"
+                      className="text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)] p-1 rounded-lg"
+                      aria-label={isExpanded ? 'إخفاء التفاصيل' : 'عرض التفاصيل'}
+                    >
                       {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </button>
                   </div>
@@ -445,10 +447,10 @@ export const ProductionVerificationTab: React.FC = () => {
 
                 {/* Expanded Details Panel */}
                 {isExpanded && (
-                  <div className="px-14 pb-4 pt-1 bg-slate-950/60 text-xs text-slate-300 space-y-2 border-t border-slate-800">
-                    <div className="p-3 bg-slate-900 rounded-xl border border-emerald-900/40 space-y-1 font-mono text-[11px]">
-                      <div className="text-emerald-400 font-semibold uppercase text-[10px]">تفاصيل الفحص المباشر:</div>
-                      <p className="text-slate-200 leading-relaxed">{test.details}</p>
+                  <div className="px-6 sm:px-14 pb-4 pt-2 bg-[var(--md-surface-container-low)] text-xs text-[var(--md-on-surface)] space-y-2 border-t border-[var(--md-outline-variant)]">
+                    <div className="p-3.5 bg-[var(--md-surface-container)] rounded-xl border border-[var(--md-outline-variant)] space-y-1 font-mono text-[11px]">
+                      <div className="text-[var(--md-primary-text)] font-bold font-sans text-xs">تفاصيل الفحص المباشر:</div>
+                      <p className="text-[var(--md-on-surface)] leading-relaxed break-words">{test.details}</p>
                     </div>
                   </div>
                 )}
@@ -459,17 +461,17 @@ export const ProductionVerificationTab: React.FC = () => {
       </div>
 
       {/* Production Certification Footer */}
-      <div className="p-5 bg-emerald-950/80 text-emerald-100 rounded-2xl border border-emerald-800/60 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="p-5 bg-[var(--md-success-container)] text-[var(--md-on-success-container)] rounded-2xl border border-[var(--md-success)]/35 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Award className="w-8 h-8 text-emerald-400 shrink-0" />
+          <Award className="w-8 h-8 text-[var(--md-success)] shrink-0" />
           <div>
-            <div className="text-xs font-bold text-white">شهادة الجاهزية الميدانية والتشغيل الإنتاجي (Production Readiness Certified)</div>
-            <p className="text-[11px] text-emerald-300/80">
+            <div className="text-xs font-bold">شهادة الجاهزية الميدانية والتشغيل الإنتاجي (Production Readiness Certified)</div>
+            <p className="text-[11px] opacity-90 mt-0.5">
               تم اعتماد بيئة النظام الحية للعمل وفقاً لأعلى معايير الأمن السيبراني والعزل التام للشركات.
             </p>
           </div>
         </div>
-        <div className="text-xs font-mono text-emerald-300 font-bold shrink-0 bg-emerald-900/80 px-3 py-1.5 rounded-xl border border-emerald-700/50">
+        <div className="text-xs font-mono font-bold shrink-0 bg-[var(--md-surface-container)] text-[var(--md-success)] px-3.5 py-1.5 rounded-xl border border-[var(--md-success)]/35 tabular-nums">
           PASSED 19/19 TESTS
         </div>
       </div>
