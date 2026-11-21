@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { formatAmount } from '../../../lib/formatters';
+import { formatAmount, formatNumber } from '../../../lib/formatters';
 import { getProductMajorFactor, computeLiveProductStockMetrics } from '../../../utils/inventoryMath';
 import { TabType } from '../../Sidebar';
 import {
@@ -27,6 +27,22 @@ interface InventoryIntelligenceHubProps {
   onNavigate?: (tab: TabType, extra?: any) => void;
 }
 
+const resolveProductMinStock = (p: any, defaultThreshold = 5): { value: number; isCustom: boolean } => {
+  const rawPrimary = p?.min_stock_level;
+  if (rawPrimary !== undefined && rawPrimary !== null && rawPrimary !== '') {
+    const parsed = Number(rawPrimary);
+    if (Number.isFinite(parsed) && parsed >= 0) return { value: parsed, isCustom: true };
+  }
+  const legacyCandidates = [p?.minStockLevel, p?.min_stock, p?.minStock, p?.reorder_point, p?.reorderPoint];
+  for (const candidate of legacyCandidates) {
+    if (candidate !== undefined && candidate !== null && candidate !== '') {
+      const parsed = Number(candidate);
+      if (Number.isFinite(parsed) && parsed >= 0) return { value: parsed, isCustom: true };
+    }
+  }
+  return { value: defaultThreshold, isCustom: false };
+};
+
 export const InventoryIntelligenceHub: React.FC<InventoryIntelligenceHubProps> = ({
   stats = {} as any,
   productsList = [],
@@ -41,6 +57,11 @@ export const InventoryIntelligenceHub: React.FC<InventoryIntelligenceHubProps> =
   );
 
   const safeProducts = Array.isArray(productsList) ? productsList : [];
+  const serverLowStockAlerts: any[] = Array.isArray(stats?.lowStockAlerts)
+    ? stats.lowStockAlerts
+    : Array.isArray(stats?.counts?.lowStockAlerts)
+    ? stats.counts.lowStockAlerts
+    : [];
   const totalProducts = Number(stats?.counts?.productsCount ?? stats?.productCount ?? safeProducts.length);
   const lowStockCount = Number(stats?.counts?.lowStockCount ?? stats?.lowStockCount ?? 0);
   const inventoryValue = Number(stats?.balances?.inventoryValue ?? stats?.inventoryValue ?? 0);
@@ -102,6 +123,10 @@ export const InventoryIntelligenceHub: React.FC<InventoryIntelligenceHubProps> =
       pieces: 2,
       totalUnits: 14,
       minStockUnits: 25,
+      baseUnitName: 'حبة',
+      majorUnitName: 'كرتون',
+      isCustomThreshold: true,
+      isOut: false,
       unitPrice: 55,
       urgency: 'HIGH',
     },
@@ -112,6 +137,10 @@ export const InventoryIntelligenceHub: React.FC<InventoryIntelligenceHubProps> =
       pieces: 4,
       totalUnits: 10,
       minStockUnits: 20,
+      baseUnitName: 'حبة',
+      majorUnitName: 'كرتون',
+      isCustomThreshold: true,
+      isOut: false,
       unitPrice: 42,
       urgency: 'HIGH',
     },
@@ -122,20 +151,27 @@ export const InventoryIntelligenceHub: React.FC<InventoryIntelligenceHubProps> =
       pieces: 8,
       totalUnits: 24,
       minStockUnits: 36,
+      baseUnitName: 'حبة',
+      majorUnitName: 'كرتون',
+      isCustomThreshold: true,
+      isOut: false,
       unitPrice: 18.5,
       urgency: 'MEDIUM',
     },
   ];
 
-  const lowStockItems =
+  const allComputedLowStock =
     safeProducts.length > 0
       ? safeProducts
           .map((p, i) => {
             const m = computeLiveProductStockMetrics(p);
             const total = m.currentStock;
-            const factor = m.majorFactor;
             const cartons = m.majorCount;
             const pieces = m.remainderSub;
+            const minInfo = resolveProductMinStock(p, 5);
+            const minThreshold = minInfo.value;
+            const isOut = total <= 0;
+            const isLow = total <= minThreshold;
             return {
               product: p,
               sku: p.sku || `SKU-0${i + 1}`,
@@ -143,15 +179,52 @@ export const InventoryIntelligenceHub: React.FC<InventoryIntelligenceHubProps> =
               cartons,
               pieces,
               totalUnits: total,
-              minStockUnits: Number(p.min_stock_level ?? 25),
+              minStockUnits: minThreshold,
+              baseUnitName: m.baseUnitName || p.baseUnitName || p.unit || 'حبة',
+              majorUnitName: m.majorUnitName || 'كرتون',
+              isCustomThreshold: minInfo.isCustom,
+              isOut,
               unitPrice: Number(p.price ?? p.selling_price ?? 45),
-              urgency: total < (Number(p.min_stock_level ?? 25) / 2) ? 'HIGH' : 'MEDIUM',
-              isLow: total <= Number(p.min_stock_level ?? 25),
+              urgency: isOut ? 'CRITICAL' : total <= Math.max(1, minThreshold / 2) ? 'HIGH' : 'MEDIUM',
+              isLow,
             };
           })
           .filter((item) => item.isLow)
-          .slice(0, 4)
+          .sort((a, b) => {
+            if (a.isOut !== b.isOut) return a.isOut ? -1 : 1;
+            const ratioA = a.totalUnits / Math.max(1, a.minStockUnits);
+            const ratioB = b.totalUnits / Math.max(1, b.minStockUnits);
+            return ratioA - ratioB;
+          })
+      : serverLowStockAlerts.length > 0
+      ? serverLowStockAlerts.map((a, i) => {
+          const total = Number(a.current_stock ?? a.qty ?? 0);
+          const hasCustom = a.custom_min_stock_level !== null && a.custom_min_stock_level !== undefined;
+          const minThreshold = Number(a.min_stock_level ?? a.custom_min_stock_level ?? 5);
+          const isOut = total <= 0 || a.status === 'OUT_OF_STOCK';
+          return {
+            sku: a.sku || `SKU-0${i + 1}`,
+            name: a.product_name || a.name || 'صنف تجاري',
+            cartons: 0,
+            pieces: total,
+            totalUnits: total,
+            minStockUnits: minThreshold,
+            baseUnitName: a.baseUnitName || a.unit || 'حبة',
+            majorUnitName: 'كرتون',
+            isCustomThreshold: hasCustom,
+            isOut,
+            unitPrice: 0,
+            urgency: isOut ? 'CRITICAL' : total <= Math.max(1, minThreshold / 2) ? 'HIGH' : 'MEDIUM',
+            isLow: true,
+          };
+        })
       : (isClean ? [] : fallbackLowStock);
+
+  const lowStockItems = allComputedLowStock.slice(0, 6);
+  const displayLowStockCount =
+    safeProducts.length > 0 || serverLowStockAlerts.length > 0
+      ? allComputedLowStock.length
+      : lowStockCount;
 
   // Multi-Activity Radar & Warranties
   const foodExpiryBatches = [
@@ -193,13 +266,13 @@ export const InventoryIntelligenceHub: React.FC<InventoryIntelligenceHubProps> =
           </button>
           <button
             onClick={() => setActiveView('low_stock')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer tabular-nums ${
               activeView === 'low_stock'
                 ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)] shadow-sm'
                 : 'text-[var(--md-on-surface-variant)] hover:text-[var(--md-on-surface)]'
             }`}
           >
-            نواقص كرتون/حبة ({lowStockCount})
+            نواقص المخزون ({displayLowStockCount})
           </button>
           <button
             onClick={() => setActiveView('radar_warranties')}
@@ -280,46 +353,78 @@ export const InventoryIntelligenceHub: React.FC<InventoryIntelligenceHubProps> =
 
         {activeView === 'low_stock' && (
           <div className="space-y-2.5">
-            {lowStockItems.map((item, idx) => (
-              <div
-                key={idx}
-                className="p-3 rounded-xl bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] hover:border-[var(--md-outline)] transition-colors flex items-center justify-between gap-3 text-right"
-              >
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-[var(--md-on-surface)] truncate">{item.name}</span>
-                    <span className="m3-badge font-mono text-[9px] px-1.5 py-0">
-                      {item.sku}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-[10px] text-[var(--md-on-surface-variant)] font-mono flex-wrap tabular-nums">
-                    <span className="m3-badge m3-badge-warning font-bold">
-                      {item.cartons} كرتون + {item.pieces} حبة ({item.totalUnits} إجمالي)
-                    </span>
-                    <span>•</span>
-                    <span>حد الأمان: {item.minStockUnits}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <span
-                    className={`m3-badge ${
-                      item.urgency === 'HIGH' ? 'm3-badge-error' : 'm3-badge-warning'
+            {lowStockItems.length === 0 ? (
+              <div className="p-6 rounded-xl bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] text-center space-y-1.5">
+                <ShieldCheck className="w-7 h-7 mx-auto text-[var(--md-success)]" />
+                <div className="text-xs font-bold text-[var(--md-on-surface)]">لا توجد نواقص مخزنية حالياً</div>
+                <p className="text-[11px] text-[var(--md-on-surface-variant)]">
+                  جميع الأصناف أعلى من حد التنبيه المخصص لها قبل النفاذ.
+                </p>
+              </div>
+            ) : (
+              lowStockItems.map((item, idx) => {
+                const isOut = item.totalUnits <= 0;
+                const thresholdLabel = item.isCustomThreshold ? 'حد التنبيه المخصص' : 'الحد الافتراضي';
+                return (
+                  <div
+                    key={`${item.sku}-${idx}`}
+                    className={`p-3 rounded-xl border transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-right ${
+                      isOut
+                        ? 'bg-[var(--md-error-container)]/45 border-[var(--md-error)]/40'
+                        : 'bg-[var(--md-warning-container)]/40 border-[var(--md-warning)]/40'
                     }`}
                   >
-                    {item.urgency === 'HIGH' ? 'إعادة طلب عاجلة' : 'منخفض'}
-                  </span>
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <AlertTriangle
+                          className={`w-3.5 h-3.5 shrink-0 ${
+                            isOut ? 'text-[var(--md-error)]' : 'text-[var(--md-warning)]'
+                          }`}
+                        />
+                        <span className="text-xs font-bold text-[var(--md-on-surface)] truncate">{item.name}</span>
+                        <span className="m3-badge font-mono text-[9px] px-1.5 py-0">
+                          {item.sku}
+                        </span>
+                      </div>
 
-                  <button
-                    onClick={() => onNavigate && onNavigate('purchase_invoices')}
-                    className="px-2.5 py-1.5 rounded-lg bg-[var(--md-primary-container)] hover:opacity-85 text-[var(--md-on-primary-container)] text-[10px] font-bold transition-colors cursor-pointer flex items-center gap-1"
-                  >
-                    <Plus className="w-3 h-3" />
-                    <span>أمر شراء</span>
-                  </button>
-                </div>
-              </div>
-            ))}
+                      <div
+                        className={`text-[11px] font-bold tabular-nums leading-snug ${
+                          isOut ? 'text-[var(--md-on-error-container)]' : 'text-[var(--md-on-warning-container)]'
+                        }`}
+                      >
+                        {isOut
+                          ? `نفد المخزون بالكامل (0 ${item.baseUnitName}) — ${thresholdLabel}: ${formatNumber(item.minStockUnits)} ${item.baseUnitName}`
+                          : `متبقي ${formatNumber(item.totalUnits)} ${item.baseUnitName} فقط — ${thresholdLabel}: ${formatNumber(item.minStockUnits)} ${item.baseUnitName}`}
+                      </div>
+
+                      {item.cartons > 0 && (
+                        <div className="text-[10px] text-[var(--md-on-surface-variant)] font-mono tabular-nums">
+                          التفصيل: {formatNumber(item.cartons)} {item.majorUnitName} + {formatNumber(item.pieces)} {item.baseUnitName}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                      <span
+                        className={`m3-badge tabular-nums ${
+                          isOut ? 'm3-badge-error' : 'm3-badge-warning'
+                        }`}
+                      >
+                        {isOut ? 'نفد المخزون (0)' : item.urgency === 'HIGH' ? 'إعادة طلب عاجلة' : 'مخزون منخفض'}
+                      </span>
+
+                      <button
+                        onClick={() => onNavigate && onNavigate('purchase_invoices')}
+                        className="px-2.5 py-1.5 rounded-lg bg-[var(--md-primary-container)] hover:opacity-85 text-[var(--md-on-primary-container)] text-[10px] font-bold transition-colors cursor-pointer flex items-center gap-1"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>أمر شراء</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         )}
 

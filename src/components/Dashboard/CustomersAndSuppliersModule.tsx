@@ -145,6 +145,8 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
     openingBalance: '0',
     currency: 'YER',
     notes: '',
+    creditLimit: '0',
+    enforceCreditLimit: false,
   });
 
   const [supplierFormData, setSupplierFormData] = useState({
@@ -227,6 +229,8 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
       const opBal = Number(c.opening_balance !== undefined ? c.opening_balance : (c.openingBalance !== undefined ? c.openingBalance : (c.balance || 0)));
       const curBal = Number(c.current_balance !== undefined ? c.current_balance : (c.balance || 0));
       const cur = c.currency || 'YER';
+      const creditLim = Math.max(0, Number(c.credit_limit ?? c.creditLimit ?? 0));
+      const enforceLim = Boolean(c.enforce_credit_limit === true);
 
       return {
         ...c,
@@ -240,6 +244,8 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
         _currency: cur,
         _openingBalance: opBal,
         _currentBalance: curBal,
+        _creditLimit: creditLim,
+        _enforceCreditLimit: enforceLim,
         _notes: c.notes || '',
         _createdAt: c.created_at || new Date().toISOString(),
         _segment:
@@ -268,6 +274,8 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
         _currency: cur,
         _openingBalance: opBal,
         _currentBalance: curBal,
+        _creditLimit: 0,
+        _enforceCreditLimit: false,
         _notes: s.notes || '',
         _createdAt: s.created_at || new Date().toISOString(),
         _segment:
@@ -390,6 +398,8 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
       openingBalance: '0',
       currency: (company?.currency as any) || 'YER',
       notes: '',
+      creditLimit: '0',
+      enforceCreditLimit: false,
     });
     setIsCustomerModalOpen(true);
   };
@@ -398,6 +408,8 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
   const handleOpenEditCustomer = (cust: any) => {
     setEditingCustomer(cust);
     const opBal = cust.opening_balance !== undefined ? cust.opening_balance : (cust.openingBalance !== undefined ? cust.openingBalance : (cust.balance || 0));
+    const cLimit = Math.max(0, Number(cust.credit_limit ?? cust.creditLimit ?? cust._creditLimit ?? 0));
+    const enforceLim = Boolean(cust.enforce_credit_limit === true || cust._enforceCreditLimit === true);
     setCustomerFormData({
       name: cust.name || '',
       phone: cust.phone || '',
@@ -406,6 +418,8 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
       openingBalance: String(opBal || 0),
       currency: cust.currency || 'YER',
       notes: cust.notes || '',
+      creditLimit: String(cLimit),
+      enforceCreditLimit: enforceLim,
     });
     setIsCustomerModalOpen(true);
   };
@@ -416,6 +430,8 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
     try {
       setError(null);
       const opNum = parseFloat(customerFormData.openingBalance || '0');
+      const creditLimitNum = Math.max(0, parseFloat(customerFormData.creditLimit || '0') || 0);
+      const enforceCreditLimitBool = Boolean(customerFormData.enforceCreditLimit);
       let customerRecord: any = null;
       if (editingCustomer) {
         const updateRes: any = await api.updateCustomer(editingCustomer.id, {
@@ -426,15 +442,18 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
           currency: customerFormData.currency,
           opening_balance: opNum,
           openingBalance: opNum,
+          credit_limit: creditLimitNum,
+          creditLimit: creditLimitNum,
+          enforce_credit_limit: enforceCreditLimitBool,
           notes: customerFormData.notes,
         });
         customerRecord = updateRes?.data || updateRes;
         if (customerRecord?.id) {
           setCustomers((prev) =>
-            prev.map((c) => (c.id === customerRecord.id ? { ...c, ...customerRecord } : c))
+            prev.map((c) => (c.id === customerRecord.id ? { ...c, ...customerRecord, credit_limit: creditLimitNum, creditLimit: creditLimitNum, enforce_credit_limit: enforceCreditLimitBool } : c))
           );
         }
-        setSuccess('تم تحديث بيانات حساب العميل والعملة بنجاح');
+        setSuccess('تم تحديث بيانات حساب العميل والسقف الائتماني بنجاح');
       } else {
         const createRes: any = await api.createCustomer({
           name: customerFormData.name,
@@ -444,17 +463,20 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
           openingBalance: opNum,
           opening_balance: opNum,
           balance: opNum,
+          credit_limit: creditLimitNum,
+          creditLimit: creditLimitNum,
+          enforce_credit_limit: enforceCreditLimitBool,
           currency: customerFormData.currency,
           notes: customerFormData.notes,
         });
         customerRecord = createRes?.data || createRes;
         if (customerRecord && (customerRecord.id || customerRecord.name)) {
           setCustomers((prev) => [
-            customerRecord,
+            { ...customerRecord, credit_limit: creditLimitNum, creditLimit: creditLimitNum, enforce_credit_limit: enforceCreditLimitBool },
             ...prev.filter((c) => c.id !== customerRecord.id),
           ]);
         }
-        setSuccess('تم تسجيل العميل الجديد وتثبيت الرصيد الافتتاحي والعملة بنجاح');
+        setSuccess('تم تسجيل العميل الجديد وتثبيت الرصيد الافتتاحي والسقف الائتماني بنجاح');
       }
 
       try {
@@ -471,6 +493,8 @@ export const CustomersAndSuppliersModule: React.FC<CustomersAndSuppliersModulePr
           phone: customerFormData.phone,
           currency: customerFormData.currency,
           opening_balance: opNum,
+          credit_limit: creditLimitNum,
+          enforce_credit_limit: enforceCreditLimitBool,
         },
         { dependencyOrder: 10 }
       ).catch(() => {});
@@ -1851,7 +1875,7 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                         </span>
                       </td>
 
-                      {/* Current Balance (Hero Financial Field) */}
+                      {/* Current Balance (Hero Financial Field) + Credit Limit Bar */}
                       <td className="p-3 font-mono tabular-nums font-bold text-xs">
                         <div
                           className={`inline-flex items-baseline gap-1 px-2.5 py-1 rounded-lg border ${
@@ -1870,6 +1894,50 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                             {bal > 0 ? (isCustomer ? '(مدين)' : '(دائن)') : bal < 0 ? '(-)' : '(خالص)'}
                           </span>
                         </div>
+                        {isCustomer && account._creditLimit > 0 && (() => {
+                          const usedDebt = Math.max(0, bal);
+                          const avail = Math.max(0, account._creditLimit - usedDebt);
+                          const pct = Math.round((usedDebt / account._creditLimit) * 100);
+                          const barWidth = Math.min(100, Math.max(0, pct));
+                          const barColor = pct >= 100
+                            ? 'bg-[var(--md-error)]'
+                            : pct >= 80
+                            ? 'bg-[var(--md-warning)]'
+                            : 'bg-[var(--md-primary)]';
+                          const pctTextColor = pct >= 100
+                            ? 'text-[var(--md-error)]'
+                            : pct >= 80
+                            ? 'text-[var(--md-warning)]'
+                            : 'text-[var(--md-primary-text)]';
+                          return (
+                            <div className="mt-1.5 min-w-[165px] max-w-[210px] space-y-1 font-sans">
+                              <div className="flex items-center justify-between gap-2 text-[10px] tabular-nums">
+                                <span className="text-[var(--md-on-surface-variant)] font-medium">
+                                  السقف: <strong className="font-mono text-[var(--md-on-surface)]">{formatNumber(account._creditLimit)}</strong>
+                                </span>
+                                <span className={`font-mono font-bold ${pctTextColor}`}>
+                                  {pct}%
+                                </span>
+                              </div>
+                              <div className="h-1.5 w-full rounded-full bg-[var(--md-surface-container-highest)] overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all duration-300 ${barColor}`}
+                                  style={{ width: `${barWidth}%` }}
+                                />
+                              </div>
+                              <div className="flex items-center justify-between gap-2 text-[10px] tabular-nums">
+                                <span className="text-[var(--md-on-surface-variant)] font-normal">
+                                  المتاح: <span className="font-mono font-semibold text-[var(--md-on-surface)]">{formatNumber(avail)}</span>
+                                </span>
+                                {account._enforceCreditLimit && (
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)]">
+                                    مقيد
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </td>
 
                       {/* Status */}
@@ -2030,6 +2098,54 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                   </span>
                 </div>
 
+                {/* Credit Limit Utilization Bar (Customers with Configured Limit) */}
+                {isCustomer && account._creditLimit > 0 && (() => {
+                  const usedDebt = Math.max(0, bal);
+                  const avail = Math.max(0, account._creditLimit - usedDebt);
+                  const pct = Math.round((usedDebt / account._creditLimit) * 100);
+                  const barWidth = Math.min(100, Math.max(0, pct));
+                  const barColor = pct >= 100
+                    ? 'bg-[var(--md-error)]'
+                    : pct >= 80
+                    ? 'bg-[var(--md-warning)]'
+                    : 'bg-[var(--md-primary)]';
+                  const pctTextColor = pct >= 100
+                    ? 'text-[var(--md-error)]'
+                    : pct >= 80
+                    ? 'text-[var(--md-warning)]'
+                    : 'text-[var(--md-primary-text)]';
+                  return (
+                    <div className="p-2.5 bg-[var(--md-surface-container-low)] rounded-xl border border-[var(--md-outline-variant)] space-y-1.5 text-[11px]">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-[var(--md-on-surface)] flex items-center gap-1.5">
+                          <ShieldCheck className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
+                          <span>السقف الائتماني</span>
+                          <span className={`m3-badge text-[9px] ${account._enforceCreditLimit ? 'm3-badge-primary' : ''}`}>
+                            {account._enforceCreditLimit ? 'منع التجاوز مفعّل' : 'إرشادي'}
+                          </span>
+                        </span>
+                        <span className={`font-mono font-black tabular-nums ${pctTextColor}`}>
+                          {pct}%
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full rounded-full bg-[var(--md-surface-container-highest)] overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${barColor}`}
+                          style={{ width: `${barWidth}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-[var(--md-on-surface-variant)] tabular-nums">
+                        <span>
+                          السقف: <strong className="font-mono text-[var(--md-on-surface)]">{formatNumber(account._creditLimit)} {account._currency}</strong>
+                        </span>
+                        <span>
+                          المتاح: <strong className={`font-mono ${avail <= 0 ? 'text-[var(--md-error)]' : 'text-[var(--md-on-surface)]'}`}>{formatNumber(avail)} {account._currency}</strong>
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Details Meta */}
                 <div className="grid grid-cols-2 gap-2 text-[11px] text-[var(--md-on-surface-variant)] pt-1">
                   <div className="flex items-center gap-1.5 truncate">
@@ -2154,48 +2270,98 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                   ? period.transaction_count
                   : (statementData?.transactions || []).length);
 
+              const partyCreditLimit = Math.max(0, Number(detailAccount.party.credit_limit ?? detailAccount.party.creditLimit ?? detailAccount.party._creditLimit ?? 0));
+              const partyEnforceCredit = Boolean(detailAccount.party.enforce_credit_limit === true || detailAccount.party._enforceCreditLimit === true);
+              const partyUsedDebt = Math.max(0, Number(clBalance || 0));
+              const partyAvailCredit = Math.max(0, partyCreditLimit - partyUsedDebt);
+              const partyUsagePct = partyCreditLimit > 0 ? Math.round((partyUsedDebt / partyCreditLimit) * 100) : 0;
+              const partyBarWidth = Math.min(100, Math.max(0, partyUsagePct));
+              const partyBarColor = partyUsagePct >= 100
+                ? 'bg-[var(--md-error)]'
+                : partyUsagePct >= 80
+                ? 'bg-[var(--md-warning)]'
+                : 'bg-[var(--md-primary)]';
+              const partyPctColor = partyUsagePct >= 100
+                ? 'text-[var(--md-error)]'
+                : partyUsagePct >= 80
+                ? 'text-[var(--md-warning)]'
+                : 'text-[var(--md-primary-text)]';
+
               return (
-                <div className="p-4 bg-[var(--md-surface-container)] border-b border-[var(--md-outline-variant)] grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
-                  <div className="m3-card p-3 border-[var(--md-info)]/30">
-                    <span className="text-[var(--md-info)] block text-[10px] font-bold">الرصيد الافتتاحي (الأساس):</span>
-                    <span className="text-sm font-bold font-mono tabular-nums text-[var(--md-on-surface)]">
-                      {formatNumber(opBalance)} {cur}
-                    </span>
-                  </div>
-
-                  <div className="m3-card p-3 border-[var(--md-warning)]/30">
-                    <span className="text-[var(--md-warning)] block text-[10px] font-bold">إجمالي مدين الفترة (+):</span>
-                    <span className="text-sm font-bold font-mono tabular-nums text-[var(--md-warning)]">
-                      {formatNumber(totalDebit)} {cur}
-                    </span>
-                  </div>
-
-                  <div className="m3-card p-3 border-[var(--md-success)]/30">
-                    <span className="text-[var(--md-success)] block text-[10px] font-bold">إجمالي دائن / مسددات (-):</span>
-                    <span className="text-sm font-bold font-mono tabular-nums text-[var(--md-success)]">
-                      {formatNumber(totalCredit)} {cur}
-                    </span>
-                  </div>
-
-                  <div className="m3-card p-3 border-[var(--md-primary)]/40 bg-[var(--md-primary-container)]/35">
-                    <span className="text-[var(--md-primary-text)] block text-[10px] font-bold">الرصيد الختامي النهائي:</span>
-                    <span className="text-base font-black font-mono tabular-nums text-[var(--md-primary-text)]">
-                      {formatNumber(clBalance)} {cur}
-                    </span>
-                    {cur !== 'YER' && (
-                      <span className="block text-[10px] text-[var(--md-on-surface-variant)] font-mono tabular-nums mt-0.5">
-                        ≈ {formatNumber(toBaseCurrencyAmount(clBalance, cur))} YER
+                <>
+                  <div className="p-4 bg-[var(--md-surface-container)] border-b border-[var(--md-outline-variant)] grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+                    <div className="m3-card p-3 border-[var(--md-info)]/30">
+                      <span className="text-[var(--md-info)] block text-[10px] font-bold">الرصيد الافتتاحي (الأساس):</span>
+                      <span className="text-sm font-bold font-mono tabular-nums text-[var(--md-on-surface)]">
+                        {formatNumber(opBalance)} {cur}
                       </span>
-                    )}
+                    </div>
+
+                    <div className="m3-card p-3 border-[var(--md-warning)]/30">
+                      <span className="text-[var(--md-warning)] block text-[10px] font-bold">إجمالي مدين الفترة (+):</span>
+                      <span className="text-sm font-bold font-mono tabular-nums text-[var(--md-warning)]">
+                        {formatNumber(totalDebit)} {cur}
+                      </span>
+                    </div>
+
+                    <div className="m3-card p-3 border-[var(--md-success)]/30">
+                      <span className="text-[var(--md-success)] block text-[10px] font-bold">إجمالي دائن / مسددات (-):</span>
+                      <span className="text-sm font-bold font-mono tabular-nums text-[var(--md-success)]">
+                        {formatNumber(totalCredit)} {cur}
+                      </span>
+                    </div>
+
+                    <div className="m3-card p-3 border-[var(--md-primary)]/40 bg-[var(--md-primary-container)]/35">
+                      <span className="text-[var(--md-primary-text)] block text-[10px] font-bold">الرصيد الختامي النهائي:</span>
+                      <span className="text-base font-black font-mono tabular-nums text-[var(--md-primary-text)]">
+                        {formatNumber(clBalance)} {cur}
+                      </span>
+                      {cur !== 'YER' && (
+                        <span className="block text-[10px] text-[var(--md-on-surface-variant)] font-mono tabular-nums mt-0.5">
+                          ≈ {formatNumber(toBaseCurrencyAmount(clBalance, cur))} YER
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="m3-card p-3 col-span-2 sm:col-span-1">
+                      <span className="text-[var(--md-on-surface-variant)] block text-[10px] font-bold">عدد الحركات الفعلية:</span>
+                      <span className="text-sm font-bold font-mono tabular-nums text-[var(--md-on-surface)]">
+                        {actualTxCount} حركة
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="m3-card p-3 col-span-2 sm:col-span-1">
-                    <span className="text-[var(--md-on-surface-variant)] block text-[10px] font-bold">عدد الحركات الفعلية:</span>
-                    <span className="text-sm font-bold font-mono tabular-nums text-[var(--md-on-surface)]">
-                      {actualTxCount} حركة
-                    </span>
-                  </div>
-                </div>
+                  {detailAccount.type === 'CUSTOMER' && partyCreditLimit > 0 && (
+                    <div className="px-4 py-3 bg-[var(--md-surface-container-low)] border-b border-[var(--md-outline-variant)] space-y-2 text-xs">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <ShieldCheck className="w-4 h-4 text-[var(--md-primary-text)]" />
+                          <span className="font-bold text-[var(--md-on-surface)]">السقف الائتماني للعميل</span>
+                          <span className={`m3-badge text-[10px] ${partyEnforceCredit ? 'm3-badge-primary' : ''}`}>
+                            {partyEnforceCredit ? 'منع التجاوز مفعّل' : 'حد إرشادي فقط'}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-4 text-[11px] tabular-nums">
+                          <span className="text-[var(--md-on-surface-variant)]">
+                            السقف المحدد: <strong className="font-mono text-[var(--md-on-surface)]">{formatNumber(partyCreditLimit)} {cur}</strong>
+                          </span>
+                          <span className="text-[var(--md-on-surface-variant)]">
+                            الرصيد المتاح: <strong className={`font-mono ${partyAvailCredit <= 0 ? 'text-[var(--md-error)]' : 'text-[var(--md-success)]'}`}>{formatNumber(partyAvailCredit)} {cur}</strong>
+                          </span>
+                          <span className={`font-mono font-black ${partyPctColor}`}>
+                            {partyUsagePct}% مستهلك
+                          </span>
+                        </div>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-[var(--md-surface-container-highest)] overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${partyBarColor}`}
+                          style={{ width: `${partyBarWidth}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </>
               );
             })()}
 
@@ -2609,6 +2775,77 @@ ${totalDeb > 0 ? `• إجمالي المدين: ${toEnglishDigits(formatNumber(
                     />
                   </div>
                 )}
+              </div>
+
+              {/* Credit Limit & Enforcement Control */}
+              <div className="p-3.5 rounded-2xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-bold text-[var(--md-on-surface)] flex items-center gap-1.5 text-xs">
+                    <ShieldCheck className="w-4 h-4 text-[var(--md-primary-text)]" />
+                    <span>إعدادات السقف الائتماني</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-[var(--md-on-surface-variant)]">
+                    {customerFormData.currency}
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-[var(--md-on-surface-variant)] font-semibold mb-1 flex items-center justify-between">
+                    <span>سقف المديونية المسموح</span>
+                    <span className="text-[10px] text-[var(--md-primary-text)] font-mono">0 = بدون سقف</span>
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    dir="ltr"
+                    lang="en"
+                    placeholder="0.00"
+                    value={customerFormData.creditLimit}
+                    onChange={(e) =>
+                      setCustomerFormData({
+                        ...customerFormData,
+                        creditLimit: toEnglishDigits(e.target.value).replace(/[^0-9.]/g, ''),
+                      })
+                    }
+                    className="m3-input w-full text-xs font-mono tabular-nums text-left"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between gap-3 pt-1 border-t border-[var(--md-outline-variant)]">
+                  <div className="space-y-0.5">
+                    <span className="block font-bold text-[var(--md-on-surface)] text-xs">
+                      تفعيل منع تجاوز السقف الائتماني
+                    </span>
+                    <span className="block text-[10px] text-[var(--md-on-surface-variant)] leading-relaxed">
+                      يمنع البيع الآجل أو الجزئي عند تجاوز السقف المحدد، مع استمرار السماح بالبيع النقدي الكامل.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={customerFormData.enforceCreditLimit}
+                    aria-label="تفعيل منع تجاوز السقف الائتماني"
+                    onClick={() =>
+                      setCustomerFormData((prev) => ({
+                        ...prev,
+                        enforceCreditLimit: !prev.enforceCreditLimit,
+                      }))
+                    }
+                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer border ${
+                      customerFormData.enforceCreditLimit
+                        ? 'bg-[var(--md-primary)] border-[var(--md-primary)]'
+                        : 'bg-[var(--md-surface-container-highest)] border-[var(--md-outline)]'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 rounded-full transition-transform ${
+                        customerFormData.enforceCreditLimit
+                          ? '-translate-x-5 bg-[var(--md-on-primary)]'
+                          : '-translate-x-1 bg-[var(--md-outline)]'
+                      }`}
+                    />
+                  </button>
+                </div>
               </div>
 
               <div>

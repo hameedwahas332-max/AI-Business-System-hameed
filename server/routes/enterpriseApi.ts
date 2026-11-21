@@ -58,6 +58,10 @@ import {
   saveTenantJournalEntries,
   postDoubleEntryJournal,
   roundMoney,
+  resolveProductMinStock,
+  syncProductAvailabilityStatus,
+  buildLowStockAlerts,
+  validateCustomerCreditLimit,
   reverseSalesInvoiceAtomic,
   reversePurchaseInvoiceAtomic,
   reverseVoucherAtomic,
@@ -698,6 +702,17 @@ enterpriseRouter.post('/customers', (req: Request, res: Response) => {
   const body = req.body || {};
   const opVal = Number(body.openingBalance !== undefined ? body.openingBalance : (body.opening_balance !== undefined ? body.opening_balance : (body.balance || 0)));
   const currency = String(body.currency || 'YER').trim().toUpperCase();
+  const rawCreditLimit = body.credit_limit !== undefined ? body.credit_limit : body.creditLimit;
+  const parsedCreditLimit =
+    rawCreditLimit !== undefined && rawCreditLimit !== null && rawCreditLimit !== '' && Number.isFinite(Number(rawCreditLimit))
+      ? roundMoney(Math.max(0, Number(rawCreditLimit)))
+      : 0;
+  const enforceCreditLimit =
+    body.enforce_credit_limit === true ||
+    body.enforce_credit_limit === 'true' ||
+    body.enforceCreditLimit === true ||
+    body.enforceCreditLimit === 'true';
+
   const newCust: CustomerItem = {
     id: body.id || `cust-${Date.now()}`,
     company_id: companyId,
@@ -709,7 +724,9 @@ enterpriseRouter.post('/customers', (req: Request, res: Response) => {
     current_balance: opVal,
     opening_balance: opVal,
     openingBalance: opVal,
-    creditLimit: Number(body.creditLimit || 10000),
+    creditLimit: parsedCreditLimit,
+    credit_limit: parsedCreditLimit,
+    enforce_credit_limit: enforceCreditLimit,
     currency: currency,
     notes: body.notes || '',
     status: body.status || 'ACTIVE',
@@ -827,12 +844,34 @@ enterpriseRouter.put('/customers/:id', (req: Request, res: Response) => {
       ? Number(body.openingBalance !== undefined ? body.openingBalance : body.opening_balance)
       : store.customers[idx].opening_balance;
 
+    const existingLimit = roundMoney(
+      Math.max(0, Number(store.customers[idx].credit_limit ?? store.customers[idx].creditLimit ?? 0))
+    );
+    const hasCreditLimitInput = body.credit_limit !== undefined || body.creditLimit !== undefined;
+    const rawLimitInput = body.credit_limit !== undefined ? body.credit_limit : body.creditLimit;
+    const nextCreditLimit = hasCreditLimitInput
+      ? rawLimitInput === null || rawLimitInput === ''
+        ? 0
+        : Number.isFinite(Number(rawLimitInput))
+        ? roundMoney(Math.max(0, Number(rawLimitInput)))
+        : existingLimit
+      : existingLimit;
+
+    const hasEnforceInput = body.enforce_credit_limit !== undefined || body.enforceCreditLimit !== undefined;
+    const rawEnforceInput = body.enforce_credit_limit !== undefined ? body.enforce_credit_limit : body.enforceCreditLimit;
+    const nextEnforceCreditLimit = hasEnforceInput
+      ? rawEnforceInput === true || rawEnforceInput === 'true'
+      : Boolean(store.customers[idx].enforce_credit_limit);
+
     store.customers[idx] = {
       ...store.customers[idx],
       ...body,
       company_id: companyId,
       opening_balance: opVal !== undefined ? opVal : store.customers[idx].opening_balance,
       openingBalance: opVal !== undefined ? opVal : store.customers[idx].openingBalance,
+      credit_limit: nextCreditLimit,
+      creditLimit: nextCreditLimit,
+      enforce_credit_limit: nextEnforceCreditLimit,
       currency: body.currency ? String(body.currency).trim().toUpperCase() : store.customers[idx].currency,
       updated_at: new Date().toISOString(),
     };
@@ -2654,11 +2693,18 @@ enterpriseRouter.post(['/pos/checkout', '/pos/sales', '/pos/sale'], (req: Reques
       message: 'تم إصدار الفاتورة الفورية وتحديث المخزون وقيد اليومية بنجاح',
     });
   } catch (err: any) {
-    if (err.code === 'INSUFFICIENT_STOCK' || err.status === 400) {
+    if (
+      err.code === 'CREDIT_LIMIT_EXCEEDED' ||
+      err.code === 'INSUFFICIENT_STOCK' ||
+      err.status === 400 ||
+      err.statusCode === 400
+    ) {
       return res.status(400).json({
         success: false,
-        code: err.code || 'INSUFFICIENT_STOCK',
-        message: err.message || 'رصيد المخزون غير كافٍ لإتمام عملية البيع',
+        code: err.code || 'BAD_REQUEST',
+        error: err.message || 'تعذر إتمام عملية البيع',
+        message: err.message || 'تعذر إتمام عملية البيع',
+        ...(err.details ? { details: err.details } : {}),
       });
     }
     res.status(500).json({ success: false, message: err?.message || 'خطأ أثناء تسجيل عملية البيع' });
@@ -3078,7 +3124,9 @@ enterpriseRouter.get(['/financial-reports/trial-balance', '/reports/trial-balanc
 
 enterpriseRouter.get(['/financial/overview', '/financial-reports/overview', '/financial-reports/dashboard', '/reports/dashboard', '/dashboard'], (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
   const metrics = computeUnifiedFinancialMetrics(companyId);
+  const lowStockAlerts = buildLowStockAlerts(store.products);
 
   res.json({
     success: true,
@@ -3097,6 +3145,8 @@ enterpriseRouter.get(['/financial/overview', '/financial-reports/overview', '/fi
       cashBalance: metrics.totalCashAndBank,
       inventoryValuation: metrics.inventoryValuation,
       marginPercentage: metrics.marginPercentage,
+      lowStockCount: lowStockAlerts.length,
+      lowStockAlerts,
     },
   });
 });
@@ -3187,6 +3237,8 @@ enterpriseRouter.get('/financial-reports/inventory-valuation', (req: Request, re
     0
   );
   const totalSkus = store.products.length;
+  const lowStockAlerts = buildLowStockAlerts(store.products);
+  const healthyCount = Math.max(0, totalSkus - lowStockAlerts.length);
 
   res.json({
     success: true,
@@ -3194,7 +3246,9 @@ enterpriseRouter.get('/financial-reports/inventory-valuation', (req: Request, re
       method: 'FIFO (الوارد أولاً يخرج أولاً)',
       totalValuation,
       totalSkus,
-      healthyStockPercentage: totalSkus > 0 ? 100 : 0,
+      lowStockCount: lowStockAlerts.length,
+      lowStockAlerts,
+      healthyStockPercentage: totalSkus > 0 ? Math.round((healthyCount / totalSkus) * 100) : 0,
     },
   });
 });
@@ -3343,8 +3397,45 @@ export const mockNotifications = [
   { id: 'notif-3', title: 'تقرير الزكاة والضريبة', message: 'تم تدقيق الفواتير الصادرة واعتماد الامتثال لمتطلبات المرحلة الثانية', read: true, is_read: true, created_at: new Date(Date.now() - 86400000).toISOString() },
 ];
 
-enterpriseRouter.get('/notifications', (_req: Request, res: Response) => {
-  res.json({ success: true, data: mockNotifications, notifications: mockNotifications });
+enterpriseRouter.get('/notifications', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const isClean = isTenantCleanProductionMode(companyId);
+  const lowStockAlerts = buildLowStockAlerts(store.products);
+
+  const dynamicStockNotifications = lowStockAlerts.map((alert) => ({
+    id: `low-stock-${alert.product_id}`,
+    type: 'LOW_STOCK',
+    severity: alert.current_stock <= 0 ? 'CRITICAL' : 'WARNING',
+    title: alert.current_stock <= 0 ? `نفاد مخزون: ${alert.name}` : `تنبيه مخزون منخفض: ${alert.name}`,
+    message:
+      alert.current_stock <= 0
+        ? `نفد رصيد الصنف "${alert.name}" بالكامل (0 ${alert.baseUnitName}) — حد التنبيه المحدد: ${alert.min_stock_level} ${alert.baseUnitName}`
+        : `الرصيد المتبقي للصنف "${alert.name}" هو ${alert.current_stock} ${alert.baseUnitName} (حد التنبيه: ${alert.min_stock_level} ${alert.baseUnitName})`,
+    product_id: alert.product_id,
+    product_name: alert.name,
+    qty: alert.current_stock,
+    current_stock: alert.current_stock,
+    unit: alert.baseUnitName,
+    baseUnitName: alert.baseUnitName,
+    min_stock_level: alert.min_stock_level,
+    custom_min_stock_level: alert.custom_min_stock_level,
+    status: alert.status,
+    read: false,
+    is_read: false,
+    created_at: new Date().toISOString(),
+  }));
+
+  const baseNotifications = isClean ? [] : mockNotifications.filter((n) => n.id !== 'notif-2');
+  const combined = [...dynamicStockNotifications, ...baseNotifications];
+
+  res.json({
+    success: true,
+    data: combined,
+    notifications: combined,
+    lowStockAlerts,
+    lowStockCount: lowStockAlerts.length,
+  });
 });
 
 enterpriseRouter.put('/notifications/:id/read', (req: Request, res: Response) => {
@@ -4210,9 +4301,8 @@ enterpriseRouter.get('/business/dashboard', (req: Request, res: Response) => {
       .reduce((sum, e: any) => sum + Number(e.amount || 0), 0)
   );
 
-  const lowStockCount = store.products.filter(
-    (p: any) => Number(p.current_stock ?? p.qty ?? p.stock ?? 0) <= Number(p.min_stock ?? p.reorder_point ?? 5)
-  ).length;
+  const lowStockAlerts = buildLowStockAlerts(store.products);
+  const lowStockCount = lowStockAlerts.length;
 
   const { discrepancies } = computeServerBusinessReconciliations(companyId);
 
@@ -4234,6 +4324,7 @@ enterpriseRouter.get('/business/dashboard', (req: Request, res: Response) => {
       inventoryValuation: roundMoney(metrics.inventoryValuation || 0),
       netCashFlow: roundMoney(todayCollections - todayPayments - todayExpenses),
       lowStockCount,
+      lowStockAlerts,
       openReconciliationIssues: discrepancies.length,
       openReconciliationsCount: discrepancies.length,
       monthlyRevenue: roundMoney(metrics.netRevenue || 0),

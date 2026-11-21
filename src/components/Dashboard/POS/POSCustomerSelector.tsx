@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { User, UserPlus, Search, Check, X, ShieldAlert } from 'lucide-react';
+import { User, UserPlus, Search, Check, X, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { Customer } from '../../../types';
-import { formatAmount } from '../../../lib/formatters';
+import { formatAmount, toEnglishDigits } from '../../../lib/formatters';
 import { api } from '../../../api';
 
 interface POSCustomerSelectorProps {
@@ -27,6 +27,7 @@ export const POSCustomerSelector: React.FC<POSCustomerSelectorProps> = ({
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [creditLimit, setCreditLimit] = useState('0');
+  const [enforceCreditLimit, setEnforceCreditLimit] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,6 +37,19 @@ export const POSCustomerSelector: React.FC<POSCustomerSelectorProps> = ({
       (c.phone && c.phone.includes(search))
   );
 
+  // Selected customer credit limit status
+  const selectedBalance = Number(selectedCustomer?.current_balance ?? (selectedCustomer as any)?.balance ?? 0);
+  const selectedCreditLimit = Math.max(0, Number(selectedCustomer?.credit_limit ?? (selectedCustomer as any)?.creditLimit ?? 0));
+  const isSelectedCreditEnforced = Boolean(
+    selectedCustomer && selectedCustomer.enforce_credit_limit === true && selectedCreditLimit > 0
+  );
+  const selectedAvailableCredit = Math.max(0, Number((selectedCreditLimit - selectedBalance).toFixed(2)));
+  const selectedCreditUsagePct = selectedCreditLimit > 0
+    ? Math.round((Math.max(0, selectedBalance) / selectedCreditLimit) * 100)
+    : 0;
+  const wouldCartExceedCredit =
+    isSelectedCreditEnforced && cartTotal > 0 && selectedBalance + cartTotal > selectedCreditLimit + 0.001;
+
   const handleCreateCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) return;
@@ -43,21 +57,30 @@ export const POSCustomerSelector: React.FC<POSCustomerSelectorProps> = ({
     try {
       setLoading(true);
       setError(null);
+      const parsedLimit = Math.max(0, parseFloat(creditLimit) || 0);
       const res = await api.createCustomer({
         name: newName.trim(),
         phone: newPhone.trim() || undefined,
-        credit_limit: parseFloat(creditLimit) || 0,
+        credit_limit: parsedLimit,
+        creditLimit: parsedLimit,
+        enforce_credit_limit: enforceCreditLimit,
         currency,
         opening_balance: 0,
       });
 
       if (res.data) {
-        onCustomerCreated(res.data);
-        onSelectCustomer(res.data);
+        const created = {
+          ...res.data,
+          credit_limit: res.data.credit_limit ?? parsedLimit,
+          enforce_credit_limit: res.data.enforce_credit_limit ?? enforceCreditLimit,
+        };
+        onCustomerCreated(created);
+        onSelectCustomer(created);
         setIsAddModalOpen(false);
         setNewName('');
         setNewPhone('');
         setCreditLimit('0');
+        setEnforceCreditLimit(false);
       }
     } catch (err: any) {
       setError(err.message || 'فشل إضافة العميل');
@@ -94,7 +117,7 @@ export const POSCustomerSelector: React.FC<POSCustomerSelectorProps> = ({
               </div>
               {selectedCustomer && (
                 <div className="text-[10px] text-[var(--md-on-surface-variant)] tabular-nums">
-                  الرصيد: {formatAmount(selectedCustomer.current_balance, currency)}
+                  الرصيد: {formatAmount(selectedBalance, selectedCustomer.currency || currency)}
                 </div>
               )}
             </div>
@@ -121,6 +144,64 @@ export const POSCustomerSelector: React.FC<POSCustomerSelectorProps> = ({
           <UserPlus className="w-4 h-4" />
         </button>
       </div>
+
+      {/* Compact M3 Credit Limit Indicator when customer has enforced credit limit */}
+      {selectedCustomer && isSelectedCreditEnforced && (
+        <div
+          className={`mt-2 p-2.5 rounded-xl border text-[11px] space-y-1.5 transition-colors ${
+            wouldCartExceedCredit
+              ? 'bg-[var(--md-error-container)] border-[var(--md-error)]/30 text-[var(--md-on-error-container)]'
+              : selectedCreditUsagePct >= 80
+              ? 'bg-[var(--md-warning-container)] border-[var(--md-warning)]/30 text-[var(--md-on-warning-container)]'
+              : 'bg-[var(--md-surface-container)] border-[var(--md-outline-variant)] text-[var(--md-on-surface)]'
+          }`}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-bold flex items-center gap-1.5">
+              {wouldCartExceedCredit ? (
+                <ShieldAlert className="w-3.5 h-3.5 text-[var(--md-error)] shrink-0" />
+              ) : (
+                <ShieldCheck className="w-3.5 h-3.5 text-[var(--md-primary-text)] shrink-0" />
+              )}
+              <span>السقف الائتماني المفعّل</span>
+            </span>
+            <span className="font-mono font-bold tabular-nums text-[10px]">
+              {selectedCreditUsagePct}%
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-1.5 text-[10px] tabular-nums">
+            <div>
+              <span className="opacity-80 block">الرصيد</span>
+              <strong className="font-mono">{formatAmount(selectedBalance, selectedCustomer.currency || currency)}</strong>
+            </div>
+            <div>
+              <span className="opacity-80 block">السقف</span>
+              <strong className="font-mono">{formatAmount(selectedCreditLimit, selectedCustomer.currency || currency)}</strong>
+            </div>
+            <div>
+              <span className="opacity-80 block">المتاح</span>
+              <strong className="font-mono">{formatAmount(selectedAvailableCredit, selectedCustomer.currency || currency)}</strong>
+            </div>
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-[var(--md-surface-container-highest)] overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${
+                selectedCreditUsagePct >= 100 || wouldCartExceedCredit
+                  ? 'bg-[var(--md-error)]'
+                  : selectedCreditUsagePct >= 80
+                  ? 'bg-[var(--md-warning)]'
+                  : 'bg-[var(--md-primary)]'
+              }`}
+              style={{ width: `${Math.min(100, Math.max(0, selectedCreditUsagePct))}%` }}
+            />
+          </div>
+          {wouldCartExceedCredit && (
+            <div className="text-[10px] font-semibold leading-snug">
+              قيمة السلة تتجاوز الرصيد المتاح للآجل — يُسمح بالدفع النقدي الكامل أو سداد الفرق نقداً.
+            </div>
+          )}
+        </div>
+      )}
 
       {isOpen && (
         <div className="absolute top-full right-0 left-0 mt-1.5 m3-modal-surface rounded-2xl z-50 p-2 space-y-2">
@@ -151,29 +232,46 @@ export const POSCustomerSelector: React.FC<POSCustomerSelectorProps> = ({
               {!selectedCustomer && <Check className="w-3.5 h-3.5" />}
             </button>
 
-            {filtered.map((cust) => (
-              <button
-                key={cust.id}
-                type="button"
-                onClick={() => {
-                  onSelectCustomer(cust);
-                  setIsOpen(false);
-                }}
-                className={`w-full text-right p-2 rounded-xl text-xs flex items-center justify-between hover:bg-[var(--md-surface-container-high)] cursor-pointer ${
-                  selectedCustomer?.id === cust.id
-                    ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] font-bold'
-                    : 'text-[var(--md-on-surface)]'
-                }`}
-              >
-                <div>
-                  <div className="font-bold">{cust.name}</div>
-                  {cust.phone && <div className="text-[10px] text-[var(--md-on-surface-variant)]">{cust.phone}</div>}
-                </div>
-                <div className="text-[11px] text-[var(--md-on-surface-variant)] tabular-nums">
-                  {formatAmount(cust.current_balance, currency)}
-                </div>
-              </button>
-            ))}
+            {filtered.map((cust) => {
+              const cBal = Number(cust.current_balance ?? (cust as any).balance ?? 0);
+              const cLim = Math.max(0, Number(cust.credit_limit ?? (cust as any).creditLimit ?? 0));
+              const cEnf = Boolean(cust.enforce_credit_limit === true && cLim > 0);
+              return (
+                <button
+                  key={cust.id}
+                  type="button"
+                  onClick={() => {
+                    onSelectCustomer(cust);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full text-right p-2 rounded-xl text-xs flex items-center justify-between hover:bg-[var(--md-surface-container-high)] cursor-pointer ${
+                    selectedCustomer?.id === cust.id
+                      ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] font-bold'
+                      : 'text-[var(--md-on-surface)]'
+                  }`}
+                >
+                  <div>
+                    <div className="font-bold flex items-center gap-1.5">
+                      <span>{cust.name}</span>
+                      {cEnf && (
+                        <span className="m3-badge m3-badge-primary text-[9px]">سقف مفعّل</span>
+                      )}
+                    </div>
+                    {cust.phone && <div className="text-[10px] text-[var(--md-on-surface-variant)]">{cust.phone}</div>}
+                  </div>
+                  <div className="text-left text-[11px] text-[var(--md-on-surface-variant)] tabular-nums">
+                    <div className="font-mono font-semibold text-[var(--md-on-surface)]">
+                      {formatAmount(cBal, cust.currency || currency)}
+                    </div>
+                    {cLim > 0 && (
+                      <div className="text-[9px] font-mono">
+                        سقف: {formatAmount(cLim, cust.currency || currency)}
+                      </div>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -227,15 +325,44 @@ export const POSCustomerSelector: React.FC<POSCustomerSelectorProps> = ({
 
               <div>
                 <label className="block text-[11px] font-bold text-[var(--md-on-surface-variant)] mb-1">
-                  الحد الائتماني المسموح به ({currency})
+                  سقف المديونية المسموح ({currency})
                 </label>
                 <input
-                  type="number"
-                  min="0"
+                  type="text"
+                  inputMode="decimal"
+                  dir="ltr"
+                  lang="en"
                   value={creditLimit}
-                  onChange={(e) => setCreditLimit(e.target.value)}
-                  className="m3-input w-full px-3 py-2 text-xs tabular-nums"
+                  onChange={(e) => setCreditLimit(toEnglishDigits(e.target.value).replace(/[^0-9.]/g, ''))}
+                  placeholder="0.00"
+                  className="m3-input w-full px-3 py-2 text-xs font-mono tabular-nums text-left"
                 />
+              </div>
+
+              <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)]">
+                <span className="text-[11px] font-bold text-[var(--md-on-surface)]">
+                  تفعيل منع تجاوز السقف الائتماني
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={enforceCreditLimit}
+                  aria-label="تفعيل منع تجاوز السقف الائتماني"
+                  onClick={() => setEnforceCreditLimit((prev) => !prev)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer border ${
+                    enforceCreditLimit
+                      ? 'bg-[var(--md-primary)] border-[var(--md-primary)]'
+                      : 'bg-[var(--md-surface-container-highest)] border-[var(--md-outline)]'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 rounded-full transition-transform ${
+                      enforceCreditLimit
+                        ? '-translate-x-5 bg-[var(--md-on-primary)]'
+                        : '-translate-x-1 bg-[var(--md-outline)]'
+                    }`}
+                  />
+                </button>
               </div>
 
               <div className="pt-2 flex items-center justify-end gap-2">

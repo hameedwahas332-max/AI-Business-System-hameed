@@ -1051,6 +1051,94 @@ export const InventoryTab: React.FC = () => {
             </div>
           </div>
 
+          {/* Low-Stock & Out-of-Stock Alert Strip (Per-Product Custom Thresholds) */}
+          {(() => {
+            const resolveMin = (p: any) => {
+              const raw = p?.min_stock_level;
+              if (raw !== undefined && raw !== null && raw !== '' && Number.isFinite(Number(raw)) && Number(raw) >= 0) {
+                return { threshold: Number(raw), isCustom: true };
+              }
+              const legacy = p?.minStockLevel ?? p?.min_stock ?? p?.reorder_point;
+              if (legacy !== undefined && legacy !== null && legacy !== '' && Number.isFinite(Number(legacy)) && Number(legacy) >= 0) {
+                return { threshold: Number(legacy), isCustom: true };
+              }
+              return { threshold: 5, isCustom: false };
+            };
+            const alertItems = filteredProducts
+              .map((p) => {
+                const m = computeLiveProductStockMetrics(p);
+                const stock = m.remainingStock;
+                const { threshold, isCustom } = resolveMin(p);
+                return {
+                  id: p.id,
+                  name: p.name,
+                  sku: p.sku,
+                  stock,
+                  threshold,
+                  isCustom,
+                  unit: m.baseUnitName || p.baseUnitName || p.unit || 'حبة',
+                };
+              })
+              .filter((x) => x.stock <= x.threshold)
+              .sort((a, b) => a.stock - b.stock);
+
+            if (alertItems.length === 0) return null;
+            const outCount = alertItems.filter((a) => a.stock <= 0).length;
+
+            return (
+              <div className="m3-card p-4 space-y-3 border-[var(--md-warning)]/40">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className={`w-4 h-4 shrink-0 ${outCount > 0 ? 'text-[var(--md-error)]' : 'text-[var(--md-warning)]'}`} />
+                    <h3 className="text-xs sm:text-sm font-bold text-[var(--md-on-surface)]">
+                      تنبيهات انخفاض ونفاذ المخزون ({alertItems.length} صنف)
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px] tabular-nums">
+                    {outCount > 0 && (
+                      <span className="m3-badge m3-badge-error">
+                        نفد المخزون: {outCount}
+                      </span>
+                    )}
+                    {alertItems.length - outCount > 0 && (
+                      <span className="m3-badge m3-badge-warning">
+                        قريب من النفاذ: {alertItems.length - outCount}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                  {alertItems.slice(0, 6).map((item) => {
+                    const isOut = item.stock <= 0;
+                    return (
+                      <div
+                        key={item.id}
+                        className={`p-3 rounded-xl border flex items-center justify-between gap-3 text-xs ${
+                          isOut
+                            ? 'bg-[var(--md-error-container)] border-[var(--md-error)]/35 text-[var(--md-on-error-container)]'
+                            : 'bg-[var(--md-warning-container)] border-[var(--md-warning)]/35 text-[var(--md-on-warning-container)]'
+                        }`}
+                      >
+                        <div className="min-w-0 space-y-0.5">
+                          <div className="font-bold truncate">{item.name}</div>
+                          <div className="text-[11px] tabular-nums leading-snug">
+                            {isOut
+                              ? `نفد المخزون بالكامل (0 ${item.unit}) — ${item.isCustom ? 'حد التنبيه المخصص' : 'الحد العام الافتراضي'}: ${formatNumber(item.threshold)} ${item.unit}`
+                              : `متبقي ${formatNumber(item.stock)} ${item.unit} فقط — ${item.isCustom ? 'حد التنبيه المخصص' : 'الحد العام الافتراضي'}: ${formatNumber(item.threshold)} ${item.unit}`}
+                          </div>
+                        </div>
+                        <span className={`m3-badge shrink-0 text-[10px] font-mono tabular-nums ${isOut ? 'm3-badge-error' : 'm3-badge-warning'}`}>
+                          {formatNumber(item.stock)} / {formatNumber(item.threshold)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Stock Balances Table with Carton + Piece breakdown */}
           <div className="m3-card overflow-hidden">
             <div className="p-4 border-b border-[var(--md-outline-variant)] bg-[var(--md-surface-container-low)] flex items-center justify-between">
@@ -1074,7 +1162,7 @@ export const InventoryTab: React.FC = () => {
                     <th className="m3-th !text-[var(--md-secondary)]">إجمالي المباع</th>
                     <th className="m3-th !text-[var(--md-success)]">الرصيد المتبقي الفعلي</th>
                     <th className="m3-th !text-[var(--md-primary-text)]">التفصيل بالكرتون والوحدة</th>
-                    <th className="m3-th">حد الأمان</th>
+                    <th className="m3-th">حد التنبيه المخصص</th>
                     <th className="m3-th">حالة التوفر</th>
                   </tr>
                 </thead>
@@ -1098,11 +1186,28 @@ export const InventoryTab: React.FC = () => {
                       const totalSold = m.totalSold;
                       const soldToday = m.soldToday;
                       const incomingTotal = m.totalIncoming;
-                      const minStock = Number(prod.min_stock_level ?? 5);
-                      const isLow = stock <= minStock;
+                      const rawMin = prod.min_stock_level;
+                      const hasCustomMin =
+                        rawMin !== undefined && rawMin !== null && rawMin !== '' && Number.isFinite(Number(rawMin)) && Number(rawMin) >= 0;
+                      const minStock = hasCustomMin
+                        ? Number(rawMin)
+                        : prod.minStockLevel !== undefined && prod.minStockLevel !== null && prod.minStockLevel !== '' && Number.isFinite(Number(prod.minStockLevel))
+                        ? Number(prod.minStockLevel)
+                        : 5;
+                      const isOut = stock <= 0;
+                      const isLow = !isOut && stock <= minStock;
 
                       return (
-                        <tr key={prod.id} className="hover:bg-[var(--md-surface-container-low)] transition-colors">
+                        <tr
+                          key={prod.id}
+                          className={`transition-colors ${
+                            isOut
+                              ? 'bg-[var(--md-error-container)]/20 hover:bg-[var(--md-error-container)]/30'
+                              : isLow
+                              ? 'bg-[var(--md-warning-container)]/20 hover:bg-[var(--md-warning-container)]/30'
+                              : 'hover:bg-[var(--md-surface-container-low)]'
+                          }`}
+                        >
                           <td className="p-3.5 font-bold text-[var(--md-on-surface)]">
                             <div>{prod.name}</div>
                             <div className="text-[10px] text-[var(--md-on-surface-variant)] font-normal mt-0.5">
@@ -1126,7 +1231,16 @@ export const InventoryTab: React.FC = () => {
                           <td className="p-3.5 font-mono font-bold text-[var(--md-secondary)] tabular-nums">
                             {formatNumber(totalSold)}
                           </td>
-                          <td className="p-3.5 font-mono font-bold text-[var(--md-success)] tabular-nums" title={m.formattedRemaining}>
+                          <td
+                            className={`p-3.5 font-mono font-bold tabular-nums ${
+                              isOut
+                                ? 'text-[var(--md-error)]'
+                                : isLow
+                                ? 'text-[var(--md-warning)]'
+                                : 'text-[var(--md-success)]'
+                            }`}
+                            title={m.formattedRemaining}
+                          >
                             {formatNumber(stock)} {m.baseUnitName}
                           </td>
                           <td className="p-3.5 font-bold">
@@ -1134,19 +1248,33 @@ export const InventoryTab: React.FC = () => {
                               {getStockBreakdown(prod)}
                             </span>
                           </td>
-                          <td className="p-3.5 font-mono text-[var(--md-on-surface-variant)] tabular-nums">{minStock}</td>
+                          <td className="p-3.5 font-mono text-[var(--md-on-surface)] tabular-nums">
+                            <div className="font-bold">{formatNumber(minStock)} {m.baseUnitName}</div>
+                            <div className="text-[10px] font-sans text-[var(--md-on-surface-variant)]">
+                              {hasCustomMin ? 'مخصص للصنف' : 'افتراضي عام'}
+                            </div>
+                          </td>
                           <td className="p-3.5">
-                            <span
-                              className={`m3-badge text-[10px] ${
-                                stock <= 0
-                                  ? 'm3-badge-error'
-                                  : isLow
-                                  ? 'm3-badge-warning'
-                                  : 'm3-badge-success'
-                              }`}
-                            >
-                              {stock <= 0 ? 'نفد من المخزن' : isLow ? 'قريب من النفاذ' : 'متوفر بالمخزن'}
-                            </span>
+                            <div className="space-y-1">
+                              <span
+                                className={`m3-badge text-[10px] ${
+                                  isOut
+                                    ? 'm3-badge-error'
+                                    : isLow
+                                    ? 'm3-badge-warning'
+                                    : 'm3-badge-success'
+                                }`}
+                              >
+                                {isOut ? 'نفد من المخزن' : isLow ? 'قريب من النفاذ' : 'متوفر بالمخزن'}
+                              </span>
+                              {(isOut || isLow) && (
+                                <div className="text-[10px] text-[var(--md-on-surface-variant)] tabular-nums">
+                                  {isOut
+                                    ? `متبقي 0 — الحد: ${formatNumber(minStock)}`
+                                    : `متبقي ${formatNumber(stock)} ${m.baseUnitName} — الحد: ${formatNumber(minStock)}`}
+                                </div>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );

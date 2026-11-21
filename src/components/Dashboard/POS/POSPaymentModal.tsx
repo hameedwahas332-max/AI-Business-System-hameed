@@ -8,6 +8,7 @@ import {
   Layers,
   ArrowRight,
   ShieldAlert,
+  ShieldCheck,
   CheckCircle2,
   AlertTriangle,
   RotateCcw,
@@ -37,6 +38,7 @@ interface POSPaymentModalProps {
     receivedBy?: string;
   }) => void;
   loading: boolean;
+  serverError?: string | null;
 }
 
 export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
@@ -48,6 +50,7 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
   exchangeRate = 1.0,
   onConfirmPayment,
   loading,
+  serverError = null,
 }) => {
   const [selectedMethod, setSelectedMethod] = useState<'CASH' | 'CARD' | 'BANK' | 'CREDIT' | 'SPLIT' | 'MOBILE'>('CASH');
   const [tenderedAmount, setTenderedAmount] = useState<number>(cartTotal);
@@ -55,7 +58,6 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
     { method: 'CASH', amount: Math.round(cartTotal / 2) },
     { method: 'CARD', amount: Math.round(cartTotal - Math.round(cartTotal / 2)) },
   ]);
-  const [overrideCredit, setOverrideCredit] = useState(false);
   const [receivedBy, setReceivedBy] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +70,6 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
         { method: 'CASH', amount: Math.round(cartTotal / 2) },
         { method: 'CARD', amount: Math.round(cartTotal - Math.round(cartTotal / 2)) },
       ]);
-      setOverrideCredit(false);
       setReceivedBy('');
       setError(null);
     }
@@ -96,11 +97,20 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
     changeAmount = Math.max(0, tenderedAmount - cartTotal);
   }
 
-  // Credit Limit Check
-  const currentCustBal = Number(customer?.current_balance || 0);
-  const creditLimit = Number(customer?.credit_limit || 0);
-  const potentialDebt = currentCustBal + remainingAmount;
-  const isCreditExceeded = creditLimit > 0 && remainingAmount > 0 && potentialDebt > creditLimit;
+  // Credit Limit Check (Matches backend & offline enforcement strictly)
+  const currentCustBal = roundMoney(Number(customer?.current_balance ?? customer?.balance ?? 0));
+  const creditLimit = roundMoney(Math.max(0, Number(customer?.credit_limit ?? customer?.creditLimit ?? 0)));
+  const isCreditEnforced = Boolean(customer && customer.enforce_credit_limit === true && creditLimit > 0);
+  const availableCredit = roundMoney(Math.max(0, creditLimit - currentCustBal));
+  const potentialDebt = roundMoney(currentCustBal + remainingAmount);
+  const isCreditExceeded =
+    isCreditEnforced && remainingAmount > 0.001 && potentialDebt > creditLimit + 0.001;
+  const additionalCashNeeded = isCreditExceeded
+    ? roundMoney(Math.min(remainingAmount, Math.max(0, potentialDebt - creditLimit)))
+    : 0;
+  const minimumCashToAllow = isCreditExceeded
+    ? roundMoney(Math.min(cartTotal, Math.max(0, paidAmount + additionalCashNeeded)))
+    : 0;
 
   // Quick Cash Denominations
   const quickPresets = currency === 'YER'
@@ -127,8 +137,10 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isCreditExceeded && !overrideCredit) {
-      setError('لا يمكن إتمام البيع الآجل لتجاوز الحد الائتماني للعميل بدون تفعيل إذن التجاوز');
+    if (isCreditExceeded) {
+      setError(
+        `لا يمكن إتمام البيع الآجل لتجاوز السقف الائتماني المفعّل للعميل (${creditLimit.toLocaleString()} ${currSym}). الحد الأدنى المطلوب تحصيله نقداً لإتمام الفاتورة هو ${minimumCashToAllow.toLocaleString()} ${currSym}.`
+      );
       return;
     }
 
@@ -150,7 +162,7 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
       remainingAmount,
       changeAmount,
       payments: finalPayments,
-      overrideCreditLimit: overrideCredit,
+      overrideCreditLimit: false,
       notes,
       receivedBy: receivedBy.trim() || undefined,
     });
@@ -182,31 +194,53 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Total Banner */}
-          <div className="p-5 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-2xl flex items-center justify-between">
-            <div>
-              <span className="text-xs font-semibold text-[var(--md-on-surface-variant)] block mb-1">المبلغ الإجمالي المستحق:</span>
-              <div className="text-3xl font-black text-[var(--md-on-surface)] tracking-tight tabular-nums">
-                {cartTotal.toLocaleString()} <span className="text-[var(--md-primary-text)] text-lg font-bold">{currSym}</span>
+          <div className="p-5 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-2xl space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <span className="text-xs font-semibold text-[var(--md-on-surface-variant)] block mb-1">المبلغ الإجمالي المستحق:</span>
+                <div className="text-3xl font-black text-[var(--md-on-surface)] tracking-tight tabular-nums">
+                  {cartTotal.toLocaleString()} <span className="text-[var(--md-primary-text)] text-lg font-bold">{currSym}</span>
+                </div>
+              </div>
+
+              <div className="text-left">
+                <span className="text-xs text-[var(--md-on-surface-variant)] block">العميل المفوتر:</span>
+                <span className="text-sm font-bold text-[var(--md-on-surface)]">
+                  {customer?.name || 'عميل نقدي عام'}
+                </span>
+                {customer?.id && (
+                  <div className="text-[11px] text-[var(--md-on-surface-variant)] mt-0.5 tabular-nums">
+                    الرصيد الحالي: {currentCustBal.toLocaleString()} {currSym}
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="text-left">
-              <span className="text-xs text-[var(--md-on-surface-variant)] block">العميل المفوتر:</span>
-              <span className="text-sm font-bold text-[var(--md-on-surface)]">
-                {customer?.name || 'عميل نقدي عام'}
-              </span>
-              {customer?.id && (
-                <div className="text-[11px] text-[var(--md-on-surface-variant)] mt-0.5 tabular-nums">
-                  الرصيد السابق: {currentCustBal.toLocaleString()} {currSym}
+            {isCreditEnforced && (
+              <div className="pt-2.5 border-t border-[var(--md-outline-variant)] flex flex-wrap items-center justify-between gap-2 text-xs tabular-nums">
+                <span className="font-bold text-[var(--md-primary-text)] flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 shrink-0" />
+                  <span>سقف ائتماني مفعّل</span>
+                </span>
+                <div className="flex flex-wrap items-center gap-3 text-[11px]">
+                  <span className="text-[var(--md-on-surface-variant)]">
+                    الرصيد: <strong className="font-mono text-[var(--md-on-surface)]">{currentCustBal.toLocaleString()} {currSym}</strong>
+                  </span>
+                  <span className="text-[var(--md-on-surface-variant)]">
+                    السقف: <strong className="font-mono text-[var(--md-on-surface)]">{creditLimit.toLocaleString()} {currSym}</strong>
+                  </span>
+                  <span className="text-[var(--md-on-surface-variant)]">
+                    المتاح: <strong className={`font-mono ${availableCredit <= 0 ? 'text-[var(--md-error)]' : 'text-[var(--md-success)]'}`}>{availableCredit.toLocaleString()} {currSym}</strong>
+                  </span>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
-          {error && (
+          {(error || serverError) && (
             <div className="p-3.5 bg-[var(--md-error-container)] border border-[var(--md-error)]/30 rounded-xl text-[var(--md-on-error-container)] text-xs flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0 text-[var(--md-error)]" />
-              <span>{error}</span>
+              <span>{error || serverError}</span>
             </div>
           )}
 
@@ -371,25 +405,43 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
             </div>
           )}
 
-          {/* Credit Limit Alert & Override */}
+          {/* Credit Limit Exceeded Alert (Blocks Credit/Partial Sale Until Resolved) */}
           {isCreditExceeded && (
-            <div className="p-4 bg-[var(--md-error-container)] border border-[var(--md-error)]/30 rounded-2xl space-y-2">
+            <div className="p-4 bg-[var(--md-error-container)] border border-[var(--md-error)]/35 rounded-2xl space-y-3">
               <div className="flex items-center gap-2 text-[var(--md-error)] font-bold text-sm">
-                <ShieldAlert className="w-5 h-5" />
-                <span>تنبيه: تجاوز سقف الائتمان للعميل!</span>
+                <ShieldAlert className="w-5 h-5 shrink-0" />
+                <span>تم منع البيع الآجل: تجاوز السقف الائتماني المفعّل للعميل!</span>
               </div>
-              <p className="text-xs text-[var(--md-on-error-container)] tabular-nums">
-                رصيد العميل الحالي ({currentCustBal.toLocaleString()} {currSym}) + المستحق الجديد ({remainingAmount.toLocaleString()} {currSym}) = <strong>{potentialDebt.toLocaleString()} {currSym}</strong> وهو أعلى من الحد المصرح به ({creditLimit.toLocaleString()} {currSym}).
+              <p className="text-xs text-[var(--md-on-error-container)] leading-relaxed tabular-nums">
+                رصيد العميل الحالي (<strong className="font-mono">{currentCustBal.toLocaleString()} {currSym}</strong>) + المتبقي الآجل (<strong className="font-mono">{remainingAmount.toLocaleString()} {currSym}</strong>) ={' '}
+                <strong className="font-mono">{potentialDebt.toLocaleString()} {currSym}</strong> وهو أعلى من السقف المصرح به (<strong className="font-mono">{creditLimit.toLocaleString()} {currSym}</strong>).
+                الحد الأدنى المطلوب تحصيله نقداً للسماح بإصدار الفاتورة هو{' '}
+                <strong className="font-mono underline">{minimumCashToAllow.toLocaleString()} {currSym}</strong>.
               </p>
-              <label className="flex items-center gap-2 text-xs font-bold text-[var(--md-warning)] pt-1 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={overrideCredit}
-                  onChange={(e) => setOverrideCredit(e.target.checked)}
-                  className="rounded border-[var(--md-outline)] bg-[var(--md-surface-container)] text-[var(--md-warning)] focus:ring-[var(--md-warning)]"
-                />
-                السماح بالتجاوز وإتمام البيع الآجل (صلاحية مدير نقطة البيع)
-              </label>
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedMethod('CASH');
+                    setTenderedAmount(minimumCashToAllow);
+                    setError(null);
+                  }}
+                  className="m3-btn-tonal !min-h-[34px] px-3 py-1.5 text-xs font-bold tabular-nums cursor-pointer"
+                >
+                  تحصيل الحد الأدنى نقداً ({minimumCashToAllow.toLocaleString()} {currSym})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedMethod('CASH');
+                    setTenderedAmount(cartTotal);
+                    setError(null);
+                  }}
+                  className="m3-btn-primary !min-h-[34px] px-3 py-1.5 text-xs font-bold tabular-nums cursor-pointer"
+                >
+                  تحويل لنقدي كامل ({cartTotal.toLocaleString()} {currSym})
+                </button>
+              </div>
             </div>
           )}
 
@@ -432,8 +484,9 @@ export const POSPaymentModal: React.FC<POSPaymentModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={loading}
-              className="m3-btn-primary px-8 py-2.5 text-base font-bold flex items-center gap-2"
+              disabled={loading || isCreditExceeded}
+              title={isCreditExceeded ? 'لا يمكن الاعتماد الآجل: تم تجاوز السقف الائتماني للعميل' : undefined}
+              className="m3-btn-primary px-8 py-2.5 text-base font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? (
                 <span>جاري إصدار الفاتورة...</span>

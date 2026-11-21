@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { formatAmount } from '../../../lib/formatters';
+import { formatAmount, formatNumber } from '../../../lib/formatters';
 import { TabType } from '../../Sidebar';
 import {
   Sparkles,
@@ -34,6 +34,15 @@ export const SmartAlertsAIWidget: React.FC<SmartAlertsAIWidgetProps> = ({
   const lowStockCount = Number(stats?.counts?.lowStockCount ?? stats?.lowStockCount ?? 0);
   const overdueCount = Number(stats?.counts?.overdueInvoicesCount ?? stats?.overdueInvoicesCount ?? 0);
   const cashBalance = Number(stats?.balances?.cashAndBankBalance ?? stats?.cashBankBalance ?? 0);
+
+  const lowStockAlerts: any[] = Array.isArray(stats?.lowStockAlerts)
+    ? stats.lowStockAlerts
+    : Array.isArray(stats?.counts?.lowStockAlerts)
+    ? stats.counts.lowStockAlerts
+    : [];
+  const effectiveLowStockCount = lowStockAlerts.length > 0 ? lowStockAlerts.length : lowStockCount;
+  const outOfStockCount = lowStockAlerts.filter((a) => Number(a?.current_stock ?? a?.qty ?? 0) <= 0).length;
+  const hasOutOfStock = outOfStockCount > 0;
 
   let repsList: any[] = [];
   try {
@@ -75,14 +84,28 @@ export const SmartAlertsAIWidget: React.FC<SmartAlertsAIWidgetProps> = ({
     {
       id: 'ai-inventory',
       tag: 'استباق نفاذ المخزون',
-      title: lowStockCount > 0 ? 'تنبيه إعادة طلب وتفادي فقدان مبيعات' : 'مستويات المخزون متوازنة وآمنة',
+      title: hasOutOfStock
+        ? 'تنبيه عاجل: أصناف نفدت أو أوشكت على النفاذ'
+        : effectiveLowStockCount > 0
+        ? 'تنبيه إعادة طلب حسب حد التنبيه المخصص'
+        : 'مستويات المخزون متوازنة وآمنة',
       description:
-        lowStockCount > 0
-          ? `يوجد ${lowStockCount} أصناف استراتيجية أوشكت على النفاد في المستودع الرئيسي. استهلاكها المتوقع خلال الأسبوع الحالي يتطلب إنشاء أوامر شراء للموردين فوراً.`
+        effectiveLowStockCount > 0
+          ? hasOutOfStock
+            ? `تم رصد ${formatNumber(effectiveLowStockCount)} أصناف تحت حد التنبيه (منها ${formatNumber(outOfStockCount)} نفد بالكامل). يُوصى بإصدار أوامر شراء فورية لتفادي فقدان المبيعات.`
+            : `تم رصد ${formatNumber(effectiveLowStockCount)} أصناف وصلت إلى حد التنبيه المخصص قبل النفاذ في المستودع. يُوصى بمراجعة الكميات المتبقية وإصدار أوامر شراء.`
           : 'لا توجد نواقص مخزنية مسجلة حالياً (0 أصناف منخفضة). مستويات التوفر في المستودع مستقرة.',
-      icon: Package,
-      badgeTone: 'm3-badge-error',
-      iconTone: 'text-[var(--md-error)]',
+      icon: hasOutOfStock ? AlertTriangle : Package,
+      badgeTone: hasOutOfStock
+        ? 'm3-badge-error'
+        : effectiveLowStockCount > 0
+        ? 'm3-badge-warning'
+        : 'm3-badge-success',
+      iconTone: hasOutOfStock
+        ? 'text-[var(--md-error)]'
+        : effectiveLowStockCount > 0
+        ? 'text-[var(--md-warning)]'
+        : 'text-[var(--md-success)]',
       actionLabel: 'مراجعة النواقص وإصدار أمر شراء',
       actionTab: 'purchase_invoices' as TabType,
     },
@@ -171,6 +194,43 @@ export const SmartAlertsAIWidget: React.FC<SmartAlertsAIWidgetProps> = ({
                 <p className="text-[11px] text-[var(--md-on-surface-variant)] leading-relaxed">
                   {item.description}
                 </p>
+
+                {item.id === 'ai-inventory' && lowStockAlerts.length > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    {lowStockAlerts.slice(0, 3).map((alert, idx) => {
+                      const remQty = Number(alert?.current_stock ?? alert?.qty ?? 0);
+                      const minQty = Number(alert?.min_stock_level ?? alert?.custom_min_stock_level ?? 5);
+                      const unit = alert?.baseUnitName || alert?.unit || 'حبة';
+                      const prodName = alert?.product_name || alert?.name || 'صنف';
+                      const isOut = remQty <= 0;
+                      return (
+                        <div
+                          key={alert?.id || alert?.product_id || idx}
+                          className={`px-2.5 py-1.5 rounded-lg border text-[10px] leading-snug tabular-nums ${
+                            isOut
+                              ? 'bg-[var(--md-error-container)]/60 border-[var(--md-error)]/35 text-[var(--md-on-error-container)]'
+                              : 'bg-[var(--md-warning-container)]/60 border-[var(--md-warning)]/35 text-[var(--md-on-warning-container)]'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-1.5 font-bold">
+                            <span className="truncate">{prodName}</span>
+                            <span className="shrink-0 font-mono">
+                              {isOut ? `نفد (0 ${unit})` : `متبقي ${formatNumber(remQty)} ${unit}`}
+                            </span>
+                          </div>
+                          <div className="text-[9.5px] opacity-85 font-mono">
+                            حد التنبيه: {formatNumber(minQty)} {unit}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {lowStockAlerts.length > 3 && (
+                      <div className="text-[10px] font-semibold text-[var(--md-on-surface-variant)] tabular-nums">
+                        وعدد {formatNumber(lowStockAlerts.length - 3)} أصناف أخرى تحت حد التنبيه
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <button

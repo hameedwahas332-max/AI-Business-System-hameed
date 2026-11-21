@@ -45,6 +45,7 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
   const [unitPrice, setUnitPrice] = useState<string>('');
   const [discount, setDiscount] = useState<string>('0');
   const [tax, setTax] = useState<string>('0');
+  const [minStockLevel, setMinStockLevel] = useState<string>('');
 
   useEffect(() => {
     if (isOpen && initialBarcode) {
@@ -105,6 +106,10 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
       discount: dNum,
       tax: tNum,
       total,
+      min_stock_level:
+        minStockLevel.trim() === '' ? null : Math.max(0, parseEnglishNumber(minStockLevel, 0)),
+      minStockLevel:
+        minStockLevel.trim() === '' ? null : Math.max(0, parseEnglishNumber(minStockLevel, 0)),
       notes: `صنف يدوي / باركود: ${barcode || itemCode || '-'}`,
       batterySpec: activityType === 'battery' ? batterySpec : undefined,
       tireSize: activityType === 'tire' ? tireSize : undefined,
@@ -124,6 +129,7 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
     setUnitPrice('');
     setDiscount('0');
     setTax('0');
+    setMinStockLevel('');
     setError(null);
     onClose();
   };
@@ -309,6 +315,36 @@ export const POSQuickItemModal: React.FC<POSQuickItemModalProps> = ({
                 <option value="خدمة / مصنعية">خدمة / مصنعية</option>
               </select>
             </div>
+          </div>
+
+          {/* Custom Low-Stock Alert Threshold */}
+          <div className="p-3 rounded-xl bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] space-y-1.5">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <label className="text-xs font-semibold text-[var(--md-on-surface-variant)]">
+                حد التنبيه قبل النفاذ (الكمية المتبقية)
+              </label>
+              <span className="m3-badge text-[10px]">
+                الوحدة الأساسية: {unit}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                inputMode="decimal"
+                dir="ltr"
+                lang="en"
+                value={minStockLevel}
+                onChange={(e) => setMinStockLevel(toEnglishDigits(e.target.value).replace(/[^0-9.]/g, ''))}
+                placeholder="اختياري — افتراضي 5"
+                className="m3-input flex-1 px-3 py-2 text-xs font-mono text-left tabular-nums"
+              />
+              <span className="px-3 py-2 rounded-xl bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] text-xs font-semibold text-[var(--md-on-surface-variant)] shrink-0">
+                {unit}
+              </span>
+            </div>
+            <p className="text-[10px] text-[var(--md-on-surface-variant)]">
+              في حال تركه فارغاً يُستخدم الحد العام الافتراضي للنظام (5 {unit}).
+            </p>
           </div>
 
           {/* Dynamic spec fields depending on activityType */}

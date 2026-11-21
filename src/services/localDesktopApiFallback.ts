@@ -392,6 +392,163 @@ export function roundMoney(val: unknown): number {
 }
 
 /**
+ * Resolves the effective low-stock alert threshold (in base units) for a product in local desktop mode.
+ */
+export function resolveLocalProductMinStock(product: any, globalFallback = 5): number {
+  const safeFallback =
+    typeof globalFallback === 'number' && Number.isFinite(globalFallback) && globalFallback >= 0
+      ? globalFallback
+      : 5;
+  if (!product || typeof product !== 'object') return safeFallback;
+
+  if (product.min_stock_level !== undefined) {
+    if (product.min_stock_level === null || product.min_stock_level === '') {
+      return safeFallback;
+    }
+    const parsed = Number(product.min_stock_level);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : safeFallback;
+  }
+
+  const legacyCandidates = [
+    product.minStockLevel,
+    product.min_stock,
+    product.minStock,
+    product.min_qty,
+    product.reorder_point,
+    product.reorderPoint,
+  ];
+  for (const cand of legacyCandidates) {
+    if (cand !== undefined && cand !== null && cand !== '') {
+      const parsed = Number(cand);
+      if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+    }
+  }
+  return safeFallback;
+}
+
+export function syncLocalProductAvailabilityStatus(prod: any, globalFallback = 5): void {
+  if (!prod || typeof prod !== 'object') return;
+  const stock = Number(prod.current_stock ?? prod.qty ?? prod.stock ?? prod.quantity ?? 0);
+  const min = resolveLocalProductMinStock(prod, globalFallback);
+  if (stock <= 0) {
+    prod.status = 'نفد';
+  } else if (stock <= min) {
+    prod.status = 'قريب من النفاذ';
+  } else {
+    prod.status = 'متوفر';
+  }
+}
+
+export function buildLocalLowStockAlerts(products: any[], globalFallback = 5): Array<{
+  id: string;
+  product_id: string;
+  name: string;
+  product_name: string;
+  sku: string;
+  qty: number;
+  current_stock: number;
+  unit: string;
+  baseUnitName: string;
+  min_stock_level: number;
+  custom_min_stock_level: number | null;
+  status: 'نفد' | 'قريب من النفاذ';
+}> {
+  if (!Array.isArray(products)) return [];
+  const alerts: Array<{
+    id: string;
+    product_id: string;
+    name: string;
+    product_name: string;
+    sku: string;
+    qty: number;
+    current_stock: number;
+    unit: string;
+    baseUnitName: string;
+    min_stock_level: number;
+    custom_min_stock_level: number | null;
+    status: 'نفد' | 'قريب من النفاذ';
+  }> = [];
+
+  for (const p of products) {
+    if (!p || typeof p !== 'object') continue;
+    const stock = Number(p.current_stock ?? p.stock ?? p.qty ?? p.quantity ?? 0);
+    const threshold = resolveLocalProductMinStock(p, globalFallback);
+    if (stock <= threshold) {
+      const baseUnit = String(p.baseUnitName || p.unit || 'حبة');
+      const customMin =
+        p.min_stock_level !== undefined &&
+        p.min_stock_level !== null &&
+        p.min_stock_level !== '' &&
+        Number.isFinite(Number(p.min_stock_level)) &&
+        Number(p.min_stock_level) >= 0
+          ? Number(p.min_stock_level)
+          : null;
+      alerts.push({
+        id: String(p.id || ''),
+        product_id: String(p.id || ''),
+        name: String(p.name || p.title || 'صنف'),
+        product_name: String(p.name || p.title || 'صنف'),
+        sku: String(p.sku || p.barcode || ''),
+        qty: stock,
+        current_stock: stock,
+        unit: baseUnit,
+        baseUnitName: baseUnit,
+        min_stock_level: threshold,
+        custom_min_stock_level: customMin,
+        status: stock <= 0 ? 'نفد' : 'قريب من النفاذ',
+      });
+    }
+  }
+  return alerts;
+}
+
+export function validateLocalCustomerCreditLimit(
+  customer: any,
+  invoiceTotal: number,
+  paidAmount: number
+): LocalApiResponse<null> | null {
+  const safeTotal = roundMoney(Math.max(0, Number(invoiceTotal || 0)));
+  const safePaid = roundMoney(Math.max(0, Math.min(Number(paidAmount || 0), safeTotal)));
+  const remainingDue = roundMoney(Math.max(0, Number((safeTotal - safePaid).toFixed(2))));
+
+  if (remainingDue <= 0.001) return null;
+  if (!customer || customer.enforce_credit_limit !== true) return null;
+
+  const creditLimit = roundMoney(Math.max(0, Number(customer.credit_limit ?? customer.creditLimit ?? 0)));
+  if (!(creditLimit > 0)) return null;
+
+  const currentBalance = roundMoney(Number(customer.current_balance ?? customer.balance ?? 0));
+  const projectedBalance = roundMoney(currentBalance + remainingDue);
+
+  if (projectedBalance > creditLimit + 0.001) {
+    const availableCredit = roundMoney(Math.max(0, creditLimit - currentBalance));
+    const requiredCashPayment = roundMoney(Math.max(0, projectedBalance - creditLimit));
+    const custLabel = String(customer.name || 'العميل').trim();
+    const message = `تجاوز السقف الائتماني للعميل "${custLabel}". الرصيد الحالي: ${currentBalance}، المبلغ الآجل للفاتورة: ${remainingDue}، الرصيد المتوقع: ${projectedBalance}، السقف الائتماني المسموح: ${creditLimit}. يرجى تحصيل دفعة نقدية لا تقل عن ${requiredCashPayment} أو سداد جزء من المديونية السابقة.`;
+    return {
+      ok: false,
+      success: false,
+      status: 400,
+      code: 'CREDIT_LIMIT_EXCEEDED',
+      error: message,
+      message,
+      details: {
+        customerId: customer.id,
+        customerName: custLabel,
+        currentBalance,
+        creditLimit,
+        remainingDue,
+        projectedBalance,
+        availableCredit,
+        requiredCashPayment,
+      },
+      data: null,
+    };
+  }
+  return null;
+}
+
+/**
  * Validate double-entry journal balance (totalDebit === totalCredit)
  */
 export function validateLocalBalancedJournalLines(lines: Array<{ debit?: number; credit?: number }>): {
@@ -3668,10 +3825,11 @@ async function internalHandleLocalDesktopApiFallback(
     let lowStockCount = 0;
 
     const detailedProducts = validProducts.map((p: any) => {
-      const stock = Number(p.stock ?? p.quantity ?? p.qty ?? 0);
-      const cost = Number(p.cost ?? p.buy_price ?? p.buyPrice ?? p.purchase_price ?? p.price ?? 0);
-      const price = Number(p.sale_price ?? p.salePrice ?? p.price ?? cost);
-      const reorder = Number(p.reorder_point ?? p.reorderPoint ?? p.min_stock ?? p.minStock ?? 5);
+      const stock = Number(p.current_stock ?? p.stock ?? p.quantity ?? p.qty ?? 0);
+      const cost = Number(p.cost_price ?? p.cost ?? p.buy_price ?? p.buyPrice ?? p.purchase_price ?? p.price ?? 0);
+      const price = Number(p.selling_price ?? p.sale_price ?? p.salePrice ?? p.price ?? cost);
+      const reorder = resolveLocalProductMinStock(p);
+      const baseUnit = String(p.baseUnitName || p.unit || 'حبة');
       const val = roundMoney(stock * cost);
 
       totalValuation += val;
@@ -3685,6 +3843,11 @@ async function internalHandleLocalDesktopApiFallback(
         sku: p.sku || p.barcode || '-',
         category: p.category || 'عام',
         stock,
+        current_stock: stock,
+        qty: stock,
+        unit: baseUnit,
+        baseUnitName: baseUnit,
+        min_stock_level: reorder,
         unitCost: cost,
         unitPrice: price,
         valuation: val,
@@ -3693,11 +3856,13 @@ async function internalHandleLocalDesktopApiFallback(
     });
 
     totalValuation = roundMoney(totalValuation);
+    const lowStockAlerts = buildLocalLowStockAlerts(validProducts);
 
     const payload = {
       totalProductsCount,
       totalValuation,
       lowStockCount,
+      lowStockAlerts,
       products: detailedProducts,
       items: detailedProducts,
     };
@@ -3867,6 +4032,9 @@ async function internalHandleLocalDesktopApiFallback(
       ...metrics.incomeStatement,
     };
 
+    const localProductsForDash = getLocalItem<any[]>('erp_products_v1', [], companyId);
+    const dashLowStockAlerts = buildLocalLowStockAlerts(localProductsForDash);
+
     const unifiedData = {
       success: true,
       netSales: metrics.netSales,
@@ -3930,7 +4098,8 @@ async function internalHandleLocalDesktopApiFallback(
       todayPurchases: metrics.purchasesTotal,
       todayPayments: 0,
       todayExpenses: metrics.operatingExpenses,
-      lowStockCount: 0,
+      lowStockCount: dashLowStockAlerts.length,
+      lowStockAlerts: dashLowStockAlerts,
       ...metrics,
     };
 
@@ -4229,9 +4398,8 @@ async function internalHandleLocalDesktopApiFallback(
           .reduce((s, e) => s + Number(e.totalAmount ?? e.total_amount ?? e.amount ?? 0), 0)
       );
 
-      const lowStockCount = products.filter(
-        (p: any) => Number(p.current_stock ?? p.stock ?? p.qty ?? 0) <= Number(p.min_stock ?? p.reorder_point ?? 5)
-      ).length;
+      const lowStockAlerts = buildLocalLowStockAlerts(products);
+      const lowStockCount = lowStockAlerts.length;
 
       const { discrepancies } = computeLocalAuditDiscrepancies();
 
@@ -4251,6 +4419,7 @@ async function internalHandleLocalDesktopApiFallback(
         inventoryValuation: metrics.inventoryValuation,
         netCashFlow: roundMoney(todayCollections - todayPayments - todayExpenses),
         lowStockCount,
+        lowStockAlerts,
         openReconciliationIssues: discrepancies.length,
         monthlyRevenue: metrics.netSales,
         monthlyExpenses: metrics.operatingExpenses,
@@ -6092,6 +6261,43 @@ async function internalHandleLocalDesktopApiFallback(
     };
   }
 
+  // 12.9. Dynamic Low-Stock Notifications (/notifications)
+  if (cleanUrl.endsWith('/notifications') && method === 'GET') {
+    const products = getLocalItem<any[]>('erp_products_v1', [], companyId);
+    const lowStockAlerts = buildLocalLowStockAlerts(products);
+    const dynamicNotifs = lowStockAlerts.map((alert) => ({
+      id: `low-stock-${alert.product_id}`,
+      type: 'LOW_STOCK',
+      severity: alert.current_stock <= 0 ? 'CRITICAL' : 'WARNING',
+      title: alert.current_stock <= 0 ? `نفاد مخزون: ${alert.name}` : `تنبيه مخزون منخفض: ${alert.name}`,
+      message:
+        alert.current_stock <= 0
+          ? `نفد رصيد الصنف "${alert.name}" بالكامل (0 ${alert.baseUnitName}) — حد التنبيه المحدد: ${alert.min_stock_level} ${alert.baseUnitName}`
+          : `الرصيد المتبقي للصنف "${alert.name}" هو ${alert.current_stock} ${alert.baseUnitName} (حد التنبيه: ${alert.min_stock_level} ${alert.baseUnitName})`,
+      product_id: alert.product_id,
+      product_name: alert.name,
+      qty: alert.current_stock,
+      current_stock: alert.current_stock,
+      unit: alert.baseUnitName,
+      baseUnitName: alert.baseUnitName,
+      min_stock_level: alert.min_stock_level,
+      custom_min_stock_level: alert.custom_min_stock_level,
+      status: alert.status,
+      read: false,
+      is_read: false,
+      created_at: new Date().toISOString(),
+    }));
+    return {
+      ok: true,
+      success: true,
+      status: 200,
+      data: dynamicNotifs,
+      notifications: dynamicNotifs,
+      lowStockAlerts,
+      lowStockCount: lowStockAlerts.length,
+    };
+  }
+
   // 13. Categories & POS Helper Endpoints
   if (cleanUrl.includes('/products/categories')) {
     const cats = ['زيوت ومحركات', 'فلاتر وسوائل', 'إطارات وبطاريات', 'قطع غيار عامة', 'بواجي وكهرباء', 'عام'];
@@ -6211,6 +6417,20 @@ async function internalHandleLocalDesktopApiFallback(
       }
     }
 
+    // Customer Credit Limit Check BEFORE stock deduction or any mutation
+    if (remainingAmount > 0 && (customerId || (customerName && customerName !== 'عميل نقدي'))) {
+      const localCusts = getLocalItem<any[]>('erp_customers_v1', [], companyId);
+      const matchedCust = localCusts.find(
+        (c) =>
+          (customerId && customerId !== 'cust-cash' && customerId !== 'cust-direct' && String(c.id).toLowerCase() === String(customerId).toLowerCase()) ||
+          (customerName && customerName !== 'عميل نقدي' && String(c.name || '').trim().toLowerCase() === customerName.toLowerCase())
+      );
+      const creditErr = validateLocalCustomerCreditLimit(matchedCust, grandTotal, paidAmount);
+      if (creditErr) {
+        return creditErr;
+      }
+    }
+
     // Deduct stock, compute COGS, and record inventory movements
     let totalCogs = 0;
     const movements = getLocalItem<any[]>('erp_inventory_movements_v1', []);
@@ -6228,6 +6448,7 @@ async function internalHandleLocalDesktopApiFallback(
         prod.current_stock = newStock;
         prod.stock = newStock;
         prod.qty = newStock;
+        syncLocalProductAvailabilityStatus(prod);
         const itemCost = Number(prod.cost_price || item.cost_price || item.cost || 0);
         totalCogs += roundMoney(itemCost * requestedQty);
 
@@ -6642,6 +6863,7 @@ async function internalHandleLocalDesktopApiFallback(
         prod.qty = newStock;
         prod.stock = newStock;
         prod.totalSold = Math.max(0, (Number(prod.totalSold) || 0) - baseQty);
+        syncLocalProductAvailabilityStatus(prod);
 
         const unitCost = Number(prod.cost_price || prod.purchase_price || it.cost_price || 0);
         totalReturnCogs = roundMoney(totalReturnCogs + baseQty * unitCost);
@@ -6920,7 +7142,7 @@ async function internalHandleLocalDesktopApiFallback(
     if (s.itemCode) s.itemCode = normalizeDigits(s.itemCode);
 
     const numericFields = [
-      'openingBalance', 'opening_balance', 'current_balance', 'balance',
+      'openingBalance', 'opening_balance', 'current_balance', 'balance', 'credit_limit', 'creditLimit',
       'sellingPrice', 'selling_price', 'sale_price', 'retailPrice', 'retail_price',
       'purchasePrice', 'purchase_price', 'costPrice', 'cost_price',
       'currentStock', 'current_stock', 'stock', 'minStockLevel', 'min_stock_level', 'min_stock',
@@ -8643,8 +8865,11 @@ async function internalHandleLocalDesktopApiFallback(
       if (idx !== -1) {
         const qty = parseFloat(bodyData.quantity || '0');
         const current = Number(products[idx].current_stock ?? products[idx].stock ?? 0);
-        products[idx].current_stock = Math.max(0, current + qty);
-        products[idx].stock = products[idx].current_stock;
+        const nextStock = Math.max(0, current + qty);
+        products[idx].current_stock = nextStock;
+        products[idx].stock = nextStock;
+        products[idx].qty = nextStock;
+        syncLocalProductAvailabilityStatus(products[idx]);
         setLocalItem('erp_products_v1', products, companyId);
         await saveRecord('erp_products_v1', products[idx]);
       }
@@ -8918,6 +9143,30 @@ async function internalHandleLocalDesktopApiFallback(
             }
           }
         }
+
+        // Offline Customer Credit Limit Check BEFORE saving invoice, deducting stock, or posting journals
+        const prePayMethod = String(bodyData.payment_method || bodyData.paymentMethod || 'CASH').toUpperCase();
+        const preRawPaid = bodyData.paid_amount ?? bodyData.paidAmount;
+        let preCalcPaid = 0;
+        if (preRawPaid !== undefined && preRawPaid !== null && preRawPaid !== '') {
+          preCalcPaid = roundMoney(Math.max(0, Math.min(Number(preRawPaid), grandTotal)));
+        } else if (['CASH', 'BANK', 'CARD', 'TRANSFER', 'WALLET', 'MOBILE'].includes(prePayMethod)) {
+          preCalcPaid = grandTotal;
+        }
+        const preRemaining = roundMoney(Math.max(0, Number((grandTotal - preCalcPaid).toFixed(2))));
+        const preCustId = bodyData.customer_id || bodyData.customerId;
+        if (preRemaining > 0 && (preCustId || (custName && custName !== 'عميل نقدي'))) {
+          const localCusts = getLocalItem<any[]>('erp_customers_v1', [], companyId);
+          const matchedCust = localCusts.find(
+            (c) =>
+              (preCustId && preCustId !== 'cust-cash' && preCustId !== 'cust-direct' && String(c.id).toLowerCase() === String(preCustId).toLowerCase()) ||
+              (custName && custName !== 'عميل نقدي' && String(c.name || '').trim().toLowerCase() === custName.toLowerCase())
+          );
+          const creditErr = validateLocalCustomerCreditLimit(matchedCust, grandTotal, preCalcPaid);
+          if (creditErr) {
+            return creditErr;
+          }
+        }
       }
 
       // Populate party names, syncStatus, and is_synced when creating a payment in erp_payments_v1
@@ -8961,6 +9210,35 @@ async function internalHandleLocalDesktopApiFallback(
         created_at: bodyData.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });
+
+      if (matchedEntityKey === 'customers') {
+        const rawLim = bodyData.credit_limit !== undefined ? bodyData.credit_limit : bodyData.creditLimit;
+        const parsedLim =
+          rawLim !== undefined && rawLim !== null && rawLim !== '' && Number.isFinite(Number(rawLim))
+            ? roundMoney(Math.max(0, Number(rawLim)))
+            : 0;
+        const enforceLim =
+          bodyData.enforce_credit_limit === true ||
+          bodyData.enforce_credit_limit === 'true' ||
+          bodyData.enforceCreditLimit === true ||
+          bodyData.enforceCreditLimit === 'true';
+        sanitized.credit_limit = parsedLim;
+        sanitized.creditLimit = parsedLim;
+        sanitized.enforce_credit_limit = enforceLim;
+      }
+
+      if (matchedEntityKey === 'products') {
+        const hasSnakeMin = Object.prototype.hasOwnProperty.call(bodyData, 'min_stock_level');
+        const hasCamelMin = Object.prototype.hasOwnProperty.call(bodyData, 'minStockLevel');
+        const rawMin = hasSnakeMin ? bodyData.min_stock_level : hasCamelMin ? bodyData.minStockLevel : undefined;
+        if (rawMin === undefined || rawMin === null || rawMin === '') {
+          sanitized.min_stock_level = null;
+        } else {
+          const parsedMin = Number(rawMin);
+          sanitized.min_stock_level = Number.isFinite(parsedMin) && parsedMin >= 0 ? parsedMin : null;
+        }
+        syncLocalProductAvailabilityStatus(sanitized);
+      }
 
       if (matchedEntityKey === 'payments') {
         sanitized.is_synced = true;
@@ -9063,6 +9341,7 @@ async function internalHandleLocalDesktopApiFallback(
             prod.current_stock = newStock;
             prod.stock = newStock;
             prod.qty = newStock;
+            syncLocalProductAvailabilityStatus(prod);
             const itemCost = Number(prod.cost_price || it.cost_price || it.cost || 0);
             totalCogs += roundMoney(itemCost * requestedQty);
 
@@ -9752,13 +10031,57 @@ async function internalHandleLocalDesktopApiFallback(
           id: items[idx].id,
           updated_at: new Date().toISOString(),
         });
-        items[idx] = updatedRecord;
       } else {
         updatedRecord = sanitizeEntityRecord({
           ...bodyData,
           id: targetId || `${prefix}_${Date.now()}`,
           updated_at: new Date().toISOString(),
         });
+      }
+
+      if (matchedEntityKey === 'customers') {
+        const existingLim = idx !== -1
+          ? roundMoney(Math.max(0, Number(items[idx].credit_limit ?? items[idx].creditLimit ?? 0)))
+          : 0;
+        const hasLim = bodyData.credit_limit !== undefined || bodyData.creditLimit !== undefined;
+        const rawLim = bodyData.credit_limit !== undefined ? bodyData.credit_limit : bodyData.creditLimit;
+        const nextLim = hasLim
+          ? rawLim === null || rawLim === ''
+            ? 0
+            : Number.isFinite(Number(rawLim))
+            ? roundMoney(Math.max(0, Number(rawLim)))
+            : existingLim
+          : existingLim;
+        const hasEnforce = bodyData.enforce_credit_limit !== undefined || bodyData.enforceCreditLimit !== undefined;
+        const rawEnforce = bodyData.enforce_credit_limit !== undefined ? bodyData.enforce_credit_limit : bodyData.enforceCreditLimit;
+        const nextEnforce = hasEnforce
+          ? rawEnforce === true || rawEnforce === 'true'
+          : Boolean(idx !== -1 ? items[idx].enforce_credit_limit : false);
+        updatedRecord.credit_limit = nextLim;
+        updatedRecord.creditLimit = nextLim;
+        updatedRecord.enforce_credit_limit = nextEnforce;
+      }
+
+      if (matchedEntityKey === 'products') {
+        const hasSnakeMin = Object.prototype.hasOwnProperty.call(bodyData, 'min_stock_level');
+        const hasCamelMin = Object.prototype.hasOwnProperty.call(bodyData, 'minStockLevel');
+        if (hasSnakeMin || hasCamelMin) {
+          const rawMin = hasSnakeMin ? bodyData.min_stock_level : bodyData.minStockLevel;
+          if (rawMin === null || rawMin === undefined || rawMin === '') {
+            updatedRecord.min_stock_level = null;
+          } else {
+            const parsedMin = Number(rawMin);
+            updatedRecord.min_stock_level = Number.isFinite(parsedMin) && parsedMin >= 0 ? parsedMin : null;
+          }
+        } else if (idx !== -1) {
+          updatedRecord.min_stock_level = items[idx].min_stock_level ?? null;
+        }
+        syncLocalProductAvailabilityStatus(updatedRecord);
+      }
+
+      if (idx !== -1) {
+        items[idx] = updatedRecord;
+      } else {
         items.unshift(updatedRecord);
       }
 
@@ -9859,6 +10182,7 @@ async function internalHandleLocalDesktopApiFallback(
               products[pIdx].qty = restored;
               products[pIdx].stock = restored;
               products[pIdx].quantity = restored;
+              syncLocalProductAvailabilityStatus(products[pIdx]);
 
               movements.unshift({
                 id: `mov_rev_sale_${Date.now()}_${Math.floor(Math.random() * 1000)}`,

@@ -106,7 +106,7 @@ export const ProductsTab: React.FC = () => {
     purchasePrice: '0',
     sellingPrice: '0',
     currentStock: '0',
-    minStockLevel: '5',
+    minStockLevel: '',
     isActive: true,
     description: '',
 
@@ -269,7 +269,7 @@ export const ProductsTab: React.FC = () => {
       purchasePrice: '0',
       sellingPrice: '0',
       currentStock: '0',
-      minStockLevel: '5',
+      minStockLevel: '',
       isActive: true,
       description: '',
 
@@ -332,7 +332,12 @@ export const ProductsTab: React.FC = () => {
       purchasePrice: String(prod.purchase_price ?? prod.cost_price ?? 0),
       sellingPrice: String(prod.selling_price ?? prod.price ?? 0),
       currentStock: String(prod.current_stock ?? prod.qty ?? 0),
-      minStockLevel: String(prod.min_stock_level ?? 5),
+      minStockLevel:
+        prod.min_stock_level !== undefined && prod.min_stock_level !== null && prod.min_stock_level !== ''
+          ? String(prod.min_stock_level)
+          : prod.minStockLevel !== undefined && prod.minStockLevel !== null && prod.minStockLevel !== ''
+          ? String(prod.minStockLevel)
+          : '',
       isActive: prod.is_active !== false,
       description: prod.description || '',
 
@@ -452,7 +457,14 @@ export const ProductsTab: React.FC = () => {
         openingStock: initialStockVal,
         incomingStock: canonicalBaseStock,
         incoming_stock: canonicalBaseStock,
-        minStockLevel: parseFloat(formData.minStockLevel || '0'),
+        min_stock_level:
+          String(formData.minStockLevel ?? '').trim() === ''
+            ? null
+            : Math.max(0, parseFloat(String(formData.minStockLevel)) || 0),
+        minStockLevel:
+          String(formData.minStockLevel ?? '').trim() === ''
+            ? null
+            : Math.max(0, parseFloat(String(formData.minStockLevel)) || 0),
         isActive: formData.isActive,
         description: formData.description,
 
@@ -635,9 +647,23 @@ export const ProductsTab: React.FC = () => {
     0
   );
 
-  const lowStockCount = products.filter(
-    (p) => Number(p.current_stock ?? p.qty ?? 0) <= Number(p.min_stock_level ?? 5)
-  ).length;
+  const resolveProductMinStock = (p: any, globalDefault = 5): { threshold: number; isCustom: boolean } => {
+    const raw = p?.min_stock_level;
+    if (raw !== undefined && raw !== null && raw !== '' && Number.isFinite(Number(raw)) && Number(raw) >= 0) {
+      return { threshold: Number(raw), isCustom: true };
+    }
+    const legacy = p?.minStockLevel ?? p?.min_stock ?? p?.reorder_point;
+    if (legacy !== undefined && legacy !== null && legacy !== '' && Number.isFinite(Number(legacy)) && Number(legacy) >= 0) {
+      return { threshold: Number(legacy), isCustom: true };
+    }
+    return { threshold: globalDefault, isCustom: false };
+  };
+
+  const lowStockCount = products.filter((p) => {
+    const stock = Number(p.current_stock ?? p.qty ?? 0);
+    const { threshold } = resolveProductMinStock(p);
+    return stock <= threshold;
+  }).length;
 
   // Extract categories for filter
   const categories = Array.from(new Set(products.map((p) => p.category).filter(Boolean)));
@@ -695,7 +721,7 @@ export const ProductsTab: React.FC = () => {
         stock,
         factor > 1 ? `${cartons} كرتون + ${pieces} حبة` : `${stock} حبة`,
         activityNote,
-        stock <= 0 ? 'نفذ' : stock <= (prod.min_stock_level ?? 5) ? 'قريب من النفاذ' : 'متوفر',
+        stock <= 0 ? 'نفذ' : stock <= resolveProductMinStock(prod).threshold ? 'قريب من النفاذ' : 'متوفر',
       ];
     }),
     alignments: ['right', 'center', 'center', 'center', 'right', 'right', 'center', 'center', 'right', 'center'],
@@ -910,7 +936,10 @@ export const ProductsTab: React.FC = () => {
               ) : (
                 products.map((prod) => {
                   const stock = Number(prod.current_stock ?? prod.qty ?? 0);
-                  const isLow = stock <= Number(prod.min_stock_level ?? 5);
+                  const { threshold: minThreshold, isCustom: hasCustomThreshold } = resolveProductMinStock(prod);
+                  const isOut = stock <= 0;
+                  const isLow = !isOut && stock <= minThreshold;
+                  const baseUnitLabel = prod.baseUnitName || prod.unit || 'حبة';
 
                   // Activity badge
                   const activityLabel =
@@ -980,14 +1009,30 @@ export const ProductsTab: React.FC = () => {
 
                       {/* Stock with Cartons Breakdown & Movements */}
                       <td className="p-3.5">
-                        <div className="space-y-1.5 min-w-[175px]">
-                          <div className="flex items-center gap-1.5">
+                        <div className="space-y-1.5 min-w-[185px]">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             {renderStockBreakdown(prod)}
-                            {isLow && (
-                              <span title={`تنبيه مخزون: الحد الأدنى ${prod.min_stock_level ?? 5}`}>
-                                <AlertTriangle className="w-4 h-4 text-[var(--md-warning)] shrink-0" />
+                            <span
+                              className={`m3-badge text-[10px] font-mono tabular-nums ${
+                                isOut
+                                  ? 'm3-badge-error'
+                                  : isLow
+                                  ? 'm3-badge-warning'
+                                  : 'bg-[var(--md-surface-container-high)] text-[var(--md-on-surface-variant)] border border-[var(--md-outline-variant)]'
+                              }`}
+                              title={
+                                isOut
+                                  ? `نفد المخزون (0 ${baseUnitLabel}) — ${hasCustomThreshold ? 'حد التنبيه المخصص' : 'الحد العام الافتراضي'}: ${formatNumber(minThreshold)} ${baseUnitLabel}`
+                                  : isLow
+                                  ? `متبقي ${formatNumber(stock)} ${baseUnitLabel} فقط — ${hasCustomThreshold ? 'حد التنبيه المخصص' : 'الحد العام الافتراضي'}: ${formatNumber(minThreshold)} ${baseUnitLabel}`
+                                  : `${hasCustomThreshold ? 'حد التنبيه المخصص' : 'الحد العام الافتراضي'}: ${formatNumber(minThreshold)} ${baseUnitLabel}`
+                              }
+                            >
+                              {(isOut || isLow) && <AlertTriangle className="w-3 h-3 shrink-0" />}
+                              <span>
+                                {formatNumber(stock)} / حد التنبيه {formatNumber(minThreshold)}
                               </span>
-                            )}
+                            </span>
                           </div>
                           {/* 4 Inventory Indicators: السابق/الوارد، المباع اليوم، إجمالي المباع، المتبقي */}
                           {(() => {
@@ -1601,6 +1646,42 @@ export const ProductsTab: React.FC = () => {
                       className="m3-input !h-9 text-xs font-mono font-bold text-[var(--md-primary-text)] tabular-nums"
                     />
                   </div>
+                </div>
+
+                {/* Custom Low-Stock Alert Threshold Input */}
+                <div className="pt-2 border-t border-[var(--md-outline-variant)] space-y-1">
+                  <label className="block text-[var(--md-on-surface-variant)] text-[11px] font-semibold flex items-center justify-between gap-2 flex-wrap">
+                    <span className="flex items-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5 text-[var(--md-warning)] shrink-0" />
+                      <span>حد التنبيه قبل النفاذ (الكمية المتبقية)</span>
+                    </span>
+                    <span className="m3-badge text-[10px] font-medium">
+                      الوحدة: {formData.baseUnitName || formData.unit || 'حبة'}
+                    </span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      dir="ltr"
+                      lang="en"
+                      placeholder="افتراضي النظام (5)"
+                      value={formData.minStockLevel}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          minStockLevel: toEnglishDigits(e.target.value).replace(/[^0-9.]/g, ''),
+                        })
+                      }
+                      className="m3-input !h-9 flex-1 text-xs font-mono font-bold text-left tabular-nums"
+                    />
+                    <span className="px-3 h-9 inline-flex items-center rounded-[var(--md-radius-md)] bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] text-[11px] font-semibold text-[var(--md-on-surface-variant)] shrink-0">
+                      {formData.baseUnitName || formData.unit || 'حبة'}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-[var(--md-on-surface-variant)] leading-relaxed">
+                    في حال تركه فارغاً يُستخدم الحد العام الافتراضي للنظام (5 {formData.baseUnitName || formData.unit || 'حبة'}).
+                  </p>
                 </div>
 
                 {/* Dual Synchronization Panel if Major Unit Factor > 1 */}

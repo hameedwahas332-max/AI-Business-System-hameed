@@ -73,7 +73,7 @@ export interface ProductItem {
   stock?: number;
   totalSold?: number;
   soldToday?: number;
-  min_stock_level: number;
+  min_stock_level?: number | null;
   status: string;
   is_active: boolean;
   batchNumber?: string;
@@ -113,6 +113,8 @@ export interface CustomerItem {
   address?: string;
   balance: number;
   creditLimit: number;
+  credit_limit?: number;
+  enforce_credit_limit?: boolean;
   current_balance: number;
   opening_balance?: number;
   openingBalance?: number;

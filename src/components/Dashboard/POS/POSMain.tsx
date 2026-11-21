@@ -130,6 +130,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
   const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
   const [completedReceiptData, setCompletedReceiptData] = useState<any | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [paymentModalError, setPaymentModalError] = useState<string | null>(null);
 
   // Barcode Scanner & Rapid Hardware Input State
   const [scannedUnmatchedBarcode, setScannedUnmatchedBarcode] = useState<string | null>(null);
@@ -188,6 +189,11 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
 
       setProducts(prods);
       setCustomers(custs);
+      setSelectedCustomer((prev: any | null) => {
+        if (!prev?.id) return prev;
+        const fresh = custs.find((c: any) => c.id === prev.id);
+        return fresh || prev;
+      });
       setCurrentShift(shiftRes?.data || null);
       setHeldSales(mergedHeld);
       setDailySummary(summaryRes?.data || null);
@@ -328,6 +334,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
       setError(`⛔ تنبيه رقابي: لا يمكن إتمام البيع بسعر أقل من سعر الشراء لمنع الخسائر! الأصناف: (${names}). يرجى رفع سعر البيع ليغطي التكلفة.`);
       return;
     }
+    setPaymentModalError(null);
     setIsPaymentModalOpen(true);
   };
 
@@ -410,6 +417,14 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
       };
 
       const res = await api.posCheckout(payload);
+      if (res && res.success === false) {
+        const errMsg =
+          typeof (res as any)?.error === 'string'
+            ? (res as any).error
+            : (res as any)?.error?.message || (res as any)?.message || 'فشل إتمام البيع النقدي السريع';
+        setError(errMsg);
+        return;
+      }
       const finalInvNum = res.data?.invoice_number || invoiceNum;
       const receiptDataObj = {
         ...payload,
@@ -1099,6 +1114,15 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
 
       const prevBal = rawCustomer ? Number(rawCustomer.current_balance ?? rawCustomer.balance ?? 0) : 0;
       const newBal = prevBal + saleTotal;
+      const custCreditLimit = Math.max(0, Number(rawCustomer?.credit_limit ?? rawCustomer?.creditLimit ?? 0));
+      const custEnforceCredit = Boolean(rawCustomer?.enforce_credit_limit === true && custCreditLimit > 0);
+      if (custEnforceCredit && saleTotal > 0 && newBal > custCreditLimit + 0.001) {
+        const minCashRequired = Math.min(saleTotal, Math.max(0, Number((newBal - custCreditLimit).toFixed(2))));
+        setError(
+          `لا يمكن ترحيل الفاتورة الآجلة للعميل "${effectiveCustName}": الرصيد المتوقع (${formatAmount(newBal, currency)}) يتجاوز السقف الائتماني المحدد (${formatAmount(custCreditLimit, currency)}). استرجع الفاتورة للسلة وحصّل ${formatAmount(minCashRequired, currency)} على الأقل نقداً.`
+        );
+        return;
+      }
 
       const enrichedItems = enrichCartItemsWithIdentifiers(itemsList);
 
@@ -1218,6 +1242,7 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
     try {
       setCheckoutLoading(true);
       setError(null);
+      setPaymentModalError(null);
 
       const exchangeRate = exchangeRates[currency] || 1.0;
       const effectiveSalesperson = (user?.full_name || (user as any)?.name || 'حميد وهاس').trim();
@@ -1366,20 +1391,35 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
         setIsReceiptModalOpen(true);
         handleClearCart();
 
-        // Refresh Shift, Daily Summary & Products Stock
-        const [shiftRes, summaryRes, prodRes] = await Promise.all([
+        // Refresh Shift, Daily Summary, Products Stock & Customers
+        const [shiftRes, summaryRes, prodRes, custRes] = await Promise.all([
           api.posGetCurrentShift().catch(() => ({ success: false, data: null })),
           api.posGetDailySummary().catch(() => ({ success: false, data: null })),
           api.getProducts().catch(() => ({ success: false, data: [] })),
+          api.getCustomers().catch(() => ({ success: false, data: [] })),
         ]);
         setCurrentShift(shiftRes.data || null);
         setDailySummary(summaryRes.data || null);
         if (prodRes.data) setProducts(prodRes.data);
+        const refreshedCusts = Array.isArray(custRes) ? custRes : (custRes?.data || []);
+        if (refreshedCusts.length > 0) setCustomers(refreshedCusts);
       } else {
-        setError(res.error?.message || 'فشلت عملية إتمام البيع');
+        const serverErrMsg =
+          typeof (res as any)?.error === 'string'
+            ? (res as any).error
+            : (res as any)?.error?.message || (res as any)?.message || 'فشلت عملية إتمام البيع';
+        setPaymentModalError(serverErrMsg);
+        setError(serverErrMsg);
       }
     } catch (err: any) {
-      setError(err.message || 'حدث خطأ أثناء معالجة الفاتورة');
+      const caughtMsg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error?.message ||
+        (typeof err?.error === 'string' ? err.error : err?.error?.message) ||
+        err?.message ||
+        'حدث خطأ أثناء معالجة الفاتورة';
+      setPaymentModalError(caughtMsg);
+      setError(caughtMsg);
     } finally {
       isSubmittingInvoiceRef.current = false;
       setCheckoutLoading(false);
@@ -1676,14 +1716,30 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {filteredProducts.map((p) => {
                   const stock = Number(p.current_stock || 0);
-                  const isLowStock = stock <= Number(p.min_stock_level || 5);
+                  const rawMin = p.min_stock_level;
+                  const hasCustomMin =
+                    rawMin !== undefined &&
+                    rawMin !== null &&
+                    rawMin !== '' &&
+                    Number.isFinite(Number(rawMin)) &&
+                    Number(rawMin) >= 0;
+                  const minStock = hasCustomMin ? Number(rawMin) : 5;
+                  const isOutOfStock = stock <= 0;
+                  const isLowStock = !isOutOfStock && stock <= minStock;
+                  const baseUnit = p.baseUnitName || p.unit || 'حبة';
                   const price = Number(p.selling_price || 0);
 
                   return (
                     <button
                       key={p.id}
                       onClick={() => handleAddToCart(p)}
-                      className="m3-card group p-3.5 hover:bg-[var(--md-surface-container-high)] hover:border-[var(--md-primary)]/50 text-right transition-all flex flex-col justify-between cursor-pointer active:scale-[0.98]"
+                      className={`m3-card group p-3.5 hover:bg-[var(--md-surface-container-high)] hover:border-[var(--md-primary)]/50 text-right transition-all flex flex-col justify-between cursor-pointer active:scale-[0.98] ${
+                        isOutOfStock
+                          ? 'border-[var(--md-error)]/40 bg-[var(--md-error-container)]/15'
+                          : isLowStock
+                          ? 'border-[var(--md-warning)]/45 bg-[var(--md-warning-container)]/15'
+                          : ''
+                      }`}
                     >
                       <div>
                         <div className="flex items-center justify-between text-[11px] text-[var(--md-on-surface-variant)] mb-1.5">
@@ -1697,22 +1753,39 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
                         </h4>
                       </div>
 
-                      <div className="mt-3 pt-2.5 border-t border-[var(--md-outline-variant)] flex items-center justify-between">
-                        <div className="text-base font-black text-[var(--md-primary-text)] tabular-nums">
+                      <div className="mt-3 pt-2.5 border-t border-[var(--md-outline-variant)] flex items-center justify-between gap-1.5">
+                        <div className="text-base font-black text-[var(--md-primary-text)] tabular-nums shrink-0">
                           {price.toLocaleString()} <span className="text-[11px] font-bold">{currSym}</span>
                         </div>
-                        <span
-                          className={`m3-badge text-[10px] font-bold ${
-                            stock <= 0
-                              ? 'm3-badge-error'
+                        <div className="flex flex-col items-end gap-0.5 min-w-0">
+                          <span
+                            className={`m3-badge text-[10px] font-bold tabular-nums max-w-full truncate ${
+                              isOutOfStock
+                                ? 'm3-badge-error'
+                                : isLowStock
+                                ? 'm3-badge-warning'
+                                : 'm3-badge-success font-mono'
+                            }`}
+                            title={
+                              isOutOfStock
+                                ? `نفد المخزون بالكامل (0 ${baseUnit}) — ${hasCustomMin ? 'حد التنبيه المخصص' : 'الحد الافتراضي'}: ${minStock} ${baseUnit}`
+                                : isLowStock
+                                ? `متبقي ${formatProductStock(stock, p)} فقط — ${hasCustomMin ? 'حد التنبيه المخصص' : 'الحد الافتراضي'}: ${minStock} ${baseUnit}`
+                                : `الرصيد المتاح: ${formatProductStock(stock, p)} — ${hasCustomMin ? 'حد التنبيه المخصص' : 'الحد الافتراضي'}: ${minStock} ${baseUnit}`
+                            }
+                          >
+                            {isOutOfStock
+                              ? 'نفد (0)'
                               : isLowStock
-                              ? 'm3-badge-warning'
-                              : 'm3-badge-success font-mono'
-                          }`}
-                          title={`الرصيد: ${formatProductStock(stock, p)}`}
-                        >
-                          {stock <= 0 ? 'نفد المخزون' : formatProductStock(stock, p)}
-                        </span>
+                              ? `متبقي ${formatProductStock(stock, p)}`
+                              : formatProductStock(stock, p)}
+                          </span>
+                          {(isLowStock || isOutOfStock) && (
+                            <span className="text-[9px] font-mono tabular-nums text-[var(--md-on-surface-variant)]">
+                              حد التنبيه: {minStock}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </button>
                   );
@@ -2339,13 +2412,17 @@ export const POSMain: React.FC<POSMainProps> = ({ onNavigateToInvoices }) => {
       {/* Payment & Checkout Modal */}
       <POSPaymentModal
         isOpen={isPaymentModalOpen}
-        onClose={() => setIsPaymentModalOpen(false)}
+        onClose={() => {
+          setIsPaymentModalOpen(false);
+          setPaymentModalError(null);
+        }}
         cartTotal={grandTotal}
         customer={selectedCustomer}
         currency={currency}
         exchangeRate={exchangeRates[currency] || 1.0}
         onConfirmPayment={handleConfirmPayment}
         loading={checkoutLoading}
+        serverError={paymentModalError}
       />
 
       {/* Receipt & Thermal Print Modal */}

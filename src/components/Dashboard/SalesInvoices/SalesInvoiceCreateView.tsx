@@ -41,6 +41,8 @@ import {
   Zap,
   Tag,
   Layers,
+  ShieldAlert,
+  ShieldCheck,
 } from 'lucide-react';
 import { ModuleSettingsModal } from '../../Common/ModuleSettingsModal';
 import { PriceTier, ProductActivityType } from '../../../types';
@@ -210,6 +212,26 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
   const totalTax = items.reduce((acc, it) => acc + (it.tax || 0), 0);
   const grandTotal = Number((subtotal - totalDiscount + totalTax).toFixed(2));
   const remainingDue = Math.max(0, Number((grandTotal - paidAmount).toFixed(2)));
+
+  // Real-time Customer Credit Limit Evaluation (Matches server & offline engine)
+  const selectedCustBalance = Number(selectedCustomer?.current_balance ?? selectedCustomer?.balance ?? 0);
+  const selectedCustCreditLimit = Math.max(0, Number(selectedCustomer?.credit_limit ?? selectedCustomer?.creditLimit ?? 0));
+  const isCreditLimitEnforced = Boolean(
+    selectedCustomer && selectedCustomer.enforce_credit_limit === true && selectedCustCreditLimit > 0
+  );
+  const availableCredit = Math.max(0, Number((selectedCustCreditLimit - selectedCustBalance).toFixed(2)));
+  const projectedBalance = Number((selectedCustBalance + remainingDue).toFixed(2));
+  const isCreditLimitExceeded =
+    isCreditLimitEnforced && remainingDue > 0.001 && projectedBalance > selectedCustCreditLimit + 0.001;
+  const additionalCashNeeded = isCreditLimitExceeded
+    ? Number(Math.min(remainingDue, Math.max(0, projectedBalance - selectedCustCreditLimit)).toFixed(2))
+    : 0;
+  const minimumPaidToAllow = isCreditLimitExceeded
+    ? Number(Math.min(grandTotal, Math.max(0, paidAmount + additionalCashNeeded)).toFixed(2))
+    : 0;
+  const creditUsagePct = selectedCustCreditLimit > 0
+    ? Math.round((Math.max(0, selectedCustBalance) / selectedCustCreditLimit) * 100)
+    : 0;
 
   // Synchronize payment amounts when switching methods or totals change
   const handlePaymentMethodChange = (newMethod: PaymentMethodType) => {
@@ -769,6 +791,13 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
       return;
     }
 
+    if (statusToSave !== 'DRAFT' && isCreditLimitExceeded) {
+      setError(
+        `لا يمكن اعتماد الفاتورة الآجلة لتجاوز السقف الائتماني للعميل "${selectedCustomer?.name}". الرصيد المتوقع (${formatAmount(projectedBalance, currency)}) يتجاوز السقف المحدد (${formatAmount(selectedCustCreditLimit, currency)}). الحد الأدنى المطلوب تحصيله نقداً لإتمام الفاتورة هو ${formatAmount(minimumPaidToAllow, currency)}.`
+      );
+      return;
+    }
+
     if (isSubmittingInvoiceRef.current) return;
     isSubmittingInvoiceRef.current = true;
 
@@ -1133,10 +1162,20 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
         }
         onSuccess(finalInvoice);
       } else {
-        setError(res.error?.message || 'فشل حفظ وإنشاء الفاتورة');
+        const serverErrMsg =
+          typeof (res as any)?.error === 'string'
+            ? (res as any).error
+            : (res as any)?.error?.message || (res as any)?.message || 'فشل حفظ وإنشاء الفاتورة';
+        setError(serverErrMsg);
       }
     } catch (err: any) {
-      setError(err.message || 'حدث خطأ أثناء الاتصال بالخادم');
+      const caughtMsg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error?.message ||
+        (typeof err?.error === 'string' ? err.error : err?.error?.message) ||
+        err?.message ||
+        'حدث خطأ أثناء الاتصال بالخادم';
+      setError(caughtMsg);
     } finally {
       isSubmittingInvoiceRef.current = false;
       setLoading(false);
@@ -1184,9 +1223,15 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
           <button
             type="button"
             onClick={() => handleSave('PENDING', true)}
-            disabled={loading || hasBelowCost}
+            disabled={loading || hasBelowCost || isCreditLimitExceeded}
             className="m3-btn-tonal px-4 py-2.5 disabled:opacity-50 text-xs sm:text-sm font-semibold flex items-center gap-2 disabled:cursor-not-allowed cursor-pointer"
-            title={hasBelowCost ? 'لا يمكن الحفظ: يوجد صنف مسعر بأقل من سعر الشراء' : undefined}
+            title={
+              hasBelowCost
+                ? 'لا يمكن الحفظ: يوجد صنف مسعر بأقل من سعر الشراء'
+                : isCreditLimitExceeded
+                ? 'لا يمكن الاعتماد الآجل: تم تجاوز السقف الائتماني المحدد للعميل'
+                : undefined
+            }
           >
             <Printer className="w-4 h-4" />
             حفظ وطباعة
@@ -1195,9 +1240,15 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
           <button
             type="button"
             onClick={() => handleSave('PENDING')}
-            disabled={loading || hasBelowCost}
+            disabled={loading || hasBelowCost || isCreditLimitExceeded}
             className="m3-btn-primary px-5 py-2.5 disabled:opacity-50 text-xs sm:text-sm font-bold flex items-center gap-2 disabled:cursor-not-allowed cursor-pointer"
-            title={hasBelowCost ? 'لا يمكن الحفظ: يوجد صنف مسعر بأقل من سعر الشراء' : undefined}
+            title={
+              hasBelowCost
+                ? 'لا يمكن الحفظ: يوجد صنف مسعر بأقل من سعر الشراء'
+                : isCreditLimitExceeded
+                ? 'لا يمكن الاعتماد الآجل: تم تجاوز السقف الائتماني المحدد للعميل'
+                : undefined
+            }
           >
             {loading ? (
               <>
@@ -1216,7 +1267,7 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
 
       {error && (
         <div className="p-4 bg-[var(--md-error-container)] border border-[var(--md-error)]/30 rounded-2xl text-[var(--md-on-error-container)] text-sm flex items-center gap-3 animate-shake">
-          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          <AlertCircle className="w-5 h-5 flex-shrink-0 text-[var(--md-error)]" />
           <span>{error}</span>
         </div>
       )}
@@ -1232,6 +1283,55 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
         <div className="p-4 bg-[var(--md-error-container)] border border-[var(--md-error)]/40 rounded-2xl text-[var(--md-on-error-container)] text-sm font-bold flex items-center gap-3 animate-pulse">
           <AlertTriangle className="w-5 h-5 shrink-0" />
           <span>⛔ تنبيه رقابي: لا يمكن إتمام البيع بسعر أقل من سعر الشراء لمنع الخسائر!</span>
+        </div>
+      )}
+
+      {isCreditLimitExceeded && (
+        <div className="p-4 bg-[var(--md-error-container)] border border-[var(--md-error)]/35 rounded-2xl text-[var(--md-on-error-container)] space-y-2.5">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="flex items-start gap-2.5">
+              <ShieldAlert className="w-5 h-5 shrink-0 text-[var(--md-error)] mt-0.5" />
+              <div className="space-y-1">
+                <div className="text-sm font-bold text-[var(--md-error)]">
+                  تم إيقاف الاعتماد الآجل: تجاوز السقف الائتماني للعميل ({selectedCustomer?.name})
+                </div>
+                <p className="text-xs leading-relaxed tabular-nums">
+                  الرصيد المتوقع بعد الفاتورة سيصل إلى{' '}
+                  <strong className="font-mono">{formatAmount(projectedBalance, currency)}</strong>{' '}
+                  وهو أعلى من السقف المسموح ({formatAmount(selectedCustCreditLimit, currency)}).
+                  الحد الأدنى المطلوب سداده نقداً على هذه الفاتورة للسماح بالاعتماد هو{' '}
+                  <strong className="font-mono underline">{formatAmount(minimumPaidToAllow, currency)}</strong>
+                  {paidAmount > 0 && additionalCashNeeded > 0 && (
+                    <span> (بزيادة {formatAmount(additionalCashNeeded, currency)} على المبلغ المدخل)</span>
+                  )}.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => {
+                  if (paymentMethod === 'CREDIT') setPaymentMethod('CASH');
+                  setPaidAmount(minimumPaidToAllow);
+                  setError(null);
+                }}
+                className="m3-btn-tonal !min-h-[34px] px-3 py-1.5 text-xs font-bold tabular-nums cursor-pointer"
+              >
+                تحصيل الحد الأدنى ({formatAmount(minimumPaidToAllow, currency)})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPaymentMethod('CASH');
+                  setPaidAmount(grandTotal);
+                  setError(null);
+                }}
+                className="m3-btn-primary !min-h-[34px] px-3 py-1.5 text-xs font-bold tabular-nums cursor-pointer"
+              >
+                تحويل لنقدي كامل ({formatAmount(grandTotal, currency)})
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1338,29 +1438,64 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
           </div>
 
           {selectedCustomer && (
-            <div className="p-3 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl space-y-1.5 text-xs">
-              <div className="flex justify-between">
+            <div className="p-3 bg-[var(--md-surface-container-low)] border border-[var(--md-outline-variant)] rounded-xl space-y-2 text-xs">
+              <div className="flex justify-between items-center">
                 <span className="text-[var(--md-on-surface-variant)]">الرصيد الحالي:</span>
                 <span className="font-mono font-bold text-[var(--md-primary-text)] tabular-nums">
-                  {formatAmount(selectedCustomer.current_balance || 0, selectedCustomer.currency || currency)}
+                  {formatAmount(selectedCustBalance, selectedCustomer.currency || currency)}
                 </span>
               </div>
-              {selectedCustomer.credit_limit > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-[var(--md-on-surface-variant)]">الحد الائتماني:</span>
-                  <span className="font-mono text-[var(--md-on-surface)] tabular-nums">
-                    {formatAmount(selectedCustomer.credit_limit, selectedCustomer.currency || currency)}
-                  </span>
-                </div>
+              {selectedCustCreditLimit > 0 && (
+                <>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[var(--md-on-surface-variant)] flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-[var(--md-primary-text)] shrink-0" />
+                      <span>السقف الائتماني:</span>
+                      <span className={`m3-badge text-[9px] ${isCreditLimitEnforced ? 'm3-badge-primary' : ''}`}>
+                        {isCreditLimitEnforced ? 'مفعّل' : 'إرشادي'}
+                      </span>
+                    </span>
+                    <span className="font-mono font-semibold text-[var(--md-on-surface)] tabular-nums">
+                      {formatAmount(selectedCustCreditLimit, selectedCustomer.currency || currency)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[var(--md-on-surface-variant)]">الرصيد المتاح للآجل:</span>
+                    <span
+                      className={`font-mono font-bold tabular-nums ${
+                        availableCredit <= 0
+                          ? 'text-[var(--md-error)]'
+                          : creditUsagePct >= 80
+                          ? 'text-[var(--md-warning)]'
+                          : 'text-[var(--md-success)]'
+                      }`}
+                    >
+                      {formatAmount(availableCredit, selectedCustomer.currency || currency)}
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-[var(--md-surface-container-highest)] overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${
+                        creditUsagePct >= 100
+                          ? 'bg-[var(--md-error)]'
+                          : creditUsagePct >= 80
+                          ? 'bg-[var(--md-warning)]'
+                          : 'bg-[var(--md-primary)]'
+                      }`}
+                      style={{ width: `${Math.min(100, Math.max(0, creditUsagePct))}%` }}
+                    />
+                  </div>
+                </>
               )}
-              {paymentMethod === 'CREDIT' && remainingDue > 0 && (
-                <div className="flex justify-between border-t border-[var(--md-outline-variant)] pt-1 text-[var(--md-warning)] font-bold">
+              {remainingDue > 0 && (
+                <div
+                  className={`flex justify-between border-t border-[var(--md-outline-variant)] pt-1.5 font-bold ${
+                    isCreditLimitExceeded ? 'text-[var(--md-error)]' : 'text-[var(--md-warning)]'
+                  }`}
+                >
                   <span>الرصيد المتوقع بعد الفاتورة:</span>
                   <span className="font-mono tabular-nums">
-                    {formatAmount(
-                      Number(selectedCustomer.current_balance || 0) + remainingDue,
-                      selectedCustomer.currency || currency
-                    )}
+                    {formatAmount(projectedBalance, selectedCustomer.currency || currency)}
                   </span>
                 </div>
               )}
@@ -2209,6 +2344,23 @@ export const SalesInvoiceCreateView: React.FC<SalesInvoiceCreateViewProps> = ({
             <div className="p-3 bg-[var(--md-error-container)] border border-[var(--md-error)]/40 rounded-xl text-[var(--md-on-error-container)] text-xs font-bold flex items-center gap-2 animate-pulse">
               <AlertTriangle className="w-4 h-4 shrink-0" />
               <span>⛔ تنبيه محاسبي: يوجد صنف مسعّر بأقل من سعر الشراء! لا يمكن إتمام البيع بخسارة حتى يتم تعديل السعر.</span>
+            </div>
+          )}
+
+          {isCreditLimitExceeded && (
+            <div className="p-3 bg-[var(--md-error-container)] border border-[var(--md-error)]/35 rounded-xl text-[var(--md-on-error-container)] text-xs space-y-2">
+              <div className="flex items-center gap-2 font-bold text-[var(--md-error)]">
+                <ShieldAlert className="w-4 h-4 shrink-0" />
+                <span>تجاوز السقف الائتماني — مطلوب سداد نقدي لإتمام الاعتماد</span>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-2 tabular-nums">
+                <span>
+                  المتوقع: <strong className="font-mono">{formatAmount(projectedBalance, currency)}</strong> / السقف: <strong className="font-mono">{formatAmount(selectedCustCreditLimit, currency)}</strong>
+                </span>
+                <span className="font-bold text-[var(--md-error)]">
+                  الحد الأدنى للسداد: <span className="font-mono">{formatAmount(minimumPaidToAllow, currency)}</span>
+                </span>
+              </div>
             </div>
           )}
 

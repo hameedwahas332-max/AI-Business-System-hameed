@@ -54,6 +54,7 @@ export interface Customer {
   balance?: number;
   credit_limit?: number;
   creditLimit?: number;
+  enforce_credit_limit?: boolean;
   priceTier?: PriceTier;
   tax_number?: string;
   created_at?: string;
@@ -85,6 +86,7 @@ export interface Product {
   cost_price?: number;
   qty: number;
   min_qty?: number;
+  min_stock_level?: number | null;
   status?: string;
 
   // Dynamic Item Code & Spare Part Number

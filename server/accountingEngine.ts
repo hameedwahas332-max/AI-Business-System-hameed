@@ -169,10 +169,52 @@ export function roundMoney(val: unknown): number {
   return Math.round((num + Number.EPSILON) * 100) / 100;
 }
 
-export function syncProductAvailabilityStatus(prod: any): void {
+/**
+ * Resolves the effective low-stock alert threshold (in base stock units) for a product.
+ * Falls back to globalFallback (default 5) when min_stock_level is null/undefined/empty/invalid.
+ * Explicitly respects 0 as a valid non-negative threshold.
+ */
+export function resolveProductMinStock(product: any, globalFallback = 5): number {
+  const safeFallback =
+    typeof globalFallback === 'number' && Number.isFinite(globalFallback) && globalFallback >= 0
+      ? globalFallback
+      : 5;
+
+  if (!product || typeof product !== 'object') {
+    return safeFallback;
+  }
+
+  if (product.min_stock_level !== undefined) {
+    if (product.min_stock_level === null || product.min_stock_level === '') {
+      return safeFallback;
+    }
+    const parsed = Number(product.min_stock_level);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : safeFallback;
+  }
+
+  const legacyCandidates = [
+    product.minStockLevel,
+    product.min_stock,
+    product.min_qty,
+    product.reorder_point,
+    product.reorderPoint,
+  ];
+  for (const cand of legacyCandidates) {
+    if (cand !== undefined && cand !== null && cand !== '') {
+      const parsed = Number(cand);
+      if (Number.isFinite(parsed) && parsed >= 0) {
+        return parsed;
+      }
+    }
+  }
+
+  return safeFallback;
+}
+
+export function syncProductAvailabilityStatus(prod: any, globalFallback = 5): void {
   if (!prod || typeof prod !== 'object') return;
   const stock = Number(prod.current_stock ?? prod.qty ?? prod.stock ?? 0);
-  const min = Number(prod.min_stock_level ?? 5);
+  const min = resolveProductMinStock(prod, globalFallback);
   if (stock <= 0) {
     prod.status = 'نفد';
   } else if (stock <= min) {
@@ -180,6 +222,144 @@ export function syncProductAvailabilityStatus(prod: any): void {
   } else {
     prod.status = 'متوفر';
   }
+}
+
+export interface LowStockAlertItem {
+  id: string;
+  product_id: string;
+  name: string;
+  product_name: string;
+  sku: string;
+  qty: number;
+  current_stock: number;
+  unit: string;
+  baseUnitName: string;
+  min_stock_level: number;
+  custom_min_stock_level: number | null;
+  status: 'نفد' | 'قريب من النفاذ';
+}
+
+export function buildLowStockAlerts(products: any[], globalFallback = 5): LowStockAlertItem[] {
+  if (!Array.isArray(products)) return [];
+  const alerts: LowStockAlertItem[] = [];
+  for (const p of products) {
+    if (!p || typeof p !== 'object') continue;
+    const stock = Number(p.current_stock ?? p.qty ?? p.stock ?? 0);
+    const threshold = resolveProductMinStock(p, globalFallback);
+    if (stock <= threshold) {
+      const baseUnit = String(p.baseUnitName || p.unit || 'حبة');
+      const customMin =
+        p.min_stock_level !== undefined && p.min_stock_level !== null && p.min_stock_level !== '' && Number.isFinite(Number(p.min_stock_level)) && Number(p.min_stock_level) >= 0
+          ? Number(p.min_stock_level)
+          : null;
+      alerts.push({
+        id: String(p.id || ''),
+        product_id: String(p.id || ''),
+        name: String(p.name || 'صنف'),
+        product_name: String(p.name || 'صنف'),
+        sku: String(p.sku || ''),
+        qty: stock,
+        current_stock: stock,
+        unit: baseUnit,
+        baseUnitName: baseUnit,
+        min_stock_level: threshold,
+        custom_min_stock_level: customMin,
+        status: stock <= 0 ? 'نفد' : 'قريب من النفاذ',
+      });
+    }
+  }
+  return alerts;
+}
+
+export interface CreditLimitValidationDetails {
+  customerId?: string;
+  customerName?: string;
+  currentBalance: number;
+  creditLimit: number;
+  remainingDue: number;
+  projectedBalance: number;
+  availableCredit: number;
+  requiredCashPayment: number;
+}
+
+/**
+ * Validates whether a credit/partial sales invoice is within the customer's configured credit limit.
+ * - Full cash / fully paid invoices (remainingDue <= 0) are ALWAYS allowed.
+ * - Customers with enforce_credit_limit !== true or credit_limit <= 0 are ALWAYS allowed (backward compatible).
+ * - Throws a structured HTTP 400 error with code 'CREDIT_LIMIT_EXCEEDED' when projectedBalance > creditLimit.
+ */
+export function validateCustomerCreditLimit(
+  customer: any,
+  invoiceTotal: number,
+  paidAmount: number
+): {
+  allowed: true;
+  currentBalance: number;
+  creditLimit: number;
+  remainingDue: number;
+  projectedBalance: number;
+} {
+  const safeTotal = roundMoney(Math.max(0, Number(invoiceTotal || 0)));
+  const safePaid = roundMoney(Math.max(0, Math.min(Number(paidAmount || 0), safeTotal)));
+  const remainingDue = roundMoney(Math.max(0, Number((safeTotal - safePaid).toFixed(2))));
+
+  const currentBalance = roundMoney(Number(customer?.current_balance ?? customer?.balance ?? 0));
+  const rawLimit = customer?.credit_limit ?? customer?.creditLimit ?? 0;
+  const creditLimit = roundMoney(Math.max(0, Number(rawLimit || 0)));
+
+  if (remainingDue <= 0.001) {
+    return {
+      allowed: true,
+      currentBalance,
+      creditLimit,
+      remainingDue: 0,
+      projectedBalance: currentBalance,
+    };
+  }
+
+  const enforce = customer?.enforce_credit_limit === true;
+  if (!customer || !enforce || !(creditLimit > 0)) {
+    return {
+      allowed: true,
+      currentBalance,
+      creditLimit,
+      remainingDue,
+      projectedBalance: roundMoney(currentBalance + remainingDue),
+    };
+  }
+
+  const projectedBalance = roundMoney(currentBalance + remainingDue);
+  if (projectedBalance > creditLimit + 0.001) {
+    const availableCredit = roundMoney(Math.max(0, creditLimit - currentBalance));
+    const requiredCashPayment = roundMoney(Math.max(0, projectedBalance - creditLimit));
+    const custLabel = String(customer.name || 'العميل').trim();
+    const details: CreditLimitValidationDetails = {
+      customerId: customer.id,
+      customerName: custLabel,
+      currentBalance,
+      creditLimit,
+      remainingDue,
+      projectedBalance,
+      availableCredit,
+      requiredCashPayment,
+    };
+    const err: any = new Error(
+      `تجاوز السقف الائتماني للعميل "${custLabel}". الرصيد الحالي: ${currentBalance}، المبلغ الآجل للفاتورة: ${remainingDue}، الرصيد المتوقع: ${projectedBalance}، السقف الائتماني المسموح: ${creditLimit}. يرجى تحصيل دفعة نقدية لا تقل عن ${requiredCashPayment} أو سداد جزء من المديونية السابقة.`
+    );
+    err.status = 400;
+    err.statusCode = 400;
+    err.code = 'CREDIT_LIMIT_EXCEEDED';
+    err.details = details;
+    throw err;
+  }
+
+  return {
+    allowed: true,
+    currentBalance,
+    creditLimit,
+    remainingDue,
+    projectedBalance,
+  };
 }
 
 /**
@@ -562,7 +742,47 @@ export function postSalesTransactionAtomic(params: SalesPostParams) {
     validatedItems.push({ prod, baseQty, unitPrice, unitCost, lineCogs });
   }
 
-  // 2. Deduct Inventory & Record Perpetual Movements
+  // 2. Monetary Amounts Calculation & Customer Credit Limit Guard (BEFORE any mutation!)
+  const totalVal = roundMoney(
+    invoice.total ??
+    invoice.totalAmount ??
+    invoice.grandTotal ??
+    invoice.netTotal ??
+    invoice.total_amount ??
+    invoice.amount ??
+    0
+  );
+  const taxVal = roundMoney(invoice.tax || invoice.taxAmount || 0);
+  const discountVal = roundMoney(invoice.discount || invoice.invoice_discount || 0);
+  const netSalesVal = roundMoney(Math.max(0, totalVal - taxVal));
+
+  let paidVal = 0;
+  if (params.paidAmount !== undefined && params.paidAmount !== null) {
+    paidVal = roundMoney(Math.max(0, Math.min(Number(params.paidAmount), totalVal)));
+  } else if (invoice.paid_amount !== undefined || invoice.paidAmount !== undefined) {
+    paidVal = roundMoney(Math.max(0, Math.min(Number(invoice.paid_amount ?? invoice.paidAmount), totalVal)));
+  } else if (['CASH', 'BANK', 'WALLET', 'MOBILE', 'CARD', 'TRANSFER'].includes(paymentMethod)) {
+    paidVal = totalVal;
+  } else {
+    paidVal = 0;
+  }
+  const remainingVal = roundMoney(Math.max(0, Number((totalVal - paidVal).toFixed(2))));
+
+  let customerName = String(
+    params.customerName || invoice.customer_name || invoice.customerName || invoice.customer || ''
+  ).trim();
+  let cust = store.customers.find(
+    (c) =>
+      (params.customerId && params.customerId !== 'cust-cash' && params.customerId !== 'cust-direct' && c.id === params.customerId) ||
+      (customerName && c.name.toLowerCase() === customerName.toLowerCase())
+  );
+  if (cust && !customerName) customerName = cust.name;
+  if (!customerName) customerName = (paidVal >= totalVal) ? 'عميل نقدي' : 'عميل آجل';
+
+  // Enforce credit limit BEFORE deducting inventory, mutating customer balances, or posting journals
+  validateCustomerCreditLimit(cust, totalVal, paidVal);
+
+  // 3. Deduct Inventory & Record Perpetual Movements
   for (const v of validatedItems) {
     if (v.prod && v.baseQty > 0) {
       const oldStock = Number(v.prod.current_stock ?? v.prod.qty ?? 0);
@@ -590,44 +810,7 @@ export function postSalesTransactionAtomic(params: SalesPostParams) {
     }
   }
 
-  // 3. Monetary Amounts Calculation
-  const totalVal = roundMoney(
-    invoice.total ??
-    invoice.totalAmount ??
-    invoice.grandTotal ??
-    invoice.netTotal ??
-    invoice.total_amount ??
-    invoice.amount ??
-    0
-  );
-  const taxVal = roundMoney(invoice.tax || invoice.taxAmount || 0);
-  const discountVal = roundMoney(invoice.discount || invoice.invoice_discount || 0);
-  const netSalesVal = roundMoney(Math.max(0, totalVal - taxVal));
-
-  let paidVal = 0;
-  if (params.paidAmount !== undefined && params.paidAmount !== null) {
-    paidVal = roundMoney(Math.max(0, Math.min(Number(params.paidAmount), totalVal)));
-  } else if (invoice.paid_amount !== undefined || invoice.paidAmount !== undefined) {
-    paidVal = roundMoney(Math.max(0, Math.min(Number(invoice.paid_amount ?? invoice.paidAmount), totalVal)));
-  } else if (['CASH', 'BANK', 'WALLET', 'MOBILE', 'CARD', 'TRANSFER'].includes(paymentMethod)) {
-    paidVal = totalVal;
-  } else {
-    paidVal = 0;
-  }
-  const remainingVal = roundMoney(Math.max(0, Number((totalVal - paidVal).toFixed(2))));
-
   // 4. Update Customer Balance for Credit / Partial Sales
-  let customerName = String(
-    params.customerName || invoice.customer_name || invoice.customerName || invoice.customer || ''
-  ).trim();
-  let cust = store.customers.find(
-    (c) =>
-      (params.customerId && params.customerId !== 'cust-cash' && params.customerId !== 'cust-direct' && c.id === params.customerId) ||
-      (customerName && c.name.toLowerCase() === customerName.toLowerCase())
-  );
-  if (cust && !customerName) customerName = cust.name;
-  if (!customerName) customerName = (paidVal >= totalVal) ? 'عميل نقدي' : 'عميل آجل';
-
   if (remainingVal > 0) {
     if (!cust && customerName && customerName !== 'عميل نقدي') {
       cust = {
@@ -638,6 +821,8 @@ export function postSalesTransactionAtomic(params: SalesPostParams) {
         current_balance: remainingVal,
         balance: remainingVal,
         creditLimit: 0,
+        credit_limit: 0,
+        enforce_credit_limit: false,
         status: 'ACTIVE',
         currency: invoice.currency || resolveTenantDefaultCurrency(cid),
         is_active: true,

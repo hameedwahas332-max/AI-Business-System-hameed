@@ -79,6 +79,9 @@ import {
   getTenantJournalEntries,
   postDoubleEntryJournal,
   roundMoney,
+  resolveProductMinStock,
+  syncProductAvailabilityStatus,
+  buildLowStockAlerts,
   reverseSalesInvoiceAtomic,
   reversePurchaseInvoiceAtomic,
   reverseVoucherAtomic,
@@ -1060,7 +1063,10 @@ app.get('/api/v1/ai/insights', (_req: Request, res: Response) => {
   });
 });
 
-app.get('/api/v1/pos/ai-insights', (_req: Request, res: Response) => {
+app.get('/api/v1/pos/ai-insights', (req: Request, res: Response) => {
+  const companyId = resolveCompanyId(req);
+  const store = getTenantCollections(companyId);
+  const lowStockAlerts = buildLowStockAlerts(store.products);
   res.status(200).json({
     success: true,
     data: {
@@ -1069,9 +1075,7 @@ app.get('/api/v1/pos/ai-insights', (_req: Request, res: Response) => {
         { name: 'قهوة عربية بالهيل 500جم', qty: 18, total: 756 },
         { name: 'أرز بسمتي هندي 5 كجم', qty: 14, total: 770 },
       ],
-      lowStockAlerts: [
-        { name: 'أرز بسمتي هندي 5 كجم', current_stock: 14, min_stock: 20 },
-      ],
+      lowStockAlerts,
       topDebtors: [
         { name: 'مؤسسة الأفق للتجارة', balance: 8200 },
         { name: 'شركة الوفاق المحدودة', balance: 5400 },
@@ -1139,17 +1143,40 @@ app.get('/api/v1/products', (req: Request, res: Response) => {
   }
 
   if (lowStock === 'true') {
-    result = result.filter((p) => (p.current_stock || 0) <= (p.min_stock_level || 5));
+    result = result.filter(
+      (p) => Number(p.current_stock ?? p.qty ?? p.stock ?? 0) <= resolveProductMinStock(p)
+    );
   }
 
   res.json({ success: true, data: result });
 });
 
+function parseOptionalMinStockLevel(body: any): { provided: boolean; value: number | null } {
+  const hasSnake = Object.prototype.hasOwnProperty.call(body, 'min_stock_level');
+  const hasCamel = Object.prototype.hasOwnProperty.call(body, 'minStockLevel');
+  if (!hasSnake && !hasCamel) {
+    return { provided: false, value: null };
+  }
+  const raw = hasSnake ? body.min_stock_level : body.minStockLevel;
+  if (raw === null || raw === undefined || raw === '') {
+    return { provided: true, value: null };
+  }
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return { provided: true, value: null };
+  }
+  return { provided: true, value: parsed };
+}
+
 app.post('/api/v1/products', (req: Request, res: Response) => {
   const companyId = resolveCompanyId(req);
   const store = getTenantCollections(companyId);
   const body = req.body || {};
-  const newProduct = {
+  const parsedMinStock = parseOptionalMinStockLevel(body);
+  const initialStock = Number(body.currentStock ?? body.current_stock ?? body.qty ?? body.stock ?? 0);
+  const safeInitialStock = Number.isFinite(initialStock) ? initialStock : 0;
+
+  const newProduct: any = {
     id: `prod-${Date.now()}`,
     company_id: companyId,
     sku: body.sku || `SKU-${Date.now()}`,
@@ -1174,10 +1201,11 @@ app.post('/api/v1/products', (req: Request, res: Response) => {
     vipPrice: Number(body.vipPrice || 0),
     purchase_price: Number(body.costPrice || body.cost_price || body.purchasePrice || body.purchase_price || body.cost || 0),
     cost_price: Number(body.costPrice || body.cost_price || body.purchasePrice || body.purchase_price || body.cost || 0),
-    qty: Number(body.currentStock || body.qty || 0),
-    current_stock: Number(body.currentStock || body.qty || 0),
-    min_stock_level: Number(body.minStockLevel || body.min_stock_level || 5),
-    status: Number(body.currentStock || 0) > 0 ? 'متوفر' : 'نفد',
+    qty: safeInitialStock,
+    current_stock: safeInitialStock,
+    stock: safeInitialStock,
+    min_stock_level: parsedMinStock.provided ? parsedMinStock.value : null,
+    status: 'متوفر',
     is_active: body.isActive !== false,
     batchNumber: body.batchNumber,
     productionDate: body.productionDate,
@@ -1192,6 +1220,8 @@ app.post('/api/v1/products', (req: Request, res: Response) => {
     description: body.description || '',
     created_at: new Date().toISOString(),
   };
+
+  syncProductAvailabilityStatus(newProduct);
 
   store.products.unshift(newProduct);
   persistAllToDisk();
@@ -1208,16 +1238,31 @@ app.put('/api/v1/products/:id', (req: Request, res: Response) => {
   }
 
   const body = req.body || {};
+  const existing = store.products[idx];
+  const parsedMinStock = parseOptionalMinStockLevel(body);
+  const nextStock =
+    body.currentStock !== undefined
+      ? Number(body.currentStock)
+      : body.current_stock !== undefined
+      ? Number(body.current_stock)
+      : body.qty !== undefined
+      ? Number(body.qty)
+      : existing.current_stock;
+  const safeNextStock = Number.isFinite(nextStock) ? nextStock : existing.current_stock;
+
   store.products[idx] = {
-    ...store.products[idx],
+    ...existing,
     ...body,
     company_id: companyId,
-    selling_price: body.sellingPrice !== undefined ? Number(body.sellingPrice) : store.products[idx].selling_price,
-    purchase_price: body.purchasePrice !== undefined ? Number(body.purchasePrice) : store.products[idx].purchase_price,
-    current_stock: body.currentStock !== undefined ? Number(body.currentStock) : store.products[idx].current_stock,
-    min_stock_level: body.minStockLevel !== undefined ? Number(body.minStockLevel) : store.products[idx].min_stock_level,
-    price: body.sellingPrice !== undefined ? Number(body.sellingPrice) : store.products[idx].price,
+    selling_price: body.sellingPrice !== undefined ? Number(body.sellingPrice) : existing.selling_price,
+    purchase_price: body.purchasePrice !== undefined ? Number(body.purchasePrice) : existing.purchase_price,
+    current_stock: safeNextStock,
+    qty: safeNextStock,
+    stock: safeNextStock,
+    min_stock_level: parsedMinStock.provided ? parsedMinStock.value : existing.min_stock_level,
+    price: body.sellingPrice !== undefined ? Number(body.sellingPrice) : existing.price,
   };
+  syncProductAvailabilityStatus(store.products[idx]);
   persistAllToDisk();
 
   res.json({ success: true, data: store.products[idx] });
@@ -1261,7 +1306,7 @@ app.post(['/api/v1/inventory/adjustments', '/api/v1/inventory-adjustments'], (re
   product.current_stock = newStock;
   product.qty = newStock;
   product.stock = newStock;
-  product.status = newStock <= 0 ? 'نفد' : newStock <= (product.min_stock_level || 5) ? 'قريب من النفاذ' : 'متوفر';
+  syncProductAvailabilityStatus(product);
 
   const adjId = `ADJ-${Date.now()}`;
   const mov = {
@@ -1359,7 +1404,7 @@ app.post('/api/v1/products/:productId/adjust-stock', (req: Request, res: Respons
   product.current_stock = newStock;
   product.qty = newStock;
   product.stock = newStock;
-  product.status = newStock <= 0 ? 'نفد' : newStock <= (product.min_stock_level || 5) ? 'قريب من النفاذ' : 'متوفر';
+  syncProductAvailabilityStatus(product);
 
   const adjId = `ADJ-${Date.now()}`;
   const mov = {
@@ -1447,7 +1492,13 @@ app.get('/api/v1/inventory', (req: Request, res: Response) => {
     result = result.filter((m) => m.type === type);
   }
 
-  res.json({ success: true, data: result });
+  const lowStockAlerts = buildLowStockAlerts(store.products);
+  res.json({
+    success: true,
+    data: result,
+    lowStockAlerts,
+    lowStockCount: lowStockAlerts.length,
+  });
 });
 
 app.get('/api/v1/invoices', (req: Request, res: Response) => {
@@ -1491,9 +1542,10 @@ app.post(['/api/v1/invoices', '/api/invoices'], (req: Request, res: Response) =>
     const status = err.statusCode || err.status || 400;
     res.status(status).json({
       success: false,
-      code: err.code || 'INSUFFICIENT_STOCK',
+      code: err.code || 'BAD_REQUEST',
       error: err.message || 'فشل إصدار فاتورة المبيعات',
       message: err.message || 'فشل إصدار فاتورة المبيعات',
+      ...(err.details ? { details: err.details } : {}),
     });
   }
 });
@@ -2364,14 +2416,15 @@ app.get(['/api/v1/reports/inventory', '/api/reports/inventory'], (req: Request, 
   const store = getTenantCollections(companyId);
   const isClean = isTenantCleanProductionMode(companyId);
   const valuation = store.products.reduce((sum, p) => sum + Number((p.cost_price || p.purchase_price || p.price || 0) * (p.current_stock || 0)), 0);
-  const lowStock = store.products.filter((p) => (p.current_stock || 0) <= (p.min_stock_level || 5)).length;
+  const lowStockAlerts = buildLowStockAlerts(store.products);
 
   res.json({
     success: true,
     data: {
       totalProductsCount: store.products.length,
       totalValuation: roundMoney(valuation || (isClean ? 0 : (store.products.length > 0 ? valuation : 0))),
-      lowStockCount: lowStock,
+      lowStockCount: lowStockAlerts.length,
+      lowStockAlerts,
     },
   });
 });
@@ -2566,6 +2619,8 @@ app.get(['/api/v1/reports/dashboard', '/api/reports/dashboard', '/api/v1/dashboa
   const isClean = isTenantCleanProductionMode(companyId);
   const metrics = computeUnifiedFinancialMetrics(companyId);
 
+  const lowStockAlerts = buildLowStockAlerts(store.products);
+
   if (isClean && store.invoices.length === 0 && store.products.length === 0) {
     return res.json({
       success: true,
@@ -2587,6 +2642,8 @@ app.get(['/api/v1/reports/dashboard', '/api/reports/dashboard', '/api/v1/dashboa
         bankBalance: 0,
         totalCashAndBank: 0,
         inventoryValuation: 0,
+        lowStockCount: 0,
+        lowStockAlerts: [],
         trialBalance: { isBalanced: true, totalDebits: 0, totalCredits: 0, difference: 0 },
       },
     });
@@ -2612,6 +2669,8 @@ app.get(['/api/v1/reports/dashboard', '/api/reports/dashboard', '/api/v1/dashboa
       bankBalance: metrics.bankBalance,
       totalCashAndBank: metrics.totalCashAndBank,
       inventoryValuation: metrics.inventoryValuation,
+      lowStockCount: lowStockAlerts.length,
+      lowStockAlerts,
       trialBalance: metrics.trialBalance,
     },
   });
