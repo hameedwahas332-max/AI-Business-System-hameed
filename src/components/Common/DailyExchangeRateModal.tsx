@@ -172,28 +172,30 @@ export const DailyExchangeRateModal: React.FC<DailyExchangeRateModalProps> = ({ 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 overflow-y-auto animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center m3-backdrop p-4 overflow-y-auto animate-in fade-in duration-150"
       dir="rtl"
     >
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden text-right flex flex-col">
+      <div className="m3-modal-surface w-full max-w-2xl overflow-hidden text-right flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 bg-slate-800/80 border-b border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+        <div className="px-6 py-4 bg-[var(--md-surface-container)] border-b border-[var(--md-outline-variant)] flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-[var(--md-secondary-container)] border border-[color-mix(in_srgb,var(--md-secondary)_32%,transparent)] flex items-center justify-center text-[var(--md-secondary)] shrink-0">
               <Coins className="w-5 h-5" />
             </div>
-            <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                نشرة أسعار الصرف اليومية (Daily Exchange Rate Board)
+            <div className="min-w-0">
+              <h2 className="text-base font-bold text-[var(--md-on-surface)] flex items-center flex-wrap gap-2">
+                <span>نشرة أسعار الصرف اليومية (Daily Exchange Rate Board)</span>
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-[var(--md-on-surface-variant)] mt-0.5">
                 تحديد أسعار الشراء، البيع، والتحويل المحاسبي للعملات الرئيسية مقابل الريال اليمني
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+            className="m3-btn-text !min-h-[36px] p-1.5 shrink-0"
+            aria-label="إغلاق"
           >
             <X className="w-5 h-5" />
           </button>
@@ -201,59 +203,67 @@ export const DailyExchangeRateModal: React.FC<DailyExchangeRateModalProps> = ({ 
 
         {/* Success Alert */}
         {savedSuccess && (
-          <div className="mx-6 mt-4 p-3 bg-emerald-500/15 border border-emerald-500/30 rounded-xl text-emerald-400 text-xs font-bold flex items-center gap-2 animate-fadeIn">
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <div className="mx-6 mt-4 p-3 bg-[var(--md-success-container)] border border-[color-mix(in_srgb,var(--md-success)_32%,transparent)] rounded-xl text-[var(--md-on-success-container)] text-xs font-bold flex items-center gap-2 animate-fadeIn">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-[var(--md-success)]" />
             <span>تم حفظ أسعار الصرف بنجاح وتحديث كافة المعاملات والحسابات فوراً!</span>
           </div>
         )}
 
         {/* Content Body */}
-        <div className="p-6 space-y-6 overflow-y-auto max-h-[75vh]">
+        <div className="p-6 space-y-5 overflow-y-auto max-h-[75vh] custom-scrollbar">
           {/* Base Currency Banner */}
-          <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+          <div className="bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <span className="text-2xl">🇾🇪</span>
+              <span className="text-2xl shrink-0">🇾🇪</span>
               <div>
-                <div className="text-xs font-bold text-white flex items-center gap-2">
+                <div className="text-xs font-bold text-[var(--md-on-surface)] flex items-center flex-wrap gap-2">
                   <span>ريال يمني (YER)</span>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-semibold border border-emerald-500/30">
+                  <span className="m3-badge m3-badge-primary">
                     العملة الأساسية للنظام (Base Currency)
                   </span>
                 </div>
-                <div className="text-[11px] text-slate-400 mt-0.5">
+                <div className="text-[11px] text-[var(--md-on-surface-variant)] mt-1 leading-relaxed">
                   جميع القيود المحاسبية، كشوفات الأستاذ العام، والقوائم المالية تُسجل وتُعادل بالريال اليمني
                 </div>
               </div>
             </div>
-            <div className="font-mono text-xs font-black text-emerald-400 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800">
-              1.00 YER
+            <div className="flex sm:flex-col items-center sm:items-end justify-between gap-1.5 shrink-0">
+              <div className="font-mono tabular-nums text-xs font-black text-[var(--md-on-primary-container)] bg-[var(--md-primary-container)] px-3 py-1.5 rounded-xl border border-[color-mix(in_srgb,var(--md-primary)_30%,transparent)]">
+                1.00 YER
+              </div>
+              {ratesConfig.lastUpdated && (
+                <span className="text-[10px] text-[var(--md-on-surface-variant)] font-mono tabular-nums inline-flex items-center gap-1">
+                  <Calendar className="w-3 h-3" />
+                  <span>{ratesConfig.lastUpdated}</span>
+                </span>
+              )}
             </div>
           </div>
 
           {/* Currency Rates Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* SAR Card */}
-            <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+            <div className="bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between pb-2.5 border-b border-[var(--md-outline-variant)]">
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">🇸🇦</span>
                   <div>
-                    <h3 className="text-xs font-bold text-white">ريال سعودي (SAR)</h3>
-                    <span className="text-[10px] text-slate-400 font-mono">1 SAR = ... YER</span>
+                    <h3 className="text-xs font-bold text-[var(--md-on-surface)]">ريال سعودي (SAR)</h3>
+                    <span className="text-[10px] text-[var(--md-on-surface-variant)] font-mono tabular-nums">1 SAR = ... YER</span>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
+                <span className="m3-badge m3-badge-secondary">
                   شائع التداول
                 </span>
               </div>
 
-              <div className="space-y-2 text-xs">
+              <div className="space-y-3 text-xs">
                 <div>
-                  <label className="block text-[11px] text-slate-400 mb-1 flex items-center justify-between">
+                  <label className="text-[11px] font-semibold text-[var(--md-on-surface-variant)] mb-1.5 flex items-center justify-between">
                     <span>
-                      سعر التحويل المحاسبي والفواتير <span className="text-rose-400">*</span>
+                      سعر التحويل المحاسبي والفواتير <span className="text-[var(--md-error)]">*</span>
                     </span>
-                    <span className="text-[10px] text-amber-400 font-mono font-bold">أرقام إنجليزية (0-9 EN)</span>
+                    <span className="text-[10px] text-[var(--md-secondary)] font-mono font-bold">0-9 EN</span>
                   </label>
                   <input
                     type="text"
@@ -263,14 +273,14 @@ export const DailyExchangeRateModal: React.FC<DailyExchangeRateModalProps> = ({ 
                     value={rateInputs.sarAccounting}
                     onChange={(e) => handleRateInputChange('SAR', 'accountingRate', e.target.value, 'sarAccounting')}
                     placeholder="535.0"
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono font-bold text-sm focus:outline-none focus:border-amber-400 text-left"
+                    className="m3-input font-mono tabular-nums font-bold text-sm text-left"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className="block text-[10px] text-slate-400 mb-1 flex items-center justify-between">
+                    <label className="text-[10px] font-semibold text-[var(--md-on-surface-variant)] mb-1 flex items-center justify-between">
                       <span>سعر الشراء</span>
-                      <span className="text-[9px] text-slate-500 font-mono">0-9 EN</span>
+                      <span className="text-[9px] text-[var(--md-on-surface-variant)] font-mono">0-9 EN</span>
                     </label>
                     <input
                       type="text"
@@ -280,13 +290,13 @@ export const DailyExchangeRateModal: React.FC<DailyExchangeRateModalProps> = ({ 
                       value={rateInputs.sarBuy}
                       onChange={(e) => handleRateInputChange('SAR', 'buyRate', e.target.value, 'sarBuy')}
                       placeholder="535.0"
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono text-left focus:outline-none focus:border-slate-600"
+                      className="m3-input !h-9 px-2.5 text-xs font-mono tabular-nums font-semibold text-left"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-slate-400 mb-1 flex items-center justify-between">
+                    <label className="text-[10px] font-semibold text-[var(--md-on-surface-variant)] mb-1 flex items-center justify-between">
                       <span>سعر البيع</span>
-                      <span className="text-[9px] text-slate-500 font-mono">0-9 EN</span>
+                      <span className="text-[9px] text-[var(--md-on-surface-variant)] font-mono">0-9 EN</span>
                     </label>
                     <input
                       type="text"
@@ -296,7 +306,7 @@ export const DailyExchangeRateModal: React.FC<DailyExchangeRateModalProps> = ({ 
                       value={rateInputs.sarSell}
                       onChange={(e) => handleRateInputChange('SAR', 'sellRate', e.target.value, 'sarSell')}
                       placeholder="537.0"
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono text-left focus:outline-none focus:border-slate-600"
+                      className="m3-input !h-9 px-2.5 text-xs font-mono tabular-nums font-semibold text-left"
                     />
                   </div>
                 </div>
@@ -304,27 +314,27 @@ export const DailyExchangeRateModal: React.FC<DailyExchangeRateModalProps> = ({ 
             </div>
 
             {/* USD Card */}
-            <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+            <div className="bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between pb-2.5 border-b border-[var(--md-outline-variant)]">
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">🇺🇸</span>
                   <div>
-                    <h3 className="text-xs font-bold text-white">دولار أمريكي (USD)</h3>
-                    <span className="text-[10px] text-slate-400 font-mono">1 USD = ... YER</span>
+                    <h3 className="text-xs font-bold text-[var(--md-on-surface)]">دولار أمريكي (USD)</h3>
+                    <span className="text-[10px] text-[var(--md-on-surface-variant)] font-mono tabular-nums">1 USD = ... YER</span>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-lg border border-blue-500/20">
+                <span className="m3-badge m3-badge-info">
                   تجارة واستيراد
                 </span>
               </div>
 
-              <div className="space-y-2 text-xs">
+              <div className="space-y-3 text-xs">
                 <div>
-                  <label className="block text-[11px] text-slate-400 mb-1 flex items-center justify-between">
+                  <label className="text-[11px] font-semibold text-[var(--md-on-surface-variant)] mb-1.5 flex items-center justify-between">
                     <span>
-                      سعر التحويل المحاسبي والفواتير <span className="text-rose-400">*</span>
+                      سعر التحويل المحاسبي والفواتير <span className="text-[var(--md-error)]">*</span>
                     </span>
-                    <span className="text-[10px] text-blue-400 font-mono font-bold">أرقام إنجليزية (0-9 EN)</span>
+                    <span className="text-[10px] text-[var(--md-info)] font-mono font-bold">0-9 EN</span>
                   </label>
                   <input
                     type="text"
@@ -334,14 +344,14 @@ export const DailyExchangeRateModal: React.FC<DailyExchangeRateModalProps> = ({ 
                     value={rateInputs.usdAccounting}
                     onChange={(e) => handleRateInputChange('USD', 'accountingRate', e.target.value, 'usdAccounting')}
                     placeholder="2050.0"
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono font-bold text-sm focus:outline-none focus:border-blue-400 text-left"
+                    className="m3-input font-mono tabular-nums font-bold text-sm text-left"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className="block text-[10px] text-slate-400 mb-1 flex items-center justify-between">
+                    <label className="text-[10px] font-semibold text-[var(--md-on-surface-variant)] mb-1 flex items-center justify-between">
                       <span>سعر الشراء</span>
-                      <span className="text-[9px] text-slate-500 font-mono">0-9 EN</span>
+                      <span className="text-[9px] text-[var(--md-on-surface-variant)] font-mono">0-9 EN</span>
                     </label>
                     <input
                       type="text"
@@ -351,13 +361,13 @@ export const DailyExchangeRateModal: React.FC<DailyExchangeRateModalProps> = ({ 
                       value={rateInputs.usdBuy}
                       onChange={(e) => handleRateInputChange('USD', 'buyRate', e.target.value, 'usdBuy')}
                       placeholder="2045.0"
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono text-left focus:outline-none focus:border-slate-600"
+                      className="m3-input !h-9 px-2.5 text-xs font-mono tabular-nums font-semibold text-left"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-slate-400 mb-1 flex items-center justify-between">
+                    <label className="text-[10px] font-semibold text-[var(--md-on-surface-variant)] mb-1 flex items-center justify-between">
                       <span>سعر البيع</span>
-                      <span className="text-[9px] text-slate-500 font-mono">0-9 EN</span>
+                      <span className="text-[9px] text-[var(--md-on-surface-variant)] font-mono">0-9 EN</span>
                     </label>
                     <input
                       type="text"
@@ -367,7 +377,7 @@ export const DailyExchangeRateModal: React.FC<DailyExchangeRateModalProps> = ({ 
                       value={rateInputs.usdSell}
                       onChange={(e) => handleRateInputChange('USD', 'sellRate', e.target.value, 'usdSell')}
                       placeholder="2055.0"
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono text-left focus:outline-none focus:border-slate-600"
+                      className="m3-input !h-9 px-2.5 text-xs font-mono tabular-nums font-semibold text-left"
                     />
                   </div>
                 </div>
@@ -376,22 +386,22 @@ export const DailyExchangeRateModal: React.FC<DailyExchangeRateModalProps> = ({ 
           </div>
 
           {/* Quick Conversion Calculator Tool */}
-          <div className="bg-slate-950/80 border border-slate-800/90 rounded-2xl p-4 space-y-3">
+          <div className="bg-[var(--md-surface-container)] border border-[var(--md-outline-variant)] rounded-2xl p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                <ArrowRightLeft className="w-3.5 h-3.5 text-cyan-400" />
+              <h4 className="text-xs font-bold text-[var(--md-on-surface)] flex items-center gap-1.5">
+                <ArrowRightLeft className="w-3.5 h-3.5 text-[var(--md-primary-text)]" />
                 <span>حاسبة التحويل السريع المباشرة</span>
               </h4>
-              <span className="text-[10px] text-slate-500 font-mono">حساب فوري للأرصدة</span>
+              <span className="text-[10px] text-[var(--md-on-surface-variant)] font-mono">حساب فوري للأرصدة</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
               <div className="sm:col-span-1">
-                <label className="block text-[10px] text-slate-400 mb-1 flex items-center justify-between">
+                <label className="text-[10px] font-semibold text-[var(--md-on-surface-variant)] mb-1 flex items-center justify-between">
                   <span>المبلغ المراد تحويله</span>
-                  <span className="text-[9px] text-cyan-400 font-mono">0-9 EN</span>
+                  <span className="text-[9px] text-[var(--md-primary-text)] font-mono font-bold">0-9 EN</span>
                 </label>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                   <input
                     type="text"
                     inputMode="decimal"
@@ -403,12 +413,12 @@ export const DailyExchangeRateModal: React.FC<DailyExchangeRateModalProps> = ({ 
                       setCalcAmount(english);
                     }}
                     placeholder="100"
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white font-mono font-bold focus:outline-none focus:border-cyan-400 text-left"
+                    className="m3-input !h-10 px-2.5 text-xs font-mono tabular-nums font-bold text-left"
                   />
                   <select
                     value={calcFromCurrency}
                     onChange={(e) => setCalcFromCurrency(e.target.value as SupportedCurrency)}
-                    className="bg-slate-900 border border-slate-700 rounded-xl px-2 py-1.5 text-xs text-white font-bold focus:outline-none"
+                    className="m3-select !h-10 !w-auto min-w-[74px] px-2 text-xs font-bold"
                   >
                     <option value="SAR">SAR</option>
                     <option value="USD">USD</option>
@@ -418,28 +428,28 @@ export const DailyExchangeRateModal: React.FC<DailyExchangeRateModalProps> = ({ 
               </div>
 
               <div className="sm:col-span-2 grid grid-cols-3 gap-2 text-center">
-                <div className="bg-slate-900 p-2 rounded-xl border border-slate-800">
-                  <div className="text-[9px] text-slate-400">المعادل باليمني</div>
-                  <div className="text-xs font-black font-mono text-emerald-400 mt-1 truncate">
+                <div className="bg-[var(--md-surface-container-lowest)] p-2.5 rounded-xl border border-[var(--md-outline-variant)]">
+                  <div className="text-[10px] font-semibold text-[var(--md-on-surface-variant)]">المعادل باليمني</div>
+                  <div className="text-xs font-black font-mono tabular-nums text-[var(--md-primary-text)] mt-1 truncate">
                     {formatNumber(calcInYER)}
                   </div>
-                  <div className="text-[9px] text-slate-500 font-mono">YER</div>
+                  <div className="text-[9px] text-[var(--md-on-surface-variant)] font-mono">YER</div>
                 </div>
 
-                <div className="bg-slate-900 p-2 rounded-xl border border-slate-800">
-                  <div className="text-[9px] text-slate-400">المعادل بالسعودي</div>
-                  <div className="text-xs font-black font-mono text-amber-400 mt-1 truncate">
+                <div className="bg-[var(--md-surface-container-lowest)] p-2.5 rounded-xl border border-[var(--md-outline-variant)]">
+                  <div className="text-[10px] font-semibold text-[var(--md-on-surface-variant)]">المعادل بالسعودي</div>
+                  <div className="text-xs font-black font-mono tabular-nums text-[var(--md-secondary)] mt-1 truncate">
                     {formatNumber(calcInSAR)}
                   </div>
-                  <div className="text-[9px] text-slate-500 font-mono">SAR</div>
+                  <div className="text-[9px] text-[var(--md-on-surface-variant)] font-mono">SAR</div>
                 </div>
 
-                <div className="bg-slate-900 p-2 rounded-xl border border-slate-800">
-                  <div className="text-[9px] text-slate-400">المعادل بالدولار</div>
-                  <div className="text-xs font-black font-mono text-blue-400 mt-1 truncate">
+                <div className="bg-[var(--md-surface-container-lowest)] p-2.5 rounded-xl border border-[var(--md-outline-variant)]">
+                  <div className="text-[10px] font-semibold text-[var(--md-on-surface-variant)]">المعادل بالدولار</div>
+                  <div className="text-xs font-black font-mono tabular-nums text-[var(--md-info)] mt-1 truncate">
                     {formatNumber(calcInUSD)}
                   </div>
-                  <div className="text-[9px] text-slate-500 font-mono">USD</div>
+                  <div className="text-[9px] text-[var(--md-on-surface-variant)] font-mono">USD</div>
                 </div>
               </div>
             </div>
@@ -447,12 +457,12 @@ export const DailyExchangeRateModal: React.FC<DailyExchangeRateModalProps> = ({ 
         </div>
 
         {/* Footer Actions */}
-        <div className="px-6 py-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2">
+        <div className="px-6 py-4 bg-[var(--md-surface-container)] border-t border-[var(--md-outline-variant)] flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
               onClick={handleResetDefaults}
-              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors border border-slate-700 cursor-pointer"
+              className="m3-btn-outlined text-xs"
               title="استعادة الأسعار التأشيرية الافتراضية"
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -462,7 +472,7 @@ export const DailyExchangeRateModal: React.FC<DailyExchangeRateModalProps> = ({ 
             <button
               type="button"
               onClick={handlePrintBulletin}
-              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors border border-slate-700 cursor-pointer"
+              className="m3-btn-tonal text-xs"
               title="طباعة النشرة الرسمية اليومية"
             >
               <Printer className="w-3.5 h-3.5" />
@@ -474,14 +484,14 @@ export const DailyExchangeRateModal: React.FC<DailyExchangeRateModalProps> = ({ 
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-slate-400 hover:text-white text-xs font-semibold"
+              className="m3-btn-text text-xs"
             >
               إلغاء
             </button>
             <button
               type="button"
               onClick={handleSave}
-              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-emerald-950/40 transition-all cursor-pointer"
+              className="m3-btn-primary text-xs"
             >
               <Save className="w-4 h-4" />
               <span>حفظ وتطبيق الأسعار</span>

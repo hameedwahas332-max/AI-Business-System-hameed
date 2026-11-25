@@ -160,7 +160,7 @@ export const KpiCardsGrid: React.FC<KpiCardsGridProps> = ({
       badgeClass: 'm3-badge-success',
       metaLabel: 'المصروفات التشغيلية:',
       metaValue: `${formatAmount(operatingExpenses)} ${currency}`,
-      progressPct: Math.min(100, Math.round(Number(profitMargin))),
+      progressPct: Math.min(100, Math.max(0, Math.round(Number(profitMargin) || 0))),
       progressColor: 'bg-[var(--md-success)]',
       tab: 'financial_intelligence' as TabType,
     },
@@ -261,7 +261,7 @@ export const KpiCardsGrid: React.FC<KpiCardsGridProps> = ({
                 <div className="w-full h-1.5 bg-[var(--md-surface-container-high)] rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${card.progressColor}`}
-                    style={{ width: `${Math.max(5, Math.min(100, card.progressPct))}%` }}
+                    style={{ width: `${Math.max(5, Math.min(100, Number(card?.progressPct ?? 0)))}%` }}
                   />
                 </div>
               </div>

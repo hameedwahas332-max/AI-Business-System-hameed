@@ -406,7 +406,7 @@ export const FinancialReportingHub: React.FC = () => {
                 </div>
                 <div className="text-xs text-[var(--md-success)] mt-1 flex items-center gap-1 font-semibold tabular-nums">
                   <ArrowUpRight className="w-3.5 h-3.5" />
-                  <span>هامش الربح: {financialData.grossMargin.toFixed(1)}%</span>
+                  <span>هامش الربح: {Number(financialData?.grossMargin ?? 0).toFixed(1)}%</span>
                 </div>
               </div>
             </div>
@@ -470,7 +470,7 @@ export const FinancialReportingHub: React.FC = () => {
                   <span className="text-xs font-bold text-[var(--md-on-surface-variant)]">{currSym}</span>
                 </div>
                 <div className="text-xs text-[var(--md-on-surface-variant)] mt-1 font-medium tabular-nums">
-                  نسبة التداول: {financialData.currentRatio > 0 ? financialData.currentRatio.toFixed(2) : '1.00'}x
+                  نسبة التداول: {Number(financialData?.currentRatio ?? 0) > 0 ? Number(financialData?.currentRatio ?? 1).toFixed(2) : '1.00'}x
                 </div>
               </div>
             </div>

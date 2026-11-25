@@ -14,7 +14,7 @@ export interface UsageMetric {
 
 export interface SubscriptionUsageData {
   success: boolean;
-  plan: 'FREE' | 'BASIC' | 'PRO' | 'ENTERPRISE';
+  plan: string;
   billingPeriodStart: string;
   billingPeriodEnd: string;
   invoices: UsageMetric;
@@ -23,6 +23,120 @@ export interface SubscriptionUsageData {
   storage: UsageMetric;
   aiRequests?: UsageMetric;
 }
+
+const DEFAULT_USAGE_METRIC: UsageMetric = {
+  used: 0,
+  limit: 0,
+  percentage: 0,
+};
+
+const createSafeUsageMetric = (
+  raw: any,
+  fallbackUsed = 0,
+  fallbackLimit = 0,
+  byteValues?: { usedBytes?: number; limitBytes?: number }
+): UsageMetric => {
+  const used = Number.isFinite(Number(raw?.used)) ? Number(raw.used) : Number(fallbackUsed) || 0;
+  const limit = Number.isFinite(Number(raw?.limit)) ? Number(raw.limit) : Number(fallbackLimit) || 0;
+
+  const usedBytes =
+    raw?.usedBytes !== undefined && Number.isFinite(Number(raw.usedBytes))
+      ? Number(raw.usedBytes)
+      : byteValues?.usedBytes;
+  const limitBytes =
+    raw?.limitBytes !== undefined && Number.isFinite(Number(raw.limitBytes))
+      ? Number(raw.limitBytes)
+      : byteValues?.limitBytes;
+
+  let percentage: number;
+  if (raw?.percentage !== undefined && raw?.percentage !== null && Number.isFinite(Number(raw.percentage))) {
+    percentage = Math.max(0, Math.round(Number(raw.percentage)));
+  } else if (limitBytes !== undefined) {
+    percentage =
+      limitBytes > 0 && usedBytes !== undefined
+        ? Math.min(100, Math.max(0, Math.round((usedBytes / limitBytes) * 100)))
+        : 0;
+  } else if (limit > 0) {
+    percentage = Math.min(100, Math.max(0, Math.round((used / limit) * 100)));
+  } else {
+    percentage = 0;
+  }
+
+  return {
+    used,
+    limit,
+    percentage,
+    ...(usedBytes !== undefined ? { usedBytes } : {}),
+    ...(limitBytes !== undefined ? { limitBytes } : {}),
+  };
+};
+
+const normalizeSubscriptionUsage = (rawPayload: any): SubscriptionUsageData => {
+  const payload =
+    rawPayload && typeof rawPayload === 'object' && rawPayload.data && typeof rawPayload.data === 'object'
+      ? rawPayload.data
+      : rawPayload && typeof rawPayload === 'object'
+      ? rawPayload
+      : {};
+
+  const gbToBytes = (gb: any): number | undefined => {
+    const n = Number(gb);
+    return Number.isFinite(n) && n >= 0 ? Math.round(n * 1024 * 1024 * 1024) : undefined;
+  };
+
+  const storageUsedBytes =
+    payload?.storage?.usedBytes !== undefined
+      ? Number(payload.storage.usedBytes)
+      : gbToBytes(payload?.storageUsedGb) ?? 0;
+  const storageLimitBytes =
+    payload?.storage?.limitBytes !== undefined
+      ? Number(payload.storage.limitBytes)
+      : payload?.storageLimitGb === -1
+      ? -1
+      : gbToBytes(payload?.storageLimitGb) ?? 0;
+
+  const hasAiMetric =
+    Boolean(payload?.aiRequests) ||
+    payload?.aiRequestsUsed !== undefined ||
+    payload?.aiRequestsLimit !== undefined;
+
+  return {
+    success: Boolean(rawPayload?.success ?? payload?.success ?? true),
+    plan: String(payload?.plan || 'FREE'),
+    billingPeriodStart: String(payload?.billingPeriodStart || ''),
+    billingPeriodEnd: String(payload?.billingPeriodEnd || ''),
+    invoices: createSafeUsageMetric(
+      payload?.invoices,
+      payload?.invoicesUsed ?? 0,
+      payload?.invoicesLimit ?? 0
+    ),
+    users: createSafeUsageMetric(
+      payload?.users,
+      payload?.usersUsed ?? 0,
+      payload?.usersLimit ?? 0
+    ),
+    ocr: createSafeUsageMetric(
+      payload?.ocr,
+      payload?.ocrUsed ?? 0,
+      payload?.ocrLimit ?? 0
+    ),
+    storage: createSafeUsageMetric(
+      payload?.storage,
+      payload?.storageUsedGb ?? 0,
+      payload?.storageLimitGb ?? 0,
+      { usedBytes: storageUsedBytes, limitBytes: storageLimitBytes }
+    ),
+    ...(hasAiMetric
+      ? {
+          aiRequests: createSafeUsageMetric(
+            payload?.aiRequests,
+            payload?.aiRequestsUsed ?? 0,
+            payload?.aiRequestsLimit ?? 0
+          ),
+        }
+      : {}),
+  };
+};
 
 export const SubscriptionTab: React.FC = () => {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -53,7 +167,7 @@ export const SubscriptionTab: React.FC = () => {
         throw new Error(res.error || 'فشل تحميل بيانات الاستهلاك والاشتراك');
       }
 
-      setUsageData(res.data);
+      setUsageData(normalizeSubscriptionUsage(res.data));
     } catch (err: any) {
       setError(err.message || 'حدث خطأ أثناء تحميل بيانات الاستهلاك');
     } finally {
@@ -96,27 +210,31 @@ export const SubscriptionTab: React.FC = () => {
   };
 
   const formatBytes = (bytes?: number) => {
-    if (bytes === undefined || bytes === null || bytes === -1) return 'غير محدود';
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-    return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+    if (bytes === undefined || bytes === null || bytes === -1 || !Number.isFinite(Number(bytes))) return 'غير محدود';
+    const safeBytes = Math.max(0, Number(bytes));
+    if (safeBytes < 1024 * 1024) return `${(safeBytes / 1024).toFixed(1)} KB`;
+    if (safeBytes < 1024 * 1024 * 1024) return `${(safeBytes / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(safeBytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
   };
 
-  const getStatusColor = (percentage: number) => {
+  const getStatusColor = (rawPercentage?: number) => {
+    const percentage = Number.isFinite(Number(rawPercentage)) ? Number(rawPercentage) : 0;
     if (percentage >= 100) return 'bg-red-500 text-red-100';
     if (percentage >= 90) return 'bg-orange-500 text-white';
     if (percentage >= 80) return 'bg-amber-500 text-white';
     return 'bg-blue-600 text-white';
   };
 
-  const getProgressColor = (percentage: number) => {
+  const getProgressColor = (rawPercentage?: number) => {
+    const percentage = Number.isFinite(Number(rawPercentage)) ? Number(rawPercentage) : 0;
     if (percentage >= 100) return 'bg-red-600';
     if (percentage >= 90) return 'bg-orange-500';
     if (percentage >= 80) return 'bg-amber-500';
     return 'bg-blue-500';
   };
 
-  const getStatusBadge = (percentage: number) => {
+  const getStatusBadge = (rawPercentage?: number) => {
+    const percentage = Number.isFinite(Number(rawPercentage)) ? Number(rawPercentage) : 0;
     if (percentage >= 100) return <span className="text-xs px-2 py-0.5 rounded bg-red-100 text-red-800 font-bold dark:bg-red-900/40 dark:text-red-300">تم تجاوز الحد (100%)</span>;
     if (percentage >= 90) return <span className="text-xs px-2 py-0.5 rounded bg-orange-100 text-orange-800 font-bold dark:bg-orange-900/40 dark:text-orange-300">تحذير حرج (&gt;=90%)</span>;
     if (percentage >= 80) return <span className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold dark:bg-amber-900/40 dark:text-amber-300">اقتراب من الحد (&gt;=80%)</span>;
@@ -133,6 +251,17 @@ export const SubscriptionTab: React.FC = () => {
   }
 
   const plan = usageData?.plan || 'FREE';
+  const safeInvoices = usageData?.invoices ?? DEFAULT_USAGE_METRIC;
+  const safeUsers = usageData?.users ?? DEFAULT_USAGE_METRIC;
+  const safeOcr = usageData?.ocr ?? DEFAULT_USAGE_METRIC;
+  const safeStorage = usageData?.storage ?? DEFAULT_USAGE_METRIC;
+  const safeAiRequests = usageData?.aiRequests ?? null;
+
+  const invoicesPct = Number.isFinite(Number(safeInvoices?.percentage)) ? Number(safeInvoices.percentage) : 0;
+  const usersPct = Number.isFinite(Number(safeUsers?.percentage)) ? Number(safeUsers.percentage) : 0;
+  const ocrPct = Number.isFinite(Number(safeOcr?.percentage)) ? Number(safeOcr.percentage) : 0;
+  const storagePct = Number.isFinite(Number(safeStorage?.percentage)) ? Number(safeStorage.percentage) : 0;
+  const aiRequestsPct = Number.isFinite(Number(safeAiRequests?.percentage)) ? Number(safeAiRequests?.percentage ?? 0) : 0;
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6 text-right" dir="rtl">
@@ -242,20 +371,20 @@ export const SubscriptionTab: React.FC = () => {
                   <p className="text-xs text-slate-400">Invoices Per Month</p>
                 </div>
               </div>
-              {getStatusBadge(usageData.invoices.percentage)}
+              {getStatusBadge(invoicesPct)}
             </div>
 
             <div className="flex items-baseline justify-between text-xs font-semibold">
               <span className="text-slate-300">
-                المستغرق: <strong className="text-white text-base font-mono">{usageData.invoices.used}</strong> / {usageData.invoices.limit === -1 ? 'غير محدود' : usageData.invoices.limit}
+                المستغرق: <strong className="text-white text-base font-mono tabular-nums">{safeInvoices?.used ?? 0}</strong> / {safeInvoices?.limit === -1 ? 'غير محدود' : (safeInvoices?.limit ?? 0)}
               </span>
-              <span className="text-emerald-400 font-mono">{usageData.invoices.limit === -1 ? '0%' : `${usageData.invoices.percentage}%`}</span>
+              <span className="text-emerald-400 font-mono tabular-nums">{safeInvoices?.limit === -1 ? '0%' : `${invoicesPct}%`}</span>
             </div>
 
             <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
               <div
-                className={`h-full transition-all duration-500 ${getProgressColor(usageData.invoices.percentage)}`}
-                style={{ width: `${usageData.invoices.limit === -1 ? 0 : Math.min(100, usageData.invoices.percentage)}%` }}
+                className={`h-full transition-all duration-500 ${getProgressColor(invoicesPct)}`}
+                style={{ width: `${safeInvoices?.limit === -1 ? 0 : Math.min(100, Math.max(0, invoicesPct))}%` }}
               />
             </div>
           </div>
@@ -272,20 +401,20 @@ export const SubscriptionTab: React.FC = () => {
                   <p className="text-xs text-slate-400">Active Users Count</p>
                 </div>
               </div>
-              {getStatusBadge(usageData.users.percentage)}
+              {getStatusBadge(usersPct)}
             </div>
 
             <div className="flex items-baseline justify-between text-xs font-semibold">
               <span className="text-slate-300">
-                المستخدمين الحاليين: <strong className="text-white text-base font-mono">{usageData.users.used}</strong> / {usageData.users.limit === -1 ? 'غير محدود' : usageData.users.limit}
+                المستخدمين الحاليين: <strong className="text-white text-base font-mono tabular-nums">{safeUsers?.used ?? 0}</strong> / {safeUsers?.limit === -1 ? 'غير محدود' : (safeUsers?.limit ?? 0)}
               </span>
-              <span className="text-teal-400 font-mono">{usageData.users.limit === -1 ? '0%' : `${usageData.users.percentage}%`}</span>
+              <span className="text-teal-400 font-mono tabular-nums">{safeUsers?.limit === -1 ? '0%' : `${usersPct}%`}</span>
             </div>
 
             <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
               <div
-                className={`h-full transition-all duration-500 ${getProgressColor(usageData.users.percentage)}`}
-                style={{ width: `${usageData.users.limit === -1 ? 0 : Math.min(100, usageData.users.percentage)}%` }}
+                className={`h-full transition-all duration-500 ${getProgressColor(usersPct)}`}
+                style={{ width: `${safeUsers?.limit === -1 ? 0 : Math.min(100, Math.max(0, usersPct))}%` }}
               />
             </div>
           </div>
@@ -302,20 +431,20 @@ export const SubscriptionTab: React.FC = () => {
                   <p className="text-xs text-slate-400">OCR Scans Per Month</p>
                 </div>
               </div>
-              {getStatusBadge(usageData.ocr.percentage)}
+              {getStatusBadge(ocrPct)}
             </div>
 
             <div className="flex items-baseline justify-between text-xs font-semibold">
               <span className="text-slate-300">
-                المستخدم: <strong className="text-white text-base font-mono">{usageData.ocr.used}</strong> / {usageData.ocr.limit === -1 ? 'غير محدود' : usageData.ocr.limit}
+                المستخدم: <strong className="text-white text-base font-mono tabular-nums">{safeOcr?.used ?? 0}</strong> / {safeOcr?.limit === -1 ? 'غير محدود' : (safeOcr?.limit ?? 0)}
               </span>
-              <span className="text-amber-400 font-mono">{usageData.ocr.limit === -1 ? '0%' : `${usageData.ocr.percentage}%`}</span>
+              <span className="text-amber-400 font-mono tabular-nums">{safeOcr?.limit === -1 ? '0%' : `${ocrPct}%`}</span>
             </div>
 
             <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
               <div
-                className={`h-full transition-all duration-500 ${getProgressColor(usageData.ocr.percentage)}`}
-                style={{ width: `${usageData.ocr.limit === -1 ? 0 : Math.min(100, usageData.ocr.percentage)}%` }}
+                className={`h-full transition-all duration-500 ${getProgressColor(ocrPct)}`}
+                style={{ width: `${safeOcr?.limit === -1 ? 0 : Math.min(100, Math.max(0, ocrPct))}%` }}
               />
             </div>
           </div>
@@ -332,26 +461,26 @@ export const SubscriptionTab: React.FC = () => {
                   <p className="text-xs text-slate-400">Storage Usage</p>
                 </div>
               </div>
-              {getStatusBadge(usageData.storage.percentage)}
+              {getStatusBadge(storagePct)}
             </div>
 
             <div className="flex items-baseline justify-between text-xs font-semibold">
               <span className="text-slate-300">
-                المستخدم: <strong className="text-white text-base font-mono">{formatBytes(usageData.storage.usedBytes)}</strong> / {formatBytes(usageData.storage.limitBytes)}
+                المستخدم: <strong className="text-white text-base font-mono tabular-nums">{formatBytes(safeStorage?.usedBytes)}</strong> / {formatBytes(safeStorage?.limitBytes)}
               </span>
-              <span className="text-emerald-400 font-mono">{usageData.storage.limitBytes === -1 ? '0%' : `${usageData.storage.percentage}%`}</span>
+              <span className="text-emerald-400 font-mono tabular-nums">{safeStorage?.limitBytes === -1 ? '0%' : `${storagePct}%`}</span>
             </div>
 
             <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
               <div
-                className={`h-full transition-all duration-500 ${getProgressColor(usageData.storage.percentage)}`}
-                style={{ width: `${usageData.storage.limitBytes === -1 ? 0 : Math.min(100, usageData.storage.percentage)}%` }}
+                className={`h-full transition-all duration-500 ${getProgressColor(storagePct)}`}
+                style={{ width: `${safeStorage?.limitBytes === -1 ? 0 : Math.min(100, Math.max(0, storagePct))}%` }}
               />
             </div>
           </div>
 
           {/* 5. AI Requests Metric */}
-          {usageData.aiRequests && (
+          {safeAiRequests && (
             <div className="p-5 rounded-2xl bg-slate-900 border border-emerald-900/40 shadow-xl space-y-3 md:col-span-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
@@ -363,20 +492,20 @@ export const SubscriptionTab: React.FC = () => {
                     <p className="text-xs text-slate-400">AI Requests Per Month</p>
                   </div>
                 </div>
-                {getStatusBadge(usageData.aiRequests.percentage)}
+                {getStatusBadge(aiRequestsPct)}
               </div>
 
               <div className="flex items-baseline justify-between text-xs font-semibold">
                 <span className="text-slate-300">
-                  المستغرق: <strong className="text-white text-base font-mono">{usageData.aiRequests.used}</strong> / {usageData.aiRequests.limit === -1 ? 'غير محدود' : usageData.aiRequests.limit}
+                  المستغرق: <strong className="text-white text-base font-mono tabular-nums">{safeAiRequests?.used ?? 0}</strong> / {safeAiRequests?.limit === -1 ? 'غير محدود' : (safeAiRequests?.limit ?? 0)}
                 </span>
-                <span className="text-emerald-400 font-mono">{usageData.aiRequests.limit === -1 ? '0%' : `${usageData.aiRequests.percentage}%`}</span>
+                <span className="text-emerald-400 font-mono tabular-nums">{safeAiRequests?.limit === -1 ? '0%' : `${aiRequestsPct}%`}</span>
               </div>
 
               <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
                 <div
-                  className={`h-full transition-all duration-500 ${getProgressColor(usageData.aiRequests.percentage)}`}
-                  style={{ width: `${usageData.aiRequests.limit === -1 ? 0 : Math.min(100, usageData.aiRequests.percentage)}%` }}
+                  className={`h-full transition-all duration-500 ${getProgressColor(aiRequestsPct)}`}
+                  style={{ width: `${safeAiRequests?.limit === -1 ? 0 : Math.min(100, Math.max(0, aiRequestsPct))}%` }}
                 />
               </div>
             </div>

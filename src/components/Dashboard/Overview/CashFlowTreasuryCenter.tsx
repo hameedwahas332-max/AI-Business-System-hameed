@@ -197,7 +197,7 @@ export const CashFlowTreasuryCenter: React.FC<CashFlowTreasuryCenterProps> = ({
                       {formatAmount(item.balance)} {currency}
                     </span>
                     <span className="text-[10px] font-mono font-semibold text-[var(--md-on-surface-variant)] tabular-nums">
-                      {item.pct}% من السيولة
+                      {Number(item?.pct ?? 0)}% من السيولة
                     </span>
                   </div>
                 </div>
@@ -206,7 +206,7 @@ export const CashFlowTreasuryCenter: React.FC<CashFlowTreasuryCenterProps> = ({
                 <div className="w-full h-1.5 bg-[var(--md-surface-container-high)] rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full ${item.color}`}
-                    style={{ width: `${item.pct}%` }}
+                    style={{ width: `${Math.min(100, Math.max(0, Number(item?.pct ?? 0)))}%` }}
                   />
                 </div>
               </div>

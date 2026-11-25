@@ -528,7 +528,7 @@ export const TestRunnerTab: React.FC = () => {
         totalScenarios: stats.total,
         passed: stats.passed,
         failed: stats.failed,
-        complianceRate: `${stats.percent}%`,
+        complianceRate: `${Number(stats?.percent ?? 0)}%`,
         status: stats.passed === 17 ? 'FULLY_CERTIFIED_PRODUCTION_GRADE' : 'PARTIAL'
       },
       scenarios: scenarios.map((s) => ({
@@ -615,7 +615,7 @@ export const TestRunnerTab: React.FC = () => {
           <div className="space-y-1">
             <span className="text-xs text-[var(--md-success)] font-bold">السيناريوهات الناجحة</span>
             <div className="text-2xl font-black text-[var(--md-success)] font-mono tabular-nums">{stats.passed}</div>
-            <span className="text-[11px] text-[var(--md-on-surface-variant)] tabular-nums">نسبة الامتثال: {stats.percent}%</span>
+            <span className="text-[11px] text-[var(--md-on-surface-variant)] tabular-nums">نسبة الامتثال: {Number(stats?.percent ?? 0)}%</span>
           </div>
           <div className="w-10 h-10 rounded-xl bg-[var(--md-success-container)] border border-[var(--md-success)]/25 flex items-center justify-center text-[var(--md-on-success-container)]">
             <CheckCircle2 className="w-5 h-5" />
@@ -653,12 +653,12 @@ export const TestRunnerTab: React.FC = () => {
       <div className="m3-card p-4 space-y-2.5">
         <div className="flex items-center justify-between text-xs font-bold text-[var(--md-on-surface)]">
           <span>مستوى اكتمال الفحوصات المعيارية:</span>
-          <span className="font-mono text-[var(--md-primary-text)] tabular-nums">{stats.percent}% مكتمل</span>
+          <span className="font-mono text-[var(--md-primary-text)] tabular-nums">{Number(stats?.percent ?? 0)}% مكتمل</span>
         </div>
         <div className="w-full h-2.5 bg-[var(--md-surface-container-highest)] rounded-full overflow-hidden">
           <div
             className="h-full bg-[var(--md-primary)] transition-all duration-300 rounded-full"
-            style={{ width: `${stats.percent}%` }}
+            style={{ width: `${Math.min(100, Math.max(0, Number(stats?.percent ?? 0)))}%` }}
           />
         </div>
       </div>

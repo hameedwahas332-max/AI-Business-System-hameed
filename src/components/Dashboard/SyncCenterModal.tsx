@@ -571,7 +571,15 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
                 <div
                   className="h-full bg-[var(--md-primary)] transition-all duration-300 rounded-full"
                   style={{
-                    width: `${Math.min(100, Math.round((manualSyncProgress.sent / Math.max(1, manualSyncProgress.total)) * 100))}%`,
+                    width: `${Math.min(
+                      100,
+                      Math.max(
+                        0,
+                        Math.round(
+                          (Number(manualSyncProgress?.sent ?? 0) / Math.max(1, Number(manualSyncProgress?.total ?? 1))) * 100
+                        )
+                      )
+                    )}%`,
                   }}
                 />
               </div>

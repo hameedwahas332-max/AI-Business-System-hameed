@@ -42,85 +42,101 @@ export const RolesTab: React.FC = () => {
   }, []);
 
   return (
-    <div className="space-y-6 text-right text-slate-100 font-sans" dir="rtl">
-      <div className="bg-slate-900 border border-emerald-900/40 rounded-2xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-transparent rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+    <div className="space-y-6 text-right text-[var(--md-on-surface)] font-sans" dir="rtl">
+      <div className="m3-card p-5 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center shadow-lg shadow-emerald-950/50 shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[color-mix(in_srgb,var(--md-primary)_25%,transparent)] flex items-center justify-center shrink-0">
                 <Shield className="w-5 h-5" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-bold text-[var(--md-on-surface)] tracking-tight flex items-center flex-wrap gap-2">
                   <span>الأدوار والصلاحيات</span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
+                  <span className="m3-badge m3-badge-primary font-mono">
                     Roles & RBAC
                   </span>
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-400 font-medium">
+                <p className="text-xs sm:text-sm text-[var(--md-on-surface-variant)] font-medium mt-0.5">
                   إدارة الأدوار الوظيفية، الصلاحيات المخصصة، ومصفوفة السيطرة المالية
                 </p>
               </div>
             </div>
           </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="m3-badge tabular-nums">
+              الأدوار: <strong className="font-mono text-[var(--md-on-surface)]">{roles.length}</strong>
+            </span>
+            <span className="m3-badge m3-badge-secondary tabular-nums">
+              الصلاحيات: <strong className="font-mono">{permissions.length}</strong>
+            </span>
+          </div>
         </div>
       </div>
 
       {error && (
-        <div className="p-4 bg-red-950/40 border border-red-800/60 rounded-xl flex items-center gap-3 text-red-300 text-xs sm:text-sm shadow-lg">
-          <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-400" />
+        <div className="p-4 bg-[var(--md-error-container)] border border-[color-mix(in_srgb,var(--md-error)_30%,transparent)] rounded-2xl flex items-center gap-3 text-[var(--md-on-error-container)] text-xs sm:text-sm font-medium">
+          <AlertCircle className="w-5 h-5 shrink-0 text-[var(--md-error)]" />
           <span>{error}</span>
         </div>
       )}
 
       {isLoading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
+        <div className="m3-card flex justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-[var(--md-outline-variant)] border-b-[var(--md-primary)]"></div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {roles.length === 0 ? (
-            <div className="col-span-full text-center py-12 text-slate-400">
+            <div className="m3-card col-span-full text-center py-12 text-xs sm:text-sm text-[var(--md-on-surface-variant)]">
               لا توجد أدوار مسجلة حالياً
             </div>
           ) : (
             roles.map((role) => (
               <div
                 key={role.id}
-                className="bg-slate-900 border border-slate-800/80 rounded-2xl p-5 hover:border-emerald-700/60 transition-colors shadow-xl"
+                className="m3-card p-5 hover:border-[var(--md-primary)] transition-colors flex flex-col justify-between"
               >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-emerald-400" />
-                    <h3 className="font-bold text-white text-sm sm:text-base">{role.name}</h3>
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] flex items-center justify-center shrink-0">
+                        <Shield className="w-4 h-4" />
+                      </div>
+                      <h3 className="font-bold text-[var(--md-on-surface)] text-sm sm:text-base truncate">{role.name}</h3>
+                    </div>
+                    {role.isSystem ? (
+                      <span className="m3-badge m3-badge-primary shrink-0">
+                        نظام
+                      </span>
+                    ) : (
+                      <span className="m3-badge shrink-0">
+                        مخصص
+                      </span>
+                    )}
                   </div>
-                  {role.isSystem ? (
-                    <span className="px-2.5 py-0.5 text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800/60 rounded-full">
-                      نظام
-                    </span>
-                  ) : (
-                    <span className="px-2.5 py-0.5 text-[10px] font-semibold bg-slate-800 text-slate-400 border border-slate-700/60 rounded-full">
-                      مخصص
-                    </span>
-                  )}
+
+                  <p className="text-xs text-[var(--md-on-surface-variant)] mb-4 line-clamp-2 leading-relaxed">
+                    {role.description || 'دور مخصص للتحكم بالصلاحيات'}
+                  </p>
                 </div>
 
-                <p className="text-xs text-slate-400 mb-4 line-clamp-2">
-                  {role.description || 'دور مخصص للتحكم بالصلاحيات'}
-                </p>
-
-                <div className="border-t border-slate-800/80 pt-3">
-                  <div className="text-xs font-semibold text-slate-300 mb-2">الصلاحيات الممنوحة:</div>
-                  <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                <div className="border-t border-[var(--md-outline-variant)] pt-3">
+                  <div className="flex items-center justify-between text-xs font-semibold text-[var(--md-on-surface)] mb-2">
+                    <span>الصلاحيات الممنوحة:</span>
+                    <span className="text-[11px] font-mono tabular-nums text-[var(--md-on-surface-variant)]">
+                      {(role.permissions || []).length}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto custom-scrollbar">
                     {(role.permissions || []).length === 0 ? (
-                      <span className="text-xs text-slate-500">لا توجد صلاحيات مخصصة</span>
+                      <span className="text-xs text-[var(--md-on-surface-variant)]">لا توجد صلاحيات مخصصة</span>
                     ) : (
                       (role.permissions || []).map((perm, idx) => (
                         <span
                           key={idx}
-                          className="px-2 py-0.5 text-[11px] bg-slate-950 text-slate-300 rounded-lg border border-slate-800 font-mono"
+                          className="px-2 py-0.5 text-[11px] bg-[var(--md-surface-container)] text-[var(--md-on-surface)] rounded-lg border border-[var(--md-outline-variant)] font-mono tabular-nums"
                         >
                           {typeof perm === 'string' ? perm : perm.name || perm.code}
                         </span>
